@@ -1,11 +1,11 @@
 ---
-agent: true
-description: Review an ERP change against authoritative documentation and repository rules
+agent: 'agent'
+description: Review a NEW_ERP_FINAL change against authoritative documentation and repository rules
 ---
 
 # Review ERP Change
 
-Review the current change without making modifications unless the user explicitly asks for fixes.
+Review the current change against the repository authority and validation contract. Do not make modifications unless the user explicitly asks for fixes.
 
 ## Review against
 
@@ -13,7 +13,7 @@ Review the current change without making modifications unless the user explicitl
 2. applicable authoritative documentation under `docs/`
 3. applicable approved ADRs
 4. existing module boundaries and implementation patterns
-5. relevant tests
+5. relevant tests and validation results
 6. security and tenant-isolation requirements
 
 ## Look for
@@ -39,4 +39,4 @@ Classify findings as:
 - **MEDIUM** — important quality issue.
 - **LOW** — improvement opportunity.
 
-For each finding, cite the relevant repository file/document and explain the evidence.
+For each finding, cite the relevant repository file/document and explain the evidence. If there are no findings, explicitly state what was checked and what validation evidence was available.
