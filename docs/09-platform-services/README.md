@@ -1,158 +1,100 @@
 # Platform Services Architecture
 
-This directory contains the design and standards for platform-wide services that business modules depend on.
+This directory defines shared platform capabilities used by ERP business modules. These capabilities address cross-cutting concerns and must be consumed through approved contracts rather than reimplemented independently inside business modules.
 
-## Platform Services Overview
+## Current Architectural Position
 
-The ERP provides platform-wide capabilities for cross-cutting concerns:
+The ERP backend is a **modular monolith**. Platform services are therefore logical shared capabilities within the current backend, not independently deployed microservices by default.
 
-| Service | Purpose | Ownership |
-|---------|---------|-----------|
-| **Authentication Service** | User authentication, token lifecycle, session management | Platform Team |
-| **Authorization Service** | Centralized authorization and permission evaluation | Platform Team |
-| **Audit Service** | Audit event logging and compliance logging | Platform Team |
-| **Notification Service** | User notifications, alerts, and escalations | Platform Team |
-| **File Storage Service** | Document and file storage | Platform Team |
-| **Configuration Service** | Organization and system configuration | Platform Team |
-| **Scheduler Service** | Background and scheduled jobs | Platform Team |
-| **Reporting Service** | Report execution, scheduling, and distribution | Platform Team |
+A platform capability may be extracted into an independently deployed service later only through an approved architectural decision.
 
-## Design Principle: Platform Before Features
+## Platform Capabilities
 
-Platform stability is more important than rapid feature development. Cross-cutting capabilities such as Authentication, Authorization, Audit, Notifications, File Storage, Configuration, Scheduling, and Reporting shall be provided through approved platform contracts rather than reimplemented independently inside business modules.
+| Document | Capability | Role |
+|---|---|---|
+| `01-platform-service-architecture.md` | Core platform services | Notifications, document management, workflow capability and shared platform boundaries |
+| `02-enterprise-integration-platform.md` | Enterprise integration | APIs, events, messaging, connectors, synchronization, EDI and managed file transfer |
+| `03-ai-platform-architecture.md` | AI platform | AI/ML, document intelligence, MLOps and enterprise assistants |
+| `04-enterprise-configuration-framework.md` | Configuration | Governed platform-wide configuration and hierarchy |
+| `05-localization-internationalization.md` | Globalization | Languages, locales, currencies, regional configuration and localization |
 
-Business modules must not implement their own:
-- Authentication
-- Authorization policy enforcement
-- Audit logging
-- Notification delivery
-- File storage
-- Shared configuration management
-- Shared scheduling infrastructure
+Other platform capabilities may be defined in their authoritative architecture documents when ownership is established.
 
-## Authentication Service
+## Platform Before Features
 
-**Responsibilities**:
-- User authentication
-- Access-token generation and validation
-- Refresh-token lifecycle where applicable
-- Session management
-- Logout/session invalidation
+Business modules must not independently implement shared infrastructure for:
 
-**Scope**:
-- Provides the authentication capability consumed by the backend.
-- Integrates with the authoritative identity model and configured identity providers.
-- Exact external identity-provider integrations remain subject to the security architecture and approved ADRs.
+- Authentication and authorization.
+- Audit logging.
+- Notification delivery.
+- File/document storage.
+- Shared configuration management.
+- Scheduling/background infrastructure.
+- Enterprise integration infrastructure.
+- AI infrastructure.
 
-**Future/optional capabilities** may include MFA, OIDC/SAML, device trust, and SSO when approved.
+A module may contain domain-specific behavior that uses these capabilities, but the shared platform contract remains authoritative for the cross-cutting concern.
 
-## Authorization Service
+## Ownership and Boundaries
 
-**Responsibilities**:
-- Centralized policy evaluation
-- Role and permission management
-- User-to-role assignment
-- Fine-grained authorization
-- Segregation-of-duties controls where applicable
+Platform services do not become owners of business-domain records merely because they provide a shared capability.
 
-**Current policy baseline**:
-- RBAC is the current baseline authorization model.
-- The enterprise security architecture defines the enforcement architecture; business modules must not independently make authorization decisions.
-- Resource/action permissions use the canonical permission model defined by the security documentation.
+For example:
 
-Future authorization models require an approved architectural decision before implementation.
+- Finance owns financial transactions.
+- Inventory owns inventory transactions.
+- HR owns HR records.
+- Sales owns sales-domain records.
+- Quality owns quality records.
+- Asset Maintenance owns maintenance records.
 
-## Audit Service
+Platform capabilities coordinate or provide infrastructure around these records through approved contracts.
 
-**Responsibilities**:
-- Record audit events
-- Maintain the audit trail
-- Provide audit-log retrieval
-- Support compliance reporting
+## Security
 
-Audit coverage includes authentication events, record changes, approvals, permission changes, privileged access, failed authorization, sensitive data access, configuration changes, and module licensing changes as required by the security architecture.
+Platform capabilities follow the canonical security architecture in `docs/06-security/04-enterprise-security-architecture.md`.
 
-Audit records include actor, tenant/organization context, timestamp, operation, resource, result, correlation ID, and other fields required by the authoritative audit schema.
+They must preserve tenant isolation, authorization, auditability, data classification, and other applicable security controls.
 
-## Notification Service
+## Configuration
 
-**Responsibilities**:
-- Send user notifications
-- Manage notification preferences
-- Handle notification delivery
-- Support approved delivery channels
+Platform-level configuration is governed by `04-enterprise-configuration-framework.md`. Module-specific configuration remains with the owning module. Integration-specific configuration remains with the Enterprise Integration Platform.
 
-Initial channels and future channels are implementation decisions governed by the platform/service specifications and ADRs.
+## Globalization
 
-## File Storage Service
+Platform-level localization is governed by `05-localization-internationalization.md`. Frontend-specific localization remains governed by `docs/05-frontend/20-localization.md`.
 
-**Responsibilities**:
-- Store documents and files
-- Manage file versions
-- Retrieve files
-- Apply access control
-- Support retention/deletion policies
+## Integration
 
-Storage may support on-premises or cloud backends as defined by the deployment and storage architecture. Tenant isolation and encryption requirements are governed by the security and database documentation.
+The Enterprise Integration Platform is the canonical location for shared external connectivity. Business modules should expose/use published contracts rather than implementing point-to-point infrastructure independently.
 
-## Configuration Service
+## AI
 
-**Responsibilities**:
-- Store organization/system configuration
-- Provide configuration retrieval
-- Manage configuration changes
-- Support defined configuration scopes
+The AI Platform provides optional/approved AI capabilities. AI output is not authoritative business data and must not bypass business-module validation, authorization, or audit requirements.
 
-Configuration ownership and precedence must be defined by the relevant module/platform specification before implementation.
-
-## Scheduler Service
-
-**Responsibilities**:
-- Execute scheduled jobs
-- Manage schedules
-- Maintain execution history
-- Handle retries and failures
-- Expose job health/monitoring information
-
-Business modules may register jobs through the approved scheduler contract; they must not create independent scheduling infrastructure.
-
-## Reporting Service
-
-**Responsibilities**:
-- Execute approved reports
-- Manage report definitions
-- Schedule report runs
-- Deliver report output
-- Maintain report history where required
-
-Report formats and delivery mechanisms are subject to the reporting specification and relevant ADRs.
-
-## Deployment and Versioning
-
-Platform services are **logical platform capabilities within the current modular-monolith backend**, not independently deployed services by default.
-
-Platform capabilities may expose versioned contracts where an API contract requires versioning. Independent deployment or service extraction is a future architectural change and requires an approved ADR.
-
-## Module Dependency on Platform Services
+## Module Usage Pattern
 
 ```text
-Business Modules
-       ↓
-Published Platform Contracts
-       ↓
-Platform Capabilities
+Business Module
+      ↓
+Published Platform Contract
+      ↓
+Platform Capability
+      ↓
+Approved Infrastructure / Integration
 ```
 
-Modules use platform capabilities for cross-cutting concerns rather than implementing duplicate infrastructure.
+## AI/Copilot Implementation Rules
 
-## Related Documentation
+AI-assisted development must:
 
-- [Architectural Principles](../00-overview/01-architectural-principles.md) — Platform Before Features principle
-- [Design Philosophy](../02-architecture/01-design-philosophy.md) — Platform First philosophy
-- [Architectural Boundaries](../02-architecture/03-boundaries.md) — Module/platform dependency rules
-- [Security Architecture](../06-security/04-enterprise-security-architecture.md) — Authentication and authorization architecture
-- [Backend Modular Monolith](../04-backend/03-modular-monolith.md) — Current deployment model
+- Check the relevant platform document before creating shared infrastructure.
+- Reuse existing platform contracts.
+- Avoid duplicate services and duplicate ownership.
+- Never invent providers, deployment models, or capabilities that are not established by the repository.
+- Keep business-domain ownership with the owning module.
+- STOP and ask when platform ownership, contract boundaries, security, or architectural intent is unclear.
 
 ## Status
 
-This document defines current platform capability boundaries. Detailed service specifications should be added under this directory as each platform capability is designed and approved.
+These documents define the current platform-service architecture for the repository. Detailed implementation may proceed only where the corresponding capability and contract are sufficiently defined and approved.
