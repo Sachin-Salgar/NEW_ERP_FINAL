@@ -1,120 +1,117 @@
 # User Interface Design System
 
-<!--
-Title: Design System
-Purpose: Canonical migration from Volume 4 — Frontend Architecture
-Scope: UI components, tokens, theming and design guidelines
-Audience: Designers, frontend developers
-Owner: TBD
-Status: Migrated (Draft)
-Last Reviewed: 2026-08-07
-Related ADRs:
-Related Documents: docs/migration-traceability/volume4-to-docs.md
--->
+**Document Purpose:** Define the shared visual and interaction standards for the Enterprise ERP frontend.
 
-Source: Volume 4 — Chapter 10
+## 10.1 Introduction
 
-10.1 Introduction
+A consistent user interface is essential for an enterprise application used across multiple departments and business functions.
 
-A consistent user interface is essential for an enterprise application used daily by employees across multiple departments.
+The Enterprise ERP Platform shall use a shared design system defining visual standards, reusable components, spacing, typography, semantic colors, icons, themes, and interaction patterns.
 
-The Enterprise ERP Platform shall implement a centralized Design System that defines visual standards, reusable components, spacing, typography, colors, icons, and interaction patterns.
+The design system reduces unnecessary duplication while allowing business modules to compose approved components for their own workflows.
 
-A unified design system reduces development effort, improves usability, and ensures visual consistency across all modules.
-
-10.2 Objectives
+## 10.2 Objectives
 
 The Design System aims to:
-• Ensure visual consistency.
-• Improve user experience.
-• Reduce duplicated UI code.
-• Accelerate development.
-• Support accessibility.
-• Simplify maintenance.
+- Ensure visual consistency.
+- Improve user experience.
+- Reduce duplicated UI code.
+- Accelerate development.
+- Support accessibility.
+- Simplify maintenance.
 
-10.3 Design Principles
+## 10.3 Design Principles
 
 The user interface shall follow these principles:
-• Consistency.
-• Simplicity.
-• Clarity.
-• Accessibility.
-• Responsiveness.
-• Predictability.
-• Minimalism.
+- Consistency.
+- Simplicity.
+- Clarity.
+- Accessibility.
+- Responsiveness.
+- Predictability.
+- Minimalism where appropriate.
 
-Every screen shall prioritize business productivity over decorative design.
+Every screen should prioritize business productivity and clarity over decorative design.
 
-10.4 Typography
+## 10.4 Typography
 
-The application shall define standardized typography.
-Examples include:
-• Display Heading.
-• Page Heading.
-• Section Heading.
-• Table Header.
-• Body Text.
-• Caption.
-• Error Text.
+The design system shall define standardized typography roles such as:
+- Display Heading.
+- Page Heading.
+- Section Heading.
+- Table Header.
+- Body Text.
+- Caption.
+- Error Text.
 
-Typography shall remain consistent throughout the application.
+Concrete fonts, sizes, weights, and platform-specific implementations shall be defined by the design-system implementation rather than invented independently by modules.
 
-10.5 Color System
+## 10.5 Color System
 
-The design system shall define semantic colors.
-Examples:
-• Primary.
-• Secondary.
-• Success.
-• Warning.
-• Error.
-• Information.
-• Background.
-• Surface.
-• Border.
+The design system shall define semantic color roles such as:
+- Primary.
+- Secondary.
+- Success.
+- Warning.
+- Error.
+- Information.
+- Background.
+- Surface.
+- Border.
 
-Business modules shall not define their own independent color palettes.
+Business modules shall use the shared semantic design tokens rather than introducing incompatible independent palettes.
 
-10.6 Icons
+## 10.6 Icons
 
 Icons shall be:
-• Consistent.
-• Easily recognizable.
-• Accessible.
-• Minimal.
+- Consistent.
+- Recognizable.
+- Accessible.
+- Used purposefully.
 
-Icons should support, not replace, descriptive text.
+Icons should support, not unnecessarily replace, descriptive text.
 
-10.7 Spacing
+## 10.7 Spacing
 
-A standardized spacing system shall define:
-• Margins.
-• Padding.
-• Component spacing.
-• Grid spacing.
+A standardized spacing system shall define reusable values for:
+- Margins.
+- Padding.
+- Component spacing.
+- Grid/layout spacing.
 
-Consistent spacing improves readability.
+Consistent spacing improves readability and reduces arbitrary visual variation.
 
-10.8 Responsive Layout
+## 10.8 Responsive Layout
 
-Layouts shall adapt according to device size.
-Examples:
-• Mobile.
-• Tablet.
-• Desktop.
-• Large Desktop.
+Layouts shall adapt to supported device sizes and form factors, including where applicable:
+- Mobile.
+- Tablet.
+- Desktop.
+- Large Desktop.
 
-Components shall resize appropriately without changing business functionality.
+Responsive behavior shall preserve business functionality while adapting presentation and interaction to the available space.
 
-10.9 Theme Support
+## 10.9 Theme Support
 
-The frontend shall support:
-• Light Theme.
-• Dark Theme.
-• System Theme.
+The frontend may support:
+- Light Theme.
+- Dark Theme.
+- System Theme.
 
-Theme selection shall be stored per user.
+Theme support shall follow the capabilities and requirements established by the implemented design system. User theme preferences, when persisted, shall remain scoped to the appropriate user and organization context.
 
-10.10 Summary
+## 10.10 Component Reuse
 
-The Design System establishes a unified visual identity for the ERP while improving usability, accessibility, and long-term maintainability.
+Shared components should be used when they represent genuinely common interaction or presentation patterns.
+
+Business-specific behavior belongs in the relevant module rather than being forced into generic shared components.
+
+## 10.11 Summary
+
+The Design System establishes shared visual and interaction standards for the ERP while improving usability, accessibility, consistency, and long-term maintainability.
+
+## Cross References
+
+- [Frontend Architecture](./02-flutter-architecture.md)
+- [Project Structure](./04-project-structure.md)
+- [Accessibility](./21-accessibility.md)
