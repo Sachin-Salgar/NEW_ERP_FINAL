@@ -1,118 +1,102 @@
-<!-- Traceability: Volume 4 — Chapter 13 → docs/06-security/02-frontend-security.md -->
 # Frontend Security
 
-Source: Volume 4 — Chapter 13
+**Document Purpose:** Define frontend security responsibilities and their boundary with backend security enforcement.
 
-13.1 Introduction
+## 2.1 Scope
 
-Although the backend is responsible for enforcing business rules and authorization, the frontend plays a vital role in protecting user sessions, safeguarding sensitive information, and providing a secure user experience.
-
-The frontend shall never assume that client-side validation or hidden user interface elements provide adequate security. Every sensitive operation must ultimately be validated by the backend.
+The frontend contributes to secure session handling, safe presentation, secure local-state handling, error handling, and reduction of accidental data exposure.
 
 Frontend security complements, but never replaces, backend security.
 
-13.2 Objectives
+## 2.2 Objectives
 
 The frontend security strategy aims to:
-• Protect user sessions.
-• Secure locally stored information.
-• Prevent accidental data exposure.
-• Improve application resilience.
-• Support secure authentication.
-• Reduce the attack surface.
+- Protect user sessions.
+- Minimize sensitive client-side storage.
+- Prevent accidental data exposure.
+- Provide safe authentication/session UX.
+- Reduce client-side attack surface.
 
-13.3 Security Principles
+## 2.3 Security Principles
 
-The frontend follows these principles:
-• Zero Trust.
-• Least Privilege.
-• Secure by Default.
-• Defense in Depth.
-• Data Minimization.
-• Secure Session Management.
+The frontend follows:
+- Zero Trust.
+- Least Privilege.
+- Secure by Default.
+- Defense in Depth.
+- Data Minimization.
+- Secure Session Management.
 
-Security shall be considered during every stage of frontend development.
+Client-side controls are usability and defense-in-depth measures, not substitutes for server-side enforcement.
 
-13.4 Authentication
+## 2.4 Authentication and Session Handling
 
-The frontend shall:
-• Store access tokens securely.
-• Handle refresh tokens safely.
-• Detect expired sessions.
-• Support automatic logout.
-• Prevent unauthorized navigation.
+The frontend shall use the established authentication contract and shall not implement an independent authentication protocol.
 
-Authentication logic shall remain centralized.
+The current baseline uses JWT-based access and refresh tokens. Token storage, refresh behavior, rotation, expiration, and revocation shall follow the canonical backend/ADR contract.
 
-13.5 Authorization
+Access and refresh tokens shall be stored using secure mechanisms appropriate to the supported platform. Credentials and tokens must not be written to ordinary application logs.
 
-The frontend shall display functionality based on permissions received from the backend.
-Examples include:
-• Module visibility.
-• Menu visibility.
-• Button visibility.
-• Report visibility.
-• Action availability.
+Expired or revoked sessions shall be handled consistently with the backend authentication contract.
 
-Hidden functionality shall never be treated as a security mechanism. The backend remains the final authority.
+## 2.5 Authorization
 
-13.6 Sensitive Data
+The frontend may use backend-provided authorization information to control:
+- Module visibility.
+- Menu visibility.
+- Button visibility.
+- Report visibility.
+- Action availability.
 
-Sensitive information shall not be stored unnecessarily.
-Examples include:
-• Passwords.
-• Authentication secrets.
-• Payment credentials.
-• Encryption keys.
+Hidden functionality is never a security boundary. Every protected operation must be independently authorized by the backend.
 
-Temporary data shall be cleared when no longer required.
+## 2.6 Sensitive Data
 
-13.7 Session Timeout
+Sensitive information shall not be stored locally unless there is an explicit requirement and an appropriate protection mechanism.
 
-The application shall detect inactivity.
-Typical workflow:
-User Inactive
+The frontend shall not unnecessarily retain:
+- Passwords.
+- Authentication secrets.
+- Payment credentials.
+- Encryption keys.
+- Sensitive business data.
 
-↓
+Temporary sensitive data should be cleared when no longer required.
 
-Warning Dialog
+## 2.7 Session Timeout
 
-↓
+The frontend shall respond to backend/session policy and should provide appropriate user feedback when a session is approaching or has reached expiration.
 
-Countdown
+The exact timeout values are policy/configuration concerns and shall not be invented in frontend code.
 
-↓
-
-Automatic Logout
-
-↓
-
-Login Screen
-
-Session timeout values shall be configurable through backend policies.
-
-13.8 Secure Logging
+## 2.8 Secure Logging
 
 The frontend shall never log:
-• Passwords.
-• Authentication Tokens.
-• Personal Identification Numbers.
-• Financial Credentials.
-• Secret Keys.
+- Passwords.
+- Authentication tokens.
+- Secret keys.
+- Payment credentials.
+- Personal identification numbers.
 
-Diagnostic logs shall avoid exposing confidential business information.
+Diagnostic logging shall also avoid unnecessary confidential business information and personally sensitive data.
 
-13.9 Error Messages
+## 2.9 Error Messages
 
-Security-related errors shall provide helpful guidance without exposing implementation details.
-Example:
-Instead of:
-Database authentication failed.
-Display:
-Unable to complete your request. Please try again or contact your administrator.
+Security-related errors shall provide useful user guidance without exposing implementation details, credentials, internal topology, database errors, or security-sensitive information.
 
-13.10 Summary
+## 2.10 Client-Side Validation
 
-Frontend security improves user protection while working together with backend security controls to maintain a secure enterprise platform.
+Client-side validation may improve user experience, but it is not authoritative.
 
-Cross-reference: docs/04-backend/07-authentication-and-authorization.md and docs/10-adr/0009-token-refresh-rotation.md
+Business, authorization, security, and domain validation shall always be enforced by the backend.
+
+## 2.11 Summary
+
+Frontend security provides secure client behavior and defense in depth while the backend remains the authoritative boundary for authentication decisions, authorization, validation, tenant isolation, and protected business operations.
+
+## Cross References
+
+- [Backend Authentication & Authorization](../04-backend/07-authentication-and-authorization.md)
+- [Backend Security](./01-backend-security.md)
+- [Enterprise Security Architecture](./04-enterprise-security-architecture.md)
+- [Architecture Decision Records](../10-adr/0009-token-refresh-rotation.md)
