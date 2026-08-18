@@ -11,6 +11,7 @@ REQUIRED_FILES = [
     ".github/copilot-instructions.md",
     ".github/instructions/ai-workflow.instructions.md",
     ".github/instructions/docs-authority.instructions.md",
+    ".github/skills/erp-feature-development/SKILL.md",
     ".github/prompts/investigate.prompt.md",
     ".github/prompts/implement-feature.prompt.md",
     ".github/prompts/review-change.prompt.md",
@@ -31,7 +32,9 @@ REQUIRED_FILES = [
 
 REQUIRED_PHRASES = {
     "AGENTS.md": ["authoritative source of truth", "STOP and ask", "Completion rule"],
-    ".github/copilot-instructions.md": ["authoritative source of truth", "STOP and ask", "Do NOT read the entire repository"],
+    ".github/copilot-instructions.md": ["automatically supplied", "authoritative source of truth", "STOP and ask", "Do NOT read the entire repository"],
+    ".github/instructions/ai-workflow.instructions.md": ["deterministic", "fail closed", "manually tell Copilot which AI files to read"],
+    ".github/skills/erp-feature-development/SKILL.md": ["authoritative", "Anti-hallucination rules", "validation"],
     ".ai/authority.md": ["Authority hierarchy", "Missing decision", "Contradictory documents"],
     ".ai/workflows/feature-development.md": ["Phase 1 — Discover", "Phase 5 — Validate", "Phase 7 — Report", "Clear feature request"],
     ".ai/workflows/repository-maintenance.md": ["deterministic", "generated inventory", "actual relevant files"],
@@ -58,6 +61,18 @@ def main() -> int:
         for phrase in phrases:
             if phrase not in text:
                 failures.append(f"Missing required phrase in {relative}: {phrase}")
+
+    prompt_dir = root / ".github/prompts"
+    for path in sorted(prompt_dir.glob("*.prompt.md")) if prompt_dir.exists() else []:
+        text = path.read_text(encoding="utf-8", errors="replace")
+        if "agent: 'agent'" not in text:
+            failures.append(f"Prompt file is not configured for agent mode: {path.relative_to(root)}")
+
+    skill = root / ".github/skills/erp-feature-development/SKILL.md"
+    if skill.is_file():
+        text = skill.read_text(encoding="utf-8", errors="replace")
+        if not text.startswith("---\n") or "name: erp-feature-development" not in text or "description:" not in text:
+            failures.append("ERP feature skill is missing required SKILL.md frontmatter")
 
     if failures:
         print("AI workflow validation: FAIL")
