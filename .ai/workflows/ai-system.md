@@ -17,20 +17,20 @@ tools/ai/
   deterministic repository facts and workflow validation
         ↓
 .github/
-  Copilot instructions and reusable prompts
+  always-on Copilot rules + path rules + task skills + reusable prompts
         ↓
-AI coding assistant
+AI coding assistant in Agent mode
         ↓
-plan → implement → validate → review → report
+understand → plan → implement → validate → review → report
 ```
 
 ## Operating cycle
 
-### A. Refresh facts when needed
+### A. Maintain deterministic facts
 
-Run the deterministic scanner after significant repository structure changes or before large cross-module investigations.
+Run the repository scanner after significant repository structure changes or before large cross-module investigations. Generated context is local derived data and must not be committed as authority.
 
-### B. Investigate
+### B. Discover
 
 Classify the request, identify authoritative documents, inspect relevant ADRs, inspect existing implementation/tests, and establish the smallest evidence boundary.
 
@@ -40,7 +40,7 @@ If the authoritative material establishes the requirement, proceed. If a require
 
 ### D. Plan
 
-Produce an evidence-based implementation plan before production code changes for non-trivial work.
+Create an evidence-based implementation plan. For clear non-governed feature requests, this is an internal gate and implementation may continue in the same agent run.
 
 ### E. Implement
 
@@ -65,5 +65,13 @@ Report evidence consulted, files changed, validation actually executed, results,
 - Actual source files must be inspected before implementation decisions.
 - Contradictions are surfaced instead of silently resolved.
 - Missing requirements cause a stop-and-ask decision boundary.
+- The ERP feature skill packages the detailed implementation behavior and is loaded when relevant.
+- Always-on Copilot instructions provide the repository contract without requiring the user to mention `.ai`.
 - Automated tests and builds provide executable evidence after implementation.
 - AI must never claim a validation result that was not actually executed.
+
+## Completion standard
+
+The AI workflow is operationally complete when a clear feature request can be given in ordinary language and the agent can independently discover the relevant authority, inspect the relevant implementation, implement the change, run applicable validation, and report evidence—while stopping for genuine ambiguity or governed architectural decisions.
+
+The workflow does not promise zero model error. It is designed to make unsupported invention difficult, visible, and testable.
