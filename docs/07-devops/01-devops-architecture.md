@@ -1,111 +1,68 @@
 # DevOps Architecture
 
-**Source:** Volume 5 — DevOps Architecture Overview
+**Document Purpose:** Define the operational engineering principles for building, validating, deploying, monitoring, and maintaining the Enterprise ERP Platform.
 
-**Status:** Draft
-**Last Updated:** 2026-08-08
+## 1. Scope
 
-## Introduction
+DevOps covers infrastructure, CI/CD, containers, deployment, observability, backup/recovery, security operations, and production operations. Business-domain logic is outside this document's scope.
 
-DevOps is the operational foundation that enables the Enterprise ERP Platform to be developed, tested, deployed, monitored, and maintained efficiently throughout its lifecycle.
+## 2. Principles
 
-The Enterprise ERP Platform adopts modern DevOps practices to ensure reliable software delivery, repeatable deployments, operational visibility, and continuous improvement.
-
-The DevOps architecture integrates development, testing, operations, security, and infrastructure into a unified engineering process.
-
-## Objectives
-
-The DevOps architecture aims to:
-
-- Automate software delivery.
-- Improve deployment reliability.
-- Reduce operational risk.
-- Increase system availability.
-- Enable continuous integration and deployment.
-- Support scalable infrastructure.
-- Simplify disaster recovery.
-
-## DevOps Principles
-
-The DevOps strategy follows these principles:
-
-- Automation First.
-- Infrastructure as Code.
+- Automation where it provides repeatability and safety.
+- Infrastructure as Code where infrastructure is managed as code.
 - Continuous Integration.
-- Continuous Deployment.
-- Monitoring by Default.
-- Security by Design.
-- Continuous Improvement.
+- Controlled Continuous Delivery/Deployment.
+- Observability by design.
+- Security by design.
+- Continuous improvement.
 
-These principles apply across all environments.
+These are architectural principles, not commitments to a particular vendor or tool.
 
-## High-Level Architecture
+## 3. High-Level Flow
 
 ```text
 Developers
-↓
+   ↓
 Git Repository
-↓
-CI Pipeline
-↓
-Automated Testing
-↓
-Container Build
-↓
-Artifact Registry
-↓
-Deployment Pipeline
-↓
-Production Infrastructure
-↓
-Monitoring & Alerting
+   ↓
+CI Validation
+   ↓
+Build / Artifact
+   ↓
+Deployment Process
+   ↓
+Infrastructure
+   ↓
+Monitoring / Alerting
 ```
 
-Every deployment shall follow the same standardized process.
+The exact CI/CD platform, artifact registry, orchestration technology, and hosting provider are deployment decisions and shall not be invented by individual feature implementations.
 
-## Scope
+## 4. Operational Goals
 
-This document covers:
-
-- Infrastructure.
-- CI/CD.
-- Containers.
-- Deployment.
-- Monitoring.
-- Logging.
-- Backup.
-- Recovery.
-- Security Operations.
-- Production Operations.
-
-Business logic is outside the scope of this document.
-
-## Roles
-
-Typical DevOps roles include:
-
-- Software Developers.
-- DevOps Engineers.
-- Database Administrators.
-- System Administrators.
-- Security Engineers.
-- Infrastructure Engineers.
-
-Responsibilities shall be clearly defined.
-
-## Operational Goals
-
-Infrastructure shall provide:
-
-- High Availability.
+The platform should provide:
 - Reliability.
+- Appropriate availability.
 - Scalability.
 - Security.
 - Performance.
 - Observability.
+- Recoverability.
 
-Operational goals shall be continuously monitored.
+Goals should be measured through defined operational indicators where required.
 
-## Summary
+## 5. Responsibilities
 
-The DevOps architecture provides the operational framework required to build, deploy, monitor, and maintain the Enterprise ERP Platform throughout its lifecycle.
+Typical responsibilities may involve developers, DevOps/infrastructure engineers, database administrators, system administrators, and security personnel. Actual ownership follows organizational governance and deployment arrangements.
+
+## 6. Summary
+
+DevOps provides the operational framework connecting software development with safe, repeatable deployment and reliable production operation.
+
+## Cross References
+
+- [Deployment Architecture](./01-deployment-architecture.md)
+- [Infrastructure Architecture](./02-infrastructure-architecture.md)
+- [CI/CD Pipeline](./05-ci-cd-pipeline.md)
+- [Observability](./08-observability.md)
+- [Operations Management](./11-operations-management.md)
