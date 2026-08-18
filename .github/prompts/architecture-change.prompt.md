@@ -1,6 +1,6 @@
 ---
-agent: true
-description: Analyze a proposed ERP architecture change without bypassing ADR governance
+agent: 'agent'
+description: Analyze a proposed NEW_ERP_FINAL architecture change without bypassing ADR governance
 ---
 
 # Architecture Change Workflow
@@ -9,7 +9,7 @@ Use this workflow whenever a request changes an architectural decision or a gove
 
 ## Rules
 
-- Do not implement the architectural change in the same step.
+- Do not implement the architectural change in this workflow.
 - Read `docs/00-overview/02-governance.md` and `docs/10-adr/README.md` first.
 - Identify the affected SAD sections and existing ADRs.
 - Determine whether an approved ADR already authorizes the requested change.
