@@ -46,11 +46,13 @@ The ERP architecture is built on these core principles:
 
 When uncertainty exists, architectural decisions follow this order of precedence:
 
-1. **Software Architecture Document (SAD)** — This documentation
-2. **Architecture Decision Records (ADRs)** — Approved decisions that supersede SAD sections
+1. **Current authoritative architecture documentation under `docs/`** — Baseline architectural guidance
+2. **Architecture Decision Records (ADRs)** — Approved decisions that supersede affected architecture sections within their explicit scope
 3. **Development Standards** — Detailed implementation standards
 4. **Module Specifications** — Module-specific design documents
 5. **Source Code** — NOT the primary architectural reference
+
+If authoritative documentation conflicts internally, AI and engineering teams must stop and surface the conflict for human resolution rather than silently choosing an interpretation.
 
 ### Architectural Governance
 
@@ -66,11 +68,11 @@ All major changes require an approved Architecture Decision Record.
 
 ## Document Status
 
-| Item | Status | Owner | Review Date |
-|------|--------|-------|-------------|
-| Principles | Complete | Architecture Board | Q1 2024 |
-| Governance | Complete | Architecture Board | Q1 2024 |
-| ADR Process | Active | Architecture Board | Ongoing |
+| Item | Status | Owner |
+|------|--------|-------|
+| Principles | Current | Architecture Board |
+| Governance | Current | Architecture Board |
+| ADR Process | Active | Architecture Board |
 
 ## Next Steps
 
