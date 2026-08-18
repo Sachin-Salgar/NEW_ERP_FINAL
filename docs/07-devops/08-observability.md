@@ -1,200 +1,73 @@
 # Observability
 
-**Source:** Volume 5 — Monitoring, Logging & Observability
+**Document Purpose:** Define metrics, logs, traces, health information, and operational visibility principles.
 
-## Introduction
+## 1. Introduction
 
-Monitoring provides continuous visibility into the operational health, performance, and availability of the Enterprise ERP Platform.
+Observability enables operators and engineers to understand system health and behavior through appropriate telemetry.
 
-Observability extends beyond monitoring by enabling engineers to understand system behavior through metrics, logs, traces, and events.
+The three primary telemetry forms are metrics, logs, and traces, supplemented by health and business signals where useful.
 
-The platform shall implement comprehensive observability to ensure proactive issue detection and rapid incident resolution.
+## 2. Objectives
 
-## Objectives
-
-The observability strategy aims to:
-
-- Detect failures quickly.
-- Improve system reliability.
-- Measure application performance.
-- Monitor infrastructure health.
+- Detect failures.
+- Diagnose incidents.
+- Measure performance.
 - Support capacity planning.
-- Enable proactive maintenance.
+- Monitor infrastructure and application health.
+- Support security and operational investigations.
 
-## Monitoring Layers
+## 3. Monitoring Layers
 
-Monitoring shall be implemented across multiple layers:
-
+Where applicable, monitoring covers:
 - Infrastructure.
-- Operating System.
+- Operating system/runtime.
 - Containers.
-- Application Services.
+- Application services.
 - Database.
-- Background Workers.
-- Business Metrics.
+- Background workers.
+- Relevant business indicators.
 
-Each layer shall expose health information independently.
+## 4. Metrics
 
-## Infrastructure Monitoring
+Useful indicators may include API latency, request volume, error rates, resource utilization, queue processing, database health, and storage growth.
 
-Infrastructure monitoring shall include:
+Thresholds and alert policies shall be defined according to operational requirements rather than invented as universal values.
 
-- CPU Utilization.
-- Memory Usage.
-- Disk Utilization.
-- Network Throughput.
-- Storage Capacity.
-- Hardware Health.
+## 5. Logging
 
-Thresholds shall generate alerts before service degradation occurs.
+Application and infrastructure logs should be centralized where the deployment requires centralized diagnostics.
 
-## Application Monitoring
+Relevant log categories may include:
+- Application.
+- Security.
+- Audit.
+- Access.
+- Error.
+- Performance.
+- Deployment.
 
-Application metrics include:
+Logs should use structured fields where practical, such as timestamp, service, environment, severity, request/correlation identifier, and appropriate user/tenant context.
 
-- API Response Time.
-- Request Volume.
-- Active Sessions.
-- Authentication Success Rate.
-- Error Rate.
-- Queue Processing.
+## 6. Sensitive Data
 
-Application health shall be continuously evaluated.
+Logs shall not contain passwords, authentication tokens, encryption keys, payment credentials, or other secrets. Sensitive business or personal data should be minimized, masked, or omitted according to the security architecture.
 
-## Database Monitoring
+## 7. Retention
 
-Database monitoring shall include:
+Retention shall follow operational, organizational, security, and regulatory requirements. No universal retention period is defined here.
 
-- Active Connections.
-- Query Performance.
-- Slow Queries.
-- Replication Status.
-- Transaction Rate.
-- Storage Growth.
+## 8. Dashboards and Alerting
 
-Database health directly impacts ERP performance.
+Operational dashboards may provide service, infrastructure, database, queue, and relevant business visibility. Alerts should be actionable and tied to operational response procedures.
 
-## Business Monitoring
+## 9. Summary
 
-Business metrics may include:
+Observability provides the evidence required to operate, troubleshoot, secure, and scale the ERP platform effectively.
 
-- Orders Processed.
-- Invoices Generated.
-- Inventory Transactions.
-- Payroll Runs.
-- Login Activity.
-- Active Organizations.
+## Cross References
 
-Business monitoring complements technical monitoring.
-
-## Dashboards
-
-Operational dashboards shall present:
-
-- Infrastructure Health.
-- Service Status.
-- Database Performance.
-- Queue Status.
-- Business Activity.
-
-Dashboards shall support drill-down analysis.
-
-## Centralized Logging
-
-Logs provide a chronological record of system activity and are essential for troubleshooting, auditing, and operational analysis.
-
-The platform shall centralize logs from all application components to simplify diagnostics and incident investigations.
-
-### Objectives
-
-The logging strategy aims to:
-
-- Simplify troubleshooting.
-- Support auditing.
-- Improve security monitoring.
-- Enable operational analytics.
-- Preserve historical records.
-
-### Logging Sources
-
-Logs shall be collected from:
-
-- Backend Services.
-- Flutter Web.
-- Background Workers.
-- Reverse Proxy.
-- Database.
-- Authentication Services.
-- Infrastructure Components.
-
-Centralized collection simplifies analysis.
-
-### Log Categories
-
-Examples include:
-
-- Application Logs.
-- Security Logs.
-- Audit Logs.
-- Access Logs.
-- Error Logs.
-- Performance Logs.
-- Deployment Logs.
-
-Each category shall follow standardized formatting.
-
-### Structured Logging
-
-Logs shall contain:
-
-- Timestamp.
-- Service Name.
-- Environment.
-- Severity Level.
-- Request Identifier.
-- User Identifier (where appropriate).
-- Tenant Identifier (where applicable).
-- Correlation Identifier.
-
-Structured logs improve automated analysis.
-
-### Log Retention
-
-Retention policies shall define:
-
-- Operational Logs.
-- Security Logs.
-- Audit Logs.
-- Archived Logs.
-
-Retention periods shall comply with organizational and regulatory requirements.
-
-### Sensitive Information
-
-Logs shall never contain:
-
-- Passwords.
-- Authentication Tokens.
-- Encryption Keys.
-- Payment Credentials.
-- Personally Sensitive Secrets.
-
-Sensitive information shall be masked or omitted.
-
-### Log Search
-
-Authorized personnel shall be able to search logs using:
-
-- Date Range.
-- Service.
-- Environment.
-- Severity.
-- Request Identifier.
-- User Identifier.
-- Tenant Identifier.
-
-Search capabilities improve troubleshooting efficiency.
-
-## Summary
-
-Comprehensive observability improves operational visibility and enables proactive management of the Enterprise ERP Platform.
+- [Backend Logging & Observability](../04-backend/16-logging-and-observability.md)
+- [Security Operations](../06-security/03-security-operations.md)
+- [Reliability & Fault Tolerance](./06-reliability-fault-tolerance.md)
+- [Operations Management](./11-operations-management.md)
