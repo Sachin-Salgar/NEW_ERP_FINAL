@@ -1,47 +1,56 @@
-# Volume 7 → Docs mapping
+# Volume 7 → Docs Mapping
 
-Purpose
-- Document the canonical migration of Volume 7 (Chapters 181–189) into the repository canonical documentation.
-- Preserve all substantive architecture from the Volume 7 archive (docs/archive/Enterprise ERP Software Architecture - Volume 7 – Enterprise Information & Platform Services.md).
+## Purpose
+
+This file records the canonical migration relationship for Volume 7 (Chapters 181–189) into the repository documentation.
 
 Source archive:
-- docs/archive/Enterprise ERP Software Architecture - Volume 7 – Enterprise Information & Platform Services.md
+- `docs/archive/Enterprise ERP Software Architecture - Volume 7 – Enterprise Information & Platform Services.md`
 
-Immutable-source rule: the archive remains read-only and unchanged.
+The archive is historical source material and remains read-only. Current canonical documents under `docs/` take precedence over historical migration wording.
 
-Canonical ownership rules: follow repository precedence (Platform Services, Database/MDM, Security, Backend, Frontend, DevOps, Business Modules, ADRs).
+## Chapter-level mapping
 
-## Chapter-level mapping (summary)
-
-| Chapter | Title | Canonical Destination | Disposition |
+| Chapter | Title | Canonical Destination | Current Disposition |
 |---:|---|---|---|
-| 181 | Enterprise Document Management | docs/09-platform-services/01-platform-service-architecture.md | MERGED / EXTENDED (Platform Services canonical) |
-| 182 | File Storage & Object Repository | docs/09-platform-services/01-platform-service-architecture.md; docs/04-backend/14-file-storage-architecture.md | SPLIT (platform-level + backend implementation) |
-| 183 | Document Versioning & Collaboration | docs/09-platform-services/01-platform-service-architecture.md | MERGED / EXTENDED |
-| 184 | OCR, Document Intelligence & Content Extraction | docs/09-platform-services/03-ai-platform-architecture.md | CANONICALIZE (AI Platform) |
-| 185 | Electronic Signatures & Digital Certificates | docs/06-security/04-enterprise-security-architecture.md | CANONICALIZE (Security) |
-| 186 | Master Data Management (MDM) | docs/03-database/20-master-data-management.md | MERGED / EXTENDED (Database canonical) |
-| 187 | Reference Data & Code Management | docs/03-database/20-master-data-management.md | MERGED / EXTENDED (Database canonical) |
-| 188 | Enterprise Configuration Framework | docs/09-platform-services/04-enterprise-configuration-framework.md | CANONICALIZED (Platform canonical; placeholder reactivated) |
-| 189 | Localization & Internationalization | docs/09-platform-services/05-localization-internationalization.md | CANONICALIZED (Platform canonical; frontend remains consumer) |
+| 181 | Enterprise Document Management | `docs/09-platform-services/01-platform-service-architecture.md` | MERGED / CANONICAL |
+| 182 | File Storage & Object Repository | `docs/09-platform-services/01-platform-service-architecture.md`; `docs/04-backend/14-file-storage-architecture.md` | SPLIT BY OWNERSHIP |
+| 183 | Document Versioning & Collaboration | `docs/09-platform-services/01-platform-service-architecture.md` | MERGED / CANONICAL |
+| 184 | OCR, Document Intelligence & Content Extraction | `docs/09-platform-services/03-ai-platform-architecture.md` | CANONICAL AI CAPABILITY |
+| 185 | Electronic Signatures & Digital Certificates | `docs/06-security/04-enterprise-security-architecture.md` | CANONICAL SECURITY CONCERN |
+| 186 | Master Data Management (MDM) | `docs/03-database/20-master-data-management.md` | CANONICAL DATABASE / DATA-GOVERNANCE CONCERN |
+| 187 | Reference Data & Code Management | `docs/03-database/20-master-data-management.md` | CANONICAL DATABASE / DATA-GOVERNANCE CONCERN |
+| 188 | Enterprise Configuration Framework | `docs/09-platform-services/04-enterprise-configuration-framework.md` | CANONICAL PLATFORM SERVICE |
+| 189 | Localization & Internationalization | `docs/09-platform-services/05-localization-internationalization.md` | CANONICAL PLATFORM SERVICE; FRONTEND CONSUMER |
 
-Disposition definitions
-- MERGED / EXTENDED: Content merged into an existing canonical file and extended where needed.
-- SPLIT: Platform-level concepts retained in platform canonicals; implementation mechanics retained in implementation doc(s).
-- CANONICALIZE: Reactivated or created canonical file assigned ownership.
+## Ownership rules
 
-Cross-reference guidance
-- Where platform services consume security, MDM, AI, or backend implementation, files include explicit cross-references to the canonical owner files.
+- Platform-level document and workflow capabilities belong to Platform Services.
+- Backend file-storage implementation remains under the Backend architecture.
+- Security policy and controls remain under the Security domain.
+- Master data and reference-data governance remain under the Database/data-governance domain.
+- AI platform architecture remains under Platform Services with security and data-governance constraints.
+- Enterprise configuration and localization are active canonical platform-service documents in the current repository; they are not deprecated placeholders.
+- Frontend localization remains a consumer implementation concern under `docs/05-frontend/20-localization.md`.
 
-Owner-review items
-- None required for chapter-level ownership; specific subsection-level items are listed in the content conservation matrix.
+## Cross-reference guidance
 
-Validation criteria
-- All numbered sections 181.1..189.10 are accounted for in the content-conservation artifact.
-- No archival source was modified.
-- Canonical ownership established according to repository precedence.
+Consumer documents should reference the canonical owner rather than duplicate authoritative policy or architecture. Current canonical documents may contain implementation-specific detail appropriate to their domain while retaining cross-references to the owning document.
 
-For full per-section mapping and evidence, see:
-- docs/migration-traceability/volume7-content-conservation.md
-- docs/migration-traceability/volume7-owner-resolutions.md
-- docs/migration-traceability/volume7-completion-audit.md
+## Validation notes
+
+The original migration record referenced additional Volume 7 traceability artifacts:
+
+- `docs/migration-traceability/volume7-content-conservation.md`
+- `docs/migration-traceability/volume7-owner-resolutions.md`
+- `docs/migration-traceability/volume7-completion-audit.md`
+
+Those three files are **not present on `ai/repository-aware-development`**. They therefore must not be presented as existing validation artifacts. This mapping document is the currently verified Volume 7 mapping artifact.
+
+No archival source is modified by this document.
+
+## AI / Copilot rule
+
+AI-assisted implementation must use the current canonical destination documents as implementation authority. Historical Volume 7 wording is traceability evidence, not permission to recreate superseded architecture.
+
+If a conflict cannot be resolved from current repository precedence, AI must **STOP and ask** rather than inventing a migration decision.
