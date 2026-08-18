@@ -5,9 +5,7 @@ This directory contains the fundamental system architecture, design philosophy, 
 ## Documents Contained
 
 1. **[Design Philosophy](./01-design-philosophy.md)**: Core design principles guiding architecture decisions
-
 2. **[System Layering & Architecture](./02-system-architecture.md)**: Layered architecture, components, and their responsibilities
-
 3. **[Architectural Boundaries & Communication](./03-boundaries.md)**: Module boundaries, communication patterns, and isolation rules
 
 ## Purpose
@@ -21,13 +19,15 @@ The documents in this section define:
 
 ## Architectural Approach
 
-The ERP uses a **Layered Architecture** with clear separation between:
+The ERP uses a **Layered Modular Monolith Architecture** with clear separation between:
 
 - **Client Layer** — User-facing applications (Flutter Desktop, Web, Mobile)
 - **API Layer** — REST API, request handling, validation, routing
 - **Business Layer** — Business rules, workflows, calculations, approvals
 - **Data Layer** — Database access, transactions, constraints, integrity
 - **Platform Services** — Shared services (Auth, Audit, Notifications, etc.)
+
+The backend is a **single deployable application** containing independently bounded business modules. Module independence means strong ownership and dependency boundaries inside the monolith; it does **not** currently mean that each module is independently deployable.
 
 This layering ensures:
 - Independent evolution of each layer
@@ -41,21 +41,22 @@ This layering ensures:
 | Decision | Rationale | Owner |
 |----------|-----------|-------|
 | **Layered Architecture** | Clear separation of concerns, independent evolution | Architecture Board |
+| **Modular Monolith** | Single deployment with disciplined module boundaries and lower operational complexity | Architecture Board |
 | **Platform Services First** | Consistent authentication, audit, notifications across modules | Platform Team |
 | **API-First Development** | Same APIs serve desktop, web, mobile; consistent business logic | Backend Team |
 | **Database First Design** | Data model before code; ACID transactions; referential integrity | Database Team |
 | **Backend Business Logic** | Consistent rules, no client bypass, security, auditability | Architecture Board |
-| **Module Independence** | Modules communicate via published APIs; independent deployment | Module Architects |
+| **Module Independence** | Modules own their internals and communicate through published contracts within the monolith | Module Architects |
 
 ## Architecture Patterns
 
 The system implements these architectural patterns:
 
 - **Layered Architecture**: Horizontal layers for separation of concerns
-- **API Gateway Pattern**: Centralized request handling
+- **Modular Monolith**: Independently bounded business modules in one deployable backend
 - **Repository Pattern**: Abstraction of data access
 - **Service Layer Pattern**: Business rule encapsulation
-- **Event-Driven Architecture** (TBD): Loose module coupling via events
+- **Event-Driven Architecture**: Deferred where explicitly marked TBD/Proposed; it is not an implicit implementation choice
 - **Dependency Injection**: Inversion of control, testability
 
 ## System Context
@@ -104,6 +105,7 @@ The system implements these architectural patterns:
 - **[Design Philosophy](./01-design-philosophy.md)** — Why we design the way we do
 - **[System Architecture](./02-system-architecture.md)** — Detailed layer descriptions
 - **[Architectural Boundaries](./03-boundaries.md)** — Module boundaries and communication
+- **[Backend Architecture](../04-backend/README.md)** — Backend runtime and modular monolith architecture
 - **[Technology Stack](../05-frontend/README.md)** — Technology choices
 - **[Architectural Principles](../00-overview/01-architectural-principles.md)** — Governing principles
 
