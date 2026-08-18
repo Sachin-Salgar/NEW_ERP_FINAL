@@ -1,46 +1,42 @@
 # Service Layer Design
 
-Document Purpose: Chapter 9 from Volume 3 — Service Layer Design
-
-Source: Enterprise ERP Software Architecture — Volume 3 (Chapter 9)
+**Document Purpose:** Define the service-layer design for the Enterprise ERP Platform.
 
 ---
 
-## Chapter 9
+## 8.1 Introduction
 
-### 9.1 Introduction
+The Service Layer contains application-level business orchestration for the Enterprise ERP Platform.
+It coordinates workflows, enforces application-facing business rules, manages transaction boundaries, publishes domain events, and communicates with repositories and domain services.
+Controllers should remain lightweight by delegating business operations to application services.
 
-The Service Layer contains the business logic of the Enterprise ERP Platform.
-It coordinates workflows, enforces business rules, manages transactions, publishes domain events, and communicates with repositories.
-Controllers should remain lightweight by delegating business operations to services.
-
-### 9.2 Objectives
+## 8.2 Objectives
 
 The Service Layer aims to:
-• Centralize business logic.
-• Improve code reuse.
-• Simplify testing.
-• Maintain separation of concerns.
-• Coordinate complex workflows.
-• Support modular architecture.
+- Centralize application workflows.
+- Improve code reuse.
+- Simplify testing.
+- Maintain separation of concerns.
+- Coordinate complex workflows.
+- Support modular architecture.
 
-### 9.3 Responsibilities
+## 8.3 Responsibilities
 
 Services are responsible for:
-• Business Validation.
-• Workflow Execution.
-• Repository Coordination.
-• Transaction Management.
-• Event Publication.
-• Audit Recording.
-• Permission Verification (where required).
+- Business validation and workflow orchestration.
+- Repository coordination.
+- Transaction coordination where required.
+- Event publication.
+- Audit recording through the approved audit mechanism.
+- Invoking authorization/application policies where required.
 
 They are not responsible for HTTP request handling or database implementation details.
 
-### 9.4 Service Structure
+## 8.4 Service Structure
 
-Each module shall contain dedicated services.
+Each module shall contain dedicated application services for its business capabilities.
 Illustrative examples:
+
 CustomerService
 
 SalesInvoiceService
@@ -51,12 +47,12 @@ PayrollService
 
 PurchaseOrderService
 
-Each service focuses on a specific business capability.
+Each service focuses on a specific business capability and remains within its owning module boundary.
 
-### 9.5 Typical Workflow
+## 8.5 Typical Workflow
 
-Example:
-Creating a Sales Invoice.
+Example: Creating a Sales Invoice.
+
 Validate Customer
 
 ↓
@@ -81,77 +77,78 @@ Create Invoice
 
 ↓
 
-Publish Event
+Publish Domain Event
 
 ↓
 
-Write Audit Log
+Write Audit Record
 
 ↓
 
 Return Result
 
-Every business operation follows a structured workflow.
+A business operation follows a defined workflow appropriate to its domain. The exact steps are determined by the relevant module specification rather than being assumed to apply to every operation.
 
-### 9.6 Service Transactions
+## 8.6 Service Transactions
 
-Business operations involving multiple repositories shall execute within a database transaction.
+Business operations that require atomic changes across repositories shall execute within an appropriate database transaction.
+
 Example:
 Sales Invoice Creation:
-• Insert Invoice Header.
-• Insert Invoice Lines.
-• Update Inventory.
-• Create Ledger Entries.
-• Publish Events.
+- Insert Invoice Header.
+- Insert Invoice Lines.
+- Apply required inventory changes.
+- Create required ledger entries.
+- Commit the transaction.
 
-Either all operations succeed, or all are rolled back.
+Either all database changes succeed, or the transaction is rolled back.
 
-### 9.7 Service Boundaries
+External side effects and event delivery must follow the approved transaction/event pattern; they must not be described as ordinary database writes that are automatically rolled back with PostgreSQL.
+
+## 8.7 Service Boundaries
 
 A service may interact with:
-• Repository Interfaces.
-• Domain Services.
-• Event Publisher.
-• Validation Service.
-• Notification Service.
+- Repository Interfaces.
+- Domain Services.
+- Published module contracts.
+- Event Publisher.
+- Validation/Policy services.
+- Notification services.
 
-A service shall never directly access another module's database tables.
-Inter-module communication shall occur through published interfaces or events.
+A service shall never directly modify another module's database tables.
+Internal module-to-module business interactions within the modular monolith shall use published application/service contracts. Read-only cross-module database access may be used only where explicitly justified, such as approved reporting/read models, and must not bypass ownership or business rules for writes.
 
-### 9.8 Error Handling
+## 8.8 Error Handling
 
-Services shall return meaningful business errors.
+Services shall produce meaningful domain/application errors.
 Examples:
-• Customer Credit Limit Exceeded.
-• Insufficient Inventory.
-• Financial Year Closed.
-• Duplicate Document Number.
+- Customer Credit Limit Exceeded.
+- Insufficient Inventory.
+- Financial Year Closed.
+- Duplicate Document Number.
 
-Technical exceptions shall be translated into business-friendly responses.
+Technical exceptions shall be handled and translated at the appropriate application/API boundary into the standardized error model.
 
-### 9.9 Testing
+## 8.9 Testing
 
-Services shall be independently testable using mocked dependencies.
+Services shall be independently testable using controlled dependencies.
 Unit tests should validate:
-• Business Rules.
-• Workflow Execution.
-• Error Conditions.
-• Boundary Cases.
+- Business Rules.
+- Workflow Execution.
+- Error Conditions.
+- Boundary Cases.
 
-Database access is not required for service-level unit testing.
+Database access is not required for service-level unit testing unless the behavior being tested specifically depends on database semantics; such cases belong in the appropriate integration-test layer.
 
-### 9.10 Summary
+## 8.10 Summary
 
-The Service Layer forms the operational heart of the backend.
-By centralizing business logic and coordinating workflows, services ensure that every ERP module behaves consistently, predictably, and according to business requirements.
+The Service Layer forms the operational heart of the backend application layer.
+By coordinating business workflows while respecting module ownership and published contracts, services ensure that ERP modules behave consistently, predictably, and according to approved business requirements.
 
 ---
 
-Cross References
+## Cross References
 
-- docs/04-backend/09-repository-pattern.md
-- docs/04-backend/05-dependency-injection-ioc.md
-
-References
-
-- Volume 3 — Backend Architecture (source)
+- `docs/04-backend/09-repository-pattern.md`
+- `docs/04-backend/05-dependency-injection-ioc.md`
+- `docs/04-backend/03-modular-monolith.md`
