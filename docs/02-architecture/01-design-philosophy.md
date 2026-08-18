@@ -20,41 +20,41 @@ Every component, module, database object, service, and user interface shall be e
 
 ### Statement
 
-The ERP shall not be developed as a collection of unrelated applications. Instead, the project shall first establish a stable ERP platform providing common services. Business modules shall consume these platform services rather than implementing duplicate functionality.
+The ERP shall not be developed as a collection of unrelated applications. Instead, the project shall first establish a stable ERP platform providing common capabilities. Business modules shall consume these platform capabilities rather than implementing duplicate functionality.
 
 ### Rationale
 
 Building a platform first ensures:
-- **Consistency**: All modules share common authentication, audit, notifications
-- **Reusability**: Platform services don't get reimplemented in each module
-- **Maintenance**: Fixing a bug in auth happens once, benefits all modules
-- **Governance**: Security, audit, and compliance rules enforced consistently
-- **Scalability**: Shared services can be optimized globally
+- **Consistency**: Modules can share common authentication, audit, and notification capabilities
+- **Reusability**: Platform capabilities don't get reimplemented in each module
+- **Maintenance**: Fixing a platform capability benefits all consumers
+- **Governance**: Security, audit, and compliance rules are enforced consistently
+- **Scalability**: Shared capabilities can be optimized globally
 
-### Shared Platform Services
+### Shared Platform Capabilities
 
-The ERP platform provides these common services:
+The ERP platform provides common capabilities including:
 
-| Service | Purpose | Modules Using |
-|---------|---------|----------------|
-| **Authentication** | User login, token management | All modules |
-| **Authorization** | Role-based permissions | All modules |
-| **Audit Logging** | Immutable transaction logs | All modules |
-| **Notification** | User alerts, escalations | All modules |
-| **File Storage** | Document management | All modules |
-| **Configuration** | Organization settings | All modules |
-| **Scheduler** | Background jobs | All modules |
-| **Reporting Infrastructure** | Report engine, scheduling | All modules |
+| Capability | Purpose | Usage |
+|---------|---------|-------|
+| **Authentication** | User login, token management | As required by modules/clients |
+| **Authorization** | Role-based permissions | As required by modules/clients |
+| **Audit Logging** | Immutable transaction logs | Business-critical operations |
+| **Notification** | User alerts, escalations | As required by workflows/modules |
+| **File Storage** | Document management | As required by modules |
+| **Configuration** | Organization settings | As required by modules |
+| **Scheduler** | Background jobs | As required by modules |
+| **Reporting Infrastructure** | Report engine, scheduling | As required by reporting features |
 | **Module Registration** | Module lifecycle management | Platform |
 
 ### Consequence
 
 Business modules must not:
-- Implement their own authentication
-- Implement their own audit logging
-- Implement their own notification system
-- Implement their own configuration system
-- Duplicate any platform service
+- Implement their own authentication where the platform capability applies
+- Implement their own audit logging where the platform audit capability applies
+- Implement duplicate notification infrastructure
+- Implement duplicate configuration infrastructure
+- Duplicate an existing platform capability
 
 This ensures platform stability and consistent behavior across modules.
 
@@ -64,7 +64,7 @@ This ensures platform stability and consistent behavior across modules.
 
 ### Statement
 
-All business functionality shall be exposed through well-defined REST APIs. The backend is the primary business platform; every client application shall communicate through the same API layer.
+Business functionality shall be exposed through well-defined backend API contracts. The backend is the primary business platform; client applications shall communicate through the API boundary.
 
 ### Rationale
 
@@ -72,8 +72,8 @@ API-first development ensures:
 - **Consistency**: Same business rules across desktop, web, mobile
 - **Testability**: APIs can be tested independently of clients
 - **Flexibility**: Client implementation can change without backend changes
-- **Integration**: External systems use same APIs as internal clients
-- **Evolution**: New client types added without backend changes
+- **Integration**: External systems use documented APIs
+- **Evolution**: New client types can be added without duplicating business logic
 
 ### Application of API-First
 
@@ -88,7 +88,7 @@ Business Logic API (REST)
     └── Public API (future)
 ```
 
-All communication between clients and business logic flows through REST APIs. No client directly accesses the database.
+All communication between clients and business logic flows through the REST API boundary. No client directly accesses the database.
 
 ### Benefit
 
@@ -224,12 +224,13 @@ Each architectural layer shall have a clearly defined responsibility and communi
 
 ### Dependency Direction
 
-Dependencies flow inward:
+Dependencies flow from presentation toward business logic and then toward data access:
+
 ```
-Presentation  ← Business Logic ← Data Layer
+Presentation → Business Logic → Data Access
 ```
 
-The Business Layer depends on Data Layer interfaces, but Data Layer doesn't depend on Business Layer. This allows independent evolution.
+The Business Layer depends on Data Layer interfaces, while the concrete data-access implementation remains behind those interfaces. The Data Layer does not depend on the Business Layer.
 
 ---
 
