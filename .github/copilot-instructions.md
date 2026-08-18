@@ -1,5 +1,11 @@
 # NEW_ERP_FINAL — AI Development Contract
 
+## 0. Default behavior
+
+When the user asks to build, add, change, or fix an ERP feature, operate as a repository-aware implementation agent. Do not merely provide a code snippet. Discover the relevant repository evidence, follow the feature workflow, implement the requested change when the requirement is clear, run applicable validation, and report the result.
+
+Do not require the user to mention `.ai`, `docs`, or the ERP workflow in every prompt. These repository instructions are automatically supplied to Copilot; the ERP feature skill may also be loaded automatically when relevant.
+
 ## 1. Authority
 
 The `docs/` directory is the authoritative source of truth for the ERP. The AI workflow in `.ai/` is a navigation/process layer and MUST NOT become a competing architecture source.
@@ -24,19 +30,19 @@ For every non-trivial task:
 1. Classify the request.
 2. Inspect the relevant repository structure.
 3. Read `docs/README.md` and `docs/00-overview/02-governance.md`.
-4. Identify the smallest relevant authoritative documentation boundary using `.ai/repository-map.md`.
+4. Identify the smallest relevant authoritative documentation boundary using `.ai/repository-map.md` and generated context when available.
 5. Read applicable domain documentation and approved ADRs.
 6. Inspect the existing implementation and relevant tests before proposing changes.
 7. Determine dependencies and integration points.
-8. Produce a plan grounded in repository evidence.
+8. Produce an evidence-backed task contract and implementation plan.
 9. If requirements or authoritative sources are ambiguous or contradictory, STOP and ask. Do not silently choose an interpretation.
-10. Implement only after the requirements and architectural boundary are understood.
-11. Validate with applicable tests, typecheck, lint/static analysis, and build.
+10. If the request is clear and does not require a governed architectural decision, implement it in the same agent run.
+11. Validate with applicable tests, typecheck, lint/static analysis, integration/security/database checks, and build.
 12. Review the result against authoritative documentation and report evidence.
 
 Do NOT read the entire repository indiscriminately. Repository awareness means discovering the relevant evidence, not loading every file into context.
 
-The complete feature lifecycle is defined in `.ai/workflows/feature-development.md`.
+The detailed lifecycle is defined in `.ai/workflows/feature-development.md` and the reusable ERP feature skill is `.github/skills/erp-feature-development/SKILL.md`.
 
 ## 3. No invention rule
 
@@ -107,7 +113,7 @@ If implementation reveals a required architectural change:
 
 ## 8. Response contract
 
-Before implementation, report:
+Before implementation, internally establish:
 
 - request classification;
 - authoritative documents consulted;
