@@ -1,131 +1,115 @@
 # Reporting Framework
 
-<!--
-Title: Reporting Framework
-Purpose: Canonical migration from Volume 4 — Frontend Architecture
-Scope: Reporting types, structure, scheduling and export strategies
-Audience: Frontend and backend reporting teams
-Owner: TBD
-Status: Migrated (Draft)
-Last Reviewed: 2026-08-07
-Related ADRs:
-Related Documents: docs/migration-traceability/volume4-to-docs.md, docs/04-backend/??-reporting.md
--->
+**Document Purpose:** Define frontend reporting patterns and the boundary between report presentation and authoritative report generation.
 
-Source: Volume 4 — Chapter 17
+## 17.1 Introduction
 
-17.1 Introduction
+Reports transform business data into information for operational management, financial analysis, compliance, and decision-making.
 
-Reports transform business data into meaningful information for operational management, financial analysis, regulatory compliance, and strategic decision-making.
+The reporting framework shall provide a consistent user experience while supporting report types across ERP business modules.
 
-The reporting framework shall provide a consistent user experience while supporting a wide variety of report types across all ERP modules.
+The frontend is responsible for report presentation, filters, status, and user interaction. Authoritative report data and business calculations remain backend responsibilities.
 
-17.2 Objectives
+## 17.2 Objectives
 
 The reporting framework aims to:
-• Present business information clearly.
-• Support operational reporting.
-• Enable decision-making.
-• Standardize report generation.
-• Support export and printing.
-• Improve report usability.
+- Present business information clearly.
+- Support operational reporting.
+- Standardize report interaction.
+- Support authorized export and printing.
+- Improve report usability.
 
-17.3 Report Categories
+## 17.3 Report Categories
 
-Examples include:
-• Financial Reports.
-• Sales Reports.
-• Inventory Reports.
-• HR Reports.
-• Payroll Reports.
-• Manufacturing Reports.
-• Audit Reports.
-• Compliance Reports.
+Examples may include:
+- Financial Reports.
+- Sales Reports.
+- Inventory Reports.
+- HR Reports.
+- Payroll Reports.
+- Manufacturing Reports.
+- Audit Reports.
+- Compliance Reports.
 
-Each module shall provide reports relevant to its business domain.
+Each module may provide reports relevant to its business domain. A report is not required merely because a category exists.
 
-17.4 Report Structure
+## 17.4 Report Structure
 
-Typical report layout:
+A typical report presentation may contain:
+
+```text
 Report Header
-
-↓
-
+      ↓
 Filters
-
-↓
-
+      ↓
 Summary
-
-↓
-
+      ↓
 Detailed Data
+      ↓
+Charts where applicable
+      ↓
+Export / Print Actions where authorized
+```
 
-↓
+The actual structure shall follow the report's business purpose and presentation requirements.
 
-Charts
+## 17.5 Filtering
 
-↓
+Reports may support filters such as:
+- Date Range.
+- Organization Context.
+- Branch.
+- Department.
+- Customer.
+- Supplier.
+- Product.
+- Employee.
 
-Export Options
+Filter values and combinations shall be validated by the backend according to the report contract and authorization rules. The frontend may provide immediate UX validation.
 
-Reports shall maintain a consistent appearance.
+## 17.6 Export Formats
 
-17.5 Filtering
+Report export may support formats such as:
+- PDF.
+- Excel-compatible output.
+- CSV.
+- Print.
 
-Reports shall support:
-• Date Range.
-• Organization.
-• Branch.
-• Department.
-• Customer.
-• Supplier.
-• Product.
-• Employee.
+Supported formats are implementation/product decisions and shall not be assumed to exist for every report.
 
-Filters shall be validated before report execution.
+Exports containing business data must respect the same authorization and organization/tenant boundaries as the underlying report.
 
-17.6 Export Formats
+## 17.7 Scheduled Reports
 
-Supported formats include:
-• PDF.
-• Excel.
-• CSV.
-• Print.
+Where recurring report delivery is a product capability, scheduling shall be managed by the backend/background-job architecture.
 
-Future formats may be added without modifying existing report definitions.
+The frontend may provide the scheduling configuration UI, status, and history.
 
-17.7 Scheduled Reports
+## 17.8 Large Reports
 
-Users may schedule recurring reports.
+Reports containing large datasets should use appropriate backend-supported processing, including where required:
+- Pagination or bounded retrieval.
+- Asynchronous/background execution.
+- Incremental presentation.
 
-Examples:
-• Daily Sales.
-• Weekly Inventory.
-• Monthly Profit & Loss.
-• Payroll Summary.
+The frontend should provide appropriate progress, completion, and failure states.
 
-Report scheduling shall be managed by the backend.
+## 17.9 Security
 
-17.8 Large Reports
+Report access is governed by the backend's authentication, authorization, organization/tenant isolation, and applicable module/capability rules.
 
-Reports containing large datasets shall:
-• Load incrementally.
-• Support pagination where appropriate.
-• Execute asynchronously.
+The frontend may hide unavailable reports for usability, but hiding a report is not a security control.
 
-Progress indicators shall inform users during report generation.
+Sensitive business information must not be exposed through unauthorized client-side state, cached responses, exports, or navigation.
 
-17.9 Security
+## 17.10 Summary
 
-Users shall only access reports authorized by:
-• Organization.
-• Module License.
-• Role.
-• Permission.
+The reporting framework provides consistent report interaction while preserving authoritative business calculations, data access, and security within the backend architecture.
 
-Sensitive business information shall remain protected.
+## Cross References
 
-17.10 Summary
-
-The reporting framework provides a standardized and secure mechanism for presenting business information across the Enterprise ERP Platform.
+- [API Communication](./09-api-communication.md)
+- [Tables & Data Presentation](./12-tables-and-data-presentation.md)
+- [Backend Performance Optimization](../04-backend/20-performance-optimization.md)
+- [Backend Background Jobs](../04-backend/13-background-jobs-queue-processing.md)
+- [Backend Authentication and Authorization](../04-backend/07-authentication-and-authorization.md)
