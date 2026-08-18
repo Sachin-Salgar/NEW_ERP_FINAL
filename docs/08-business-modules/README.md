@@ -2,9 +2,7 @@
 
 This directory contains standards for business module design, structure, and implementation patterns.
 
-## From Volume 1
-
-### Module Architecture
+## Module Architecture
 
 Each business module shall follow a common internal structure:
 
@@ -25,22 +23,26 @@ This standardization reduces development complexity and improves maintainability
 ### Module Boundary Principles
 
 **Module Independence**:
-- Every module shall be independently maintainable
-- Expose only published interfaces
-- Avoid unnecessary dependencies
-- Remain independent of internal implementation details of other modules
+- Every module shall be independently maintainable.
+- Modules expose only published interfaces.
+- Modules avoid unnecessary dependencies.
+- Modules remain independent of the internal implementation details of other modules.
+- The ERP is currently a modular monolith; module independence does **not** mean independent deployment.
 
 **Module Communication**:
-- Modules communicate through published REST APIs
-- No direct database access to another module's tables
-- Modules depend on published contracts, not implementations
-- Depend only on approved platform services
+- External/client integration uses published REST APIs.
+- Within the modular monolith, modules may communicate through published in-process service contracts where permitted by the architecture.
+- A REST call may be used for an explicitly defined integration boundary, but modules must not bypass published contracts.
+- No direct database access to another module's internal tables.
+- Modules depend on published contracts, not implementations.
+- Modules depend only on approved platform services.
 
 **Architectural Boundaries**:
-- Each module is a bounded context
-- Clear responsibility within module
-- Clean interface to other modules
-- Minimum coupling with other modules
+- Each module is a bounded context.
+- Each module has clear responsibility.
+- Each module exposes clean interfaces to other modules.
+- Coupling is minimized and dependency direction is explicit.
+- Future independent deployment/extraction requires an approved ADR.
 
 ### Business Modules
 
@@ -78,29 +80,29 @@ Organizations subscribe to specific modules:
 - Future modules
 
 **Feature Enablement**:
-- Unlicensed modules hidden from UI
-- API endpoints inaccessible for unlicensed modules
-- Module enablement via configuration
-- Dynamic UI updates based on licensed modules
+- Unlicensed modules hidden from UI.
+- API endpoints inaccessible for unlicensed modules.
+- Module enablement via configuration.
+- Dynamic UI updates based on licensed modules.
 
 ### Module Development Standards
 
 When developing a module:
 
-1. **Design Phase**: Define module boundaries and APIs
-2. **Database Phase**: Design tables and constraints
-3. **Service Layer**: Implement business logic
-4. **API Layer**: Expose REST endpoints
-5. **Testing**: Unit, integration, end-to-end tests
-6. **Documentation**: API docs, design docs
-7. **Security**: Permission definitions, audit events
+1. **Design Phase**: Define module boundaries and APIs.
+2. **Database Phase**: Design tables and constraints.
+3. **Service Layer**: Implement business logic and cross-module contract usage.
+4. **API Layer**: Expose REST endpoints required by clients/integrations.
+5. **Testing**: Unit, integration, and end-to-end tests.
+6. **Documentation**: API docs and design docs.
+7. **Security**: Permission definitions and audit events.
 
 **Standards**:
-- Follow architectural principles
-- Follow naming conventions
-- Follow API design patterns
-- Include comprehensive tests
-- Document decisions via ADRs
+- Follow architectural principles.
+- Follow naming conventions.
+- Follow API design patterns.
+- Include comprehensive tests.
+- Document architectural decisions via ADRs when required.
 
 ---
 
@@ -111,15 +113,6 @@ When developing a module:
 - [Design Philosophy](../02-architecture/01-design-philosophy.md) — Module-relevant principles
 - [Business Objectives](../01-vision/02-business-objectives.md) — Modular architecture objective
 
-## Navigation
+## Status
 
-This volume (Volume 1) establishes module architecture principles. Future volumes (Volume 6) will provide:
-- Detailed module specifications
-- Module API standards
-- Module configuration standards
-- Module testing strategies
-- Module deployment procedures
-- Inter-module integration patterns
-- Module lifecycle management
-- Custom module development guide
-- Partner module certification
+This document defines current module architecture principles. Detailed module specifications are added under this directory as individual modules are designed and approved.
