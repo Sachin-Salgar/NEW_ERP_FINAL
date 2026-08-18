@@ -1,157 +1,128 @@
 # API Communication
 
-<!--
-Title: API Communication
-Purpose: Canonical migration from Volume 4 — Frontend Architecture
-Scope: API client patterns, error handling, contract expectations
-Audience: Frontend and backend API teams
-Owner: TBD
-Status: Migrated (Draft)
-Last Reviewed: 2026-08-07
-Related ADRs:
-Related Documents: docs/04-backend/06-api-design-standards.md, docs/migration-traceability/volume4-to-docs.md
--->
+**Document Purpose:** Define frontend API communication patterns, error handling, and contract expectations.
 
-Source: Volume 4 — Chapter 9
+## 9.1 Introduction
 
-9.1 Introduction
+The frontend communicates with the backend through the REST API.
 
-The frontend communicates with the backend exclusively through REST APIs.
+Direct database access from the frontend is prohibited.
 
-Direct database access from the frontend is strictly prohibited.
+Authoritative business operations—including authentication, validation, reporting, approvals, and financial transactions—are executed by the backend. The frontend may perform client-side validation and presentation logic but must not become the authoritative business or security boundary.
 
-All business operations—including authentication, validation, reporting, approvals, and financial transactions—shall be executed through backend APIs.
-
-9.2 Objectives
+## 9.2 Objectives
 
 The API communication layer aims to:
-• Standardize backend communication.
-• Improve maintainability.
-• Simplify testing.
-• Support authentication.
-• Handle failures consistently.
-• Enable future backend evolution.
+- Standardize backend communication.
+- Improve maintainability.
+- Simplify testing.
+- Support authentication.
+- Handle failures consistently.
+- Enable backend evolution without coupling business modules to HTTP implementation details.
 
-9.3 Communication Architecture
+## 9.3 Communication Architecture
 
+A typical flow is:
+
+```text
 Flutter Screen
-
-↓
-
-Provider
-
-↓
-
-Service
-
-↓
-
+      ↓
+State Management / Provider
+      ↓
+Application Service
+      ↓
 API Client
-
-↓
-
+      ↓
 REST API
-
-↓
-
+      ↓
 Backend
+```
 
-Each layer has a clearly defined responsibility.
+The exact layers may vary by feature, but business modules should not bypass the established API boundary.
 
-9.4 API Client
+## 9.4 API Client
 
-A centralized API client shall manage:
-• HTTP Requests.
-• Authentication Tokens.
-• Headers.
-• Timeouts.
-• Error Handling.
-• Logging.
-• Response Parsing.
+A shared API client layer shall provide common HTTP concerns such as:
+- HTTP Requests.
+- Authentication/session integration.
+- Headers.
+- Timeouts.
+- Error handling.
+- Observability/logging where appropriate.
+- Response parsing.
 
-Business modules shall not create independent HTTP clients.
+Business modules should not create independent HTTP infrastructure that bypasses the common client conventions.
 
-9.5 Authentication
+## 9.5 Authentication
 
-The API client shall automatically:
-• Attach access tokens.
-• Refresh expired tokens.
-• Handle authentication failures.
-• Redirect users to login when necessary.
+The API communication layer shall integrate with the selected authentication mechanism to:
+- Supply valid authentication credentials/tokens as required.
+- Handle authentication/session failures.
+- Coordinate session-expiry behavior with application state.
 
-Token management shall remain transparent to business modules.
+Exact token issuance, refresh, storage, and rotation behavior is governed by the backend authentication architecture and its implementation. It shall not be invented by individual frontend modules.
 
-9.6 Request Processing
+## 9.6 Request Processing
 
-Illustrative workflow:
+An illustrative workflow is:
+
+```text
 User Action
-
-↓
-
-Provider
-
-↓
-
-Service
-
-↓
-
+    ↓
+State Management
+    ↓
+Application Service
+    ↓
 API Client
-
-↓
-
+    ↓
 Backend
-
-↓
-
+    ↓
 Response
-
-↓
-
-Provider Update
-
-↓
-
+    ↓
+State Update
+    ↓
 UI Refresh
+```
 
-This architecture ensures predictable state updates.
+The implementation shall preserve clear ownership of UI state, application orchestration, transport, and backend business rules.
 
-9.7 Error Handling
+## 9.7 Error Handling
 
-API failures shall be categorized.
-Examples:
-• Network Failure.
-• Authentication Failure.
-• Authorization Failure.
-• Validation Error.
-• Business Error.
-• Server Error.
+API failures shall be represented consistently and may include:
+- Network Failure.
+- Authentication Failure.
+- Authorization Failure.
+- Validation Error.
+- Business Error.
+- Server Error.
 
-The frontend shall display meaningful messages without exposing technical details.
+The frontend shall provide useful user-facing feedback without exposing credentials, internal stack traces, or unnecessary infrastructure details.
 
-9.8 Retry Strategy
+## 9.8 Retry Strategy
 
-Retry behavior shall be limited to transient failures such as:
-• Temporary network interruption.
-• Gateway timeout.
-• Service unavailable.
+Retries should be limited to failures that are safe to retry, such as suitable transient network or service failures.
 
-Business transactions shall not be automatically retried unless explicitly supported by backend idempotency mechanisms.
+Business transactions shall not be automatically retried unless the operation is explicitly designed to be safely retried, including appropriate backend idempotency semantics where required.
 
-9.9 Response Caching
+## 9.9 Response Caching
 
-The frontend may cache selected API responses.
-Examples:
-• Organization Settings.
-• Lookup Data.
-• User Preferences.
-• Country Lists.
-• Tax Configuration.
+The frontend may cache selected responses when their freshness requirements permit it.
+Examples may include:
+- Organization Settings.
+- Lookup Data.
+- User Preferences.
+- Country Lists.
+- Tax Configuration.
 
-Transactional data shall generally be retrieved directly from the backend.
+Caching rules shall respect organization/tenant context and authorization. Transactional data requiring current state should be retrieved from the backend rather than treated as authoritative client cache data.
 
-9.10 Summary
+## 9.10 Summary
 
-A centralized API communication layer provides secure, reliable, and maintainable interaction between the Flutter application and the backend while preserving clear separation of responsibilities.
+A consistent API communication layer provides reliable interaction between the Flutter application and backend while preserving the backend as the authoritative business and security boundary.
 
-Cross-reference: docs/04-backend/06-api-design-standards.md for API contract expectations.
+## Cross References
+
+- [Backend API Design Standards](../04-backend/06-api-design-standards.md)
+- [Backend Authentication and Authorization](../04-backend/07-authentication-and-authorization.md)
+- [Frontend State Management](./05-state-management.md)
+- [Frontend Dependency Injection](./06-dependency-injection.md)
