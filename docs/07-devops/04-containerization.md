@@ -1,122 +1,75 @@
 # Containerization
 
-**Source:** Volume 5 — Containerization Strategy
+**Document Purpose:** Define containerization principles for repeatable ERP deployment.
 
-## Introduction
+## 1. Introduction
 
-Containerization provides a standardized and portable method of packaging applications together with their runtime dependencies.
+Containerization packages an application and its runtime dependencies into a reproducible deployment unit.
 
-The Enterprise ERP Platform adopts Docker as the standard containerization technology to ensure consistency across development, testing, staging, and production environments.
+Docker is the current documented containerization technology. The architecture should nevertheless keep application design independent of a specific orchestration platform.
 
-Containers eliminate environmental inconsistencies and simplify deployment across on-premises and cloud infrastructure.
+## 2. Objectives
 
-## Objectives
+- Consistent runtime environments.
+- Repeatable deployment.
+- Portability.
+- Appropriate scalability.
+- Controlled image lifecycle.
 
-The containerization strategy aims to:
+## 3. Containerized Components
 
-- Standardize deployments.
-- Improve portability.
-- Simplify environment management.
-- Support scalability.
-- Enable rapid deployment.
-- Reduce operational inconsistencies.
-
-## Containerized Components
-
-The following components shall be containerized where appropriate:
-
+Components may include:
 - Backend API.
-- Background Workers.
-- Scheduled Job Services.
-- Flutter Web Application.
-- Reverse Proxy.
-- Monitoring Components.
-- Logging Components.
+- Background workers.
+- Scheduled jobs.
+- Flutter Web application where web deployment is used.
+- Reverse proxy.
+- Supporting operational components where appropriate.
 
-The database may be containerized in development and testing environments. Production deployments may use managed database services or dedicated database servers.
+The database may be containerized for development/testing. Production database hosting is deployment-specific.
 
-## Container Principles
+## 4. Container Principles
 
-Containers shall be:
-
-- Stateless wherever practical.
+Containers should be:
+- Stateless where practical.
 - Immutable after build.
 - Versioned.
-- Independently deployable.
 - Health monitored.
+- Independently deployable where service boundaries justify it.
 
-Persistent business data shall reside outside application containers.
+Persistent business data shall not depend on the writable lifecycle of an application container.
 
-## Image Management
+## 5. Image Security
 
-Container images shall:
-
-- Be versioned.
+Images should:
 - Be reproducible.
-- Undergo vulnerability scanning.
-- Be digitally signed where supported.
-- Be stored in a trusted artifact registry.
+- Use controlled versions.
+- Be vulnerability-scanned through the operational security process.
+- Avoid embedded credentials or secrets.
+- Be stored in an appropriately trusted registry.
 
-Images shall never contain sensitive credentials.
+Image signing may be used where the deployment platform supports and requires it.
 
-## Multi-Container Architecture
+## 6. Resource and Health Controls
 
-Illustrative deployment:
+Deployment definitions should provide appropriate:
+- CPU/memory controls.
+- Restart behavior.
+- Health checks.
+- Logging configuration.
 
-```text
-Reverse Proxy
+Actual limits are workload/deployment decisions and shall not be invented in feature code.
 
-↓
+## 7. Versioning
 
-Flutter Web
+Production deployments should reference immutable image versions or digests. Floating tags such as `latest` should not be used as production release identifiers.
 
-↓
+## 8. Summary
 
-Backend API
+Containerization provides a repeatable packaging and deployment model while keeping persistent state, secrets, and deployment-specific infrastructure outside application image contents.
 
-↓
+## Cross References
 
-Worker Services
-
-↓
-
-PostgreSQL
-
-↓
-
-Cache
-
-↓
-
-Object Storage
-```
-
-Each service shall have a clearly defined responsibility.
-
-## Resource Allocation
-
-Containers shall define:
-
-- CPU Limits.
-- Memory Limits.
-- Restart Policies.
-- Health Checks.
-- Logging Configuration.
-
-Resource allocation prevents one service from affecting others.
-
-## Versioning
-
-Every deployment shall reference immutable image versions.
-
-Example:
-
-- ERP Backend : v1.0.0
-- ERP Worker : v1.0.0
-- ERP Frontend : v1.0.0
-
-Floating tags such as `latest` shall not be used in production deployments.
-
-## Summary
-
-Containerization provides a repeatable, secure, and scalable deployment model that supports the long-term operational goals of the Enterprise ERP Platform.
+- [Infrastructure Architecture](./02-infrastructure-architecture.md)
+- [CI/CD Pipeline](./05-ci-cd-pipeline.md)
+- [Security Operations](../06-security/03-security-operations.md)
