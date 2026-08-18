@@ -1,203 +1,100 @@
 # Operations Management
 
-**Source:** Volume 5 — Maintenance Strategy and Operational Support & Production Management
+**Document Purpose:** Define production operations, maintenance, incident management, and continuous-improvement principles.
 
-## Introduction
+## 1. Introduction
 
-Operational support ensures that the Enterprise ERP Platform remains available, secure, and responsive after deployment into production.
+Operations management keeps the ERP platform available, secure, supportable, and recoverable after deployment.
 
-Production operations extend beyond software deployment to include continuous monitoring, incident response, customer support, and operational governance.
+## 2. Objectives
 
-## Objectives
+- Maintain service reliability.
+- Respond to incidents effectively.
+- Protect business continuity.
+- Maintain operational documentation.
+- Improve the platform through measured operational feedback.
 
-Operations management aims to:
+## 3. Maintenance
 
-- Maintain service availability.
-- Resolve incidents efficiently.
-- Support business continuity.
-- Improve customer satisfaction.
-- Continuously optimize operations.
+Maintenance may include:
+- Software updates.
+- Security patches.
+- Database maintenance.
+- Infrastructure upgrades.
+- Backup verification.
+- Log/retention maintenance.
+- Certificate renewal.
 
-## Maintenance Strategy
+Maintenance shall follow appropriate change and validation procedures.
 
-Regular maintenance is essential to ensure system stability, security, and long-term reliability.
+## 4. Planned Maintenance
 
-Maintenance activities shall be planned, documented, and communicated to minimize disruption to business operations.
+Planned maintenance should include, as applicable:
+- Stakeholder communication.
+- Maintenance window.
+- Recovery/rollback planning.
+- Backup verification where relevant.
+- Post-maintenance validation.
 
-### Maintenance Objectives
+## 5. Emergency Maintenance
 
-Maintenance aims to:
+Emergency changes may be required for critical vulnerabilities, outages, data integrity risks, or infrastructure failures. Emergency procedures should prioritize containment, business continuity, recovery, and subsequent documentation/review.
 
-- Improve reliability.
-- Enhance security.
-- Prevent failures.
-- Optimize performance.
-- Maintain software quality.
+## 6. Incident Management
 
-### Maintenance Categories
-
-Typical maintenance activities include:
-
-- Software Updates.
-- Security Patches.
-- Database Optimization.
-- Infrastructure Upgrades.
-- Backup Verification.
-- Log Cleanup.
-- Certificate Renewal.
-
-Each activity shall follow approved operational procedures.
-
-### Planned Maintenance
-
-Planned maintenance shall include:
-
-- Advance Notification.
-- Maintenance Window.
-- Backup Verification.
-- Rollback Plan.
-- Post-Maintenance Validation.
-
-Business stakeholders shall be informed in advance.
-
-### Emergency Maintenance
-
-Emergency maintenance may occur following:
-
-- Critical Security Vulnerabilities.
-- Production Outages.
-- Data Corruption.
-- Infrastructure Failure.
-
-Emergency procedures shall prioritize business continuity.
-
-### Maintenance Records
-
-Every maintenance activity shall record:
-
-- Date.
-- Engineer.
-- Environment.
-- Components Affected.
-- Actions Performed.
-- Outcome.
-- Rollback (if applicable).
-
-Maintenance history supports auditing and operational analysis.
-
-### Change Approval
-
-Significant operational changes shall require appropriate approvals before execution.
-
-Approval requirements shall be defined by organizational governance policies.
-
-### Continuous Improvement
-
-Maintenance findings shall contribute to:
-
-- Architecture Improvements.
-- Automation Opportunities.
-- Performance Optimization.
-- Operational Documentation.
-
-Lessons learned shall improve future operations.
-
-## Operational Support
-
-Operational activities include:
-
-- Monitoring.
-- Incident Response.
-- Backup Verification.
-- Capacity Planning.
-- Performance Analysis.
-- Security Monitoring.
-- Deployment Management.
-
-Operations shall follow documented procedures.
-
-### Incident Management
-
-Illustrative workflow:
+A typical workflow is:
 
 ```text
-Incident Reported
-
-↓
-
-Assessment
-
-↓
-
-Prioritization
-
-↓
-
-Assignment
-
-↓
-
-Resolution
-
-↓
-
-Validation
-
-↓
-
-Closure
+Reported
+  ↓
+Assess
+  ↓
+Prioritize
+  ↓
+Assign
+  ↓
+Resolve / Recover
+  ↓
+Validate
+  ↓
+Close
+  ↓
+Review where required
 ```
 
-Every incident shall be tracked until resolution.
+Actual severity definitions and escalation policies belong to operational governance.
 
-### Service Levels
+## 7. Service Levels
 
-Organizations may define Service Level Objectives (SLOs) covering:
+Organizations may define SLOs/SLAs covering availability, response, resolution, support hours, and recovery objectives. Values depend on business and contractual requirements.
 
-- Availability.
-- Response Time.
-- Incident Resolution.
-- Recovery Objectives.
-- Support Hours.
+## 8. Operational Documentation
 
-Service levels shall align with contractual commitments.
-
-### Operational Documentation
-
-Production documentation shall include:
-
+Production operations should maintain appropriate:
 - Runbooks.
-- Standard Operating Procedures.
-- Escalation Matrix.
-- Contact Directory.
-- Deployment History.
-- Infrastructure Inventory.
+- Standard operating procedures.
+- Escalation information.
+- Infrastructure inventory.
+- Deployment history.
+- Recovery procedures.
 
-Documentation shall remain accurate and accessible.
+Documentation must reflect the actual deployed environment.
 
-### Operational Reviews
+## 9. Operational Reviews
 
-Periodic reviews shall evaluate:
+Periodic reviews should examine incident trends, capacity, security events, performance, customer feedback, and recovery exercises to identify improvement opportunities.
 
-- Incident Trends.
-- Capacity Growth.
-- Security Events.
-- Customer Feedback.
-- Performance Metrics.
+## 10. Future Enhancements
 
-Review findings shall drive operational improvements.
+Automated remediation, predictive monitoring, AI-assisted incident analysis, and self-healing infrastructure may be evaluated in the future. They are not current implementation commitments unless separately established.
 
-### Future Operational Enhancements
+## 11. Summary
 
-The operational framework shall support future capabilities such as:
+Operations management provides the processes and governance required for reliable production operation and continuous improvement.
 
-- Automated Remediation.
-- Predictive Monitoring.
-- AI-Assisted Incident Analysis.
-- Self-Healing Infrastructure.
+## Cross References
 
-These enhancements shall be evaluated according to organizational needs.
-
-## Summary
-
-Operations management provides the governance and processes necessary to ensure reliable, secure, and efficient production operation of the Enterprise ERP Platform.
+- [Observability](./08-observability.md)
+- [Reliability & Fault Tolerance](./06-reliability-fault-tolerance.md)
+- [Backup & Disaster Recovery](./09-backup-disaster-recovery.md)
+- [Security Operations](../06-security/03-security-operations.md)
