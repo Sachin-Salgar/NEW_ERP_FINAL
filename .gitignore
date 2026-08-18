@@ -1,0 +1,7 @@
+# AI-generated local repository context
+.ai/generated/*
+!.ai/generated/.gitkeep
+
+# Local development/editor files
+.vscode/
+.idea/
