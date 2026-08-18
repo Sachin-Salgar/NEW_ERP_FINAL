@@ -1,102 +1,101 @@
 # Localization & Internationalization
 
-<!--
-Title: Localization & Internationalization
-Purpose: Canonical migration from Volume 4 — Frontend Architecture
-Scope: Language support, regional formatting, translation management and RTL
-Audience: Frontend developers and localizaton teams
-Owner: TBD
-Status: Migrated (Draft)
-Last Reviewed: 2026-08-07
-Related ADRs:
-Related Documents: docs/migration-traceability/volume4-to-docs.md
--->
+**Document Purpose:** Define frontend localization, internationalization, regional formatting, and RTL principles.
 
-Source: Volume 4 — Chapter 20
+## 20.1 Introduction
 
-20.1 Introduction
+The Enterprise ERP Platform is intended to support organizations operating across different countries, regions, and languages.
 
-The Enterprise ERP Platform is designed to support organizations operating in different countries, regions, and languages.
+The frontend should support localization through a single application architecture without embedding locale-specific business rules throughout UI code.
 
-The frontend shall provide comprehensive localization capabilities while maintaining a single application codebase.
+Localization includes language translation, regional formatting, cultural conventions, and applicable presentation requirements. Authoritative business calculations and legal/business rules remain backend responsibilities.
 
-Localization extends beyond language translation to include regional formatting, cultural conventions, and legal requirements.
-
-20.2 Objectives
+## 20.2 Objectives
 
 Localization aims to:
-• Support multiple languages.
-• Improve user adoption.
-• Enable international deployment.
-• Respect regional standards.
-• Simplify future language additions.
+- Support multiple languages where required.
+- Improve user adoption.
+- Support international deployment.
+- Respect regional presentation standards.
+- Allow additional languages without unnecessary changes to business logic.
 
-20.3 Language Support
+## 20.3 Language Support
 
-The architecture shall support:
-• Multiple languages.
-• Runtime language switching.
-• User-specific language selection.
-• Organization-wide default language.
+The application may support:
+- Multiple languages.
+- Runtime language switching where supported.
+- User-specific language selection.
+- Organization-level default language.
 
-Additional languages may be added without modifying application logic.
+The exact initial language set is a product/deployment decision and must not be invented by individual modules.
 
-20.4 Localized Resources
+## 20.4 Localized Resources
 
-Localizable content includes:
-• Labels.
-• Buttons.
-• Menus.
-• Error Messages.
-• Help Text.
-• Notifications.
-• Report Titles.
+Localizable content may include:
+- Labels.
+- Buttons.
+- Menus.
+- User-facing error messages.
+- Help text.
+- Notifications.
+- Report titles.
 
-User-visible text shall never be hard-coded within widgets.
+User-visible text should not be unnecessarily hard-coded inside widgets when it is expected to be translated.
 
-20.5 Regional Formatting
+## 20.5 Regional Formatting
 
-Localization shall support regional formatting for:
-• Dates.
-• Times.
-• Numbers.
-• Currency.
-• Percentages.
-• Addresses.
+Localization may affect presentation of:
+- Dates.
+- Times.
+- Numbers.
+- Currency.
+- Percentages.
+- Addresses.
 
-Formatting shall follow user or organization preferences.
+Formatting shall follow the applicable user, organization, or business context. Authoritative currency, tax, accounting, and financial calculations must not be replaced by client-side formatting logic.
 
-20.6 Time Zones
+## 20.6 Time Zones
 
-The application shall support multiple time zones.
+The application should support appropriate time-zone presentation.
 
-Business records shall preserve their original timestamps while displaying localized values to users where appropriate.
+Business timestamps must retain their authoritative backend meaning. The frontend may display timestamps in a user or organization locale/time zone according to the relevant product rules.
 
-20.7 Right-to-Left Support
+## 20.7 Right-to-Left Support
 
-The frontend architecture shall accommodate languages requiring Right-to-Left (RTL) layouts.
+The frontend architecture should accommodate languages requiring Right-to-Left (RTL) presentation where such languages are supported.
 
-Examples include:
-• Arabic.
-• Hebrew.
+RTL behavior may affect:
+- Navigation.
+- Forms.
+- Dialogs.
+- Tables.
+- Reports.
 
-RTL support shall extend to navigation, forms, dialogs, and reports.
+Components should avoid assumptions that make direction changes unnecessarily difficult.
 
-20.8 Translation Management
+## 20.8 Translation Management
 
-Translation resources shall be maintained independently of business logic.
+Translation resources shall remain separate from business logic.
 
-Translation files shall support:
-• Versioning.
-• Validation.
-• Future language additions.
+Translation resources should support:
+- Version control.
+- Validation.
+- Addition of future languages.
+- Detection of missing translations where tooling supports it.
 
-20.9 Accessibility of Localization
+## 20.9 Accessibility of Localization
 
-Language switching shall not require application reinstallation.
+Localization and accessibility shall work together. Text expansion, direction changes, locale-specific formats, and translated labels must not break usable layouts or accessible interaction.
 
-Changes shall be applied dynamically wherever technically feasible.
+Language changes should take effect dynamically where technically supported by the chosen Flutter localization implementation.
 
-20.10 Summary
+## 20.10 Summary
 
-Comprehensive localization enables the ERP to support international organizations while maintaining a unified application architecture.
+Localization enables the ERP frontend to support different languages and regional presentation requirements while keeping business rules and authoritative calculations within the appropriate backend architecture.
+
+## Cross References
+
+- [Flutter Architecture](./02-flutter-architecture.md)
+- [Design System](./10-design-system.md)
+- [Accessibility](./21-accessibility.md)
+- [Backend API Design Standards](../04-backend/06-api-design-standards.md)
