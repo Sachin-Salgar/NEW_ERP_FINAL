@@ -93,23 +93,25 @@ Every developer, architect, and contributor is expected to understand and follow
 
 **Statement**: Every module shall be independently maintainable, expose only its published interfaces, and avoid unnecessary dependencies upon one another.
 
-**Scope**: All business modules and platform services
+**Scope**: All business modules and platform capabilities
 
 **What Modules Should Know**:
-- Published APIs of other modules
-- Published contracts and data models
-- Shared platform services
-- Documented integration events
+- Published contracts of other modules
+- Shared platform contracts
+- Documented integration events where explicitly supported by the current architecture
 
 **What Modules Should Avoid**:
 - Another module's internal implementation details
 - Direct database access to another module's tables
 - Undocumented internal services
 - Implicit dependencies
+- Direct access to another module's private repositories or persistence implementation
 
-**Purpose**: This isolation enables independent development, testing, deployment, and evolution of modules.
+**Current Deployment Model**: The ERP backend is a modular monolith with one deployable backend application. Module independence means logical and code-level isolation, controlled dependencies, clear ownership, and independent testability; it does not mean independent deployment.
 
-**Example**: The Sales module should integrate with Inventory through the Inventory API, not by directly querying Inventory database tables. This allows the Inventory module to change its internal structure without breaking Sales.
+**Purpose**: This isolation allows modules to be developed, tested, and evolved independently within the modular monolith while preserving clear boundaries. Future independent deployment or service extraction requires an approved Architecture Decision Record.
+
+**Example**: The Sales module should integrate with Inventory through the Inventory module's published application/service contract, not by directly querying Inventory database tables. This allows Inventory to change its internal structure without breaking Sales.
 
 ---
 
