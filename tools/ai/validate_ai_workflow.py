@@ -33,7 +33,7 @@ REQUIRED_FILES = [
 REQUIRED_PHRASES = {
     "AGENTS.md": ["authoritative source of truth", "STOP and ask", "Completion rule"],
     ".github/copilot-instructions.md": ["automatically supplied", "authoritative source of truth", "STOP and ask", "Do NOT read the entire repository"],
-    ".github/instructions/ai-workflow.instructions.md": ["deterministic", "fail closed", "manually tell Copilot which AI files to read"],
+    ".github/instructions/ai-workflow.instructions.md": ["deterministic", "fail closed", "Do not create mechanisms that require the user to manually tell Copilot which AI files to read"],
     ".github/skills/erp-feature-development/SKILL.md": ["authoritative", "Anti-hallucination rules", "validation"],
     ".ai/authority.md": ["Authority hierarchy", "Missing decision", "Contradictory documents"],
     ".ai/workflows/feature-development.md": ["Phase 1 — Discover", "Phase 5 — Validate", "Phase 7 — Report", "Clear feature request"],
