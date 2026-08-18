@@ -11,10 +11,14 @@ REQUIRED_FILES = [
     ".github/prompts/investigate.prompt.md",
     ".github/prompts/implement-feature.prompt.md",
     ".github/prompts/review-change.prompt.md",
+    ".github/prompts/refresh-repository-context.prompt.md",
     ".ai/README.md",
     ".ai/authority.md",
     ".ai/repository-map.md",
     ".ai/workflows/feature-development.md",
+    ".ai/workflows/repository-maintenance.md",
+    "tools/ai/repository_scanner.py",
+    "tools/ai/validate_ai_workflow.py",
     "docs/README.md",
     "docs/00-overview/02-governance.md",
     "docs/10-adr/README.md",
@@ -24,6 +28,7 @@ REQUIRED_PHRASES = {
     ".github/copilot-instructions.md": ["authoritative source of truth", "STOP and ask", "Do NOT read the entire repository"],
     ".ai/authority.md": ["Authority hierarchy", "Missing decision", "Contradictory documents"],
     ".ai/workflows/feature-development.md": ["Phase 1 — Discover", "Phase 5 — Validate", "Phase 7 — Report"],
+    ".ai/workflows/repository-maintenance.md": ["deterministic", "generated inventory", "actual relevant files"],
 }
 
 
