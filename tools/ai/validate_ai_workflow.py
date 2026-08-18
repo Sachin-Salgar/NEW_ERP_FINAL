@@ -42,6 +42,16 @@ REQUIRED_PHRASES = {
 }
 
 
+def normalize(text: str) -> str:
+    """Normalize text for contract checks without changing repository files."""
+    return " ".join(text.casefold().split())
+
+
+def contains_phrase(text: str, phrase: str) -> bool:
+    """Check contract phrases case-insensitively and across whitespace/newlines."""
+    return normalize(phrase) in normalize(text)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", default=".")
@@ -59,19 +69,19 @@ def main() -> int:
             continue
         text = path.read_text(encoding="utf-8", errors="replace")
         for phrase in phrases:
-            if phrase not in text:
+            if not contains_phrase(text, phrase):
                 failures.append(f"Missing required phrase in {relative}: {phrase}")
 
     prompt_dir = root / ".github/prompts"
     for path in sorted(prompt_dir.glob("*.prompt.md")) if prompt_dir.exists() else []:
         text = path.read_text(encoding="utf-8", errors="replace")
-        if "agent: 'agent'" not in text:
+        if not contains_phrase(text, "agent: 'agent'"):
             failures.append(f"Prompt file is not configured for agent mode: {path.relative_to(root)}")
 
     skill = root / ".github/skills/erp-feature-development/SKILL.md"
     if skill.is_file():
         text = skill.read_text(encoding="utf-8", errors="replace")
-        if not text.startswith("---\n") or "name: erp-feature-development" not in text or "description:" not in text:
+        if not text.startswith("---\n") or not contains_phrase(text, "name: erp-feature-development") or not contains_phrase(text, "description:"):
             failures.append("ERP feature skill is missing required SKILL.md frontmatter")
 
     if failures:
