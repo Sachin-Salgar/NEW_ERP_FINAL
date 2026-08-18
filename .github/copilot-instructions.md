@@ -2,115 +2,127 @@
 
 ## 1. Authority
 
-The `docs/` directory is the authoritative source of truth for the ERP.
+The `docs/` directory is the authoritative source of truth for the ERP. The AI workflow in `.ai/` is a navigation/process layer and MUST NOT become a competing architecture source.
 
-Follow this authority hierarchy:
+Follow the authority hierarchy defined by `docs/00-overview/02-governance.md`:
 
 1. Approved ADRs in `docs/10-adr/` — highest authority for their explicitly scoped decisions.
-2. Current Software Architecture Documentation under `docs/` — baseline architecture and mandatory principles.
-3. Development standards and module specifications under `docs/` — implementation rules within their scope.
-4. Source code and tests — evidence of the current implementation, but NOT authority when they conflict with architecture.
-5. AI inference — lowest authority; never use inference to override repository evidence.
+2. Software Architecture Documentation under `docs/` — baseline architecture and mandatory principles.
+3. Development Standards — implementation standards within their scope.
+4. Module Specifications — module-specific rules within their scope.
+5. Source code and tests — evidence of current implementation, but NOT authority when they conflict with architecture.
+6. AI inference — lowest authority and never sufficient to override repository evidence.
 
-`docs/archive/` is historical/reference material and is not authoritative unless a current document explicitly references it.
-Proposed, deprecated, or superseded ADRs are not authoritative decisions.
+`docs/archive/` is historical/reference material and is not authoritative unless a current authoritative document explicitly directs its use. Proposed, superseded, and deprecated ADRs are not implementation authority.
+
+Use `.ai/authority.md` for the detailed AI authority contract and `.ai/repository-map.md` for documentation navigation.
 
 ## 2. Mandatory repository-aware workflow
 
-Before modifying code for any non-trivial task:
+For every non-trivial task:
 
-1. Inspect the repository structure relevant to the task.
-2. Read `docs/README.md` and the relevant authoritative documentation before making architectural or business assumptions.
-3. Identify applicable principles, architecture rules, security rules, database rules, module specifications, and approved ADRs.
-4. Inspect the existing implementation and relevant tests for the affected area.
-5. Determine dependencies and integration points before changing interfaces or shared behavior.
-6. State the implementation plan and the authoritative documents/code/tests used to form it.
-7. If the requirements, documentation, ADRs, or existing implementation are ambiguous or contradictory, STOP and ask for clarification. Do not silently choose an interpretation.
+1. Classify the request.
+2. Inspect the relevant repository structure.
+3. Read `docs/README.md` and `docs/00-overview/02-governance.md`.
+4. Identify the smallest relevant authoritative documentation boundary using `.ai/repository-map.md`.
+5. Read applicable domain documentation and approved ADRs.
+6. Inspect the existing implementation and relevant tests before proposing changes.
+7. Determine dependencies and integration points.
+8. Produce a plan grounded in repository evidence.
+9. If requirements or authoritative sources are ambiguous or contradictory, STOP and ask. Do not silently choose an interpretation.
+10. Implement only after the requirements and architectural boundary are understood.
+11. Validate with applicable tests, typecheck, lint/static analysis, and build.
+12. Review the result against authoritative documentation and report evidence.
 
-Do NOT read the entire repository indiscriminately. Discover the relevant area from the documentation and repository structure, then inspect the files required for the task.
+Do NOT read the entire repository indiscriminately. Repository awareness means discovering the relevant evidence, not loading every file into context.
+
+The complete feature lifecycle is defined in `.ai/workflows/feature-development.md`.
 
 ## 3. No invention rule
 
 Never invent:
 
-- business rules
-- database relationships or fields
-- tenancy behavior
-- authorization behavior
-- API contracts
-- module boundaries
-- architectural patterns
-- security requirements
-- event contracts
-- configuration semantics
+- business rules;
+- database relationships, fields, indexes, constraints, or migrations;
+- tenancy behavior;
+- authorization behavior;
+- API contracts;
+- module boundaries;
+- architectural patterns;
+- security requirements;
+- event contracts;
+- configuration semantics;
+- deployment behavior.
 
-when the repository does not establish them.
-
-If required information is missing, explicitly report the gap and ask for a decision. Do not hide an assumption in implementation.
+If required information is absent, report the gap and ask for a decision. Do not hide an assumption in implementation.
 
 ## 4. Architecture conflict rule
 
-If source code conflicts with authoritative documentation, treat the source code as a defect unless an approved ADR explicitly changed the documented decision.
+If source code conflicts with authoritative documentation, treat the source code as non-conforming implementation unless an approved ADR explicitly changed the documented decision.
 
-Do not silently modify architecture documentation to make an implementation appear compliant.
+Do not silently modify authoritative documentation to make an implementation appear compliant.
 
-If an architectural change is required, identify it as an architectural change and require the ADR/governance process defined by `docs/00-overview/02-governance.md` before implementation.
+If an architectural change is required, stop at the architectural boundary and follow the ADR/governance process in `docs/00-overview/02-governance.md`.
 
 ## 5. Implementation rules
 
-- Follow existing repository patterns unless authoritative documentation requires a change.
-- Prefer the smallest change that satisfies the approved requirement.
-- Do not introduce new frameworks, libraries, patterns, or infrastructure without evidence that they are allowed by the authoritative documentation or an approved ADR.
+- Follow established repository patterns unless authoritative documentation requires a change.
+- Prefer the smallest coherent change that satisfies the approved requirement.
+- Do not introduce frameworks, libraries, patterns, or infrastructure without repository evidence or an approved decision.
 - Preserve module boundaries and separation of concerns.
-- Backend owns business logic.
+- Backend owns business rules.
 - Database remains the source of truth for business records.
-- Security and tenant isolation must be treated as cross-cutting requirements.
-- Do not weaken existing tests or remove validation merely to make a build pass.
+- Security and tenant isolation are cross-cutting requirements.
+- Do not weaken or delete tests merely to make validation pass.
 
-## 6. Validation is mandatory
+## 6. Validation contract
 
-After implementation, run the repository's applicable validation commands:
+A feature is not complete until applicable validation has been executed and results are reported.
 
-- unit tests
-- integration tests
-- typecheck
-- build
-- lint/static analysis when configured
+Required validation is task-dependent and may include:
 
-For database, tenancy, security, or transaction changes, run the relevant integration/security tests as well.
+- unit tests;
+- integration tests;
+- database/RLS/transaction tests;
+- security/authorization tests;
+- typecheck;
+- lint/static analysis;
+- build;
+- broader regression tests.
 
-Do not claim a feature is complete when required validation is failing or has not been run. Report exactly what was executed and the result.
+Never claim a validation step passed if it was not actually run.
 
-## 7. Documentation changes
+## 7. Documentation and architecture changes
 
-Do not modify authoritative architecture documentation merely to justify code that was already written.
+Do not change authoritative architecture documents merely to justify already-written code.
 
-If implementation reveals that an architectural decision must change:
+If implementation reveals a required architectural change:
 
-1. Stop implementation at the architectural boundary.
-2. Identify the affected authoritative documents.
-3. Create/update an ADR according to `docs/10-adr/` and `docs/00-overview/02-governance.md`.
-4. Obtain the required approval before treating the new decision as authoritative.
-5. Then update implementation and affected documentation consistently.
+1. stop at the decision boundary;
+2. identify affected authoritative documents;
+3. prepare/update the ADR according to `docs/10-adr/` and governance;
+4. obtain required approval;
+5. update authoritative documentation;
+6. implement against the approved decision.
 
 ## 8. Response contract
 
-For a feature request, first report:
+Before implementation, report:
 
-- what you found
-- authoritative sources consulted
-- affected modules/files
-- dependencies
-- proposed implementation
-- validation plan
-- any unresolved ambiguity
+- request classification;
+- authoritative documents consulted;
+- applicable ADRs;
+- relevant implementation/tests inspected;
+- proposed plan;
+- validation plan;
+- unresolved ambiguity.
 
 After implementation, report:
 
-- files changed
-- behavior implemented
-- tests/validation executed
-- results
-- remaining risks or unresolved issues
+- files changed;
+- behavior implemented;
+- validation commands executed and results;
+- documentation/ADR impact;
+- remaining risks or unresolved issues.
 
 Never present an unverified implementation as complete.
