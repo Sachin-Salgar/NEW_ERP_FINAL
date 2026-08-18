@@ -1,143 +1,131 @@
-# Backend Security Best Practices
+# Backend Security
 
-Document Purpose: Chapter 22 from Volume 3 — Backend Security Best Practices
+**Document Purpose:** Define backend security principles and baseline security requirements for the Enterprise ERP Platform.
 
-Source: Enterprise ERP Software Architecture — Volume 3 (Chapter 22)
+## 1.1 Scope
 
----
+Backend security protects business data, APIs, services, background processing, integrations, and other server-side resources.
 
-## Chapter 22
+Security is a cross-cutting architectural responsibility. Backend implementations shall conform to the authoritative security architecture and approved ADRs.
 
-### 22.1 Introduction
-
-Security is one of the fundamental architectural pillars of the Enterprise ERP Platform. Every business operation, API request, background job, and integration must be designed with security as a primary consideration rather than an afterthought.
-The backend is responsible for protecting business data, enforcing access control, preventing malicious activity, and maintaining the confidentiality, integrity, and availability of organizational information.
-Security shall be integrated into every architectural layer of the platform.
-
-### 22.2 Objectives
+## 1.2 Objectives
 
 The backend security strategy aims to:
-• Protect business information.
-• Prevent unauthorized access.
-• Maintain data integrity.
-• Ensure confidentiality.
-• Reduce attack surface.
-• Support regulatory compliance.
-• Enable secure software development.
+- Protect business information.
+- Prevent unauthorized access.
+- Maintain data integrity.
+- Protect confidentiality.
+- Reduce attack surface.
+- Support applicable compliance requirements.
+- Enable secure software development.
 
-### 22.3 Security Principles
+## 1.3 Security Principles
 
-The backend follows these core security principles:
-• Least Privilege.
-• Defense in Depth.
-• Zero Trust.
-• Secure by Default.
-• Fail Securely.
-• Explicit Authorization.
-• Continuous Monitoring.
+The backend follows:
+- Least Privilege.
+- Defense in Depth.
+- Zero Trust.
+- Secure by Default.
+- Fail Securely.
+- Explicit Authorization.
+- Continuous Monitoring.
 
-These principles guide all backend development activities.
+These principles apply to APIs, application services, background jobs, integrations, and data access.
 
-### 22.4 Authentication Security
+## 1.4 Authentication Security
 
-Authentication shall include:
-• Secure password hashing.
-• Strong password policies.
-• Short-lived access tokens.
-• Refresh token rotation.
-• Session expiration.
-• Account lockout after repeated failed attempts.
+Authentication is an identity concern and shall use the platform authentication contract.
 
-Credentials shall never be stored or transmitted in plain text.
+The current baseline includes JWT-based access and refresh tokens. Token lifecycle and rotation behavior are defined by the canonical backend authentication documentation and approved ADRs.
 
-### 22.5 Authorization Security
+Credentials and authentication secrets shall never be stored or transmitted in plaintext.
 
-Authorization shall verify:
-• Organization membership.
-• Module access.
-• Role permissions.
-• Branch restrictions.
-• Record-level access where applicable.
+Authentication mechanisms not established by the current architecture, such as MFA, SSO, passwordless authentication, or federation, require an explicit architectural decision before implementation.
 
-Every protected resource shall undergo authorization checks appropriate to its sensitivity.
+## 1.5 Authorization Security
 
-### 22.6 API Security
+Authorization shall be enforced by the backend for every protected operation.
 
-All APIs shall implement:
-• HTTPS only.
-• Input validation.
-• Output sanitization.
-• Rate limiting.
-• Request size limits.
-• Content-Type validation.
+Applicable checks may include:
+- Organization/tenant scope.
+- Module/capability access.
+- Role permissions.
+- Branch or organizational restrictions.
+- Record-level access.
+- Resource-specific policies.
 
-Public APIs shall expose only the minimum information required.
+Frontend visibility is not a security control.
 
-### 22.7 Data Protection
+## 1.6 API Security
 
-Sensitive information shall be protected through:
-• Encryption in transit.
-• Encryption at rest where appropriate.
-• Secure backups.
-• Controlled access.
-• Audit logging.
+Protected APIs shall apply appropriate controls including:
+- Authentication validation.
+- Authorization enforcement.
+- Input validation.
+- Safe output handling.
+- Rate limiting where required.
+- Request-size limits where required.
+- Content-type validation where applicable.
+- Safe error responses.
 
-Personally identifiable information (PII) shall be handled according to applicable regulations.
+API behavior shall follow the canonical API design standards.
 
-### 22.8 Secure Coding
+## 1.7 Data Protection
+
+Sensitive information shall be protected through appropriate controls including:
+- Encryption in transit.
+- Encryption at rest where required.
+- Secure backups.
+- Controlled access.
+- Audit logging.
+- Database isolation controls.
+
+PostgreSQL Row-Level Security (RLS) is part of the database tenant-isolation architecture where applicable.
+
+## 1.8 Secure Coding
 
 Developers shall:
-• Validate all inputs.
-• Use parameterized queries.
-• Avoid insecure dependencies.
-• Review third-party packages.
-• Prevent SQL Injection.
-• Prevent Cross-Site Scripting (where applicable).
-• Prevent Cross-Site Request Forgery where relevant.
+- Validate untrusted input.
+- Use parameterized database access.
+- Avoid insecure dependencies.
+- Review dependency vulnerabilities.
+- Prevent injection attacks.
+- Apply appropriate web/API security controls.
+- Avoid leaking secrets or sensitive information through logs and errors.
 
-Security reviews shall be incorporated into the development process.
+Security review shall be part of normal development and code review.
 
-### 22.9 Incident Response
+## 1.9 Security Events and Incident Response
 
-Security incidents shall follow a documented response process.
-Typical stages include:
+Security-relevant events shall be observable through the platform's logging and monitoring architecture.
+
+A security incident should follow an established lifecycle:
+
+```text
 Detection
-
-↓
-
+   ↓
 Assessment
-
-↓
-
+   ↓
 Containment
-
-↓
-
+   ↓
 Investigation
-
-↓
-
+   ↓
 Recovery
-
-↓
-
+   ↓
 Post-Incident Review
+```
 
-Lessons learned shall be incorporated into future improvements.
+Operational incident procedures belong to the security-operations documentation.
 
-### 22.10 Summary
+## 1.10 Summary
 
-Backend security is a continuous responsibility that combines secure architecture, disciplined development practices, proactive monitoring, and ongoing improvement.
+Backend security combines authentication, authorization, secure coding, data protection, isolation, monitoring, and incident response while preserving the backend as the authoritative enforcement boundary.
 
----
+## Cross References
 
-Cross References
-
-- docs/04-backend/07-authentication-and-authorization.md
-- docs/04-backend/01-backend-overview.md
-- docs/03-database/README.md
-
-References
-
-- Volume 3 — Backend Architecture (source)
-
+- [Backend Authentication & Authorization](../04-backend/07-authentication-and-authorization.md)
+- [Backend API Design Standards](../04-backend/06-api-design-standards.md)
+- [Database Multi-Tenancy](../03-database/11-multi-tenancy.md)
+- [Security Operations](./03-security-operations.md)
+- [Enterprise Security Architecture](./04-enterprise-security-architecture.md)
+- [Architecture Decision Records](../10-adr/README.md)
