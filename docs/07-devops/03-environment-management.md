@@ -1,133 +1,61 @@
 # Environment Management
 
-**Source:** Volume 5 — Environment Management
+**Document Purpose:** Define environment isolation, configuration separation, and promotion principles.
 
-## Introduction
+## 1. Introduction
 
-Software development requires isolated environments to support development, testing, validation, and production operations.
+Isolated environments support development, testing, validation, and production operation while reducing accidental interference.
 
-Each environment shall remain independent to prevent accidental interference and ensure predictable deployments.
+## 2. Environment Model
 
-## Objectives
-
-Environment management aims to:
-
-- Isolate deployments.
-- Improve software quality.
-- Reduce deployment risk.
-- Simplify testing.
-- Protect production systems.
-
-## Standard Environments
-
-The ERP shall support:
+A deployment may use stages such as:
 
 ```text
-Development
-
-↓
-
-Testing
-
-↓
-
-Quality Assurance
-
-↓
-
-Staging
-
-↓
-
-Production
+Development → Testing → QA → Staging → Production
 ```
 
-Each environment serves a distinct operational purpose.
+The exact set of environments is deployment-specific. Not every organization must operate every stage.
 
-## Development Environment
+## 3. Development
 
-Purpose:
+Development supports feature implementation, local debugging, and developer testing.
 
-- Feature Development.
-- Unit Testing.
-- Local Debugging.
-- Experimental Changes.
+Production data shall not be copied into development unless an approved process protects or anonymizes it.
 
-Development environments shall not contain production data unless properly anonymized.
+## 4. Testing / QA
 
-## Testing Environment
+Testing environments support automated tests, integration validation, regression testing, and quality validation. They should resemble production sufficiently for the behavior being validated.
 
-Purpose:
+## 5. Staging
 
-- Integration Testing.
-- API Validation.
-- Automated Tests.
-- Regression Testing.
+Where used, staging provides final validation, deployment rehearsal, and user acceptance activities before production.
 
-Testing environments shall closely resemble production.
+## 6. Production
 
-## Staging Environment
+Production requires controlled changes, monitoring, backup/recovery capability, security controls, and appropriate operational governance.
 
-Purpose:
+## 7. Configuration Separation
 
-- Final Validation.
-- User Acceptance Testing.
-- Performance Verification.
-- Deployment Rehearsal.
-
-Staging shall mirror production configuration as closely as practical.
-
-## Production Environment
-
-Production shall provide:
-
-- High Availability.
-- Monitoring.
-- Backup.
-- Security Controls.
-- Controlled Change Management.
-
-Only approved deployments shall reach production.
-
-## Configuration Separation
-
-Each environment shall maintain independent:
-
+Environment-specific values shall be separated for:
 - Databases.
 - Secrets.
+- API endpoints.
 - Storage.
-- API Endpoints.
 - Certificates.
-- Logging Configuration.
+- Logging/observability configuration.
 
-Cross-environment sharing is prohibited.
+Secrets must not be copied between environments merely for convenience.
 
-## Promotion Process
+## 8. Promotion
 
-Deployment progression:
+Changes should progress through the organization's required validation stages. Promotion criteria are defined by CI/CD and governance policy rather than by this document inventing fixed approval rules.
 
-```text
-Development
+## 9. Summary
 
-↓
+Environment isolation and configuration separation reduce deployment risk and protect production while supporting repeatable software delivery.
 
-Testing
+## Cross References
 
-↓
-
-QA
-
-↓
-
-Staging
-
-↓
-
-Production
-```
-
-Every promotion shall require successful validation of the previous stage.
-
-## Summary
-
-Environment separation reduces operational risk while supporting structured software development and reliable production deployments.
+- [Deployment Architecture](./01-deployment-architecture.md)
+- [CI/CD Pipeline](./05-ci-cd-pipeline.md)
+- [Security Operations](../06-security/03-security-operations.md)
