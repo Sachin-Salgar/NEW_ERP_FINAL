@@ -1,10 +1,16 @@
 # Security Architecture
 
-This directory contains security controls, authentication, authorization, and security standards.
+This directory contains the **authoritative security architecture and security standards** for the ERP platform.
 
-## From Volume 1
+## Authority
 
-### Security by Design Principle
+Security policy, principles, authentication/authorization requirements, data-protection requirements, and security controls defined in this directory are authoritative for all ERP modules and platform services.
+
+Approved ADRs in `docs/10-adr/` supersede this documentation only within the explicit scope of an approved ADR.
+
+Implementation details belong in the backend/platform documentation where applicable; implementation must conform to the security policy defined here.
+
+## Security by Design
 
 Security shall be incorporated into every architectural layer through:
 - **Authentication**: User identity verification
@@ -16,85 +22,79 @@ Security shall be incorporated into every architectural layer through:
 
 Security shall never be treated as a feature added after implementation; it is an architectural concern.
 
-### Authentication
+## Authentication
 
-**Technology**: JWT-based authentication
+The current baseline authentication architecture uses JWT-based access and refresh tokens. The detailed implementation contract is defined by the canonical backend authentication document and the enterprise security architecture.
 
-**Components**:
-- Authentication Service (login, token generation)
-- Token validation on every API request
-- Refresh token management
-- Session management
+Future authentication capabilities such as MFA, SSO, OIDC/SAML federation, passwordless authentication, and certificate-based authentication are architectural capabilities that require their own approved implementation decisions before being introduced into production behavior.
 
-**Token Management**:
-- Access tokens: Short-lived, signed tokens
-- Refresh tokens: Long-lived tokens for obtaining new access tokens
-- Token rotation on each refresh
-- Logout via token blacklist
+## Authorization
 
-### Authorization
+The security architecture defines centralized, policy-driven authorization. Modules must consume the platform authorization capability and must not create independent authorization models that bypass enterprise policy.
 
-**Model**: Role-Based Access Control (RBAC)
+The current baseline includes RBAC and permission-based access control. More advanced policy models (ABAC/PBAC/context-aware authorization) may be supported when explicitly specified and approved.
 
-**Implementation**:
-- Users belong to roles
-- Roles have permissions
-- Permissions gate API endpoints
-- Fine-grained permission naming
+Authorization must account for applicable organizational scope, module access, permissions, and data-isolation rules.
 
-**Permission Examples**:
-- sales:orders:create
-- sales:orders:read
-- sales:orders:update
-- sales:orders:approve
-- accounting:ledger:post
-
-### Security at Each Layer
+## Security at Each Layer
 
 **Presentation Layer**:
 - HTTPS/TLS enforcement
-- CSRF token validation
+- CSRF protection where applicable
 - Secure token storage
-- Input sanitization
+- Input validation/sanitization
 
 **API Layer**:
 - Authentication validation
-- Authorization checks
+- Authorization enforcement
 - Rate limiting
 - Request size limits
 - Secure error messages
 
 **Business Layer**:
 - Business rule enforcement
-- Permission validation
+- Invocation of centralized authorization policy
 - Audit event generation
 - Data access controls
 
 **Data Layer**:
-- Encryption at rest (where required)
-- Row-Level Security policies
+- Encryption at rest where required
+- PostgreSQL Row-Level Security (RLS)
 - Referential integrity constraints
-- Query audit trails
+- Query/data-access auditing where required
 
----
+## Multi-Tenant Security
+
+Tenant isolation is mandatory. PostgreSQL RLS is the database-level isolation mechanism defined by `docs/03-database/11-multi-tenancy.md` and its applicable ADRs.
+
+Application authorization and database isolation are complementary controls:
+
+```text
+Identity
+  ↓
+Authentication
+  ↓
+Authorization / organizational scope
+  ↓
+Business operation
+  ↓
+Database transaction context
+  ↓
+PostgreSQL RLS tenant isolation
+```
+
+Passing authorization must never be treated as permission to bypass database isolation.
 
 ## Related Documentation
 
-- [Architectural Principles](../00-overview/01-architectural-principles.md#principle-7-security-by-design) — Security by Design principle
-- [System Architecture](../02-architecture/02-system-architecture.md) — How security is implemented across layers
-- [Technology Stack](../05-frontend/01-technology-stack.md#authentication) — JWT and authentication technology
-- [Security Operations](03-security-operations.md) — Continuous security monitoring and incident response
+- [Architectural Principles](../00-overview/01-architectural-principles.md#principle-7-security-by-design)
+- [System Architecture](../02-architecture/02-system-architecture.md)
+- [Database Multi-Tenant Architecture](../03-database/11-multi-tenancy.md)
+- [Backend Authentication & Authorization](../04-backend/07-authentication-and-authorization.md)
+- [Enterprise Security Architecture](./04-enterprise-security-architecture.md)
+- [Security Operations](03-security-operations.md)
+- [Architecture Decision Records](../10-adr/README.md)
 
-## Navigation
+## Implementation Rule
 
-This volume (Volume 1) establishes security architectural principles. Current security operations guidance is available in the canonical security documentation.
-
-Future volumes will provide:
-- Detailed authentication architecture
-- Multi-factor authentication
-- Single sign-on (OIDC/SAML) integration
-- Encryption key management
-- Vulnerability scanning processes
-- Security testing standards
-- Incident response procedures
-- Compliance requirements
+If a feature request requires a security decision that is not established by current authoritative documentation or an approved ADR, implementation must stop at that decision boundary and request an explicit architectural decision. AI and developers must not invent security behavior.
