@@ -7,14 +7,19 @@ import argparse
 from pathlib import Path
 
 REQUIRED_FILES = [
+    "AGENTS.md",
     ".github/copilot-instructions.md",
+    ".github/instructions/ai-workflow.instructions.md",
+    ".github/instructions/docs-authority.instructions.md",
     ".github/prompts/investigate.prompt.md",
     ".github/prompts/implement-feature.prompt.md",
     ".github/prompts/review-change.prompt.md",
     ".github/prompts/refresh-repository-context.prompt.md",
+    ".github/prompts/architecture-change.prompt.md",
     ".ai/README.md",
     ".ai/authority.md",
     ".ai/repository-map.md",
+    ".ai/workflows/ai-system.md",
     ".ai/workflows/feature-development.md",
     ".ai/workflows/repository-maintenance.md",
     "tools/ai/repository_scanner.py",
@@ -25,10 +30,12 @@ REQUIRED_FILES = [
 ]
 
 REQUIRED_PHRASES = {
+    "AGENTS.md": ["authoritative source of truth", "STOP and ask", "Completion rule"],
     ".github/copilot-instructions.md": ["authoritative source of truth", "STOP and ask", "Do NOT read the entire repository"],
     ".ai/authority.md": ["Authority hierarchy", "Missing decision", "Contradictory documents"],
-    ".ai/workflows/feature-development.md": ["Phase 1 — Discover", "Phase 5 — Validate", "Phase 7 — Report"],
+    ".ai/workflows/feature-development.md": ["Phase 1 — Discover", "Phase 5 — Validate", "Phase 7 — Report", "Clear feature request"],
     ".ai/workflows/repository-maintenance.md": ["deterministic", "generated inventory", "actual relevant files"],
+    "tools/ai/repository_scanner.py": ["does not use an LLM", "not architectural authority", "ai-context.md"],
 }
 
 
