@@ -1,414 +1,303 @@
-# Canonical content migrated from Volume 6
+# Platform Service Architecture
 
-Source: Volume 6 — ERP Business Modules & Functional Architecture
+## 1. Purpose
 
-Chapters included: [10, 11, 12, 155]
+Platform services provide reusable cross-cutting capabilities used by multiple ERP business modules. They are shared platform capabilities, not business-domain ownership substitutes.
 
----
+The current platform-service scope includes:
 
-<!-- Canonical Ownership (automated reconciliation) -->
-**Canonical Ownership (DECISION):**
-- Canonical file: `docs/09-platform-services/01-platform-service-architecture.md`
-- Disposition: KEEP — Platform services architecture is canonical here; consumer modules should reference platform services for shared capabilities (notifications, document management, workflow engine, integration, AI).
+- Notification and communication services
+- Document management and document lifecycle services
+- Workflow engine services
+- Shared integration points for platform capabilities
 
----
+Other platform concerns have their own canonical documents and are referenced rather than duplicated here:
 
-## Volume 7 (Chapters 181–189) integration summary
-This canonical platform-service file has been reviewed and reconciled with Volume 7 (Enterprise Information & Platform Services). The following decisions were applied:
-- Document Management, Document Versioning & Collaboration, and File Storage platform concepts (Chapters 181–183) are consolidated here where appropriate and cross-referenced to implementation-level storage guidance in `docs/04-backend/14-file-storage-architecture.md`.
-- Document Intelligence (OCR/content extraction) (Chapter 184) is canonicalized under the AI platform (`docs/09-platform-services/03-ai-platform-architecture.md`); integration points remain documented here.
-- Electronic Signatures & Certificates (Chapter 185) are canonical to Security (`docs/06-security/04-enterprise-security-architecture.md`) with platform integration notes here.
-- Master Data & Reference Data (Chapters 186–187) are canonical to Data Governance (`docs/03-database/20-master-data-management.md`).
-- Enterprise Configuration (Chapter 188) and Localization (Chapter 189) have been activated as platform-level canonical documents: `docs/09-platform-services/04-enterprise-configuration-framework.md` and `docs/09-platform-services/05-localization-internationalization.md` respectively. These files contain the authoritative Volume 7 content for those concerns; consumer and implementation docs have been cross-referenced accordingly.
+- AI platform architecture — `docs/09-platform-services/03-ai-platform-architecture.md`
+- Enterprise configuration — `docs/09-platform-services/04-enterprise-configuration-framework.md`
+- Localization and internationalization — `docs/09-platform-services/05-localization-internationalization.md`
+- File-storage implementation guidance — `docs/04-backend/14-file-storage-architecture.md`
+- Security architecture — `docs/06-security/04-enterprise-security-architecture.md`
+- Master-data governance — `docs/03-database/20-master-data-management.md`
 
-See the migration traceability artifacts for full per-section mappings: `docs/migration-traceability/volume7-to-docs.md`.
+## 2. Architectural Position
 
+Platform services are logical capabilities within the ERP modular-monolith architecture. They are not required to be independently deployed microservices.
 
-Chapter 10
-Notification Management Module
-________________________________________
-10.1 Introduction
-The Notification Management Module provides a centralized mechanism for delivering business events, reminders, alerts, approvals, and system messages to users.
-Rather than allowing each business module to implement its own notification system, the Enterprise ERP Platform shall utilize a unified notification framework shared across all modules.
-This approach ensures consistent user experience, centralized configuration, and simplified maintenance.
-________________________________________
-10.2 Objectives
-The Notification Management Module aims to:
-•	Centralize notifications.
-•	Improve business communication.
-•	Support multiple delivery channels.
-•	Enable configurable notification rules.
-•	Reduce missed business actions.
-•	Maintain notification history.
-________________________________________
-10.3 Notification Sources
-Notifications may originate from any ERP module.
+Business modules consume platform capabilities through defined contracts. A business module must not create a competing implementation of a shared platform capability when the corresponding platform service already exists.
+
+Platform services must not take ownership of business-domain records merely because they provide a shared technical capability.
+
+Examples:
+
+- Finance owns accounting records; notification services may notify users about finance events.
+- Sales owns sales transactions; document services may store related documents.
+- Workflow owns workflow execution state; the business module owns the business transaction being approved.
+- Quality owns quality records; document services may store supporting evidence.
+
+## 3. Notification & Communication Framework
+
+The notification framework provides centralized delivery of system-generated communications to users, customers, suppliers, partners, and integrated systems.
+
+### 3.1 Objectives
+
+- Centralize communications.
+- Provide consistent notification behavior.
+- Support configurable delivery channels.
+- Maintain delivery and notification history.
+- Reduce duplicate notification implementations.
+
+### 3.2 Sources
+
+Notifications may originate from any authorized ERP module or platform service. The source must remain identifiable.
+
+Examples include Sales, Procurement, Inventory, Finance, HR, Manufacturing, CRM, Asset Maintenance, Quality, Workflow, and system administration.
+
+Project Management is not an active module and must not be treated as a notification source.
+
+### 3.3 Notification Types
+
+The framework may support categories such as:
+
+- Information
+- Success
+- Warning
+- Error
+- Approval request
+- Reminder
+- Assignment
+- Escalation
+- Deadline alert
+- System announcement
+
+The exact set and presentation rules are configurable rather than hard-coded by this architecture document.
+
+### 3.4 Delivery Channels
+
+The framework can provide adapters for channels such as:
+
+- In-application notifications
+- Email
+- SMS
+- Push notifications
+- Desktop notifications
+- Webhooks
+- Other external communication providers where explicitly integrated
+
+The architecture does not imply that every channel or provider is implemented in every deployment.
+
+Organizations may enable or disable supported channels according to configuration and available integrations.
+
+### 3.5 Notification Lifecycle
+
+A notification may progress through states such as:
+
+`Created → Queued/Processing → Delivered/Failed → Viewed → Acknowledged`
+
+Not every channel necessarily supports every state. Delivery and processing outcomes must be recorded where the channel supports them so failures and retries can be audited.
+
+### 3.6 User Preferences
+
+The framework may support configurable preferences including:
+
+- Preferred delivery channels
+- Notification categories
+- Quiet hours
+- Immediate alerts
+- Digest/daily summary preferences
+
+Organization-level defaults may be provided where appropriate. Security and mandatory operational notifications must not be bypassed merely through user preference settings.
+
+### 3.7 Templates
+
+Communication templates may support:
+
+- Subject and body
+- Placeholders
+- Localization
+- Attachments where the delivery channel supports them
+- Branding/configuration
+- Versioning
+
+Templates are configuration/data and must not require business-module code changes for ordinary content changes.
+
+### 3.8 Delivery Policies
+
+Supported policies may include:
+
+- Immediate delivery
+- Scheduled delivery
+- Batch/digest delivery
+- Retry policies
+- Delivery priority
+- Channel fallback where explicitly configured
+
+The architecture does not mandate asynchronous processing for every notification. Synchronous and asynchronous processing may both be used according to the delivery requirement.
+
+### 3.9 Tracking and Reporting
+
+The framework should support appropriate tracking of:
+
+- Delivery status
+- Failure reason
+- Retry attempts
+- View/acknowledgement status where available
+- User preferences
+
+Typical reporting includes delivery statistics, failed deliveries, pending notifications, channel performance, and notification history.
+
+## 4. Document Management
+
+Document management provides a shared repository and lifecycle capability for electronic business documents.
+
+### 4.1 Scope
+
 Examples include:
-•	Sales
-•	Purchase
-•	Inventory
-•	Finance
-•	Human Resources
-•	Payroll
-•	Manufacturing
-•	CRM
-•	Asset Management
-•	Workflow Engine
-•	System Administration
-The notification source shall always be identifiable.
-________________________________________
-10.4 Notification Types
-Supported notification categories include:
-•	Information
-•	Success
-•	Warning
-•	Error
-•	Approval Request
-•	Reminder
-•	Assignment
-•	Escalation
-•	Deadline Alert
-•	System Announcement
-Each notification type shall have standardized behavior and presentation.
-________________________________________
-10.5 Delivery Channels
-The platform shall support multiple delivery mechanisms.
-Examples include:
-•	In-App Notifications
-•	Email
-•	SMS
-•	Push Notifications
-•	Desktop Notifications
-•	Webhook Integration
-Organizations may enable or disable channels according to business requirements.
-________________________________________
-10.6 Notification Lifecycle
-Illustrative workflow:
-Business Event
 
-↓
+- Sales quotations and invoices
+- Purchase orders and receipts
+- Payment-related documents
+- Employee documents
+- Contracts
+- Drawings and images
+- Compliance certificates
+- Other configured business documents
 
-Notification Created
+Business modules remain responsible for the business meaning and ownership of the related transaction. The document service manages document storage, metadata, lifecycle, and access according to established contracts.
 
-↓
+### 4.2 Metadata
 
-Delivery Processing
+Document metadata may include:
 
-↓
+- Document identifier
+- Document type
+- Organization/tenant
+- Branch where applicable
+- Related module
+- Related transaction/entity
+- Uploaded by
+- Upload date
+- Version
+- Status
 
-Delivered
+### 4.3 Versioning
 
-↓
+Where versioned documents are supported, the service should maintain revision history and preserve historical versions as immutable records.
 
-Viewed
+Check-in/check-out, comparison, and restoration are capabilities that may be provided where required; this document does not claim that every deployment must implement all of them.
 
-↓
+### 4.4 Security
 
-Acknowledged
+Document access must follow the central authorization and tenant/security architecture. Applicable permissions may include view, download, upload, edit, and delete operations.
 
-↓
+Sensitive documents may require additional controls.
 
-Archived
-Each stage shall be recorded for auditing and troubleshooting.
-________________________________________
-10.7 User Preferences
-Users may configure:
-•	Preferred Delivery Channels.
-•	Notification Categories.
-•	Quiet Hours.
-•	Daily Summary.
-•	Immediate Alerts.
-•	Sound Preferences.
-Organization administrators may define default policies.
-________________________________________
-10.8 Reporting
-Typical reports include:
-•	Notifications by Module.
-•	Delivery Success Rate.
-•	Pending Notifications.
-•	Failed Deliveries.
-•	User Notification History.
-________________________________________
-10.9 Summary
-The Notification Management Module provides a unified communication framework that improves user awareness while maintaining centralized administration.
-________________________________________
+Document access and lifecycle operations must be auditable where required by the governing security/audit policy.
 
+### 4.5 Storage
 
-Chapter 11
-Document Management Module
-________________________________________
-11.1 Introduction
-Business operations generate numerous electronic documents, including invoices, purchase orders, contracts, quotations, receipts, and employee records.
-The Document Management Module provides centralized storage, organization, retrieval, and lifecycle management for all business documents.
-This module serves as the standard document repository for the ERP platform.
-________________________________________
-11.2 Objectives
-The module aims to:
-•	Centralize document storage.
-•	Improve document accessibility.
-•	Support secure document sharing.
-•	Maintain version history.
-•	Simplify document retrieval.
-•	Preserve business records.
-________________________________________
-11.3 Supported Documents
-Examples include:
-•	Sales Quotations.
-•	Sales Invoices.
-•	Purchase Orders.
-•	Goods Receipts.
-•	Payment Receipts.
-•	Employee Documents.
-•	Contracts.
-•	Drawings.
-•	Images.
-•	Compliance Certificates.
-Additional document types may be configured.
-________________________________________
-11.4 Document Metadata
-Each document shall maintain metadata including:
-•	Document Identifier.
-•	Document Type.
-•	Organization.
-•	Branch.
-•	Related Module.
-•	Related Transaction.
-•	Uploaded By.
-•	Upload Date.
-•	Version.
-•	Status.
-Metadata enables efficient searching and reporting.
-________________________________________
-11.5 Version Control
-Document management shall support:
-•	Version History.
-•	Revision Tracking.
-•	Check-In.
-•	Check-Out.
-•	Version Comparison.
-•	Restoration of Previous Versions.
-Historical versions shall remain immutable.
-________________________________________
-11.6 Security
-Document access shall follow RBAC policies.
-Security features include:
-•	View Permissions.
-•	Download Permissions.
-•	Upload Permissions.
-•	Edit Permissions.
-•	Delete Permissions.
-•	Audit Logging.
-Sensitive documents may require additional protection.
-________________________________________
-11.7 Storage Strategy
-Documents may be stored using:
-•	Local Storage.
-•	Network Storage.
-•	Cloud Object Storage.
-•	Hybrid Storage.
-Storage implementation shall be transparent to business modules.
-________________________________________
-11.8 Reports
-Typical reports include:
-•	Document Inventory.
-•	Expiring Documents.
-•	Missing Documents.
-•	Document Access History.
-•	Storage Utilization.
-________________________________________
-11.9 Summary
-The Document Management Module provides centralized, secure, and scalable management of business documents throughout the ERP platform.
-________________________________________
+The document service must use the established file-storage abstraction rather than exposing storage-provider details to business modules.
 
+Supported deployment options may include local/network storage or object storage where the implementation supports them. This architecture does not mandate a particular storage vendor or deployment topology.
 
-Chapter 12
-Workflow Engine Module
-________________________________________
-12.1 Introduction
-Many business processes require approvals, validations, reviews, escalations, and sequential task execution.
-The Workflow Engine provides a configurable framework for automating these business processes without embedding workflow logic directly into individual modules.
-________________________________________
-12.2 Objectives
-The Workflow Engine aims to:
-•	Standardize approvals.
-•	Automate business processes.
-•	Reduce manual effort.
-•	Improve compliance.
-•	Increase operational transparency.
-•	Support configurable workflows.
-________________________________________
-12.3 Workflow Components
-A workflow consists of:
-•	Trigger.
-•	Conditions.
-•	Steps.
-•	Participants.
-•	Approvals.
-•	Rejections.
-•	Notifications.
-•	Completion Rules.
-Each component shall be independently configurable.
-________________________________________
-12.4 Workflow Triggers
-Typical triggers include:
-•	Record Creation.
-•	Record Update.
-•	Approval Request.
-•	Payment Received.
-•	Stock Threshold Reached.
-•	Employee Joining.
-•	Leave Application.
-•	Scheduled Event.
-Triggers initiate workflow execution.
-________________________________________
-12.5 Workflow Actions
-Workflows may perform actions such as:
-•	Assign Task.
-•	Request Approval.
-•	Send Notification.
-•	Update Record.
-•	Generate Document.
-•	Invoke API.
-•	Escalate Issue.
-•	Complete Process.
-Actions shall be executed in the defined sequence.
-________________________________________
-12.6 Approval Workflow
-Illustrative approval process:
-Transaction Created
+## 5. Workflow Engine
 
-↓
+The Workflow Engine is a shared platform capability. Business modules define their business workflows and invoke the engine through established contracts; they do not create separate workflow engines.
 
-Manager Review
+The detailed business-module workflow architecture is documented in `docs/08-business-modules/14-workflow-bpm-module-architecture.md`.
 
-↓
+### 5.1 Core Concepts
 
-Department Approval
+A workflow can contain:
 
-↓
+- Trigger
+- Conditions
+- Steps
+- Participants
+- Approvals
+- Rejections
+- Notifications
+- Completion rules
+- Escalations
 
-Finance Approval
+### 5.2 Triggers
 
-↓
+Possible triggers include record creation/update, approval requests, business events, scheduled events, and other explicitly supported integration events.
 
-Final Approval
+The examples in this document are illustrative, not an exhaustive implementation contract.
 
-↓
+### 5.3 Actions
 
-Transaction Completed
-Approval paths shall be configurable according to organizational policies.
-________________________________________
-12.7 Escalation Rules
-Escalation may occur based on:
-•	Time Limits.
-•	Approval Delays.
-•	Missing Responses.
-•	Business Priority.
-•	Policy Violations.
-Escalations shall generate appropriate notifications.
-________________________________________
-12.8 Monitoring
-Workflow monitoring shall provide:
-•	Active Workflows.
-•	Pending Approvals.
-•	Average Completion Time.
-•	Failed Workflows.
-•	Escalated Cases.
-Monitoring improves operational visibility.
-________________________________________
-12.9 Summary
-The Workflow Engine provides a reusable automation framework that standardizes business processes across all ERP modules while allowing organizations to configure workflows according to their operational requirements.
-________________________________________
-End of Volume 6 – Chapters 10, 11 & 12
-Enterprise ERP Software Architecture Document
-Volume 6 – ERP Business Modules & Functional Architecture
-Version: 1.0
-________________________________________
-Part V – Customer Relationship Management (CRM)
-________________________________________
+Workflow actions may include:
 
+- Assign task
+- Request approval
+- Send notification
+- Invoke an authorized application/service operation
+- Generate a document through the document service
+- Escalate
+- Complete or terminate a process
 
-Chapter 155
-Notification & Communication Framework
-________________________________________
-155.1 Introduction
-The Notification & Communication Framework provides centralized delivery of system-generated communications to users, customers, suppliers, partners, and integrated systems.
-Rather than allowing each ERP module to implement its own notification mechanisms, all communications shall be managed through a common notification platform.
-The framework supports synchronous and asynchronous message delivery while maintaining auditability and delivery tracking.
-________________________________________
-155.2 Objectives
-The Notification Framework aims to:
-•	Centralize communications.
-•	Improve message consistency.
-•	Increase delivery reliability.
-•	Reduce duplicate implementations.
-•	Support multiple communication channels.
-________________________________________
-155.3 Notification Channels
-The ERP shall support:
-•	In-Application Notifications.
-•	Email.
-•	SMS.
-•	Push Notifications.
-•	Instant Messaging Platforms.
-•	Webhooks.
-•	API Notifications.
-•	Voice Notifications.
-Organizations may enable or disable channels independently.
-________________________________________
-155.4 Notification Types
-Supported notifications include:
-•	Workflow Notifications.
-•	Approval Requests.
-•	SLA Alerts.
-•	Security Alerts.
-•	System Announcements.
-•	Maintenance Notifications.
-•	Customer Communications.
-•	Reminder Messages.
-Additional notification types may be configured.
-________________________________________
-155.5 Message Templates
-Templates may include:
-•	Subject.
-•	Body.
-•	Localization.
-•	Placeholders.
-•	Attachments.
-•	Branding.
-•	Delivery Preferences.
-Templates shall support version management.
-________________________________________
-155.6 Delivery Policies
-The ERP shall support:
-•	Immediate Delivery.
-•	Scheduled Delivery.
-•	Batch Delivery.
-•	Retry Policies.
-•	Delivery Priorities.
-•	Channel Failover.
-Delivery policies shall remain configurable.
-________________________________________
-155.7 Tracking
-The framework shall track:
-•	Delivery Status.
-•	Read Status.
-•	Acknowledgements.
-•	Delivery Failures.
-•	Retry Attempts.
-•	User Preferences.
-Tracking information shall remain fully auditable.
-________________________________________
-155.8 Reports
-Typical reports include:
-•	Notification Dashboard.
-•	Delivery Statistics.
-•	Failed Deliveries.
-•	Channel Performance.
-•	User Preferences.
-•	Communication Audit Report.
-________________________________________
-155.9 Summary
-The Notification & Communication Framework provides reliable, centralized, and auditable enterprise messaging services across all ERP modules.
-________________________________________
+A workflow must not bypass another module's domain boundary by directly modifying its private persistence.
 
+### 5.4 Approval and Escalation
+
+Approval paths and escalation rules are configurable according to organizational policy.
+
+The platform must preserve the workflow state and audit information necessary to explain who performed an action, when it occurred, and what outcome resulted, subject to the central audit architecture.
+
+### 5.5 Monitoring
+
+Workflow monitoring may provide:
+
+- Active workflows
+- Pending approvals/tasks
+- Completion times
+- Failed workflows
+- Escalated cases
+
+Monitoring is operational visibility; it does not transfer ownership of the underlying business transaction from its business module.
+
+## 6. Integration and Ownership Rules
+
+1. Platform services expose reusable capabilities through defined contracts.
+2. Business modules remain authoritative for their own domain data.
+3. Platform services must not directly access another module's private persistence to implement business behavior.
+4. Cross-module operations use approved application/service contracts or integration events.
+5. Events may be used where they provide an appropriate integration boundary; the architecture does not require every operation to be event-driven.
+6. External providers are integrations, not implicit product dependencies.
+7. Tenant isolation and authorization are mandatory and follow the central security architecture.
+8. Configuration that varies by organization should be represented as configuration/data rather than hard-coded assumptions.
+
+## 7. AI and Automation Boundary
+
+AI-assisted document processing, notification optimization, workflow assistance, or other intelligent capabilities may be integrated through the canonical AI platform.
+
+AI capabilities must not silently modify authoritative business records or bypass authorization, approval, audit, or module-ownership rules.
+
+Any proposed AI behavior that could materially affect a business transaction requires an explicitly defined control and approval boundary.
+
+## 8. Implementation Guidance for AI/Copilot
+
+When implementing platform services:
+
+- Read the relevant platform-service contract before changing code.
+- Reuse existing platform capabilities rather than creating duplicates.
+- Preserve module ownership boundaries.
+- Do not invent providers, compliance requirements, deployment models, or supported channels that are not established by the repository.
+- Do not assume every optional integration is installed or enabled.
+- If requirements conflict or a required architectural decision is unclear: **STOP and ask**.
+
+## 9. Related Canonical Documents
+
+- `docs/04-backend/14-file-storage-architecture.md`
+- `docs/06-security/04-enterprise-security-architecture.md`
+- `docs/08-business-modules/14-workflow-bpm-module-architecture.md`
+- `docs/09-platform-services/03-ai-platform-architecture.md`
+- `docs/09-platform-services/04-enterprise-configuration-framework.md`
+- `docs/09-platform-services/05-localization-internationalization.md`
+- `docs/03-database/20-master-data-management.md`
+
+## 10. Status
+
+This document is the canonical architecture for shared platform-service capabilities described above. Implementation details belong in the appropriate backend, security, database, and platform-service documentation.
