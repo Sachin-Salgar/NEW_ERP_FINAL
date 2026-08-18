@@ -38,6 +38,7 @@ REQUIRED_PHRASES = {
     ".ai/authority.md": ["Authority hierarchy", "Missing decision", "Contradictory documents"],
     ".ai/workflows/feature-development.md": ["Phase 1 — Discover", "Phase 5 — Validate", "Phase 7 — Report", "Clear feature request"],
     ".ai/workflows/repository-maintenance.md": ["deterministic", "generated inventory", "actual relevant files"],
+    ".ai/workflows/ai-system.md": ["docs/", "deterministic repository facts", "stop and ask"],
     "tools/ai/repository_scanner.py": ["does not use an LLM", "not architectural authority", "ai-context.md"],
 }
 
