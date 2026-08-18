@@ -1,125 +1,115 @@
 # Offline Support & Local Storage
 
-<!--
-Title: Offline Support & Local Storage
-Purpose: Canonical migration from Volume 4 — Frontend Architecture
-Scope: Offline-aware patterns, local storage, draft recovery and sync
-Audience: Frontend architects and developers
-Owner: TBD
-Status: Migrated (Draft)
-Last Reviewed: 2026-08-07
-Related ADRs:
-Related Documents: docs/migration-traceability/volume4-to-docs.md
--->
+**Document Purpose:** Define the supported offline-aware behavior and local-storage boundaries of the ERP frontend.
 
-Source: Volume 4 — Chapter 14
+## 14.1 Introduction
 
-14.1 Introduction
+Enterprise users may occasionally experience temporary network interruptions. The ERP frontend shall be **offline-aware**, but the current architecture is not a fully offline ERP.
 
-Enterprise users may occasionally experience temporary network interruptions, especially on mobile devices.
+Offline functionality improves usability without moving authoritative business processing away from the backend.
 
-The Enterprise ERP Platform shall provide limited offline capabilities where appropriate while ensuring business data integrity.
+## 14.2 Objectives
 
-Offline functionality is intended to improve usability rather than replace backend processing.
+Offline-aware functionality aims to:
+- Reduce disruption during temporary connectivity loss.
+- Preserve appropriate user preferences and client state.
+- Improve responsiveness through carefully scoped caching.
+- Support draft recovery where explicitly implemented.
+- Preserve business-data integrity.
 
-14.2 Objectives
+## 14.3 Offline Philosophy
 
-Offline support aims to:
-• Improve user experience.
-• Reduce disruption.
-• Support temporary connectivity loss.
-• Improve application responsiveness.
-• Preserve user preferences.
+The frontend may retain selected non-authoritative data locally.
 
-14.3 Offline Philosophy
+Business transactions requiring authoritative validation, current business state, authorization, or immediate consistency shall be processed through the backend.
 
-The ERP shall follow an Offline-Aware architecture rather than a fully offline ERP.
+The frontend must not treat locally cached data as the authoritative ERP system of record.
 
-Business transactions requiring immediate consistency shall always require backend communication.
+## 14.4 Suitable Offline Data
 
-14.4 Suitable Offline Data
+Examples may include:
+- User Preferences.
+- Theme Settings.
+- Language Selection.
+- Recently Viewed Records.
+- Suitable Cached Lookup Data.
+- Non-sensitive Navigation State.
 
-Examples include:
-• User Preferences.
-• Theme Settings.
-• Language Selection.
-• Recently Viewed Records.
-• Cached Lookup Lists.
-• Navigation Configuration.
+The actual data retained locally shall be determined by the relevant feature's freshness, security, and business requirements.
 
-These items improve usability without compromising business integrity.
+## 14.5 Unsuitable Offline Processing
 
-14.5 Unsuitable Offline Data
+The following business operations shall not be treated as authoritative offline operations under the current architecture:
+- Financial Transactions.
+- Inventory Updates.
+- Payroll Processing.
+- Accounting Entries.
+- Approval Workflows.
+- Other operations requiring current backend state or authoritative business validation.
 
-The following shall not be processed offline:
-• Financial Transactions.
-• Inventory Updates.
-• Payroll Processing.
-• Accounting Entries.
-• Approval Workflows.
-• Tax Calculations.
+A future architecture decision would be required before introducing authoritative offline transaction processing.
 
-These operations require backend validation.
+## 14.6 Local Storage
 
-14.6 Local Storage
+Local storage may be used for appropriate client-side data such as:
+- User Settings.
+- Suitable Cached Data.
+- Application Preferences.
+- Draft Forms where explicitly supported.
 
-Local storage may be used for:
-• User Settings.
-• Cached Images.
-• Lookup Data.
-• Draft Forms.
-• Application Preferences.
+Sensitive information shall be protected according to the security architecture. The frontend must not store sensitive credentials or other protected information in insecure client storage merely for convenience.
 
-Sensitive information shall be encrypted where applicable.
+## 14.7 Draft Recovery
 
-14.7 Draft Recovery
+Where a feature explicitly supports draft recovery, unfinished forms may be stored locally and restored after an interruption.
 
-Where supported, unfinished forms may be restored.
-Example workflow:
+Example:
+
+```text
 User Starts Form
-
-↓
-
+      ↓
 Draft Saved
-
-↓
-
+      ↓
 Application Closed
-
-↓
-
+      ↓
 Application Reopened
-
-↓
-
+      ↓
 Restore Draft
+```
 
-Users shall be informed when draft recovery is available.
+A recovered draft remains uncommitted until the backend accepts the corresponding business operation.
 
-14.8 Synchronization
+## 14.8 Synchronization
 
-When connectivity is restored:
-Network Available
+For locally retained drafts or cache data, a feature may use a flow such as:
 
-↓
+```text
+Connectivity Restored
+      ↓
+Refresh / Revalidate Data
+      ↓
+Validate Draft or Pending Operation
+      ↓
+Submit Through Backend API if Applicable
+      ↓
+Update Local State
+```
 
-Refresh Cached Data
+Synchronization must not create duplicate business transactions. Operations that may be retried require appropriate backend idempotency semantics where necessary.
 
-↓
-
-Validate Drafts
-
-↓
-
-Update UI
-
-Synchronization shall avoid duplicate transactions.
-
-14.9 Storage Limits
+## 14.9 Storage Limits and Retention
 
 The application shall manage local storage responsibly.
-Old cache entries shall expire automatically according to configurable retention policies.
 
-14.10 Summary
+Cache and temporary data should have defined retention/eviction behavior appropriate to their purpose. Retention must not be assumed to be unlimited or used as a substitute for server-side persistence.
 
-Offline-aware functionality improves usability while preserving the integrity of enterprise business operations.
+## 14.10 Summary
+
+Offline-aware functionality improves usability while preserving the backend as the authoritative source for enterprise business operations and committed business data.
+
+## Cross References
+
+- [API Communication](./09-api-communication.md)
+- [State Management](./05-state-management.md)
+- [Backend Authentication and Authorization](../04-backend/07-authentication-and-authorization.md)
+- [Backend File Storage Architecture](../04-backend/14-file-storage-architecture.md)
