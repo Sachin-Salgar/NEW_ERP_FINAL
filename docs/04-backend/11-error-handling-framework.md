@@ -1,165 +1,155 @@
 # Error Handling Framework
 
-Document Purpose: Chapter 12 from Volume 3 — Error Handling Framework
-
-Source: Enterprise ERP Software Architecture — Volume 3 (Chapter 12)
+**Document Purpose:** Define the standardized error handling framework for the Enterprise ERP Platform.
 
 ---
 
-## Chapter 12
+## 11.1 Introduction
 
-### 12.1 Introduction
+Errors are an inevitable part of enterprise software. A consistent error handling framework enables the backend to respond gracefully to failures while providing meaningful information to users, developers, and support teams.
 
-Errors are an inevitable part of enterprise software.
-A consistent error handling framework enables the backend to respond gracefully to failures while providing meaningful information to users, developers, and support teams.
 The Enterprise ERP Platform distinguishes between business errors and technical errors.
 
-### 12.2 Objectives
+## 11.2 Objectives
 
 The error handling framework aims to:
-• Improve user experience.
-• Simplify debugging.
-• Protect sensitive information.
-• Standardize API responses.
-• Support monitoring.
-• Facilitate incident resolution.
+- Improve user experience.
+- Simplify debugging.
+- Protect sensitive information.
+- Standardize API responses.
+- Support monitoring.
+- Facilitate incident resolution.
 
-### 12.3 Error Categories
+## 11.3 Error Categories
 
-Errors are classified into the following categories:
+Errors are classified into the following categories.
 
-Validation Errors
-
-Examples:
-• Missing required field.
-• Invalid email address.
-• Incorrect date format.
-
-Business Errors
+### Validation Errors
 
 Examples:
-• Credit limit exceeded.
-• Inventory shortage.
-• Financial year closed.
-• Duplicate invoice number.
+- Missing required field.
+- Invalid email address.
+- Incorrect date format.
 
-Authorization Errors
-
-Examples:
-• Insufficient permissions.
-• Module access denied.
-• Branch restriction.
-
-Authentication Errors
+### Business Errors
 
 Examples:
-• Invalid credentials.
-• Expired access token.
-• Revoked session.
+- Credit limit exceeded.
+- Inventory shortage.
+- Financial year closed.
+- Duplicate invoice number.
 
-Infrastructure Errors
+### Authorization Errors
 
 Examples:
-• Database unavailable.
-• Email service failure.
-• File storage error.
-• External API timeout.
+- Insufficient permissions.
+- Module access denied.
+- Branch restriction.
 
-Unexpected Errors
+### Authentication Errors
 
-Unexpected exceptions shall be logged and converted into standardized responses.
-Internal implementation details shall never be exposed to end users.
+Examples:
+- Invalid credentials.
+- Expired access token.
+- Revoked session.
 
-### 12.4 Error Response Structure
+### Infrastructure Errors
 
-Every error response shall contain:
-success
+Examples:
+- Database unavailable.
+- Email service failure.
+- File storage error.
+- External API timeout.
 
-error_code
+### Unexpected Errors
 
-message
+Unexpected exceptions shall be logged and converted into standardized responses. Internal implementation details shall never be exposed to end users.
 
-details
+## 11.4 Error Response Structure
 
-correlation_id
+Every API error response shall use the standardized error structure defined by the API design standards and include, as applicable:
 
-timestamp
+- `success`
+- `error_code`
+- `message`
+- `details`
+- `correlation_id`
+- `timestamp`
 
-This standardized format simplifies frontend integration and troubleshooting.
+The response must not expose secrets, credentials, tokens, stack traces, or other internal implementation details.
 
-### 12.5 Correlation Identifier
+## 11.5 Correlation Identifier
 
 Each request shall receive a unique correlation identifier.
-The identifier shall appear in:
-• API Logs.
-• Error Logs.
-• Audit Logs.
-• Monitoring Systems.
+
+The identifier shall be available to:
+- API logs.
+- Error logs.
+- Monitoring and tracing systems.
+
+Security/audit records may reference the correlation identifier where appropriate.
 
 This enables rapid tracing of production issues.
 
-### 12.6 Exception Handling
+## 11.6 Exception Handling
 
 Exceptions shall be:
-• Logged.
-• Classified.
-• Converted into standardized API responses.
+- Logged at an appropriate severity.
+- Classified where the exception type is known.
+- Converted into standardized API responses at the appropriate application/API boundary.
 
-Unhandled exceptions shall never terminate the application process.
+An unexpected exception must not expose internal implementation details to the client. Application-process termination caused by an unhandled request exception is prohibited; process-level failures must be handled by the runtime/deployment supervision layer.
 
-### 12.7 Logging
+## 11.7 Logging
 
 Errors shall be logged according to severity.
 Typical levels include:
-• Debug.
-• Information.
-• Warning.
-• Error.
-• Critical.
+- Debug.
+- Information.
+- Warning.
+- Error.
+- Critical.
 
 Sensitive information such as passwords, tokens, or confidential business data shall never appear in logs.
 
-### 12.8 Retry Strategy
+## 11.8 Retry Strategy
 
 Certain infrastructure failures may be retried.
 Examples:
-• Temporary network failures.
-• External service interruptions.
-• Message queue delays.
+- Temporary network failures.
+- External service interruptions.
+- Message queue delays where such infrastructure is used.
 
-Business operations involving financial transactions shall use carefully controlled retry mechanisms to avoid duplicate processing.
+Business operations involving financial transactions shall use carefully controlled retry mechanisms and idempotency protections to avoid duplicate processing.
 
-### 12.9 User Experience
+Retries must not be applied blindly to non-idempotent operations.
+
+## 11.9 User Experience
 
 End users should receive:
-• Clear explanations.
-• Actionable guidance.
-• Consistent error presentation.
+- Clear explanations.
+- Actionable guidance.
+- Consistent error presentation.
 
 Technical stack traces shall never be displayed in production environments.
 
-### 12.10 Anti-Patterns
+## 11.10 Anti-Patterns
 
 The following practices are prohibited:
-• Swallowing exceptions silently.
-• Returning inconsistent error formats.
-• Exposing internal implementation details.
-• Logging sensitive information.
-• Using generic error messages for every failure.
+- Swallowing exceptions silently.
+- Returning inconsistent error formats.
+- Exposing internal implementation details.
+- Logging sensitive information.
+- Using generic error messages for every failure.
 
-### 12.11 Summary
+## 11.11 Summary
 
-A disciplined error handling framework improves reliability, security, and maintainability.
-By classifying errors, standardizing responses, and integrating logging with monitoring systems, the Enterprise ERP Platform provides a predictable and supportable operational environment.
+A disciplined error handling framework improves reliability, security, and maintainability. By classifying errors, standardizing responses, and integrating logging with monitoring systems, the Enterprise ERP Platform provides a predictable and supportable operational environment.
 
 ---
 
-Cross References
+## Cross References
 
-- docs/04-backend/06-api-design-standards.md
-- docs/04-backend/10-validation-strategy.md
-- docs/17-logging-and-observability.md
-
-References
-
-- Volume 3 — Backend Architecture (source)
+- [API Design Standards](./06-api-design-standards.md)
+- [Validation Strategy](./10-validation-strategy.md)
+- [Logging and Observability](../17-logging-and-observability.md)
