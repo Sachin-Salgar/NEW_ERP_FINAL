@@ -276,7 +276,7 @@ The ERP is designed for evolution:
 - New modules added without modifying existing modules
 - Existing modules updated without affecting other modules
 - Modules communicate through published contracts
-- Modules have independent deployment cycles
+- Modules evolve within the unified modular-monolith backend; independent deployment is not part of the current architecture
 
 **Business Rule Centralization**:
 - Business rules implemented in one place
@@ -304,7 +304,7 @@ The ERP is designed for evolution:
 ### Long-Term Sustainability Benefits
 
 - **Add capabilities without rewriting**: New Sales sub-module added alongside existing Sales module
-- **Upgrade independently**: Manufacturing module updates without affecting Sales
+- **Upgrade modules within the unified backend**: Manufacturing changes should preserve defined contracts and avoid unnecessary impact on Sales
 - **Maintain code quality**: Consistent standards prevent decay
 - **Reduce surprises**: Well-documented decisions avoid rework
 - **Support growth**: Architecture scales without fundamental redesign
@@ -329,7 +329,7 @@ The ERP is designed for evolution:
 **Example 3: Add New Business Module**:
 - New module added to the platform
 - Uses shared Authentication, Authorization, Audit Services
-- Integrates with other modules through published APIs
+- Integrates with other modules through published application/service contracts
 - No changes to existing modules
 
 ---
