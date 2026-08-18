@@ -4,7 +4,7 @@
 **Status:** Authoritative  
 **Last Updated:** 2026
 
-This directory contains the current authoritative architecture documentation for the Enterprise ERP System. The documentation is organized into modular volumes covering vision, architecture, database, backend, frontend, security, DevOps, business modules, platform services, and architecture decisions.
+This directory contains the current authoritative architecture documentation for the Enterprise ERP System. The documentation is organized into modular domains covering vision, architecture, database, backend, frontend, security, DevOps, business modules, platform services, and architecture decisions.
 
 ## Source-of-Truth Rule
 
@@ -20,15 +20,17 @@ There is intentionally no legacy architecture archive in this repository. Supers
 
 ## Documentation Structure
 
-### Volumes
-
-- **[Volume 1 — Vision, Principles & Core Architecture](./01-vision/README.md)**: Project vision, business objectives, design philosophy, system architecture, technology stack, and architectural principles
-- **[Volume 2 — Database Architecture & Standards](./03-database/README.md)**: Database design standards, data ownership, tenancy, integrity, lifecycle, and persistence rules
-- **[Volume 3 — Backend Architecture](./04-backend/README.md)**: Backend service design, runtime, API, application layers, and implementation standards
-- **[Volume 4 — Frontend Architecture](./05-frontend/README.md)**: Frontend implementation standards, application structure, UI architecture, and client technology
-- **[Volume 5 — DevOps, Infrastructure & Deployment Architecture](./07-devops/README.md)**: Deployment, infrastructure, environments, CI/CD, and operational standards
-- **[Volume 6 — ERP Business Modules & Functional Architecture](./08-business-modules/README.md)**: Business module specifications and functional architecture
-- **[Volume 7 — Enterprise Information & Platform Services](./09-platform-services/README.md)**: Shared platform services and enterprise capabilities
+- **[Overview](./00-overview/README.md)**: Overview, principles, governance, and documentation rules
+- **[Vision](./01-vision/README.md)**: Project vision, business objectives, scope, and design direction
+- **[Architecture](./02-architecture/README.md)**: System architecture, layers, boundaries, modules, and architectural principles
+- **[Database](./03-database/README.md)**: Database design standards, data ownership, tenancy, integrity, lifecycle, and persistence rules
+- **[Backend](./04-backend/README.md)**: Backend service design, runtime, API, application layers, and implementation standards
+- **[Frontend](./05-frontend/README.md)**: Frontend implementation standards, application structure, UI architecture, and client technology
+- **[Security](./06-security/README.md)**: Security architecture, authentication, authorization, and security controls
+- **[DevOps](./07-devops/README.md)**: Deployment, infrastructure, environments, CI/CD, and operational standards
+- **[Business Modules](./08-business-modules/README.md)**: Business module specifications and functional architecture
+- **[Platform Services](./09-platform-services/README.md)**: Shared platform capabilities and enterprise services
+- **[Architecture Decision Records](./10-adr/README.md)**: Major architectural decisions, alternatives, rationale, and status
 
 ## Navigation
 
@@ -120,4 +122,4 @@ Documentation issues, clarifications, or improvement suggestions should be handl
 
 ---
 
-**Next Steps:** See [Architecture Overview](./00-overview/README.md) for foundational principles and governance, or [Vision & Objectives](./01-vision/README.md) to understand the project direction.
+**Next Steps:** See [Overview](./00-overview/README.md) for foundational principles and governance, or [Vision & Objectives](./01-vision/README.md) to understand the project direction.
