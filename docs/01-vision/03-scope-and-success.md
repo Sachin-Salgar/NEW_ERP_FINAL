@@ -80,7 +80,7 @@ The ERP includes these business modules:
 
 ### Out-of-Scope: Future Capabilities
 
-These capabilities are intentionally deferred to future volumes:
+These capabilities are intentionally deferred to future scope and require their own specifications/architecture decisions before implementation:
 
 - **Advanced Manufacturing**: Job costing, advanced scheduling, MRP/APS, capacity planning
 - **Supply Chain Planning**: Demand forecasting, supply chain optimization, global trade
