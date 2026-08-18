@@ -1,49 +1,72 @@
 # ADR-0009: Token Strategy — Refresh Token Rotation
 
-Status: Proposed
-
-Date: 2026-08-07
-
-Decision Owner: TODO (Security/Architecture)
+**Status**: Proposed  
+**Date**: 2026-08-07  
+**Decision Owner**: Security / Architecture Review Board  
+**Scope**: Refresh-token lifecycle for token-based authentication
 
 ## Context
 
-Volume 3 defines a token-based authentication strategy using short-lived access tokens and long-lived refresh tokens (Chapter 8). A robust refresh token rotation strategy is required to mitigate token theft and replay attacks while balancing usability.
+The backend authentication architecture uses short-lived access tokens and longer-lived refresh tokens where refresh tokens are part of the selected authentication flow. Refresh-token rotation can reduce the usefulness of a stolen token and can provide a mechanism for detecting replay.
 
 ## Problem Statement
 
-What refresh token strategy should be adopted to provide strong security while minimizing user friction and implementation complexity?
+What refresh-token strategy should be adopted to provide strong security while maintaining manageable session behavior and implementation complexity?
 
 ## Alternatives Considered
 
-1. Single-use refresh tokens with rotation on every use (recommended industry best practice).
-2. Long-lived refresh tokens without rotation.
-3. Refresh tokens with sliding expiration without rotation.
-4. Use of refresh token revocation lists / session store.
+1. **Single-use refresh tokens with rotation** — issue a new refresh token for each successful refresh and invalidate the previous token.
+2. **Long-lived refresh tokens without rotation** — simpler, but increases the useful lifetime of a stolen token.
+3. **Sliding expiration without rotation** — extends sessions but does not by itself address token replay.
+4. **Server-side revocation/session store** — provides centralized invalidation and can complement rotation.
 
 ## Decision
 
-Adopt single-use refresh tokens with rotation: each time a refresh token is used, issue a new refresh token and revoke the previous one. Pair with device/session identifiers and monitoring of suspicious activity. Implement secure storage and short lifetimes for access tokens. Maintain a server-side revocation mechanism for emergency invalidation.
+**Proposed:** Adopt single-use refresh-token rotation for authentication flows that use refresh tokens.
+
+On a successful refresh operation, the previous refresh token is invalidated and a replacement is issued. Refresh tokens shall be bound to a server-tracked session/device context where appropriate, and suspicious reuse shall be detectable.
+
+A server-side mechanism for session/revocation state shall support explicit logout, administrative invalidation, credential/security events, and emergency revocation.
+
+This ADR does not yet fix concrete token TTL values, storage technology, or device-binding mechanics. Those require implementation/security decisions consistent with the approved security architecture.
+
+## Replay and Reuse Handling
+
+- A refresh token must not be accepted repeatedly after successful rotation.
+- Reuse of an invalidated refresh token should be treated as a security signal.
+- The response to suspected token-family compromise must be defined by the security implementation, including whether the associated session/token family is revoked.
+- Refresh-token material must be stored/transmitted according to the approved authentication security design.
 
 ## Consequences
 
-Pros:
-- Reduces risk from stolen refresh tokens.
-- Improves security posture with limited token reuse.
+### Positive
 
-Cons:
-- Requires server-side token tracking and revocation storage.
-- Slightly more complex implementation and migration.
+- Limits the useful lifetime of a stolen refresh token after legitimate rotation.
+- Enables detection of refresh-token replay.
+- Supports explicit session revocation.
+
+### Negative
+
+- Requires server-side session/token state.
+- Requires careful handling of concurrent refresh requests and token-family state.
+- Adds migration and implementation complexity compared with static refresh tokens.
 
 ## Implementation Notes / TODOs
 
-- Define token lifetime values (access token TTL, refresh token TTL).
-- Implement secure token storage and revocation list (or lightweight session store).
-- Define logout and session revocation procedures.
-- Update API documentation and SDK guidelines.
+- Define access-token TTL and refresh-token TTL through the approved security configuration.
+- Define refresh-token storage and hashing requirements.
+- Define session/device identifiers and their lifecycle.
+- Define concurrent-refresh behavior to avoid accidental session invalidation during legitimate races.
+- Define logout and administrative revocation procedures.
+- Add automated tests for rotation, replay, expiry, revocation, concurrency, and recovery scenarios.
+- Update API documentation and SDK guidance after the decision is approved.
 
-Cross References
+## Related Documents
 
-- docs/04-backend/07-authentication-and-authorization.md
-- docs/06-security/01-backend-security.md
-- docs/10-adr/README.md
+- [Backend Authentication and Authorization](../04-backend/07-authentication-and-authorization.md)
+- [Backend Security](../06-security/01-backend-security.md)
+- [ADR Index](./README.md)
+
+## Authority
+
+This ADR remains **Proposed**. It is not implementation authority until approved. If implementation requirements conflict with the approved security architecture, **STOP and ask** rather than choosing a local interpretation.
