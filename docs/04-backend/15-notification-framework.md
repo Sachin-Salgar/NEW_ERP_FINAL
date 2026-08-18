@@ -1,62 +1,60 @@
 # Notification Framework
 
-Document Purpose: Chapter 16 from Volume 3 — Notification Framework
-
-Source: Enterprise ERP Software Architecture — Volume 3 (Chapter 16)
+**Document Purpose:** Define the notification framework for the Enterprise ERP Platform.
 
 ---
 
-## Chapter 16
-
-### 16.1 Introduction
+## Introduction
 
 Enterprise applications must communicate important business events to users, administrators, customers, suppliers, and external stakeholders.
-The Enterprise ERP Platform provides a centralized Notification Framework that enables all modules to deliver notifications through multiple communication channels without duplicating implementation logic.
-The Notification Framework is designed as an independent infrastructure service that can be consumed by every ERP module.
+The Enterprise ERP Platform provides a centralized Notification Framework that enables modules to deliver notifications through multiple communication channels without duplicating delivery implementation logic.
 
-### 16.2 Objectives
+The Notification Framework is a platform capability that can be consumed by ERP modules through its published interface. It should not create direct dependencies from business modules on individual delivery providers.
+
+## Objectives
 
 The Notification Framework aims to:
-• Centralize notification management.
-• Support multiple communication channels.
-• Improve maintainability.
-• Enable future channel expansion.
-• Support user preferences.
-• Ensure reliable delivery.
+- Centralize notification management.
+- Support multiple communication channels.
+- Improve maintainability.
+- Enable future channel expansion.
+- Support user preferences.
+- Ensure reliable delivery.
 
-### 16.3 Notification Types
+## Notification Types
 
 The ERP shall support various notification categories.
 Examples include:
-• Information
-• Warning
-• Error
-• Success
-• Approval Request
-• Reminder
-• Escalation
-• System Alert
+- Information
+- Warning
+- Error
+- Success
+- Approval Request
+- Reminder
+- Escalation
+- System Alert
 
 Each notification type shall define its own presentation and priority.
 
-### 16.4 Communication Channels
+## Communication Channels
 
 The framework shall support multiple delivery channels.
 Examples include:
-• In-App Notifications
-• Email
-• SMS
-• WhatsApp
-• Push Notifications
-• Desktop Notifications
-• Future Third-Party Messaging Services
+- In-App Notifications
+- Email
+- SMS
+- WhatsApp
+- Push Notifications
+- Desktop Notifications
+- Future Third-Party Messaging Services
 
 Additional channels may be added without modifying business modules.
 
-### 16.5 Notification Flow
+## Notification Flow
 
 Illustrative workflow:
-Business Event
+
+Business Event or Notification Request
 
 ↓
 
@@ -78,63 +76,59 @@ Delivery Provider
 
 Recipient
 
-The business module remains unaware of delivery details.
+The business module remains unaware of provider-specific delivery details.
 
-### 16.6 Templates
+## Templates
 
 Notifications shall use standardized templates.
 Template components include:
-• Title.
-• Subject.
-• Body.
-• Placeholders.
-• Language.
-• Channel-specific formatting.
+- Title.
+- Subject.
+- Body.
+- Placeholders.
+- Language.
+- Channel-specific formatting.
 
 Templates ensure consistent communication throughout the ERP.
 
-### 16.7 User Preferences
+## User Preferences
 
-Users may configure notification preferences.
+Users may configure notification preferences where the notification type and channel permit user choice.
 Examples:
-• Email Enabled.
-• SMS Enabled.
-• Push Enabled.
-• Quiet Hours.
-• Language Preference.
-• Notification Frequency.
+- Email Enabled.
+- SMS Enabled.
+- Push Enabled.
+- Quiet Hours.
+- Language Preference.
+- Notification Frequency.
 
-The framework shall respect user preferences whenever possible.
+The framework shall respect applicable user, organization, and regulatory policies.
 
-### 16.8 Delivery Status
+## Delivery Status
 
-Every notification shall maintain a delivery status.
+Every asynchronously delivered notification shall maintain a delivery status.
 Typical states include:
-• Pending.
-• Queued.
-• Sent.
-• Delivered.
-• Failed.
-• Expired.
+- Pending.
+- Queued.
+- Sent.
+- Delivered where the provider supplies delivery confirmation.
+- Failed.
+- Expired.
 
 Delivery status shall support monitoring and troubleshooting.
 
-### 16.9 Security
+## Security
 
 Notifications shall never expose confidential information beyond the recipient's authorization.
-Sensitive information shall only be accessible after successful authentication where applicable.
+Sensitive information shall only be included when permitted by the relevant authorization, privacy, and channel-security policies.
 
-### 16.10 Summary
+## Summary
 
 The Notification Framework provides a centralized, extensible, and reliable mechanism for business communication across the Enterprise ERP Platform.
 
 ---
 
-Cross References
+## Cross References
 
-- docs/04-backend/12-event-driven-architecture.md
-- docs/04-backend/13-background-jobs-queue-processing.md
-
-References
-
-- Volume 3 — Backend Architecture (source)
+- [Event-Driven Architecture](./12-event-driven-architecture.md)
+- [Background Jobs & Queue Processing](./13-background-jobs-queue-processing.md)
