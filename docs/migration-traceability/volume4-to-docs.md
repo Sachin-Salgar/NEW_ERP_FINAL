@@ -1,164 +1,56 @@
 # Volume 4 → docs/ Mapping
 
-This file provides the authoritative Phase 1 mapping from Enterprise ERP Architecture Volume 4 (Frontend Architecture) chapters to canonical documents in the repository.
+This file records the migration relationship from Enterprise ERP Architecture Volume 4 (Frontend Architecture) to the current canonical frontend and cross-cutting documentation.
 
-Note: Per-file traceability HTML comments have been removed from docs/05-frontend files. Use this central mapping (docs/migration-traceability/volume4-to-docs.md) as the single source of truth for Volume 4 → docs mapping.
+The Volume 4 source was the basis for the initial document creation. The destination documents have since been independently audited and corrected; therefore this mapping must not describe the current files as "verbatim" copies of Volume 4.
 
-Format: Volume 4 Chapter → Destination File → Status (Covered / Create / Cross-reference)
+Per-file traceability comments are not required in the destination documents. This file is the central Volume 4 mapping artifact.
 
-1) Chapter 1 — Frontend Architecture Overview
-↓
-docs/05-frontend/01-frontend-overview.md
-↓
-Covered — created from Volume 4 (verbatim)
+## Chapter-level mapping
 
-2) Chapter 2 — Flutter Architecture
-↓
-docs/05-frontend/02-flutter-architecture.md
-↓
-Covered — created from Volume 4 (verbatim)
+| Chapter | Source topic | Current canonical destination | Status |
+|---:|---|---|---|
+| 1 | Frontend Architecture Overview | `docs/05-frontend/01-frontend-overview.md` | Covered; audited |
+| 2 | Flutter Architecture | `docs/05-frontend/02-flutter-architecture.md` | Covered; audited |
+| 3 | Modular Frontend Architecture | `docs/05-frontend/03-modular-frontend-architecture.md` | Covered; audited |
+| 4 | Project Structure | `docs/05-frontend/04-project-structure.md` | Covered; audited |
+| 5 | State Management (Riverpod) | `docs/05-frontend/05-state-management.md` | Covered; audited |
+| 6 | Dependency Injection | `docs/05-frontend/06-dependency-injection.md` | Covered; audited |
+| 7 | Navigation Architecture | `docs/05-frontend/07-navigation-architecture.md` | Covered; audited |
+| 8 | Routing Strategy | `docs/05-frontend/08-routing-strategy.md` | Covered; audited |
+| 9 | API Communication | `docs/05-frontend/09-api-communication.md` | Covered; audited; backend API contract cross-reference |
+| 10 | User Interface Design System | `docs/05-frontend/10-design-system.md` | Covered; audited |
+| 11 | Forms & Data Entry | `docs/05-frontend/11-forms-and-data-entry.md` | Covered; audited |
+| 12 | Tables, Lists & Data Presentation | `docs/05-frontend/12-tables-and-data-presentation.md` | Covered; audited |
+| 13 | Frontend Security | `docs/06-security/02-frontend-security.md` | Covered under canonical Security domain |
+| 14 | Offline Support & Local Storage | `docs/05-frontend/14-offline-support.md` | Covered; audited |
+| 15 | Frontend Performance Optimization | `docs/05-frontend/15-performance-optimization.md` | Covered; audited |
+| 16 | Dashboard Architecture | `docs/05-frontend/16-dashboard-architecture.md` | Covered; audited |
+| 17 | Reporting Framework | `docs/05-frontend/17-reporting-framework.md` | Covered; audited; cross-cutting backend/platform concerns remain in their canonical domains |
+| 18 | Data Visualization | `docs/05-frontend/18-data-visualization.md` | Covered; audited |
+| 19 | Notification System | `docs/05-frontend/19-notification-system.md` | Covered; audited; backend notification capability remains canonical in its backend/platform documents |
+| 20 | Localization & Internationalization | `docs/05-frontend/20-localization.md` | Covered; audited; platform localization is canonical in `docs/09-platform-services/05-localization-internationalization.md` |
+| 21 | Accessibility | `docs/05-frontend/21-accessibility.md` | Covered; audited |
+| 22 | Frontend Testing Strategy | `docs/05-frontend/22-frontend-testing-strategy.md` | Covered; audited; CI/CD remains under DevOps |
+| 23 | Frontend Development Standards | `docs/05-frontend/23-development-standards.md` | Covered; audited; global coding standards remain under `docs/02-architecture/05-coding-standards.md` |
+| 24 | Volume 4 Summary | `docs/05-frontend/24-volume4-summary.md` | Covered; audited |
 
-3) Chapter 3 — Modular Frontend Architecture
-↓
-docs/05-frontend/03-modular-frontend-architecture.md
-↓
-Covered — created from Volume 4 (verbatim)
+## Current canonical ownership rules
 
-4) Chapter 4 — Project Structure
-↓
-docs/05-frontend/04-project-structure.md
-↓
-Covered — created from Volume 4 (verbatim)
+- Frontend implementation architecture is canonical under `docs/05-frontend`.
+- Frontend security policy/control ownership is canonical under `docs/06-security/02-frontend-security.md` and the broader enterprise security architecture.
+- Backend API contracts and backend implementation remain under `docs/04-backend`.
+- Notification platform capability remains under the canonical platform/backend service documents.
+- Platform-level localization capability is canonical under `docs/09-platform-services/05-localization-internationalization.md`; the frontend document defines frontend consumption.
+- Global coding standards remain under `docs/02-architecture/05-coding-standards.md`.
+- CI/CD and deployment remain under `docs/07-devops`.
 
-5) Chapter 5 — State Management (Riverpod)
-↓
-docs/05-frontend/05-state-management.md
-↓
-Covered — created from Volume 4 (verbatim)
+## Migration status
 
-6) Chapter 6 — Dependency Injection
-↓
-docs/05-frontend/06-dependency-injection.md
-↓
-Covered — created from Volume 4 (verbatim)
+The initial Volume 4 migration has been completed and the destination files have subsequently undergone repository-wide architectural audit. Historical statements that the files are exact/verbatim copies are therefore no longer authoritative.
 
-7) Chapter 7 — Navigation Architecture
-↓
-docs/05-frontend/07-navigation-architecture.md
-↓
-Covered — created from Volume 4 (verbatim)
+No Volume 4 source archive is modified by this mapping document.
 
-8) Chapter 8 — Routing Strategy
-↓
-docs/05-frontend/08-routing-strategy.md
-↓
-Covered — created from Volume 4 (verbatim)
+## AI / Copilot rule
 
-9) Chapter 9 — API Communication
-↓
-docs/05-frontend/09-api-communication.md
-↓
-Covered — created from Volume 4 (verbatim). Cross-referenced docs/04-backend/06-api-design-standards.md for API contract expectations.
-
-10) Chapter 10 — User Interface Design System
-↓
-docs/05-frontend/10-design-system.md
-↓
-Covered — created from Volume 4 (verbatim)
-
-11) Chapter 11 — Forms & Data Entry
-↓
-docs/05-frontend/11-forms-and-data-entry.md
-↓
-Covered — created from Volume 4 (verbatim)
-
-12) Chapter 12 — Tables, Lists & Data Presentation
-↓
-docs/05-frontend/12-tables-and-data-presentation.md
-↓
-Covered — created from Volume 4 (verbatim)
-
-13) Chapter 13 — Frontend Security
-↓
-docs/06-security/02-frontend-security.md
-↓
-Covered — created under canonical security folder (docs/06-security/02-frontend-security.md) and cross-referenced from docs/05-frontend
-
-14) Chapter 14 — Offline Support & Local Storage
-↓
-docs/05-frontend/14-offline-support.md
-↓
-Covered — created from Volume 4 (verbatim)
-
-15) Chapter 15 — Frontend Performance Optimization
-↓
-docs/05-frontend/15-performance-optimization.md
-↓
-Covered — created from Volume 4 (verbatim)
-
-16) Chapter 16 — Dashboard Architecture
-↓
-docs/05-frontend/16-dashboard-architecture.md
-↓
-Covered — created from Volume 4 (verbatim)
-
-17) Chapter 17 — Reporting Framework
-↓
-docs/05-frontend/17-reporting-framework.md
-↓
-Covered — created from Volume 4 (verbatim). Note: reporting has cross-cutting backend concerns; cross-reference docs/04-backend reporting or platform services where applicable.
-
-18) Chapter 18 — Data Visualization
-↓
-docs/05-frontend/18-data-visualization.md
-↓
-Covered — created from Volume 4 (verbatim)
-
-19) Chapter 19 — Notification System
-↓
-docs/05-frontend/19-notification-system.md
-↓
-Covered — created from Volume 4 (verbatim). Cross-referenced backend notification framework: docs/04-backend/15-notification-framework.md
-
-20) Chapter 20 — Localization & Internationalization
-↓
-docs/05-frontend/20-localization.md
-↓
-Covered — created from Volume 4 (verbatim)
-
-21) Chapter 21 — Accessibility
-↓
-docs/05-frontend/21-accessibility.md
-↓
-Covered — created from Volume 4 (verbatim)
-
-22) Chapter 22 — Frontend Testing Strategy
-↓
-docs/05-frontend/22-frontend-testing-strategy.md
-↓
-Covered — created from Volume 4 (verbatim). Cross-reference CI/CD in docs/07-devops where required.
-
-23) Chapter 23 — Frontend Development Standards
-↓
-docs/05-frontend/23-development-standards.md
-↓
-Covered — created from Volume 4 (verbatim). Cross-referenced global coding standards: docs/02-architecture/05-coding-standards.md
-
-24) Chapter 24 — Volume 4 Summary
-↓
-docs/05-frontend/24-volume4-summary.md
-↓
-Covered — created from Volume 4 (verbatim). Cross-referenced docs/05-frontend/01-frontend-overview.md and docs/migration-traceability/volume4-to-docs.md
-
-Status Notes:
-- Existing frontend files found: docs/05-frontend/README.md and docs/05-frontend/01-technology-stack.md
-  - Chapter(s) that map to existing technology stack: Chapter 24 (Technology Stack) → docs/05-frontend/01-technology-stack.md (Covered)
-- Cross-cutting topics (security, API contracts, notifications, reporting) are mapped to canonical locations as appropriate and will include cross-reference links.
-
-Next steps after this mapping is approved:
-- Create the new frontend files (only those marked Create) using verbatim content from Volume 4, adding a traceability header to each created file.
-- Place frontend security content under docs/06-security/02-frontend-security.md (canonical security domain) and cross-link from docs/05-frontend.
-- Update docs/05-frontend/README.md to list new documents and cross references.
-- Update docs/migration-traceability/volume4-to-docs.md with final file creation status and any ADRs discovered.
-
-If you approve this mapping, I will create the new files (verbatim from Volume 4) with a short traceability header and update the frontend README and migration-traceability status entries.
+AI-assisted implementation must use the current canonical destination documents rather than reconstructing implementation decisions from historical Volume 4 text. When current repository precedence does not resolve a conflict, AI must **STOP and ask** rather than inventing a frontend architectural decision.
