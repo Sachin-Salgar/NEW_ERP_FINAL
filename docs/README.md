@@ -1,56 +1,69 @@
 # Enterprise ERP Architecture Documentation
 
 **Version:** 1.0  
-**Status:** Reference  
-**Last Updated:** 2024
+**Status:** Authoritative  
+**Last Updated:** 2026
 
-This directory contains the authoritative architecture documentation for the Enterprise ERP System. The documentation is organized into modular volumes covering vision, design philosophy, core architecture, and technology decisions.
+This directory contains the current authoritative architecture documentation for the Enterprise ERP System. The documentation is organized into modular volumes covering vision, architecture, database, backend, frontend, security, DevOps, business modules, platform services, and architecture decisions.
+
+## Source-of-Truth Rule
+
+The current modular documentation under `docs/` is the source of truth for ERP architecture and design.
+
+- Current documents under `docs/00-overview` through `docs/10-adr` are authoritative according to their scope and status.
+- Approved ADRs in `docs/10-adr` override conflicting architectural decisions only within the scope explicitly covered by the ADR.
+- Proposed, superseded, or deprecated decisions are not authoritative.
+- Source code and tests describe the current implementation but do not override authoritative architecture decisions by themselves.
+- AI must not invent missing architecture, business rules, security rules, database rules, or API contracts. If authoritative information is missing or contradictory, the issue must be surfaced for human decision.
+
+There is intentionally no legacy architecture archive in this repository. Superseded source documents were removed because this repository is at the beginning of implementation and the current modular documentation is the maintained source of truth.
 
 ## Documentation Structure
 
 ### Volumes
 
 - **[Volume 1 — Vision, Principles & Core Architecture](./01-vision/README.md)**: Project vision, business objectives, design philosophy, system architecture, technology stack, and architectural principles
-- **[Volume 2 — Database Architecture & Standards](./archive/Enterprise ERP Software Architecture -Volume 2-Database Architecture & Standards.md)**: Database design standards (archived original document)
-- **[Volume 3 — Backend Architecture](./archive/Enterprise ERP Software Architecture - Volume 3 – Backend Architecture.md)**: Backend service design (archived original)
-- **[Volume 4 — Frontend Architecture](./archive/Enterprise ERP Software Architecture- Volume 4 – Frontend Architecture.md)**: Frontend implementation standards (archived original)
-- **[Volume 5 — DevOps, Infrastructure & Deployment Architecture](./archive/Enterprise ERP Software Architecture – Volume 5  – DevOps, Infrastructure & Deployment Architecture.md)**: Deployment and infrastructure (archived original)
-- **[Volume 6 — ERP Business Modules & Functional Architecture](./archive/Enterprise ERP Software Architecture – Volume 6– ERP Business Modules & Functional Architecture.md)**: Business module specifications (archived original)
-- **[Volume 7 — Enterprise Information & Platform Services](./archive/Enterprise ERP Software Architecture - Volume 7 – Enterprise Information & Platform Services.md)**: Platform services architecture (archived original)
+- **[Volume 2 — Database Architecture & Standards](./03-database/README.md)**: Database design standards, data ownership, tenancy, integrity, lifecycle, and persistence rules
+- **[Volume 3 — Backend Architecture](./04-backend/README.md)**: Backend service design, runtime, API, application layers, and implementation standards
+- **[Volume 4 — Frontend Architecture](./05-frontend/README.md)**: Frontend implementation standards, application structure, UI architecture, and client technology
+- **[Volume 5 — DevOps, Infrastructure & Deployment Architecture](./07-devops/README.md)**: Deployment, infrastructure, environments, CI/CD, and operational standards
+- **[Volume 6 — ERP Business Modules & Functional Architecture](./08-business-modules/README.md)**: Business module specifications and functional architecture
+- **[Volume 7 — Enterprise Information & Platform Services](./09-platform-services/README.md)**: Shared platform services and enterprise capabilities
 
 ## Navigation
 
 ### By Role
 
 - **Architects**: Start with [System Architecture](./02-architecture/README.md)
-- **Backend Developers**: Start with [Core Architecture](./02-architecture/README.md)
-- **Frontend Developers**: Start with [Technology Stack — Frontend](./05-frontend/README.md)
+- **Backend Developers**: Start with [Backend Architecture](./04-backend/README.md)
+- **Frontend Developers**: Start with [Frontend Architecture](./05-frontend/README.md)
 - **Database Administrators**: Start with [Database Architecture](./03-database/README.md)
 - **DevOps Engineers**: Start with [DevOps & Infrastructure](./07-devops/README.md)
 - **Security Teams**: Start with [Security Architecture](./06-security/README.md)
+- **Business Module Developers**: Start with [Business Modules](./08-business-modules/README.md)
+- **Platform Developers**: Start with [Platform Services](./09-platform-services/README.md)
 
 ### By Topic
 
 - [Vision & Objectives](./01-vision/README.md)
 - [Core Architecture](./02-architecture/README.md)
-- [Technology Stack](./05-frontend/README.md)
-- [Architectural Principles](./00-overview/README.md)
+- [Database Architecture](./03-database/README.md)
+- [Backend Architecture](./04-backend/README.md)
+- [Frontend Architecture](./05-frontend/README.md)
+- [Security Architecture](./06-security/README.md)
+- [DevOps & Infrastructure](./07-devops/README.md)
+- [Business Modules](./08-business-modules/README.md)
+- [Platform Services](./09-platform-services/README.md)
 - [Architecture Decision Records](./10-adr/README.md)
-
-## Source Documentation
-
-The modular documentation is derived from:
-- **Primary Source**: Enterprise ERP Software Architecture Document Volume 1 — Vision, Principles & Core Architecture Version 1.0
-- **Audit Reference**: ENTERPRISE_ARCHITECTURE_AUDIT_VOLUME_1.md
 
 ## Key Principles
 
 This documentation enforces these core architectural principles:
 
 1. **Platform First, Modules Second** — Shared platform services before business modules
-2. **API-First Development** — REST APIs expose all business functionality
+2. **API-First Development** — REST APIs expose business functionality
 3. **Database First Philosophy** — Data model precedes application design
-4. **Business Logic Centralization** — Backend owns all business rules
+4. **Business Logic Centralization** — Backend owns business rules
 5. **Separation of Concerns** — Clear layer boundaries and responsibilities
 6. **Security by Design** — Security integrated across all layers
 7. **Audit Everything Important** — Comprehensive logging of business operations
@@ -59,17 +72,25 @@ This documentation enforces these core architectural principles:
 
 Architecture Decision Records (ADRs) document major design decisions, alternatives considered, and rationale. See [Architecture Decision Records](./10-adr/README.md).
 
+ADR status is authoritative:
+
+- **Approved** — binding decision within the ADR's stated scope
+- **Proposed** — not yet binding
+- **Superseded** — replaced by a later approved decision
+- **Deprecated** — no longer applicable
+
 ## Governance
 
 ### Document Authority
 
-- **Binding Status**: Architectural decisions in this documentation are binding unless superseded by an approved ADR
-- **Change Process**: Major changes require Architecture Review and ADR
-- **Approval**: See Document Control section in Vision & Objectives
+- **Binding Status:** Current authoritative architecture documents are binding within their stated scope unless superseded by an approved ADR.
+- **Change Process:** Major architectural changes require Architecture Review and an approved ADR.
+- **Conflict Handling:** If implementation conflicts with authoritative documentation, the conflict must be reported and resolved through the governance process rather than silently choosing an implementation interpretation.
 
 ### Technology Evolution
 
 Core technology replacement requires:
+
 - Architecture Review
 - Proof of Concept
 - Performance Evaluation
@@ -95,8 +116,8 @@ Core technology replacement requires:
 
 ## Feedback & Revisions
 
-Documentation issues, clarifications, or improvement suggestions should be directed to the Architecture Review Board through the established change-request process.
+Documentation issues, clarifications, or improvement suggestions should be handled through the established Architecture Review Board and ADR/change-control process.
 
 ---
 
-**Next Steps**: See [Architecture Overview](./00-overview/README.md) for foundational principles and governance, or [Vision & Objectives](./01-vision/README.md) to understand the project direction.
+**Next Steps:** See [Architecture Overview](./00-overview/README.md) for foundational principles and governance, or [Vision & Objectives](./01-vision/README.md) to understand the project direction.
