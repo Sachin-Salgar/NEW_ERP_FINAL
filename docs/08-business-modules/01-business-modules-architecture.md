@@ -1,323 +1,174 @@
-# Canonical content migrated from Volume 6
+# Business Modules Architecture
 
-Source: Volume 6 — ERP Business Modules & Functional Architecture
+**Status:** Current authoritative architecture
+**Scope:** Logical business-module boundaries within the ERP modular monolith
 
-Chapters included: [1, 2, 3]
+## 1. Purpose
 
----
+The ERP is organized into business modules that own distinct business capabilities while participating in one unified platform. Modules are logical boundaries inside the current modular-monolith backend; they are not independently deployed services.
 
-<!-- Canonical Ownership (automated reconciliation) -->
-**Canonical Ownership (DECISION):**
-- Canonical file: `docs/08-business-modules/01-business-modules-architecture.md`
-- Disposition: KEEP — Business Modules architecture is canonical here.
+The module architecture provides clear ownership, explicit contracts, controlled dependencies, and independently testable domain behavior. Future extraction of a module into an independently deployed service is possible only through an approved architecture decision.
 
----
+## 2. Business Module Principles
 
-Chapter 1
-Introduction to Business Modules
-________________________________________
-1.1 Introduction
-The Enterprise ERP Platform is designed as a modular, configurable, and scalable business management system. Each business capability is implemented as an independent module that can operate individually or integrate seamlessly with other modules.
-This modular approach enables organizations to deploy only the functionality they require while maintaining a single, unified ERP platform.
-Unlike traditional ERP systems where modules are tightly coupled, the Enterprise ERP Platform adopts a loosely coupled, service-oriented functional architecture. Modules communicate through standardized backend services, events, and APIs while preserving clear functional boundaries.
-________________________________________
-1.2 Objectives
-The business module architecture aims to:
-•	Support organizations of all sizes.
-•	Enable modular licensing.
-•	Allow independent module development.
-•	Simplify maintenance.
-•	Reduce implementation complexity.
-•	Support future module expansion.
-•	Ensure consistent business workflows.
-________________________________________
-1.3 Business Philosophy
-The ERP platform is built upon the following principles:
-•	One Platform.
-•	Multiple Business Modules.
-•	Shared Master Data.
-•	Centralized Security.
-•	Standardized Workflows.
-•	Configurable Business Rules.
-•	Extensible Architecture.
-Every module contributes to a unified business ecosystem.
-________________________________________
-1.4 Module Independence
-Each module shall:
-•	Own its business processes.
-•	Maintain its own configuration.
-•	Expose standardized APIs.
-•	Publish business events.
-•	Consume shared services only when required.
-Modules shall avoid direct dependency on internal implementation details of other modules.
-________________________________________
-1.5 Shared Platform Services
-All business modules shall utilize common platform services including:
-•	Authentication.
-•	Authorization.
-•	User Management.
-•	Organization Management.
-•	Branch Management.
-•	Audit Logging.
-•	Notification Services.
-•	Document Management.
-•	File Storage.
-•	Reporting Framework.
-•	Workflow Engine.
-•	Search Services.
-Shared services eliminate duplication and ensure consistency.
-________________________________________
-1.6 Module Lifecycle
-Every module follows a consistent lifecycle:
-Installation
+Business modules shall:
 
-↓
+- own their business processes and domain rules;
+- maintain module-specific configuration where applicable;
+- expose explicitly defined application/API contracts;
+- consume platform capabilities only when required;
+- avoid direct access to another module's internal implementation;
+- avoid direct access to another module's private persistence implementation;
+- maintain clear ownership and dependency boundaries;
+- remain testable independently within the modular monolith.
 
-Configuration
+"Module independence" means logical and code-level isolation, not independent deployment.
 
-↓
+## 3. Current Deployment Model
 
-Master Data Setup
+The current ERP backend is a **modular monolith with one deployable backend application**.
 
-↓
+```text
+                    ERP Backend
+                         |
+                 Modular Monolith
+                         |
+          +--------------+--------------+
+          |                             |
+   Platform Capabilities          Business Modules
+          |                             |
+          +-------- Published ----------+
+                   Contracts
+                         |
+                    PostgreSQL
+```
 
-Daily Operations
+Independent processes, microservices, or distributed module deployment are not part of the current architecture and must not be introduced speculatively. Such a change requires an approved ADR.
 
-↓
+## 4. Module Communication
 
-Reporting
+### 4.1 In-process communication — current default
 
-↓
+Modules within the modular monolith communicate through explicitly published application/service contracts.
 
-Archiving
+```text
+Module A
+   |
+   | published contract
+   v
+Module B
+```
 
-↓
+A module must not call another module's private classes, repositories, or persistence implementation directly.
 
-Maintenance
-This lifecycle provides a predictable implementation and operational model.
-________________________________________
-1.7 Module Categories
-Modules are grouped into functional categories:
-•	Core Administration.
-•	Sales & Customer Management.
-•	Procurement.
-•	Inventory & Warehouse.
-•	Finance & Accounting.
-•	Human Resources.
-•	Manufacturing.
-•	Customer Service.
-•	Project Management.
-•	Analytics & Reporting.
-Additional categories may be introduced as business requirements evolve.
-________________________________________
-1.8 Summary
-The modular architecture provides flexibility, scalability, and maintainability while allowing organizations to adopt only the capabilities they require.
-________________________________________
+### 4.2 External communication
 
+REST/API contracts are used at the external client and integration boundary.
 
-Chapter 2
-Module Classification
-________________________________________
-2.1 Introduction
-To maintain architectural consistency, all ERP functionality shall be organized into standardized module categories.
-Classification simplifies licensing, implementation planning, documentation, user training, and future expansion.
-________________________________________
-2.2 Core Modules
-Core modules provide foundational services required by the entire ERP platform.
-Examples include:
-•	Organization Management.
-•	Branch Management.
-•	User Management.
-•	Role Management.
-•	Permission Management.
-•	System Administration.
-•	Audit Management.
-•	Notification Management.
-•	Workflow Engine.
-•	Document Management.
-These modules support all other functional areas.
-________________________________________
-2.3 Commercial Modules
-Commercial operations include:
-•	CRM.
-•	Sales.
-•	Quotations.
-•	Orders.
-•	Invoicing.
-•	Customer Returns.
-•	Pricing Management.
-These modules support customer-facing business processes.
-________________________________________
-2.4 Procurement Modules
-Procurement includes:
-•	Vendor Management.
-•	Purchase Requisition.
-•	Request for Quotation.
-•	Purchase Orders.
-•	Goods Receipt.
-•	Vendor Returns.
-These modules manage supplier interactions.
-________________________________________
-2.5 Inventory Modules
-Inventory management includes:
-•	Warehouse Management.
-•	Stock Transactions.
-•	Batch Tracking.
-•	Serial Number Tracking.
-•	Barcode Management.
-•	Inventory Transfers.
-•	Cycle Counting.
-Inventory modules maintain accurate stock records.
-________________________________________
-2.6 Finance Modules
-Financial management includes:
-•	General Ledger.
-•	Accounts Receivable.
-•	Accounts Payable.
-•	Banking.
-•	Fixed Assets.
-•	Budgeting.
-•	Cost Centers.
-•	Tax Management.
-Financial modules provide complete accounting capabilities.
-________________________________________
-2.7 Human Resource Modules
-HR functionality includes:
-•	Employee Management.
-•	Attendance.
-•	Leave Management.
-•	Payroll.
-•	Recruitment.
-•	Performance Management.
-•	Training.
-HR modules manage the employee lifecycle.
-________________________________________
-2.8 Manufacturing Modules
-Manufacturing functionality includes:
-•	Bills of Materials.
-•	Production Planning.
-•	Work Orders.
-•	Shop Floor Control.
-•	Material Consumption.
-•	Production Reporting.
-•	Quality Control.
-Manufacturing integrates with inventory and finance.
-________________________________________
-2.9 Supporting Modules
-Additional modules include:
-•	Project Management.
-•	Asset Management.
-•	Maintenance Management.
-•	Help Desk.
-•	Point of Sale.
-•	Business Intelligence.
-•	API Integrations.
-Supporting modules extend platform capabilities.
-________________________________________
-2.10 Summary
-A standardized module classification simplifies implementation, licensing, maintenance, and future expansion.
-________________________________________
+```text
+Client / Integration
+        |
+        v
+   REST API boundary
+        |
+        v
+   Backend module
+```
 
+### 4.3 Business events
 
-Chapter 3
-Module Dependency Model
-________________________________________
-3.1 Introduction
-Although business modules are designed to be independent, certain functional relationships naturally exist between them.
-The Enterprise ERP Platform defines explicit module dependencies to ensure architectural clarity while avoiding unnecessary coupling.
-________________________________________
-3.2 Objectives
-The dependency model aims to:
-•	Preserve module independence.
-•	Prevent circular dependencies.
-•	Enable modular deployment.
-•	Simplify maintenance.
-•	Improve scalability.
-________________________________________
-3.3 Dependency Principles
-Modules shall:
-•	Depend on shared platform services.
-•	Communicate through APIs.
-•	Exchange business events.
-•	Avoid direct database access.
-•	Remain independently deployable where practical.
-Circular dependencies are prohibited.
-________________________________________
-3.4 Dependency Types
-Dependencies are categorized as:
-•	Mandatory.
-•	Optional.
-•	Event-Based.
-•	Reporting.
-•	Workflow.
-Each dependency shall be documented.
-________________________________________
-3.5 Example Dependency Diagram
-Core Platform
+Business events may be represented as domain/application events where required by the current implementation. However, the existence of a conceptual business event does **not** imply a distributed event broker.
 
-↓
+Kafka, RabbitMQ, message brokers, distributed consumers, or similar infrastructure must not be introduced unless explicitly required by authoritative architecture documentation or an approved ADR.
 
-Sales
+## 5. Shared Platform Capabilities
 
-↓
+Business modules may consume common platform capabilities through their published contracts. Typical capabilities include:
 
-Inventory
+- Authentication
+- Authorization
+- User Management
+- Organization Management
+- Branch Management
+- Audit Logging
+- Notification
+- Document Management
+- File Storage
+- Reporting
+- Workflow
+- Configuration
+- Scheduling
 
-↓
+A module must not automatically depend on every platform capability. Its actual dependencies are defined by its module specification and implementation needs.
 
-Finance
-In this example:
-•	Sales requires Core Platform services.
-•	Inventory supports Sales fulfillment.
-•	Finance records completed business transactions.
-Each module remains responsible for its own business rules.
-________________________________________
-3.6 Optional Dependencies
-Examples include:
-•	CRM may integrate with Sales.
-•	Projects may integrate with Manufacturing.
-•	HR may integrate with Payroll.
-•	Maintenance may integrate with Assets.
-Organizations may enable these integrations according to business requirements.
-________________________________________
-3.7 Event-Based Integration
-Modules exchange information using business events.
-Example:
-Sales Invoice Approved
+## 6. Module Categories
 
-↓
+The ERP may organize business functionality into categories such as:
 
-Inventory Updated
+- Core Administration
+- Sales & Customer Management
+- Procurement
+- Inventory & Warehouse
+- Finance & Accounting
+- Human Resources
+- Manufacturing
+- Customer Service
+- Project Management
+- Analytics & Reporting
 
-↓
+The authoritative module specification and current roadmap determine which modules are actually in scope for implementation.
 
-Accounting Entry Created
+## 7. Module Dependency Rules
 
-↓
+Module dependencies shall be explicit and shall avoid circular dependencies.
 
-Notification Sent
+Dependencies may include:
 
-↓
+- platform capability dependencies;
+- synchronous application/service-contract dependencies;
+- approved integration dependencies;
+- reporting dependencies;
+- workflow dependencies;
+- event-based dependencies where the current architecture explicitly supports them.
 
-Dashboard Refreshed
-This event-driven approach minimizes tight coupling.
-________________________________________
-3.8 Future Expansion
-New modules shall integrate through:
-•	Shared APIs.
-•	Event Framework.
-•	Workflow Engine.
-•	Reporting Framework.
-Existing modules shall not require redesign when new modules are introduced.
-________________________________________
-3.9 Summary
-The dependency model provides structured interaction between modules while preserving modularity, maintainability, and scalability.
-________________________________________
-End of Volume 6 – Chapters 1, 2 & 3
-Enterprise ERP Software Architecture Document
-Volume 6 – ERP Business Modules & Functional Architecture
-Version: 1.0
-________________________________________
-Part II – Core Platform Modules
-________________________________________
+A dependency must not be inferred merely from a conceptual relationship between business processes.
 
+For example, Sales may require Inventory information for fulfillment and Finance integration for accounting consequences, but the implementation mechanism must follow the authoritative contracts and transaction rules of those modules.
+
+## 8. Data Ownership
+
+Each module owns its domain data and persistence behavior.
+
+Other modules must not directly query or mutate another module's private tables, repositories, or persistence implementation. Cross-module data access must use the owning module's published contract or an explicitly approved shared/platform mechanism.
+
+Database-level tenant isolation, RLS, audit, soft-delete, and transaction rules remain governed by the authoritative database and security documentation.
+
+## 9. Future Module Extraction
+
+The modular-monolith architecture is intentionally compatible with future extraction where justified by scale, operational requirements, or organizational needs.
+
+Future extraction is not an implicit requirement and must not be implemented speculatively.
+
+Any transition to independently deployed services requires an approved ADR addressing, at minimum:
+
+- service boundary;
+- contract ownership;
+- data ownership and migration;
+- transaction boundaries;
+- authentication and authorization;
+- observability;
+- deployment and operations;
+- failure and retry behavior.
+
+## 10. Implementation Rule for AI
+
+When implementing a business feature, AI must:
+
+1. identify the owning business module;
+2. read its authoritative specification;
+3. identify required platform capabilities and module dependencies;
+4. preserve the current modular-monolith architecture;
+5. use published contracts rather than private cross-module implementation access;
+6. avoid introducing microservices, distributed deployment, or message-broker infrastructure unless explicitly authorized by authoritative documentation or an approved ADR.
+
+If the required module boundary, contract, data ownership, or integration behavior is not specified, AI must stop and identify the ambiguity rather than invent an architectural decision.
