@@ -1,108 +1,113 @@
-# Localization & Internationalization (CANONICAL)
+# Localization & Internationalization
 
-Canonical Ownership (DECISION):
-- Canonical file: `docs/09-platform-services/05-localization-internationalization.md`
-- Scope: Platform-level globalization architecture including packaging, translation repository, runtime language management, and regional configuration.
-- Disposition: CANONICALIZE — Volume 7 (Chapter 189) provides the authoritative platform-level globalization architecture. Frontend-specific localization remains in `docs/05-frontend/20-localization.md`.
-- Source: Volume 7 — Enterprise Information & Platform Services (Chapter 189)
+## Purpose
 
-## 189.1 Purpose (from Volume 7)
-Localization & Internationalization enable the ERP platform to operate across multiple countries, regions, languages, currencies, legal jurisdictions, and cultural conventions without modifying the underlying application code. Internationalization (i18n) prepares the platform for global use, while Localization (L10n) adapts the platform to specific regional requirements.
+Localization and Internationalization enable the ERP to operate across countries, regions, languages, currencies, time zones, legal jurisdictions, and cultural conventions without requiring country-specific source-code forks.
 
-## 189.2 Objectives (from Volume 7)
-The platform aims to:
-- Support multiple languages.
-- Support regional regulations.
-- Enable country-specific business processes.
-- Standardize global deployments.
-- Simplify international expansion.
-- Improve user experience.
-- Maintain a unified codebase.
+Internationalization (i18n) provides the platform foundations for global use. Localization (L10n) provides regional adaptations through configuration, metadata, translation packages, and approved regional capabilities.
 
-## 189.3 Internationalization
-The ERP shall support:
+Frontend-specific implementation remains governed by `docs/05-frontend/20-localization.md`.
+
+## Architectural Position
+
+- Globalization is a platform capability within the modular monolith unless an approved ADR states otherwise.
+- Regional behavior must be data/configuration driven where practical.
+- Localization does not override authoritative business-domain rules or security policy.
+- Country-specific statutory requirements must be explicitly implemented and validated; platform support is not itself a claim of legal/regulatory compliance.
+
+## Internationalization Capabilities
+
+The platform should support:
+
 - Unicode.
-- Multi-Language User Interface.
-- Multi-Language Metadata.
-- Multi-Currency.
-- Multiple Date Formats.
-- Multiple Time Formats.
-- Number Formatting.
-- Locale-Specific Sorting.
-- Time Zone Management.
-Internationalization capabilities shall be platform-wide.
+- Multiple interface languages.
+- Localized metadata where required.
+- Multiple currencies.
+- Date and time formats.
+- Number formatting.
+- Locale-aware sorting.
+- Time zones.
+- Regional measurement systems.
+- Appropriate pluralization, collation, and formatting rules where required by supported locales.
 
-## 189.4 Localization
-Localization may include:
-- Tax Rules.
-- Statutory Reports.
-- Invoice Formats.
-- Address Formats.
-- Calendar Systems.
-- Regional Holidays.
-- Banking Standards.
-- Payroll Regulations.
-- Legal Numbering Schemes.
-- Government Integrations.
-Localization packages shall remain modular.
+## Localization Capabilities
 
-## 189.5 Language Management
-The platform shall support:
-- Language Packs.
-- Translation Repository.
-- Runtime Language Switching.
-- User Language Preferences.
-- Fallback Languages.
-- Versioned Translations.
-Translations shall remain metadata-driven.
+Regional packages may contain:
 
-## 189.6 Regional Configuration
+- Tax configuration and integrations.
+- Statutory report definitions.
+- Invoice/document formats.
+- Address formats.
+- Calendars and regional holidays.
+- Banking standards/integrations.
+- Payroll rules where applicable to the supported HR/payroll architecture.
+- Legal numbering schemes.
+- Government integrations.
+
+A localization package must not silently claim compliance with a jurisdiction's law or regulation unless the actual implemented behavior has been validated and approved.
+
+## Language Management
+
+The platform may support:
+
+- Language packs.
+- Translation repositories.
+- Runtime language switching.
+- User language preferences.
+- Fallback languages.
+- Versioned translations.
+- Translation coverage tracking.
+
+Translations should be metadata-driven and version-controlled.
+
+## Regional Configuration
+
 Regional settings may include:
+
 - Country.
-- State.
+- State/province/region.
 - Currency.
-- Time Zone.
-- Fiscal Calendar.
-- Tax Jurisdiction.
-- Decimal Precision.
-- Measurement System.
-Regional settings shall inherit from tenant configuration where appropriate.
+- Time zone.
+- Fiscal calendar.
+- Tax jurisdiction.
+- Decimal precision.
+- Measurement system.
+- Locale.
 
-## 189.7 Integration
-Localization integrates with:
-- Finance.
-- HRMS.
-- Procurement.
-- Inventory.
-- CRM.
-- Workflow Engine.
-- Reporting.
-- Notification Services.
-- Document Management.
-Localization shall remain transparent to business modules.
+Inheritance from tenant/organization configuration must follow the configuration framework's explicit precedence rules.
 
-## 189.8 Monitoring
-The platform shall monitor:
-- Missing Translations.
-- Localization Package Versions.
-- Translation Coverage.
-- Regional Configuration Changes.
-- Localization Errors.
-Operational dashboards shall support localization governance.
+## Integration
 
-## 189.9 Architecture Principles
-Localization & Internationalization shall remain:
-- Metadata-Driven.
-- Region-Aware.
-- Configurable.
-- Extensible.
-- Upgrade-Friendly.
-- Standards-Based.
-- Independently Deployable.
+Localization integrates with Finance, HR, Procurement, Inventory, CRM, Workflow, Reporting, Notifications, Document Management, and other business/platform capabilities through their published contracts.
 
-## 189.10 Enterprise Globalization Vision
-The ERP shall enable organizations to deploy a single, globally consistent platform while supporting local business practices, regulatory obligations, and user expectations through configuration, metadata, and localization packages rather than code modifications.
+Business modules remain responsible for their domain-specific regional behavior; the platform supplies shared localization primitives and regional configuration mechanisms.
 
-Notes:
-- Frontend implementation guidance and UI patterns remain in `docs/05-frontend/20-localization.md` (consumer document).
-- Platform packaging, translation repository, and runtime language management are canonical here.
+## Monitoring and Governance
+
+The platform may monitor:
+
+- Missing translations.
+- Translation coverage.
+- Package versions.
+- Regional configuration changes.
+- Localization errors.
+
+Changes to statutory or legally significant configuration require the governance and approval appropriate to the affected domain.
+
+## Extensibility
+
+Additional languages, locales, regional packages, calendars, formats, and integrations can be added without changing the global architecture. Each addition must follow the platform contracts and applicable security/business-domain requirements.
+
+## Implementation Rules for AI/Copilot
+
+AI-assisted implementation must:
+
+- Reuse the existing localization and configuration mechanisms.
+- Never hard-code country-specific behavior when an established configuration/metadata mechanism applies.
+- Never invent statutory rules, tax rates, holidays, or legal requirements.
+- Never claim regulatory compliance based only on the existence of a localization mechanism.
+- STOP and ask when jurisdictional rules, precedence, translation ownership, or compliance requirements are unclear.
+
+## Summary
+
+Localization & Internationalization provide the platform foundation for a globally deployable ERP while keeping regional behavior configurable, auditable, upgrade-friendly, and separate from the core business-domain ownership model.
