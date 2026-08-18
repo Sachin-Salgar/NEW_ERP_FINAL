@@ -1,11 +1,11 @@
 ---
-agent: true
-description: Refresh deterministic repository context before large AI tasks
+agent: 'agent'
+description: Refresh deterministic NEW_ERP_FINAL repository context before large AI tasks
 ---
 
 # Refresh Repository Context
 
-Use this workflow when repository structure or documentation may have changed.
+Use this workflow when repository structure or documentation may have changed, or when generated context is missing/stale.
 
 ## Rules
 
@@ -23,6 +23,7 @@ Report:
 2. Number of files discovered.
 3. Documentation inventory location.
 4. Repository inventory location.
-5. Detected technologies.
-6. Any scanner errors or unreadable paths.
-7. Any repository structure changes that may require updating `.ai/repository-map.md`.
+5. AI context location.
+6. Detected technologies.
+7. Any scanner errors or unreadable paths.
+8. Any repository structure changes that may require updating `.ai/repository-map.md`.
