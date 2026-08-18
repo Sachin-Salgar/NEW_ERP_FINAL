@@ -1,148 +1,106 @@
 # Modular Frontend Architecture
 
-<!--
-Title: Modular Frontend Architecture
-Purpose: Canonical migration from Volume 4 — Frontend Architecture
-Scope: Modular architecture and module boundaries for frontend
-Audience: Frontend architects, module owners
-Owner: TBD
-Status: Migrated (Draft)
-Last Reviewed: 2026-08-07
-Related ADRs:
-Related Documents: docs/migration-traceability/volume4-to-docs.md
--->
+**Document Purpose:** Define modular architecture and module boundaries for the Flutter frontend.
 
-Source: Volume 4 — Chapter 3
+---
 
-3.1 Introduction
+## 3.1 Introduction
 
-Just as the backend is organized into independent business modules, the frontend follows the same modular philosophy.
+The frontend follows the same business-module boundaries as the backend while remaining part of the single Flutter application.
 
-Each ERP module shall contain its own screens, widgets, services, routes, and state management components while sharing common infrastructure.
+Each ERP module owns its frontend implementation and integrates with approved shared/platform capabilities. Frontend module independence means logical isolation and ownership; it does not imply separately deployed frontend applications.
 
-This alignment simplifies development and maintenance.
-
-3.2 Objectives
+## 3.2 Objectives
 
 The modular frontend architecture aims to:
-• Improve maintainability.
-• Enable independent module development.
-• Reduce coupling.
-• Simplify testing.
-• Support future expansion.
-• Mirror backend architecture.
+- Improve maintainability.
+- Enable independent module development.
+- Reduce coupling.
+- Simplify testing.
+- Support future expansion.
+- Align frontend boundaries with backend business modules.
 
-3.3 Module Structure
+## 3.3 Module Structure
 
-Each module shall contain:
+A module may contain structures appropriate to its responsibilities, such as:
 
-Module
+```text
+module/
+├── screens/
+├── widgets/
+├── models/
+├── services/
+├── state/
+├── routes/
+├── assets/
+└── tests/
+```
 
-├── Screens
+Not every module must contain every directory. The implementation should reflect actual module responsibilities.
 
-├── Widgets
+## 3.4 Example Modules
 
-├── Models
+Examples include Dashboard, CRM, Sales, Purchasing, Inventory, Manufacturing, Finance, HR, Payroll, Reports, and Administration.
 
-├── Services
+The actual enabled module set is a product/organization decision and must not be inferred solely from this example list.
 
-├── Providers
+## 3.5 Shared Components
 
-├── Routes
+The frontend may provide shared, business-independent components such as:
+- Buttons.
+- Data tables.
+- Dialogs.
+- Date pickers.
+- Navigation components.
+- Charts.
+- Form controls.
+- Loading indicators.
 
-├── Assets
+Shared components must not become a location for unrelated business rules merely to reduce duplication.
 
-└── Tests
+## 3.6 Module Independence
 
-This structure shall remain consistent across all modules.
+A module owns its:
+- Routes.
+- UI.
+- Frontend state.
+- Module-specific services.
+- Assets.
 
-3.4 Example Modules
+Modules shall not directly depend on another module's internal implementation. Cross-module interaction must use approved contracts/capabilities rather than reaching into another module's private state or implementation.
 
-Examples include:
-• Dashboard
-• CRM
-• Sales
-• Purchasing
-• Inventory
-• Manufacturing
-• Finance
-• HR
-• Payroll
-• Reports
-• Administration
+## 3.7 Feature Availability
 
-Each module shall remain self-contained.
+Module enablement/licensing and user authorization are separate concerns.
 
-3.5 Shared Components
+The frontend may use backend-provided organization/module availability and user permissions to determine what the user may see and access. The frontend must not treat visibility as the security boundary; the backend independently enforces authorization.
 
-The frontend may include shared components such as:
-• Buttons.
-• Data Tables.
-• Dialogs.
-• Date Pickers.
-• Navigation Components.
-• Charts.
-• Form Controls.
-• Loading Indicators.
+Illustrative flow:
 
-Shared components reduce duplication and ensure visual consistency.
+```text
+User Authentication
+        ↓
+Backend establishes organization/user context
+        ↓
+Frontend obtains available modules and permissions
+        ↓
+Frontend presents authorized UI
+        ↓
+Backend enforces authorization on every protected operation
+```
 
-3.6 Module Independence
+## 3.8 Future Extensions
 
-A module shall own:
-• Its routes.
-• Its UI.
-• Its services.
-• Its state.
-• Its assets.
+The modular design should avoid preventing future extensions or separately packaged capabilities, but plugin/marketplace architecture is not a current requirement unless formally adopted.
 
-Modules shall not directly depend on another module’s internal implementation.
+## 3.9 Summary
 
-3.7 Feature Availability
+The modular frontend mirrors business-domain boundaries while remaining part of the current unified Flutter application. Clear ownership, private implementation boundaries, and backend-enforced authorization allow modules to evolve independently without creating accidental coupling.
 
-After user authentication, the frontend shall request the user’s licensed modules and permissions from the backend.
+## Related Documents
 
-Only authorized modules shall be displayed.
-
-Example:
-User Login
-
-↓
-
-Backend Authentication
-
-↓
-
-Load Organization
-
-↓
-
-Load Licensed Modules
-
-↓
-
-Load User Permissions
-
-↓
-
-Display Authorized Modules
-
-This ensures users only see features that are licensed and permitted.
-
-3.8 Future Plugin Architecture
-
-The modular design prepares the ERP for future plugin support.
-
-Potential future capabilities include:
-• Third-party modules.
-• Customer-developed extensions.
-• Marketplace integration.
-• Industry-specific plugins.
-
-Core architecture shall remain stable while allowing functional expansion.
-
-3.9 Summary
-
-The modular frontend architecture mirrors the backend architecture, ensuring consistency across the entire Enterprise ERP Platform.
-
-It enables scalable development, clean separation of responsibilities, and dynamic module availability based on licensing and user permissions.
+- [Frontend Overview](./01-frontend-overview.md)
+- [Flutter Architecture](./02-flutter-architecture.md)
+- [Project Structure](./04-project-structure.md)
+- [Backend Module Development Guidelines](../04-backend/21-module-development-guidelines.md)
+- [Backend Architecture](../04-backend/README.md)
