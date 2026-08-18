@@ -1,142 +1,133 @@
-# Enterprise Configuration Framework (CANONICAL) 
+# Enterprise Configuration Framework
 
-Canonical Ownership (DECISION):
-- Canonical file: `docs/09-platform-services/04-enterprise-configuration-framework.md`
-- Scope: Platform-level configuration schema, runtime management, hierarchy, governance, and APIs used across the ERP platform.
-- Disposition: CANONICALIZE — Volume 7 (Chapter 188) provides the authoritative enterprise configuration architecture for the repository. Module-level and integration-specific configuration remains in module or integration documents; this file defines the platform framework and runtime behavior.
-- Source: Volume 7 — Enterprise Information & Platform Services (Chapter 188)
+## Purpose
 
-Purpose
-The Enterprise Configuration Framework enables organizations to adapt ERP behavior through configuration rather than application customization or source code modification. Configuration controls business rules, platform behavior, module features, operational policies, and tenant-specific settings while preserving a single software codebase.
+The Enterprise Configuration Framework provides the platform-level mechanism for adapting ERP behavior through governed configuration rather than source-code customization. It supports tenant, organization, branch, department, user, module, workflow, policy, integration, and other approved configuration scopes.
 
-## 188.1 Purpose (from Volume 7)
-The Enterprise Configuration Framework enables organizations to adapt ERP behavior through configuration rather than application customization or source code modification. Configuration shall control business rules, platform behavior, module features, operational policies, and tenant-specific settings while preserving a single software codebase.
+Module-specific configuration remains defined by the owning module; this document defines the shared configuration framework, hierarchy, runtime behavior, governance, and APIs.
 
-## 188.2 Objectives (from Volume 7)
-The framework aims to:
-- Eliminate unnecessary code customization.
-- Support tenant-specific behavior.
-- Improve upgradeability.
-- Centralize system settings.
-- Enable dynamic configuration.
-- Reduce implementation effort.
-- Increase operational flexibility.
+## Architectural Position
 
-## 188.3 Configuration Categories
-The ERP shall support:
-- System Configuration.
-- Organization Configuration.
-- Branch Configuration.
-- Module Configuration.
-- Workflow Configuration.
-- Approval Configuration.
-- Tax Configuration.
-- Financial Configuration.
-- Inventory Configuration.
-- Manufacturing Configuration.
-- HR Configuration.
-- Notification Configuration.
-- Security Configuration.
-- Integration Configuration.
-- AI Configuration.
-Additional configuration domains may be introduced.
+- Configuration is data, not source-code customization.
+- Configuration must not be used to bypass security, tenant isolation, domain ownership, or mandatory business invariants.
+- Platform configuration capabilities are logical capabilities within the modular monolith unless an approved ADR states otherwise.
+- Sensitive configuration and credentials must use the appropriate security/secret-management mechanism.
 
-## 188.4 Configuration Hierarchy
-Illustrative hierarchy:
+## Configuration Categories
 
+The framework may support:
+
+- System/platform configuration.
+- Tenant and organization configuration.
+- Branch/department configuration.
+- Module configuration.
+- Workflow and approval configuration.
+- Tax and financial configuration.
+- Inventory and manufacturing configuration.
+- HR configuration.
+- Notification configuration.
+- Integration configuration.
+- AI configuration.
+- Other approved configuration domains.
+
+The presence of a category does not grant the configuration owner authority over another domain's authoritative data.
+
+## Configuration Hierarchy
+
+A permitted hierarchy may be:
+
+```text
 Platform
-
-↓
-
+  ↓
 Tenant
-
-↓
-
+  ↓
 Organization
-
-↓
-
+  ↓
 Branch
-
-↓
-
+  ↓
 Department
-
-↓
-
+  ↓
 User
+```
 
-Lower levels may override inherited values where permitted.
+Lower-level overrides are allowed only where the configuration definition explicitly permits inheritance and override.
 
-## 188.5 Configuration Repository
-Each configuration item may include:
-- Configuration Identifier.
+## Configuration Item
+
+A configuration item may contain:
+
+- Identifier.
 - Name.
 - Category.
 - Scope.
 - Value.
-- Data Type.
-- Default Value.
-- Effective Date.
+- Data type.
+- Default value.
+- Effective date.
 - Version.
 - Owner.
-- Validation Rules.
-Configuration metadata shall remain extensible.
+- Validation rules.
+- Audit metadata.
 
-## 188.6 Runtime Configuration
-The platform shall support:
-- Dynamic Loading.
-- Live Refresh.
-- Configuration Caching.
-- Version Switching.
-- Validation.
+Configuration schemas must remain extensible without making arbitrary configuration executable code.
+
+## Runtime Behavior
+
+The platform may support:
+
+- Dynamic loading.
+- Validation before activation.
+- Caching.
+- Controlled refresh.
+- Version selection.
+- Effective dating.
 - Rollback.
-Runtime updates shall not require application recompilation.
 
-## 188.7 Governance
-Configuration management shall support:
-- Approval Workflows.
-- Change Reviews.
-- Version History.
-- Audit Logging.
-- Impact Analysis.
-- Rollback Procedures.
-Critical configuration changes may require administrative approval.
+A configuration change must not require recompilation where the configuration contract explicitly supports runtime management.
 
-## 188.8 Integration
-The Configuration Framework integrates with:
-- Business Rules Engine.
-- Workflow Engine.
-- Identity Platform.
-- Notification Services.
-- AI Platform.
-- Business Modules.
-- Platform Administration.
-Configuration shall remain available through standardized APIs.
+## Governance
 
-## 188.9 Monitoring
-The platform shall monitor:
-- Configuration Changes.
-- Validation Failures.
-- Override Usage.
-- Configuration Drift.
-- Runtime Errors.
-- Synchronization Status.
-Monitoring shall support operational governance.
+Configuration management should support:
 
-## 188.10 Architecture Principles
-The Configuration Framework shall remain:
-- Metadata-Driven.
-- Configuration over Customization.
-- Multi-Tenant Aware.
-- Version Controlled.
-- Secure.
-- Auditable.
-- Highly Available.
+- Change history.
+- Audit logging.
+- Review/approval for controlled settings.
+- Impact analysis where required.
+- Versioning.
+- Rollback.
+- Change ownership.
 
-Notes / Integration with existing docs:
-- Module-specific configuration remains in `docs/08-business-modules/`.
-- Connector/integration configuration remains in `docs/09-platform-services/02-enterprise-integration-platform.md`.
-- Runtime and operational guidance references: `docs/07-devops/` (deployment, environment management) and `docs/04-backend/18-configuration-management.md`.
+Critical configuration must not be changed without the authorization required by the security and governance policies.
 
-If governance owners prefer a separate split of configuration concerns (e.g., separate runtime vs authoring subsystems), record OWNER-REVIEW-REQUIRED and update ADRs in `docs/10-adr/` as needed.
+## Integration
+
+The framework integrates with business rules, workflow, identity/authorization, notifications, AI, business modules, and platform administration through published contracts.
+
+Module-specific configuration remains in the owning module's documentation. Integration-specific configuration remains in the Enterprise Integration Platform. Operational deployment/environment configuration remains governed by DevOps and backend configuration documentation.
+
+## Monitoring
+
+The platform may monitor:
+
+- Configuration changes.
+- Validation failures.
+- Override usage.
+- Configuration drift.
+- Runtime configuration errors.
+- Activation/synchronization status.
+
+Monitoring must respect authorization and tenant boundaries.
+
+## Implementation Rules for AI/Copilot
+
+AI-assisted implementation must:
+
+- Reuse the established configuration framework.
+- Never introduce hard-coded tenant/customer behavior when the behavior is intended to be configurable.
+- Never assume every setting can be overridden at every hierarchy level.
+- Never place secrets in ordinary configuration.
+- STOP and ask when ownership, precedence, security impact, or permitted override behavior is unclear.
+
+## Summary
+
+The Enterprise Configuration Framework enables controlled organization-specific behavior while preserving a single ERP codebase, centralized governance, module ownership, security, and upgradeability.
