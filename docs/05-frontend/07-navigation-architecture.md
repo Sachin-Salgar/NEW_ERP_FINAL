@@ -1,153 +1,133 @@
 # Navigation Architecture
 
-<!--
-Title: Navigation Architecture
-Purpose: Canonical migration from Volume 4 — Frontend Architecture
-Scope: Navigation patterns and entry points for the frontend
-Audience: Frontend developers, UX architects
-Owner: TBD
-Status: Migrated (Draft)
-Last Reviewed: 2026-08-07
-Related ADRs:
-Related Documents: docs/migration-traceability/volume4-to-docs.md
--->
+**Document Purpose:** Define navigation principles and entry points for the Enterprise ERP frontend.
 
-Source: Volume 4 — Chapter 7
+## 7.1 Introduction
 
-7.1 Introduction
+Navigation is the primary mechanism through which users move between dashboards, master data, transactions, reports, settings, and administration capabilities.
 
-Navigation is the foundation of user interaction within the Enterprise ERP Platform. Users move between dashboards, master data, transactions, reports, settings, and administration modules throughout their daily work.
+The navigation architecture shall provide a consistent, predictable, accessible, and efficient experience while supporting the modular ERP architecture.
 
-The navigation architecture shall provide a consistent, intuitive, and efficient experience while supporting the modular nature of the ERP.
+Navigation may adapt to the authenticated user's organization context, enabled modules, roles, and permissions. These client-side navigation decisions are for user experience; backend authorization remains authoritative.
 
-Navigation shall adapt dynamically according to the authenticated user's licensed modules, assigned roles, and permissions.
-
-7.2 Objectives
+## 7.2 Objectives
 
 The navigation architecture aims to:
-• Provide intuitive navigation.
-• Support modular applications.
-• Improve user productivity.
-• Reduce navigation complexity.
-• Enable permission-based menus.
-• Support future module expansion.
+- Provide intuitive navigation.
+- Support modular applications.
+- Improve user productivity.
+- Reduce navigation complexity.
+- Support permission-aware menus.
+- Enable future module expansion.
 
-7.3 Navigation Principles
+## 7.3 Navigation Principles
 
 Navigation shall follow these principles:
-• Consistency.
-• Simplicity.
-• Predictability.
-• Minimal clicks.
-• Context awareness.
-• Accessibility.
-• Keyboard navigation support.
+- Consistency.
+- Simplicity.
+- Predictability.
+- Minimal unnecessary interaction.
+- Context awareness.
+- Accessibility.
+- Keyboard navigation support where the target platform supports it.
 
-The same navigation patterns shall be used throughout the application.
+The same navigation patterns should be reused throughout the application where they improve consistency.
 
-7.4 Navigation Levels
+## 7.4 Navigation Levels
 
-The ERP shall support multiple navigation levels.
+The ERP may use multiple navigation levels:
+
+```text
 Application
-
-↓
-
+    ↓
 Module
-
-↓
-
+    ↓
 Feature
-
-↓
-
+    ↓
 Screen
-
-↓
-
+    ↓
 Dialog
+```
 
-Each level provides progressively more specific functionality.
+The exact hierarchy may vary by feature and platform.
 
-7.5 Main Navigation
+## 7.5 Main Navigation
 
-The primary navigation shall include:
-• Dashboard.
-• Favorites.
-• Business Modules.
-• Reports.
-• Administration.
-• User Profile.
-• Notifications.
-Only authorized modules shall appear.
+The primary navigation may include:
+- Dashboard.
+- Favorites.
+- Enabled Business Modules.
+- Reports.
+- Administration.
+- User Profile.
+- Notifications.
 
-7.6 Dynamic Navigation
+Only capabilities appropriate to the current organization and user should be presented as available. Hiding a navigation item is not a security control.
 
-After successful login:
+## 7.6 Dynamic Navigation
+
+A typical navigation-loading flow is:
+
+```text
 Authenticate User
+      ↓
+Load Organization Context
+      ↓
+Load Enabled Modules / Capabilities
+      ↓
+Load Applicable Permissions
+      ↓
+Build Navigation Model
+      ↓
+Display Application
+```
 
-↓
+The exact data-loading sequence is an implementation concern. The backend remains responsible for enforcing authorization regardless of what the client displays.
 
-Load Organization
+## 7.7 Navigation History
 
-↓
+The application may maintain navigation history to support:
+- Back navigation.
+- Forward navigation where supported.
+- Recently visited screens where useful.
+- Deep linking where supported by the target platform.
 
-Load Licensed Modules
+History behavior shall follow the conventions of each supported platform.
 
-↓
+## 7.8 Favorites
 
-Load User Permissions
+Users may bookmark frequently used screens or capabilities where the feature supports favorites.
 
-↓
+Examples include:
+- Sales Invoice.
+- Customer List.
+- Stock Report.
+- Payroll Approval.
 
-Generate Navigation Menu
+Favorites shall be associated with the appropriate user and organization context so that they do not expose or reference inaccessible capabilities.
 
-↓
+## 7.9 Breadcrumb Navigation
 
-Display Dashboard
+Complex workflows may display breadcrumb navigation.
 
-The menu shall be generated dynamically rather than being hard-coded.
-
-7.7 Navigation History
-
-The application shall maintain navigation history to support:
-• Back navigation.
-• Forward navigation (where supported).
-• Recently visited screens.
-• Deep linking.
-
-History improves usability across desktop and web platforms.
-
-7.8 Favorites
-
-Users may bookmark frequently used screens.
-Examples:
-• Sales Invoice.
-• Customer List.
-• Stock Report.
-• Payroll Approval.
-
-Favorites shall be stored per user.
-
-7.9 Breadcrumb Navigation
-
-Complex workflows shall display breadcrumb navigation.
 Example:
+
+```text
 Dashboard
-
->
-
-Sales
-
->
-
-Sales Invoice
-
->
-
-Invoice Details
+  > Sales
+    > Sales Invoice
+      > Invoice Details
+```
 
 Breadcrumbs improve orientation within deep navigation hierarchies.
 
-7.10 Summary
+## 7.10 Summary
 
-A structured navigation architecture improves productivity while supporting the modular, permission-driven design of the Enterprise ERP Platform.
+A structured navigation architecture improves productivity while supporting the modular, permission-aware design of the Enterprise ERP Platform.
+
+## Cross References
+
+- [Modular Frontend Architecture](./03-modular-frontend-architecture.md)
+- [State Management](./05-state-management.md)
+- [API Communication](./09-api-communication.md)
+- [Backend Authentication and Authorization](../04-backend/07-authentication-and-authorization.md)
