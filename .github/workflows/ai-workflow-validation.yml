@@ -1,0 +1,37 @@
+name: AI Workflow Validation
+
+on:
+  push:
+    branches:
+      - main
+      - 'ai/**'
+  pull_request:
+    branches:
+      - main
+      - 'ai/**'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-ai-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Validate AI workflow contract
+        run: python tools/ai/validate_ai_workflow.py
+
+      - name: Scan repository and refresh derived context
+        run: python tools/ai/repository_scanner.py
+
+      - name: Show generated context summary
+        run: |
+          sed -n '1,80p' .ai/generated/repository-inventory.md
+          sed -n '1,80p' .ai/generated/documentation-index.md
