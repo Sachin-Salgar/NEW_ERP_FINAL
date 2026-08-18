@@ -13,7 +13,7 @@
 | Item | Value |
 |------|-------|
 | Document Series | Enterprise ERP Software Architecture |
-| Volume | 1 — Vision, Principles & Core Architecture |
+| Documentation Area | Overview — Governance |
 | Version | 1.0 |
 | Status | Reference |
 | Audience | Architects, Developers, QA Engineers, DevOps Engineers, Technical Leads |
