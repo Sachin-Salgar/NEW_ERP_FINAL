@@ -1,108 +1,111 @@
 # Accessibility
 
-<!--
-Title: Accessibility
-Purpose: Canonical migration from Volume 4 — Frontend Architecture
-Scope: Accessibility principles, keyboard support, screen reader support and testing
-Audience: Frontend developers and QA
-Owner: TBD
-Status: Migrated (Draft)
-Last Reviewed: 2026-08-07
-Related ADRs:
-Related Documents: docs/migration-traceability/volume4-to-docs.md
--->
+**Document Purpose:** Define accessibility principles, interaction requirements, and testing expectations for the ERP frontend.
 
-Source: Volume 4 — Chapter 21
+## 21.1 Introduction
 
-21.1 Introduction
+Accessibility ensures that the Enterprise ERP Platform can be used effectively by people with diverse abilities and interaction preferences.
 
-Accessibility ensures that the Enterprise ERP Platform can be used effectively by individuals with diverse abilities and interaction preferences.
+Accessibility shall be considered throughout design, implementation, and testing rather than treated as a late-stage enhancement.
 
-Accessibility shall be integrated into the application architecture from the beginning rather than added as a later enhancement.
-
-21.2 Objectives
+## 21.2 Objectives
 
 Accessibility aims to:
-• Improve usability.
-• Support assistive technologies.
-• Ensure inclusive design.
-• Improve keyboard navigation.
-• Enhance readability.
-• Meet accessibility standards where applicable.
+- Improve usability.
+- Support assistive technologies.
+- Enable inclusive interaction.
+- Improve keyboard navigation.
+- Enhance readability.
+- Meet applicable accessibility requirements.
 
-21.3 Accessibility Principles
+## 21.3 Accessibility Principles
 
-The frontend shall follow these principles:
-• Perceivable.
-• Operable.
-• Understandable.
-• Robust.
+The frontend should follow the principles of:
+- Perceivable.
+- Operable.
+- Understandable.
+- Robust.
 
-These principles shall guide interface design throughout the application.
+These principles should guide component and screen design throughout the application.
 
-21.4 Keyboard Accessibility
+## 21.4 Keyboard Accessibility
 
-Desktop users shall be able to operate the application using the keyboard.
+Desktop users should be able to operate relevant application functionality using the keyboard.
 
-Requirements include:
-• Logical Tab Order.
-• Shortcut Keys.
-• Visible Focus Indicators.
-• Keyboard Navigation for Tables.
-• Keyboard Navigation for Menus.
+Requirements may include:
+- Logical focus order.
+- Visible focus indicators.
+- Keyboard interaction for menus and controls.
+- Appropriate table/grid keyboard behavior.
+- Shortcuts where they provide genuine productivity value.
 
-21.5 Screen Reader Support
+Shortcuts must not make standard navigation or accessibility interaction unnecessarily difficult.
 
-Interactive components shall expose meaningful accessibility labels.
+## 21.5 Screen Reader Support
 
-Examples include:
-• Buttons.
-• Form Controls.
-• Tables.
-• Charts.
-• Navigation Elements.
+Interactive components shall expose meaningful accessibility semantics and labels where supported by the target platform.
 
-Screen readers shall receive sufficient context to describe interface elements.
+This includes, where applicable:
+- Buttons.
+- Form controls.
+- Tables.
+- Charts.
+- Navigation elements.
 
-21.6 Color Accessibility
+Accessible labels should communicate the purpose and state of controls rather than merely repeating visual decoration.
 
-Color shall never be the sole indicator of information.
+## 21.6 Color Accessibility
 
-Examples:
-Instead of:
+Color shall not be the sole means of communicating important information.
+
+For example:
+
+```text
+Avoid:
 Red = Error
-Use:
-Error Icon + Text + Color
 
-This improves accessibility for users with color vision deficiencies.
+Prefer:
+Error Icon + Text + Appropriate Color
+```
 
-21.7 Font Scaling
+The design system should provide sufficient contrast for text and essential controls.
 
-The application shall support system font scaling where practical.
+## 21.7 Font Scaling
 
-Layouts shall remain usable across supported scaling levels.
+The application should support platform/system text scaling within practical UI constraints.
 
-21.8 Accessible Forms
+Layouts and components must remain usable when text size changes and should avoid fixed dimensions that unnecessarily truncate essential information.
+
+## 21.8 Accessible Forms
 
 Forms shall provide:
-• Clear Labels.
-• Error Descriptions.
-• Required Field Indicators.
-• Logical Navigation.
-• Consistent Validation Messages.
+- Clear labels.
+- Understandable error descriptions.
+- Required-field indication where applicable.
+- Logical focus/navigation order.
+- Consistent validation feedback.
 
-Users shall understand both the problem and the corrective action.
+Users should be able to understand both the problem and the corrective action.
 
-21.9 Continuous Accessibility Testing
+## 21.9 Continuous Accessibility Testing
 
-Accessibility shall be evaluated during:
-• Design Reviews.
-• Development.
-• Automated Testing.
-• Manual Testing.
+Accessibility shall be considered during:
+- Design reviews.
+- Development.
+- Automated testing where tooling supports it.
+- Manual testing.
+- Release validation where applicable.
 
-Accessibility improvements shall be incorporated throughout the software lifecycle.
+Accessibility testing should cover representative supported platforms and interaction modes rather than relying solely on automated checks.
 
-21.10 Summary
+## 21.10 Summary
 
-Accessibility improves usability for all users while ensuring that the Enterprise ERP Platform remains inclusive, professional, and compliant with modern user interface standards.
+Accessibility is a cross-cutting frontend requirement that improves usability and inclusion while supporting a consistent enterprise application experience.
+
+## Cross References
+
+- [Design System](./10-design-system.md)
+- [Forms & Data Entry](./11-forms-and-data-entry.md)
+- [Tables & Data Presentation](./12-tables-and-data-presentation.md)
+- [Localization](./20-localization.md)
+- [Frontend Testing Strategy](./22-frontend-testing-strategy.md)
