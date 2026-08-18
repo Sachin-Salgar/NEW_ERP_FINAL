@@ -1,277 +1,158 @@
 # Platform Services Architecture
 
-This directory contains the design and standards for platform-wide services that all business modules depend on.
+This directory contains the design and standards for platform-wide services that business modules depend on.
 
-## From Volume 1
+## Platform Services Overview
 
-### Platform Services Overview
+The ERP provides platform-wide capabilities for cross-cutting concerns:
 
-In addition to business modules, the ERP provides platform-wide services:
+| Service | Purpose | Ownership |
+|---------|---------|-----------|
+| **Authentication Service** | User authentication, token lifecycle, session management | Platform Team |
+| **Authorization Service** | Centralized authorization and permission evaluation | Platform Team |
+| **Audit Service** | Audit event logging and compliance logging | Platform Team |
+| **Notification Service** | User notifications, alerts, and escalations | Platform Team |
+| **File Storage Service** | Document and file storage | Platform Team |
+| **Configuration Service** | Organization and system configuration | Platform Team |
+| **Scheduler Service** | Background and scheduled jobs | Platform Team |
+| **Reporting Service** | Report execution, scheduling, and distribution | Platform Team |
 
-| Service | Purpose | Ownership | All Modules Use |
-|---------|---------|-----------|-----------------|
-| **Authentication Service** | User login, token generation, session management | Platform Team | Yes |
-| **Authorization Service** | Permission checking, role-based access control | Platform Team | Yes |
-| **Audit Service** | Audit event logging, compliance logging | Platform Team | Yes |
-| **Notification Service** | User notifications, alerts, escalations | Platform Team | Yes |
-| **File Storage Service** | Document management, file uploads/downloads | Platform Team | Yes |
-| **Configuration Service** | Organization settings, system configuration | Platform Team | Yes |
-| **Scheduler Service** | Background jobs, scheduled tasks | Platform Team | Yes |
-| **Reporting Service** | Report engine, report scheduling, distribution | Platform Team | Yes |
+## Design Principle: Platform Before Features
 
-### Design Principle: Platform Before Features
+Platform stability is more important than rapid feature development. Cross-cutting capabilities such as Authentication, Authorization, Audit, Notifications, File Storage, Configuration, Scheduling, and Reporting shall be provided through approved platform contracts rather than reimplemented independently inside business modules.
 
-**Statement**: Platform stability is more important than rapid feature development. Infrastructure such as Authentication, Authorization, Logging, Notifications, and Reporting Infrastructure shall exist before dependent modules are developed.
+Business modules must not implement their own:
+- Authentication
+- Authorization policy enforcement
+- Audit logging
+- Notification delivery
+- File storage
+- Shared configuration management
+- Shared scheduling infrastructure
 
-**Consequence**: Business modules must not implement their own:
-- Authentication (use Auth Service)
-- Audit logging (use Audit Service)
-- Notifications (use Notification Service)
-- File storage (use File Storage Service)
-- Configuration (use Configuration Service)
-- Scheduling (use Scheduler Service)
-
-Sharing these services ensures consistency and centralized governance.
-
-### Authentication Service
+## Authentication Service
 
 **Responsibilities**:
-- User login (username/password validation)
-- JWT token generation
-- Token validation
-- Refresh token management
+- User authentication
+- Access-token generation and validation
+- Refresh-token lifecycle where applicable
 - Session management
-- Logout and token blacklist
+- Logout/session invalidation
 
 **Scope**:
-- Handles JWT token lifecycle
-- Integrates with organization and user databases
-- Provides tokens consumed by all modules
+- Provides the authentication capability consumed by the backend.
+- Integrates with the authoritative identity model and configured identity providers.
+- Exact external identity-provider integrations remain subject to the security architecture and approved ADRs.
 
-**Future Enhancements**:
-- Multi-factor authentication (MFA)
-- OIDC/SAML integration
-- Device trust and registration
-- Biometric authentication
-- SSO support
+**Future/optional capabilities** may include MFA, OIDC/SAML, device trust, and SSO when approved.
 
-### Authorization Service
+## Authorization Service
 
 **Responsibilities**:
-- Role definition and management
-- Permission definition
+- Centralized policy evaluation
+- Role and permission management
 - User-to-role assignment
-- Permission checking
 - Fine-grained authorization
-- Segregation of duties
+- Segregation-of-duties controls where applicable
 
-**Scope**:
-- Manages roles and permissions across all modules
-- Provides permission checking APIs
-- Organization-specific role configuration
+**Current policy baseline**:
+- RBAC is the current baseline authorization model.
+- The enterprise security architecture defines the enforcement architecture; business modules must not independently make authorization decisions.
+- Resource/action permissions use the canonical permission model defined by the security documentation.
 
-**Permission Model**:
-- Resource-based: `module:resource:action`
-- Example: `sales:orders:create`, `accounting:ledger:post`
-- Hierarchical where applicable
+Future authorization models require an approved architectural decision before implementation.
 
-### Audit Service
+## Audit Service
 
 **Responsibilities**:
 - Record audit events
-- Maintain immutable audit log
-- Provide audit log retrieval
-- Compliance reporting
+- Maintain the audit trail
+- Provide audit-log retrieval
+- Support compliance reporting
 
-**Audit Coverage**:
-- User login/logout
-- Record creation, update, deletion
-- Approval/rejection
-- Permission grants/revocations
-- Privileged access
-- Failed authorization attempts
-- Sensitive data access
-- Configuration changes
-- Module licensing changes
+Audit coverage includes authentication events, record changes, approvals, permission changes, privileged access, failed authorization, sensitive data access, configuration changes, and module licensing changes as required by the security architecture.
 
-**Audit Record Contents**:
-- Actor (user, system, service)
-- Tenant (organization)
-- Timestamp
-- Operation (create, update, delete, approve, etc.)
-- Resource affected
-- Before/after values
-- Result (success/failure)
-- Correlation ID
-- IP address
+Audit records include actor, tenant/organization context, timestamp, operation, resource, result, correlation ID, and other fields required by the authoritative audit schema.
 
-### Notification Service
+## Notification Service
 
 **Responsibilities**:
 - Send user notifications
 - Manage notification preferences
 - Handle notification delivery
-- Support multiple channels (in-app, email, SMS, future)
+- Support approved delivery channels
 
-**Scope**:
-- Notifications for approvals pending
-- Alerts for thresholds exceeded
-- Reminders for tasks
-- System notifications
+Initial channels and future channels are implementation decisions governed by the platform/service specifications and ADRs.
 
-**Future Channels**:
-- In-app notifications
-- Email
-- SMS
-- Push notifications
-- Mobile app alerts
-- Slack/Teams integration
-
-### File Storage Service
+## File Storage Service
 
 **Responsibilities**:
 - Store documents and files
-- Manage file versioning
-- File retrieval and download
-- File deletion and archival
-- Access control
+- Manage file versions
+- Retrieve files
+- Apply access control
+- Support retention/deletion policies
 
-**Scope**:
-- ERP documents (invoices, POs, receipts)
-- Attachments
-- Master file imports
-- Report exports
-- Configuration backups
+Storage may support on-premises or cloud backends as defined by the deployment and storage architecture. Tenant isolation and encryption requirements are governed by the security and database documentation.
 
-**Storage Strategy**:
-- Supports both on-premises (local disk) and cloud (S3, Azure Blob)
-- Tenant-isolated storage
-- Encryption at rest (if required)
-- Backup integration
-
-### Configuration Service
+## Configuration Service
 
 **Responsibilities**:
-- Store organization settings
+- Store organization/system configuration
 - Provide configuration retrieval
-- Manage configuration updates
-- Handle different config levels (system, organization, user)
+- Manage configuration changes
+- Support defined configuration scopes
 
-**Configuration Types**:
-- Organization settings (name, logo, address)
-- Financial year definitions
-- Tax settings
-- Branch definitions
-- Number series
-- Approval workflows
-- Module-specific configuration
+Configuration ownership and precedence must be defined by the relevant module/platform specification before implementation.
 
-**Scope**:
-- Organization-wide settings
-- Tenant-specific configuration
-- User preferences
-
-### Scheduler Service
+## Scheduler Service
 
 **Responsibilities**:
 - Execute scheduled jobs
-- Manage job scheduling
-- Provide job execution history
-- Handle job retries
-- Monitor job health
+- Manage schedules
+- Maintain execution history
+- Handle retries and failures
+- Expose job health/monitoring information
 
-**Scheduled Jobs**:
-- Monthly financial closing
-- Daily inventory valuation
-- Payroll processing
-- Report generation
-- Data cleanup and archival
-- Backup procedures
+Business modules may register jobs through the approved scheduler contract; they must not create independent scheduling infrastructure.
 
-**Features**:
-- Cron-based scheduling
-- One-time scheduling
-- Retry logic for failures
-- Execution history
-- Job monitoring
-
-### Reporting Service
+## Reporting Service
 
 **Responsibilities**:
-- Execute reports
+- Execute approved reports
 - Manage report definitions
 - Schedule report runs
-- Deliver reports
-- Archive reports
+- Deliver report output
+- Maintain report history where required
 
-**Report Types**:
-- Standard reports (pre-built)
-- Organization-configured reports
-- Ad-hoc queries
-- Export formats (PDF, Excel, CSV)
+Report formats and delivery mechanisms are subject to the reporting specification and relevant ADRs.
 
-**Delivery**:
-- On-demand execution
-- Scheduled delivery (email)
-- Report archive
+## Deployment and Versioning
 
----
+Platform services are **logical platform capabilities within the current modular-monolith backend**, not independently deployed services by default.
 
-## Platform Service Versioning
-
-Platform services are independently versioned:
-
-| Service | Version | Update Cycle |
-|---------|---------|--------------|
-| Authentication | v1, v2, ... | Quarterly |
-| Authorization | v1, v2, ... | Quarterly |
-| Audit | v1, v2, ... | Quarterly |
-| Others | v1, v2, ... | Quarterly |
-
-**Policy**: Support N-1 versions to allow gradual migration.
-
----
+Platform capabilities may expose versioned contracts where an API contract requires versioning. Independent deployment or service extraction is a future architectural change and requires an approved ADR.
 
 ## Module Dependency on Platform Services
 
-```
-Sales Module
-Inventory Module
-Accounting Module
-HR Module
-Manufacturing Module
-    ↓ (all depend on)
-    ├── Authentication Service
-    ├── Authorization Service
-    ├── Audit Service
-    ├── Notification Service
-    ├── File Storage Service
-    ├── Configuration Service
-    ├── Scheduler Service
-    └── Reporting Service
+```text
+Business Modules
+       ↓
+Published Platform Contracts
+       ↓
+Platform Capabilities
 ```
 
-Modules call platform services to perform cross-cutting concerns rather than implementing duplicate functionality.
-
----
+Modules use platform capabilities for cross-cutting concerns rather than implementing duplicate infrastructure.
 
 ## Related Documentation
 
-- [Architectural Principles](../00-overview/01-architectural-principles.md#principle-5-platform-before-features) — Platform Before Features principle
-- [Design Philosophy](../02-architecture/01-design-philosophy.md#design-philosophy-1-platform-first-modules-second) — Platform First philosophy
-- [Business Modules](./README.md) — How modules use platform services
+- [Architectural Principles](../00-overview/01-architectural-principles.md) — Platform Before Features principle
+- [Design Philosophy](../02-architecture/01-design-philosophy.md) — Platform First philosophy
+- [Architectural Boundaries](../02-architecture/03-boundaries.md) — Module/platform dependency rules
+- [Security Architecture](../06-security/04-enterprise-security-architecture.md) — Authentication and authorization architecture
+- [Backend Modular Monolith](../04-backend/03-modular-monolith.md) — Current deployment model
 
-## Navigation
+## Status
 
-This volume (Volume 1) establishes platform services architecture principles. Future volumes (Volume 7) will provide:
-- Detailed service specifications
-- Authentication architecture
-- Authorization model details
-- Audit system design
-- Notification architecture
-- File storage patterns
-- Configuration management
-- Scheduler design
-- Reporting engine design
-- Service versioning strategy
-- Service deployment procedures
+This document defines current platform capability boundaries. Detailed service specifications should be added under this directory as each platform capability is designed and approved.
