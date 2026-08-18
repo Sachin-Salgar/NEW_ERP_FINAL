@@ -1,126 +1,130 @@
 # Frontend Testing Strategy
 
-<!--
-Title: Frontend Testing Strategy
-Purpose: Canonical migration from Volume 4 — Frontend Architecture
-Scope: Testing levels, CI integration, cross-platform and E2E guidance
-Audience: Developers, QA, DevOps
-Owner: TBD
-Status: Migrated (Draft)
-Last Reviewed: 2026-08-07
-Related ADRs:
-Related Documents: docs/migration-traceability/volume4-to-docs.md, docs/07-devops/*
--->
+**Document Purpose:** Define testing levels, quality expectations, and CI integration principles for the ERP frontend.
 
-Source: Volume 4 — Chapter 22
+## 22.1 Introduction
 
-22.1 Introduction
+Testing ensures that the frontend behaves correctly across supported platforms while maintaining a reliable and consistent user experience.
 
-Testing ensures that the frontend behaves correctly across supported platforms while maintaining a consistent and reliable user experience.
+The Enterprise ERP Platform shall use multiple testing levels appropriate to the risk and behavior being verified. Testing should be automated wherever practical and integrated into the software development lifecycle.
 
-The Enterprise ERP Platform adopts a comprehensive testing strategy covering individual widgets, application logic, complete user workflows, and cross-platform compatibility.
-
-Testing shall be integrated into the software development lifecycle and automated wherever practical.
-
-22.2 Objectives
+## 22.2 Objectives
 
 The testing strategy aims to:
-• Detect defects early.
-• Prevent regressions.
-• Improve application quality.
-• Increase developer confidence.
-• Support continuous delivery.
-• Ensure platform consistency.
+- Detect defects early.
+- Prevent regressions.
+- Improve application quality.
+- Increase developer confidence.
+- Support reliable delivery.
+- Verify supported-platform behavior.
 
-22.3 Testing Levels
+## 22.3 Testing Levels
 
-The frontend shall implement multiple testing levels.
+The frontend may use the following levels:
+
+```text
 End-to-End Tests
-
-↓
-
+        ↓
 Integration Tests
-
-↓
-
+        ↓
 Widget Tests
-
-↓
-
+        ↓
 Unit Tests
+```
 
-Each level verifies different aspects of application behavior.
+These levels are complementary. Not every feature requires identical coverage at every level; test selection should reflect risk and behavior.
 
-22.4 Unit Testing
+## 22.4 Unit Testing
 
-Unit tests shall verify:
-• Utility Classes.
-• Services.
-• Providers.
-• Validation Logic.
-• State Management.
+Unit tests should verify isolated behavior such as:
+- Utility functions/classes.
+- Application services.
+- Providers/state logic.
+- Validation behavior.
+- Transformation/mapping logic.
 
-External dependencies shall be mocked where appropriate.
+External dependencies should be replaced with suitable test doubles where isolation is required.
 
-22.5 Widget Testing
+## 22.5 Widget Testing
 
-Widget tests shall verify:
-• Buttons.
-• Forms.
-• Dialogs.
-• Tables.
-• Navigation Components.
-• Charts.
-• Custom Widgets.
+Widget tests should verify relevant UI behavior such as:
+- Buttons.
+- Forms.
+- Dialogs.
+- Tables.
+- Navigation components.
+- Charts.
+- Shared/custom widgets.
 
-Widget testing ensures visual components behave correctly.
+Widget tests should verify behavior, semantics, and important UI states rather than attempting to replace all manual visual/platform testing.
 
-22.6 Integration Testing
+## 22.6 Integration Testing
 
-Integration tests verify interaction between:
-• UI.
-• State Management.
-• API Client.
-• Local Storage.
-• Authentication.
+Integration tests may verify interaction between:
+- UI.
+- State management.
+- API client.
+- Local storage abstractions.
+- Authentication/session behavior.
 
-Integration testing validates communication between application layers.
+External systems may be controlled or substituted where necessary for deterministic tests.
 
-22.7 End-to-End Testing
+## 22.7 End-to-End Testing
 
-End-to-End tests simulate complete business workflows.
-Examples include:
-• Login.
-• Customer Creation.
-• Sales Invoice.
-• Purchase Order.
-• Inventory Adjustment.
-• Payroll Approval.
+End-to-end tests may simulate complete business workflows such as:
+- Login.
+- Customer creation.
+- Sales invoice workflow.
+- Purchase order workflow.
+- Inventory adjustment.
+- Approval workflow.
 
-These tests provide confidence that business processes function correctly.
+The exact E2E suite shall reflect implemented business capabilities and their risk. Example workflows are not a claim that every workflow is already implemented.
 
-22.8 Cross-Platform Testing
+## 22.8 Cross-Platform Testing
 
-Testing shall include:
-• Android.
-• iOS.
-• Windows.
-• macOS.
-• Linux.
-• Web.
+Testing shall cover the platforms actually supported by the product release.
 
-Platform-specific behavior shall be verified before release.
+The current target architecture identifies:
+- Android.
+- iOS.
+- Windows.
+- macOS.
+- Linux.
+- Web.
 
-22.9 Continuous Testing
+Platform-specific behavior should be verified where applicable before release. A platform shall not be treated as release-supported merely because Flutter can technically target it.
 
-Automated tests shall execute during:
-• Development.
-• Pull Requests.
-• Continuous Integration.
-• Release Validation.
+## 22.9 Continuous Testing
 
-Failed tests shall prevent production deployment.
+Appropriate automated checks should execute during:
+- Local development.
+- Pull requests.
+- Continuous integration.
+- Release validation.
 
-22.10 Summary
+Which checks are blocking shall be determined by the repository's actual CI policy. Documentation shall not claim that every failed test automatically prevents production deployment unless the CI/CD configuration establishes that behavior.
 
-A structured testing strategy improves reliability while ensuring that the Flutter application remains stable as new features and modules are introduced.
+## 22.10 Test Quality
+
+Tests should be:
+- Deterministic.
+- Maintainable.
+- Focused on observable behavior.
+- Independent where practical.
+- Representative of important failure modes.
+
+Tests must not encode implementation details unnecessarily when stable behavior can be tested instead.
+
+## 22.11 Summary
+
+A layered frontend testing strategy provides confidence in UI behavior, application logic, integration boundaries, and supported-platform workflows while allowing test coverage to grow with the ERP's implemented capabilities.
+
+## Cross References
+
+- [Flutter Architecture](./02-flutter-architecture.md)
+- [State Management](./05-state-management.md)
+- [Dependency Injection](./06-dependency-injection.md)
+- [API Communication](./09-api-communication.md)
+- [Accessibility](./21-accessibility.md)
+- [Backend Testing Strategy](../04-backend/19-testing-strategy.md)
