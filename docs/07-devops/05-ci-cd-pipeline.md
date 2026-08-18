@@ -1,206 +1,96 @@
 # CI/CD Pipeline
 
-**Source:** Volume 5 — Continuous Integration and Continuous Deployment
+**Document Purpose:** Define CI/CD validation, artifact, deployment, and recovery principles.
 
-## Introduction
+## 1. Introduction
 
-The CI/CD pipeline automates validation, build, and deployment processes to ensure that software changes are delivered consistently and safely through the various environments.
+CI/CD automates repeatable validation and delivery activities so that software changes can move through required environments safely.
 
-CI/CD enables rapid feedback, high quality, and repeatable releases.
+This document defines principles, not a commitment to a specific CI provider or deployment platform.
 
-## Objectives
-
-The pipeline aims to:
-
-- Detect defects early.
-- Improve software quality.
-- Automate testing and validation.
-- Maintain consistent builds.
-- Support team collaboration.
-- Reduce deployment time.
-- Minimize human error.
-- Enable controlled releases.
-- Support rapid rollback.
-
-## CI/CD Workflow
-
-Illustrative workflow:
+## 2. Illustrative Workflow
 
 ```text
-Developer Commit
-
-↓
-
-Git Repository
-
-↓
-
-Build Trigger
-
-↓
-
-Static Analysis
-
-↓
-
-Unit Tests
-
-↓
-
-Integration Tests
-
-↓
-
-Package Build
-
-↓
-
-Artifact Storage
-
-↓
-
-Deployment Approval
-
-↓
-
-Environment Validation
-
-↓
-
-Deploy Containers
-
-↓
-
-Database Migration
-
-↓
-
-Health Checks
-
-↓
-
-Production Release
-
-↓
-
+Change
+ ↓
+Build / Static Validation
+ ↓
+Automated Tests
+ ↓
+Security / Quality Checks
+ ↓
+Artifact Build
+ ↓
+Environment Deployment
+ ↓
+Health Validation
+ ↓
+Release / Promotion
+ ↓
 Monitoring
 ```
 
-Each stage must complete successfully before proceeding.
+The exact stages and blocking rules are determined by repository CI/CD configuration and governance.
 
-## Automated Validation
+## 3. Automated Validation
 
-The CI pipeline shall automatically execute:
+The pipeline should run applicable checks such as:
+- Compilation/build.
+- Dependency validation.
+- Static analysis.
+- Unit tests.
+- Integration tests.
+- Security checks.
+- Build verification.
 
-- Source Code Compilation.
-- Dependency Validation.
-- Static Code Analysis.
-- Security Checks.
-- Unit Tests.
-- Integration Tests.
-- Build Verification.
+Not every check is necessarily applicable to every change.
 
-Manual intervention shall be minimized.
+## 4. Quality Gates
 
-## Code Quality Gates
+Quality gates may include successful tests, required review, security validation, and other repository-defined checks. Documentation shall not claim a specific coverage threshold or approval mechanism unless established by the repository.
 
-Code shall satisfy predefined quality requirements before merging.
+## 5. Artifacts
 
-Examples include:
+Successful builds may produce versioned application artifacts, containers, frontend builds, documentation, or migration packages as applicable.
 
-- Successful compilation.
-- Passing tests.
-- Acceptable code coverage.
-- No critical security issues.
-- Approved code review.
+Published production artifacts should be immutable.
 
-Changes failing validation shall not proceed.
+## 6. Deployment
 
-## Artifact Generation
+Deployment strategies may include rolling, blue-green, canary, or controlled maintenance-window releases according to operational requirements.
 
-Successful builds shall produce versioned artifacts including:
+## 7. Database Migrations
 
-- Backend Containers.
-- Frontend Builds.
-- Documentation.
-- Migration Packages.
+Schema changes shall be version-controlled and reviewed. Production migration execution shall follow the database migration and recovery procedures.
 
-Artifacts shall be immutable after publication.
+Migrations should be designed for safe deployment and recovery where practical; automatic reversibility is not guaranteed for every schema change.
 
-## Notifications
+## 8. Rollback and Recovery
 
-CI shall notify relevant stakeholders regarding:
+A release plan should identify recovery options for application artifacts, configuration, and database state where relevant. Database recovery is governed by the backup/disaster-recovery architecture.
 
-- Build Success.
-- Build Failure.
-- Test Failures.
-- Security Issues.
+## 9. Post-Deployment Validation
 
-Notifications shall integrate with the centralized notification framework.
-
-## Deployment Strategies
-
-Supported deployment approaches include:
-
-- Rolling Deployment.
-- Blue-Green Deployment.
-- Canary Deployment.
-- Maintenance Window Deployment.
-
-The selected strategy shall depend on operational requirements.
-
-## Database Migrations
-
-Schema changes shall:
-
-- Be version-controlled.
-- Execute automatically.
-- Be reversible where practical.
-- Be validated before production deployment.
-
-Database migrations shall never bypass review procedures.
-
-## Rollback Strategy
-
-Rollback shall support:
-
-- Previous Application Version.
-- Previous Container Images.
-- Previous Configuration.
-- Database Recovery Procedures.
-
-Rollback plans shall be prepared before every production deployment.
-
-## Post-Deployment Validation
-
-Following deployment, the platform shall verify:
-
-- API Health.
-- Database Connectivity.
+Where applicable, deployments should validate:
+- API health.
+- Database connectivity.
 - Authentication.
-- Background Workers.
-- Notification Services.
-- Scheduled Jobs.
+- Background processing.
+- Scheduled processing.
+- Relevant error indicators.
 
-Only successful validation shall complete the deployment process.
+## 10. Deployment Records
 
-## Deployment Records
+Deployment systems should retain sufficient information to identify the released artifact, environment, time, and status for operational troubleshooting and auditability.
 
-Every deployment shall record:
+## 11. Summary
 
-- Version.
-- Date and Time.
-- Environment.
-- Approver.
-- Build Identifier.
-- Deployment Status.
+CI/CD provides repeatable validation and controlled software delivery while leaving provider-specific implementation to the actual repository and deployment configuration.
 
-Deployment history shall support auditing and troubleshooting.
+## Cross References
 
-## Pipeline Performance
-
-Build pipelines shall be continuously optimized to reduce execution time while preserving validation quality.
-
-## Summary
-
-The CI/CD pipeline improves software quality through automated validation, rapid feedback, and consistent build and release processes.
+- [DevOps Architecture](./01-devops-architecture.md)
+- [Deployment Architecture](./01-deployment-architecture.md)
+- [Environment Management](./03-environment-management.md)
+- [Containerization](./04-containerization.md)
+- [Backup & Disaster Recovery](./09-backup-disaster-recovery.md)
