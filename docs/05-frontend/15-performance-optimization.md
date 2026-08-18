@@ -1,111 +1,105 @@
 # Frontend Performance Optimization
 
-<!--
-Title: Frontend Performance Optimization
-Purpose: Canonical migration from Volume 4 — Frontend Architecture
-Scope: Performance principles, lazy loading, large dataset handling and monitoring
-Audience: Frontend developers and performance engineers
-Owner: TBD
-Status: Migrated (Draft)
-Last Reviewed: 2026-08-07
-Related ADRs:
-Related Documents: docs/migration-traceability/volume4-to-docs.md
--->
+**Document Purpose:** Define measurable performance principles for the ERP frontend.
 
-Source: Volume 4 — Chapter 15
+## 15.1 Introduction
 
-15.1 Introduction
+ERP applications may display large datasets, complex dashboards, forms, and reports. Performance optimization should keep the user interface responsive under realistic workloads.
 
-ERP applications often display thousands of records, complex dashboards, and data-intensive reports.
+Optimization shall prioritize measured bottlenecks rather than unnecessary complexity.
 
-Performance optimization ensures that the user interface remains responsive even under heavy workloads.
-
-Optimization shall prioritize measurable improvements rather than unnecessary complexity.
-
-15.2 Objectives
+## 15.2 Objectives
 
 The performance strategy aims to:
-• Improve responsiveness.
-• Reduce memory consumption.
-• Minimize startup time.
-• Improve scrolling performance.
-• Reduce unnecessary rendering.
-• Support enterprise-scale datasets.
+- Improve responsiveness.
+- Control memory consumption.
+- Reduce unnecessary startup work.
+- Improve scrolling and rendering performance.
+- Reduce redundant API requests.
+- Support appropriately sized enterprise datasets.
 
-15.3 Performance Principles
+## 15.3 Performance Principles
 
 The frontend shall follow these principles:
-• Measure before optimizing.
-• Optimize bottlenecks.
-• Prefer lazy loading.
-• Minimize unnecessary rebuilds.
-• Reduce redundant API requests.
+- Measure before optimizing.
+- Optimize demonstrated bottlenecks.
+- Prefer appropriate lazy loading.
+- Minimize unnecessary rebuilds.
+- Avoid redundant API requests.
+- Keep performance optimizations consistent with correctness and authorization boundaries.
 
-15.4 Lazy Loading
+## 15.4 Lazy Loading
 
-Large resources shall be loaded only when required.
+Resources may be loaded only when required.
+
 Examples include:
-• Business Modules.
-• Reports.
-• Images.
-• Attachments.
-• Large Lists.
+- Feature screens.
+- Reports.
+- Images.
+- Attachments.
+- Large lists.
 
-Lazy loading improves startup performance.
+The implementation shall use the mechanisms supported by the selected Flutter architecture rather than assuming a particular code-splitting or plugin-loading model.
 
-15.5 Efficient Rendering
+## 15.5 Efficient Rendering
 
-Widgets shall be designed to:
-• Minimize rebuilds.
-• Reuse components.
-• Avoid unnecessary nesting.
-• Separate static and dynamic content.
+Widgets should be designed to:
+- Minimize unnecessary rebuilds.
+- Reuse approved components.
+- Avoid unnecessary widget complexity.
+- Separate static and dynamic content where useful.
 
-Efficient rendering improves responsiveness.
+Performance optimization must not obscure ownership or make business logic harder to test and maintain.
 
-15.6 Large Dataset Handling
+## 15.6 Large Dataset Handling
 
-Large business datasets shall support:
-• Server-side pagination.
-• Infinite scrolling where appropriate.
-• Virtualized lists.
-• Incremental loading.
+Large datasets should use backend-supported retrieval strategies such as:
+- Server-side pagination.
+- Incremental loading.
+- Appropriate list virtualization/rendering techniques.
+- Bounded result sets.
 
-The frontend shall avoid loading unnecessary records into memory.
+The frontend should not load unnecessary records into memory merely to perform operations that belong on the backend.
 
-15.7 Image Optimization
+## 15.7 Image and Attachment Optimization
 
-Images shall:
-• Use appropriate resolutions.
-• Be cached efficiently.
-• Load asynchronously.
-• Support placeholders during loading.
+Images and other large resources should:
+- Use appropriate resolutions or representations.
+- Load asynchronously where appropriate.
+- Use bounded client-side caching where appropriate.
+- Provide suitable loading/error states.
 
-Large images shall not delay screen rendering.
+The frontend shall use the backend file-storage/API boundary for authoritative attachment access.
 
-15.8 Performance Monitoring
+## 15.8 Performance Monitoring
 
-Performance metrics may include:
-• Startup Time.
-• Screen Load Time.
-• Frame Rendering Rate.
-• Memory Usage.
-• API Response Time.
-• UI Responsiveness.
+Relevant performance measurements may include:
+- Startup Time.
+- Screen Load Time.
+- Frame Rendering Performance.
+- Memory Usage.
+- API Response Time.
+- UI Responsiveness.
 
-Performance data shall support continuous improvement.
+Metrics should be collected and interpreted in the context of realistic workloads and supported platforms.
 
-15.9 Future Scalability
+## 15.9 Scalability
 
-The frontend architecture supports future enhancements including:
-• Advanced caching.
-• Progressive loading.
-• Background synchronization.
-• Feature-based code splitting.
-• Plugin-based module loading.
+The frontend architecture should allow performance improvements such as:
+- Appropriate caching.
+- Incremental loading.
+- Background processing where supported and justified.
+- Feature-level lazy loading.
 
-These capabilities allow the ERP to grow without requiring architectural redesign.
+These are implementation options, not commitments to a plugin-based module system or a particular future deployment architecture.
 
-15.10 Summary
+## 15.10 Summary
 
-A performance-focused frontend architecture ensures a fast, responsive, and scalable user experience across all supported platforms while maintaining consistency with the overall enterprise architecture.
+A performance-focused frontend architecture provides a responsive user experience while preserving correctness, maintainability, and the established frontend/backend boundaries.
+
+## Cross References
+
+- [Flutter Architecture](./02-flutter-architecture.md)
+- [API Communication](./09-api-communication.md)
+- [Tables & Data Presentation](./12-tables-and-data-presentation.md)
+- [Backend Performance Optimization](../04-backend/20-performance-optimization.md)
