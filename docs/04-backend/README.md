@@ -6,7 +6,6 @@ This directory contains backend runtime, framework, and server-side technology s
 
 ### Overview
 - [01-backend-overview.md](01-backend-overview.md) — Backend architecture overview and high-level responsibilities
-- [27-volume3-summary.md](27-volume3-summary.md) — Backend architecture summary and key decisions
 
 ### Core Architecture
 - [02-clean-architecture.md](02-clean-architecture.md) — Clean Architecture & Layered Design
@@ -44,13 +43,12 @@ This directory contains backend runtime, framework, and server-side technology s
 ### Module Development
 - [21-module-development-guidelines.md](21-module-development-guidelines.md) — Module structure, responsibilities, and documentation requirements
 
-### Cross references (canonical)
+### Cross references
 - [Governance (global)](../00-overview/02-governance.md) — Global document control and governance
 - [Coding Standards (global)](../02-architecture/05-coding-standards.md) — Global coding standards
 - [Security (global)](../06-security/01-backend-security.md) — Backend security requirements
 - [DevOps / Deployment](../07-devops/01-deployment-architecture.md) — Deployment architecture and CI/CD
 - [ADRs](../10-adr/README.md) — Architecture Decision Records
-- [Migration Traceability](../migration-traceability/volume3-to-docs.md) — Historical mapping from the former Volume 3 material to current canonical documents
 
 ## Backend Runtime
 
