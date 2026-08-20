@@ -228,3 +228,59 @@ Repository evidence:
 ---
 
 If any of the remaining work items require product or governance decisions (for example, UX choices, module enablement policies, or ADR changes), stop and request that decision rather than inventing a rule.
+
+## Product Decisions (authoritative for this roadmap)
+
+The following product decisions are recorded and are authoritative for the current implementation and the roadmap. These decisions were made by the product/architecture authority and must be followed by any future implementation work unless an approved ADR or governance change explicitly updates them.
+
+- Tenant creation: OPS/PLATFORM ADMINISTRATION ONLY
+  - Tenant creation is an administrative/platform operation. Use the existing TenantBootstrapService and platform repository bootstrap mechanism for creating tenants. Do NOT implement public tenant signup, tenant creation UI, or a public tenant creation REST API in this roadmap slice. Any future self-service tenant onboarding must be a separate documented product decision and implementation slice.
+
+- User registration: ADMIN-ONLY
+  - User registration remains an admin-protected operation. The existing protected endpoint POST /api/v1/auth/register (requires authentication and permission 'user.manage') is authoritative. Do NOT implement anonymous or public user signup, email-verification workflows, or change default-role behavior unless later documented.
+
+- Frontend design: FUNCTIONAL-FIRST
+  - Implement a functional-first frontend following the repository frontend architecture and design-system guidance. Do not block CORE-01 on pixel-perfect external design assets. The frontend must remain presentation-only; backend validation and authorization remain authoritative.
+
+
+## CORE-01 explicit status checklist
+
+Use these explicit checkboxes so a future AI or developer can quickly determine the current state and next action.
+
+- [x] CORE-01 backend: IMPLEMENTED
+- [x] CORE-01 database / RLS: IMPLEMENTED
+- [x] CORE-01 backend integration tests: PRESENT
+- [ ] CORE-01 frontend: NOT STARTED
+- [ ] CORE-01 E2E: NOT STARTED
+- [ ] CORE-01: NOT COMPLETE
+
+
+## Flutter frontend scaffold status
+
+Search results: no Flutter frontend project found in repository (no pubspec.yaml, no lib/main.dart, no Flutter/Dart source files). Therefore:
+
+**Flutter frontend scaffold: NOT STARTED**
+
+Do not assume a frontend exists. The next implementation action is to scaffold the Flutter frontend according to docs/05-frontend once the product decisions above are acknowledged in the repository.
+
+
+## Current Resume Point
+
+This section is the canonical resume marker for future AI sessions and must remain highly visible near the top of the roadmap.
+
+**CURRENT RESUME POINT**
+
+- Current slice: CORE-01
+- Backend: COMPLETE / IMPLEMENTED
+- Database / RLS: COMPLETE / IMPLEMENTED
+- Backend integration tests: PRESENT
+- Frontend: NOT STARTED
+- E2E: NOT STARTED
+- Tenant creation: OPS-ONLY
+- User registration: ADMIN-ONLY
+- Next action: SCAFFOLD FLUTTER FRONTEND (Phase A: Flutter foundation)
+- Do not start other business modules until CORE-01 frontend + E2E is complete.
+
+
+---
+
