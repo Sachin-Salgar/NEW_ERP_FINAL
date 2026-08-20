@@ -20,6 +20,8 @@ class App extends StatefulWidget {
     di.registerLazySingleton(() => ApiClient(baseUrl: baseUrl));
     // Register OrganizationService using the ApiClient
     di.registerLazySingleton(() => OrganizationService(apiClient: di.get<ApiClient>()));
+    // Register BranchService
+    di.registerLazySingleton(() => BranchService(apiClient: di.get<ApiClient>()));
 
     await di.get<AuthService>().init();
   }

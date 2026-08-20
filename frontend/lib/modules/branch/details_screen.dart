@@ -1,51 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import '../../core/auth/auth_service.dart';
-import 'organization_service.dart';
+import 'branch_service.dart';
 
-class OrganizationDetailsScreen extends StatefulWidget {
-  final String id;
-  const OrganizationDetailsScreen({Key? key, required this.id}) : super(key: key);
+class BranchDetailsScreen extends StatefulWidget {
+  final String organizationId;
+  final String branchId;
+  const BranchDetailsScreen({Key? key, required this.organizationId, required this.branchId}) : super(key: key);
 
   @override
-  State<OrganizationDetailsScreen> createState() => _OrganizationDetailsScreenState();
+  State<BranchDetailsScreen> createState() => _BranchDetailsScreenState();
 }
 
-class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
-  Map<String, dynamic>? org;
+class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
+  Map<String, dynamic>? branch;
   bool isLoading = true;
   String? error;
-  late OrganizationService service;
+  late BranchService service;
   late AuthService auth;
 
   @override
   void initState() {
     super.initState();
-    service = GetIt.instance.get<OrganizationService>();
+    service = GetIt.instance.get<BranchService>();
     auth = GetIt.instance.get<AuthService>();
     _load();
   }
 
   Future<void> _load() async {
     setState(() { isLoading = true; error = null; });
-    final data = await service.getOrganization(widget.id);
+    final data = await service.getBranch(widget.organizationId, widget.branchId);
     if (data == null) {
-      setState(() { error = 'Organization not found'; isLoading = false; });
+      setState(() { error = 'Branch not found'; isLoading = false; });
       return;
     }
-    setState(() { org = data; isLoading = false; });
+    setState(() { branch = data; isLoading = false; });
   }
 
   Future<void> _deactivate() async {
-    final permitted = auth.hasPermission('organization.manage');
+    final permitted = auth.hasPermission('branch.manage');
     if (!permitted) return;
     final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
       title: Text('Confirm'),
-      content: Text('Deactivate this organization?'),
+      content: Text('Deactivate this branch?'),
       actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text('Cancel')), TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text('Deactivate'))],
     ));
     if (ok == true) {
-      final success = await service.deactivateOrganization(widget.id);
+      final success = await service.deactivateBranch(widget.organizationId, widget.branchId);
       if (success) {
         Navigator.of(context).pop();
       } else {
@@ -59,30 +60,25 @@ class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
     if (isLoading) return Scaffold(body: Center(child: CircularProgressIndicator()));
     if (error != null) return Scaffold(body: Center(child: Text('Error: $error')));
 
-    final permittedManage = auth.hasPermission('organization.manage');
+    final permittedManage = auth.hasPermission('branch.manage');
 
     return Scaffold(
-      appBar: AppBar(title: Text(org?['name'] ?? 'Organization')),
+      appBar: AppBar(title: Text(branch?['name'] ?? 'Branch')),
       body: Padding(
         padding: EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Code: ${org?['code'] ?? ''}'),
+          Text('Code: ${branch?['code'] ?? ''}'),
           SizedBox(height: 8),
-          Text('Legal Name: ${org?['legalName'] ?? ''}'),
+          Text('City: ${branch?['city'] ?? ''}'),
           SizedBox(height: 8),
-          Text('Email: ${org?['email'] ?? ''}'),
-          SizedBox(height: 8),
-          Text('Phone: ${org?['phone'] ?? ''}'),
+          Text('Address: ${branch?['addressLine1'] ?? ''}'),
           SizedBox(height: 16),
-          Row(children: [
-            ElevatedButton(onPressed: () => Navigator.of(context).pushNamed('/organizations/branches', arguments: widget.id), child: Text('Branches')),
-            SizedBox(width: 8),
-            if (permittedManage) ...[
-              ElevatedButton(onPressed: () => Navigator.of(context).pushNamed('/organizations/edit', arguments: widget.id), child: Text('Edit')),
+          if (permittedManage)
+            Row(children: [
+              ElevatedButton(onPressed: () => Navigator.of(context).pushNamed('/organizations/branches/edit', arguments: {'organizationId': widget.organizationId, 'branchId': widget.branchId}), child: Text('Edit')),
               SizedBox(width: 8),
               ElevatedButton(onPressed: _deactivate, child: Text('Deactivate')),
-            ]
-          ])
+            ])
         ]),
       ),
     );

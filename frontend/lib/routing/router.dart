@@ -29,6 +29,30 @@ class AppRouter {
           final id = settings.arguments as String? ?? '';
           return _authGuard((_) => EditOrganizationScreen(id: id));
         });
+      case '/organizations/branches':
+        return MaterialPageRoute(builder: (_) {
+          final orgId = settings.arguments as String? ?? '';
+          return _authGuard((_) => BranchListScreen(organizationId: orgId));
+        });
+      case '/organizations/branches/create':
+        return MaterialPageRoute(builder: (_) {
+          final orgId = settings.arguments as String? ?? '';
+          return _authGuard((_) => CreateBranchScreen(organizationId: orgId));
+        });
+      case '/organizations/branches/details':
+        return MaterialPageRoute(builder: (_) {
+          final args = settings.arguments as Map<String, dynamic>? ?? {};
+          final orgId = args['organizationId'] as String? ?? '';
+          final branchId = args['branchId'] as String? ?? '';
+          return _authGuard((_) => BranchDetailsScreen(organizationId: orgId, branchId: branchId));
+        });
+      case '/organizations/branches/edit':
+        return MaterialPageRoute(builder: (_) {
+          final args = settings.arguments as Map<String, dynamic>? ?? {};
+          final orgId = args['organizationId'] as String? ?? '';
+          final branchId = args['branchId'] as String? ?? '';
+          return _authGuard((_) => EditBranchScreen(organizationId: orgId, branchId: branchId));
+        });
       default:
         return MaterialPageRoute(builder: (_) => Scaffold(body: Center(child: Text('Unknown route: ${settings.name}'))));
     }
