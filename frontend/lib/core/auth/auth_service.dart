@@ -14,6 +14,34 @@ class AuthService extends ChangeNotifier {
   bool get isAuthenticated => _accessToken != null && _expiresAt != null && DateTime.now().isBefore(_expiresAt!);
   String? get accessToken => _accessToken;
 
+  List<String>? _permissions;
+
+  /// Fetch effective permissions for the current user from the backend.
+  Future<List<String>> fetchEffectivePermissions(String baseUrl) async {
+    _permissions = [];
+    if (_accessToken == null || currentUser == null) return _permissions!;
+    try {
+      final userId = currentUser!['id'] as String?;
+      if (userId == null) return _permissions!;
+      final url = Uri.parse('$baseUrl/api/v1/rbac/users/$userId/effective-permissions');
+      final resp = await http.get(url, headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $_accessToken'});
+      if (resp.statusCode == 200) {
+        final body = jsonDecode(resp.body) as Map<String, dynamic>;
+        final perms = (body['permissions'] as List<dynamic>?) ?? [];
+        _permissions = perms.map((e) => e.toString()).toList();
+      }
+    } catch (e) {
+      // ignore
+    }
+    return _permissions!;
+  }
+
+  /// Synchronous permission check for UI (falls back to true if permissions are not yet loaded)
+  bool hasPermission(String key) {
+    if (_permissions == null) return true; // optimistic UI until permissions loaded
+    return _permissions!.contains(key);
+  }
+
   Future<void> init() async {
     // Restore tokens from secure storage
     _accessToken = await _secureStorage.read(key: 'access_token');

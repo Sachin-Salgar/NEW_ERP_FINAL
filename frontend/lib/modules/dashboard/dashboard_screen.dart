@@ -33,7 +33,7 @@ class DashboardScreen extends StatelessWidget {
                     Wrap(
                       spacing: 8,
                       children: [
-                        Chip(label: Text('Organizations')),
+                        ActionChip(label: Text('Organizations'), onPressed: () => Navigator.of(context).pushNamed('/organizations')),
                         Chip(label: Text('Branches')),
                         Chip(label: Text('Users')),
                         Chip(label: Text('RBAC')),
