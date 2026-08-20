@@ -3,8 +3,7 @@ import pino from 'pino';
 import type { AppConfig } from '../../config/schema.js';
 
 export function createLogger(config: AppConfig) {
-  return pino({
-    name: config.APP_NAME,
+  return {
     level: config.LOG_LEVEL,
     base: {
       service: config.APP_NAME,
@@ -23,5 +22,5 @@ export function createLogger(config: AppConfig) {
             },
           },
     redact: ['JWT_SECRET', 'DATABASE_URL'],
-  });
+  };
 }

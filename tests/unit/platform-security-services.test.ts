@@ -54,6 +54,30 @@ class FakeAuthRepository {
     ];
   }
 
+  async findRoleByTenantAndCode() {
+    return { id: 'role-1', tenantId: 'tenant-1', code: 'admin', name: 'Administrator' };
+  }
+
+  async createRole() {
+    return { id: 'role-1', tenantId: 'tenant-1', code: 'admin', name: 'Administrator' };
+  }
+
+  async createUser(input: any) {
+    return {
+      id: input.id ?? 'user-2',
+      tenantId: input.tenantId,
+      organizationId: input.organizationId ?? null,
+      defaultBranchId: input.defaultBranchId ?? null,
+      username: input.username,
+      email: input.email,
+      status: input.status ?? 'active',
+    };
+  }
+
+  async assignUserRole() {
+    return undefined;
+  }
+
   async createSession(input: any) {
     return {
       id: 'session-1',
@@ -72,6 +96,23 @@ class FakeAuthRepository {
   }
 
   async findSession() {
+    return {
+      id: 'session-1',
+      tenantId: 'tenant-1',
+      userId: 'user-1',
+      organizationId: 'org-1',
+      branchId: 'branch-1',
+      accessTokenId: null,
+      isActive: true,
+      expiresAt: new Date(Date.now() + 3600_000),
+      loginAt: new Date(),
+      lastActivityAt: new Date(),
+      revokedAt: null,
+      logoutAt: null,
+    };
+  }
+
+  async findSessionByRefreshTokenHash() {
     return {
       id: 'session-1',
       tenantId: 'tenant-1',

@@ -5,3 +5,20 @@
 # Local development/editor files
 .vscode/
 .idea/
+
+# Dependencies and build artifacts
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Runtime and local environment
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+.env.local

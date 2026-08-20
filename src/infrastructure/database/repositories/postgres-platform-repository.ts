@@ -207,7 +207,7 @@ export class PostgresPlatformRepository
   }
 
   async createSession(input: CreateSessionInput): Promise<SessionRecord> {
-    const id = uuidV7();
+    const id = input.id ?? uuidV7();
     // Run session creation under tenant context so RLS policies that use current_setting('app.current_tenant_id') work
     const result = await withTenantContext(this.pool, this.tenantContextKey, input.tenantId, async (client) => {
       return client.query(
@@ -292,6 +292,40 @@ export class PostgresPlatformRepository
     };
   }
 
+  async findSessionByRefreshTokenHash(tenantId: string, refreshTokenHash: string): Promise<SessionRecord | null> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT id, tenant_id as "tenantId", user_id as "userId", organization_id as "organizationId", branch_id as "branchId",
+                access_token_id as "accessTokenId", is_active as "isActive", expires_at as "expiresAt",
+                login_at as "loginAt", last_activity_at as "lastActivityAt", revoked_at as "revokedAt", logout_at as "logoutAt"
+         FROM user_sessions
+         WHERE tenant_id = $1 AND refresh_token_hash = $2 AND is_active = true
+         LIMIT 1`,
+        [tenantId, refreshTokenHash],
+      );
+    });
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      tenantId: row.tenantId,
+      userId: row.userId,
+      organizationId: row.organizationId,
+      branchId: row.branchId,
+      accessTokenId: row.accessTokenId,
+      isActive: row.isActive,
+      expiresAt: new Date(row.expiresAt),
+      loginAt: new Date(row.loginAt),
+      lastActivityAt: new Date(row.lastActivityAt),
+      revokedAt: row.revokedAt ? new Date(row.revokedAt) : null,
+      logoutAt: row.logoutAt ? new Date(row.logoutAt) : null,
+    };
+  }
+
   async invalidateSession(sessionId: string, tenantId: string): Promise<void> {
     await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
@@ -299,6 +333,90 @@ export class PostgresPlatformRepository
          SET is_active = false, revoked_at = NOW(), termination_reason = 'logout', logout_at = NOW(), updated_at = NOW()
          WHERE id = $1 AND tenant_id = $2`,
         [sessionId, tenantId],
+      );
+    });
+  }
+
+  async findRoleByTenantAndCode(tenantId: string, code: string): Promise<{ id: string; tenantId: string; code: string; name: string } | null> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        'SELECT id, tenant_id as "tenantId", code, name FROM roles WHERE tenant_id = $1 AND code = $2 AND is_deleted = false LIMIT 1',
+        [tenantId, code],
+      );
+    });
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      tenantId: row.tenantId,
+      code: row.code,
+      name: row.name,
+    };
+  }
+
+  async createRole(tenantId: string, code: string, name: string): Promise<{ id: string; tenantId: string; code: string; name: string }> {
+    const id = uuidV7();
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `INSERT INTO roles (id, tenant_id, code, name, description, is_system, sort_order, created_at, updated_at, version)
+         VALUES ($1, $2, $3, $4, $5, false, 0, NOW(), NOW(), 1)
+         RETURNING id, tenant_id as "tenantId", code, name`,
+        [id, tenantId, code, name, null],
+      );
+    });
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      tenantId: row.tenantId,
+      code: row.code,
+      name: row.name,
+    };
+  }
+
+  async createUser(input: {
+    id?: string;
+    tenantId: string;
+    organizationId?: string | null;
+    defaultBranchId?: string | null;
+    username: string;
+    email: string;
+    passwordHash: string;
+    status?: string;
+  }): Promise<{ id: string; tenantId: string; organizationId?: string | null; defaultBranchId?: string | null; username: string; email: string; status: string }> {
+    const id = input.id ?? uuidV7();
+    const result = await withTenantContext(this.pool, this.tenantContextKey, input.tenantId, async (client) => {
+      return client.query(
+        `INSERT INTO users (id, tenant_id, organization_id, default_branch_id, username, email, password_hash, status, created_at, updated_at, version)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW(), 1)
+         RETURNING id, tenant_id as "tenantId", organization_id as "organizationId", default_branch_id as "defaultBranchId", username, email, status`,
+        [id, input.tenantId, input.organizationId ?? null, input.defaultBranchId ?? null, input.username, input.email, input.passwordHash, input.status ?? 'active'],
+      );
+    });
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      tenantId: row.tenantId,
+      organizationId: row.organizationId ?? null,
+      defaultBranchId: row.defaultBranchId ?? null,
+      username: row.username,
+      email: row.email,
+      status: row.status,
+    };
+  }
+
+  async assignUserRole(tenantId: string, userId: string, roleId: string): Promise<void> {
+    await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      await client.query(
+        `INSERT INTO user_roles (tenant_id, user_id, role_id)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id, role_id, tenant_id) DO NOTHING`,
+        [tenantId, userId, roleId],
       );
     });
   }
@@ -486,6 +604,28 @@ export class PostgresPlatformRepository
     });
 
     return result;
+  }
+
+  async updateUserStatus(tenantId: string, userId: string, status: string): Promise<void> {
+    await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `UPDATE users
+         SET status = $1, updated_at = NOW()
+         WHERE id = $2 AND tenant_id = $3`,
+        [status, userId, tenantId],
+      );
+    });
+  }
+
+  async softDeleteUser(tenantId: string, userId: string): Promise<void> {
+    await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `UPDATE users
+         SET is_deleted = true, deleted_at = NOW(), updated_at = NOW()
+         WHERE id = $1 AND tenant_id = $2`,
+        [userId, tenantId],
+      );
+    });
   }
 }
 
