@@ -111,6 +111,87 @@ export interface TenantBootstrapRepository {
   bootstrapTenant(input: TenantBootstrapInput): Promise<TenantBootstrapResult>;
 }
 
+export interface OrganizationRecord {
+  id: string;
+  tenantId: string;
+  code: string;
+  name: string;
+  legalName?: string | null;
+  gstNo?: string | null;
+  panNo?: string | null;
+  cinNo?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  baseCurrency: string;
+  fiscalCalendar: string;
+  status: 'active' | 'inactive' | 'archived';
+  isDefault: boolean;
+  remarks?: string | null;
+  createdAt?: Date | string | null;
+  updatedAt?: Date | string | null;
+  deletedAt?: Date | string | null;
+  isDeleted?: boolean;
+}
+
+export interface BranchRecord {
+  id: string;
+  tenantId: string;
+  organizationId: string;
+  code: string;
+  name: string;
+  status: 'active' | 'inactive' | 'archived';
+  isHeadOffice: boolean;
+  isDefault: boolean;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  district?: string | null;
+  state?: string | null;
+  country?: string | null;
+  postalCode?: string | null;
+  timezone: string;
+  remarks?: string | null;
+  createdAt?: Date | string | null;
+  updatedAt?: Date | string | null;
+  deletedAt?: Date | string | null;
+  isDeleted?: boolean;
+}
+
+export interface UserAdminRecord {
+  id: string;
+  tenantId: string;
+  organizationId?: string | null;
+  defaultBranchId?: string | null;
+  username: string;
+  email: string;
+  status: string;
+  createdAt?: Date | string | null;
+  updatedAt?: Date | string | null;
+  deletedAt?: Date | string | null;
+  isDeleted?: boolean;
+}
+
+export interface CoreEnterpriseRepository {
+  createOrganization(tenantId: string, input: { code: string; name: string; legalName?: string | null; gstNo?: string | null; panNo?: string | null; cinNo?: string | null; email?: string | null; phone?: string | null; website?: string | null; baseCurrency?: string; fiscalCalendar?: string; status?: 'active' | 'inactive' | 'archived'; isDefault?: boolean; remarks?: string | null }): Promise<OrganizationRecord>;
+  listOrganizations(tenantId: string): Promise<OrganizationRecord[]>;
+  getOrganizationById(tenantId: string, organizationId: string): Promise<OrganizationRecord | null>;
+  updateOrganization(tenantId: string, organizationId: string, changes: Partial<Pick<OrganizationRecord, 'code' | 'name' | 'legalName' | 'gstNo' | 'panNo' | 'cinNo' | 'email' | 'phone' | 'website' | 'baseCurrency' | 'fiscalCalendar' | 'status' | 'isDefault' | 'remarks'>>): Promise<OrganizationRecord | null>;
+  deactivateOrganization(tenantId: string, organizationId: string): Promise<boolean>;
+  createBranch(tenantId: string, organizationId: string, input: { code: string; name: string; status?: 'active' | 'inactive' | 'archived'; isHeadOffice?: boolean; isDefault?: boolean; addressLine1?: string | null; addressLine2?: string | null; city?: string | null; district?: string | null; state?: string | null; country?: string | null; postalCode?: string | null; timezone?: string; remarks?: string | null }): Promise<BranchRecord>;
+  listBranches(tenantId: string, organizationId: string): Promise<BranchRecord[]>;
+  getBranchById(tenantId: string, organizationId: string, branchId: string): Promise<BranchRecord | null>;
+  updateBranch(tenantId: string, organizationId: string, branchId: string, changes: Partial<Pick<BranchRecord, 'code' | 'name' | 'status' | 'isHeadOffice' | 'isDefault' | 'addressLine1' | 'addressLine2' | 'city' | 'district' | 'state' | 'country' | 'postalCode' | 'timezone' | 'remarks'>>): Promise<BranchRecord | null>;
+  deactivateBranch(tenantId: string, organizationId: string, branchId: string): Promise<boolean>;
+  listUsers(tenantId: string): Promise<UserAdminRecord[]>;
+  getUserById(tenantId: string, userId: string): Promise<UserAdminRecord | null>;
+  updateUser(tenantId: string, userId: string, changes: Partial<Pick<UserAdminRecord, 'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'status'>>): Promise<UserAdminRecord | null>;
+  assignUserToOrganization(tenantId: string, userId: string, organizationId: string): Promise<boolean>;
+  assignUserToBranch(tenantId: string, userId: string, branchId: string): Promise<boolean>;
+  activateUser(tenantId: string, userId: string): Promise<boolean>;
+  deactivateUser(tenantId: string, userId: string): Promise<boolean>;
+}
+
 export interface AuthorizationRepository {
   getPermissionKeysForUser(tenantId: string, userId: string): Promise<UserPermissionRecord[]>;
   listRoles(tenantId: string): Promise<Array<{ id: string; tenantId: string; code: string; name: string; description?: string | null; isSystem: boolean; sortOrder: number; createdAt?: Date | string | null; updatedAt?: Date | string | null }>>;

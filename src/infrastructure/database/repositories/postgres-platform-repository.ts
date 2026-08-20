@@ -7,20 +7,91 @@ import type { TenantBootstrapInput, TenantBootstrapResult } from '../../../domai
 import type {
   AuthenticationRepository,
   AuthorizationRepository,
+  BranchRecord,
+  CoreEnterpriseRepository,
+  OrganizationRecord,
   PlatformBootstrapRepository,
   SessionRepository,
   TenantBootstrapRepository,
+  UserAdminRecord,
   UserRepository,
 } from '../../../application/contracts/security.js';
 import { withTenantContext } from '../tenant-context.js';
 
 export class PostgresPlatformRepository
-  implements PlatformBootstrapRepository, UserRepository, AuthorizationRepository, SessionRepository, AuthenticationRepository, TenantBootstrapRepository
+  implements PlatformBootstrapRepository, UserRepository, AuthorizationRepository, CoreEnterpriseRepository, SessionRepository, AuthenticationRepository, TenantBootstrapRepository
 {
   constructor(
     private readonly pool: Pool,
     private readonly tenantContextKey = 'app.current_tenant_id',
   ) {}
+
+  private mapOrganizationRow(row: any): OrganizationRecord {
+    return {
+      id: row.id,
+      tenantId: row.tenantId,
+      code: row.code,
+      name: row.name,
+      legalName: row.legalName ?? null,
+      gstNo: row.gstNo ?? null,
+      panNo: row.panNo ?? null,
+      cinNo: row.cinNo ?? null,
+      email: row.email ?? null,
+      phone: row.phone ?? null,
+      website: row.website ?? null,
+      baseCurrency: row.baseCurrency ?? 'USD',
+      fiscalCalendar: row.fiscalCalendar ?? 'standard',
+      status: row.status,
+      isDefault: row.isDefault ?? false,
+      remarks: row.remarks ?? null,
+      createdAt: row.createdAt ? new Date(row.createdAt) : null,
+      updatedAt: row.updatedAt ? new Date(row.updatedAt) : null,
+      deletedAt: row.deletedAt ? new Date(row.deletedAt) : null,
+      isDeleted: row.isDeleted ?? false,
+    };
+  }
+
+  private mapBranchRow(row: any): BranchRecord {
+    return {
+      id: row.id,
+      tenantId: row.tenantId,
+      organizationId: row.organizationId,
+      code: row.code,
+      name: row.name,
+      status: row.status,
+      isHeadOffice: row.isHeadOffice ?? false,
+      isDefault: row.isDefault ?? false,
+      addressLine1: row.addressLine1 ?? null,
+      addressLine2: row.addressLine2 ?? null,
+      city: row.city ?? null,
+      district: row.district ?? null,
+      state: row.state ?? null,
+      country: row.country ?? null,
+      postalCode: row.postalCode ?? null,
+      timezone: row.timezone ?? 'UTC',
+      remarks: row.remarks ?? null,
+      createdAt: row.createdAt ? new Date(row.createdAt) : null,
+      updatedAt: row.updatedAt ? new Date(row.updatedAt) : null,
+      deletedAt: row.deletedAt ? new Date(row.deletedAt) : null,
+      isDeleted: row.isDeleted ?? false,
+    };
+  }
+
+  private mapUserAdminRow(row: any): UserAdminRecord {
+    return {
+      id: row.id,
+      tenantId: row.tenantId,
+      organizationId: row.organizationId ?? null,
+      defaultBranchId: row.defaultBranchId ?? null,
+      username: row.username,
+      email: row.email,
+      status: row.status,
+      createdAt: row.createdAt ? new Date(row.createdAt) : null,
+      updatedAt: row.updatedAt ? new Date(row.updatedAt) : null,
+      deletedAt: row.deletedAt ? new Date(row.deletedAt) : null,
+      isDeleted: row.isDeleted ?? false,
+    };
+  }
 
   async seedSubscriptionPlans(
     plans: Array<{ name: string; description?: string | null; priceMonthly: number; maxUsers?: number | null; maxStorageGb?: number | null; isActive?: boolean }>,
@@ -867,6 +938,726 @@ export class PostgresPlatformRepository
     });
 
     return result;
+  }
+
+  async createOrganization(tenantId: string, input: { code: string; name: string; legalName?: string | null; gstNo?: string | null; panNo?: string | null; cinNo?: string | null; email?: string | null; phone?: string | null; website?: string | null; baseCurrency?: string; fiscalCalendar?: string; status?: 'active' | 'inactive' | 'archived'; isDefault?: boolean; remarks?: string | null }): Promise<OrganizationRecord> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `INSERT INTO organizations (
+         id, tenant_id, code, name, legal_name, gst_no, pan_no, cin_no, email, phone, website,
+         base_currency, fiscal_calendar, status, is_default, remarks, created_at, updated_at, version
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW(), 1)
+        RETURNING
+         id,
+         tenant_id as "tenantId",
+         code,
+         name,
+         legal_name as "legalName",
+         gst_no as "gstNo",
+         pan_no as "panNo",
+         cin_no as "cinNo",
+         email,
+         phone,
+         website,
+         base_currency as "baseCurrency",
+         fiscal_calendar as "fiscalCalendar",
+         status,
+         is_default as "isDefault",
+         remarks,
+         created_at as "createdAt",
+         updated_at as "updatedAt",
+         deleted_at as "deletedAt",
+         is_deleted as "isDeleted"`,
+        [
+         uuidV7(),
+         tenantId,
+         input.code.trim(),
+         input.name.trim(),
+         input.legalName ?? null,
+         input.gstNo ?? null,
+         input.panNo ?? null,
+         input.cinNo ?? null,
+         input.email ?? null,
+         input.phone ?? null,
+         input.website ?? null,
+         input.baseCurrency ?? 'USD',
+         input.fiscalCalendar ?? 'standard',
+         input.status ?? 'active',
+         input.isDefault ?? false,
+         input.remarks ?? null,
+        ],
+      );
+    });
+
+    return this.mapOrganizationRow(result.rows[0]);
+  }
+
+  async listOrganizations(tenantId: string): Promise<OrganizationRecord[]> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT
+         id,
+         tenant_id as "tenantId",
+         code,
+         name,
+         legal_name as "legalName",
+         gst_no as "gstNo",
+         pan_no as "panNo",
+         cin_no as "cinNo",
+         email,
+         phone,
+         website,
+         base_currency as "baseCurrency",
+         fiscal_calendar as "fiscalCalendar",
+         status,
+         is_default as "isDefault",
+         remarks,
+         created_at as "createdAt",
+         updated_at as "updatedAt",
+         deleted_at as "deletedAt",
+         is_deleted as "isDeleted"
+         FROM organizations
+         WHERE tenant_id = $1 AND is_deleted = false AND status = 'active'
+         ORDER BY name`,
+        [tenantId],
+      );
+    });
+
+    return result.rows.map((row) => this.mapOrganizationRow(row));
+  }
+
+  async getOrganizationById(tenantId: string, organizationId: string): Promise<OrganizationRecord | null> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT
+         id,
+         tenant_id as "tenantId",
+         code,
+         name,
+         legal_name as "legalName",
+         gst_no as "gstNo",
+         pan_no as "panNo",
+         cin_no as "cinNo",
+         email,
+         phone,
+         website,
+         base_currency as "baseCurrency",
+         fiscal_calendar as "fiscalCalendar",
+         status,
+         is_default as "isDefault",
+         remarks,
+         created_at as "createdAt",
+         updated_at as "updatedAt",
+         deleted_at as "deletedAt",
+         is_deleted as "isDeleted"
+         FROM organizations
+         WHERE tenant_id = $1 AND id = $2 AND is_deleted = false AND status = 'active'
+         LIMIT 1`,
+        [tenantId, organizationId],
+      );
+    });
+
+    return result.rows.length > 0 ? this.mapOrganizationRow(result.rows[0]) : null;
+  }
+
+  async updateOrganization(tenantId: string, organizationId: string, changes: Partial<Pick<OrganizationRecord, 'code' | 'name' | 'legalName' | 'gstNo' | 'panNo' | 'cinNo' | 'email' | 'phone' | 'website' | 'baseCurrency' | 'fiscalCalendar' | 'status' | 'isDefault' | 'remarks'>>): Promise<OrganizationRecord | null> {
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
+
+    if (changes.code !== undefined) {
+      fields.push(`code = $${idx++}`);
+      values.push(String(changes.code).trim());
+    }
+    if (changes.name !== undefined) {
+      fields.push(`name = $${idx++}`);
+      values.push(String(changes.name).trim());
+    }
+    if (changes.legalName !== undefined) {
+      fields.push(`legal_name = $${idx++}`);
+      values.push(changes.legalName ?? null);
+    }
+    if (changes.gstNo !== undefined) {
+      fields.push(`gst_no = $${idx++}`);
+      values.push(changes.gstNo ?? null);
+    }
+    if (changes.panNo !== undefined) {
+      fields.push(`pan_no = $${idx++}`);
+      values.push(changes.panNo ?? null);
+    }
+    if (changes.cinNo !== undefined) {
+      fields.push(`cin_no = $${idx++}`);
+      values.push(changes.cinNo ?? null);
+    }
+    if (changes.email !== undefined) {
+      fields.push(`email = $${idx++}`);
+      values.push(changes.email ?? null);
+    }
+    if (changes.phone !== undefined) {
+      fields.push(`phone = $${idx++}`);
+      values.push(changes.phone ?? null);
+    }
+    if (changes.website !== undefined) {
+      fields.push(`website = $${idx++}`);
+      values.push(changes.website ?? null);
+    }
+    if (changes.baseCurrency !== undefined) {
+      fields.push(`base_currency = $${idx++}`);
+      values.push(changes.baseCurrency ?? 'USD');
+    }
+    if (changes.fiscalCalendar !== undefined) {
+      fields.push(`fiscal_calendar = $${idx++}`);
+      values.push(changes.fiscalCalendar ?? 'standard');
+    }
+    if (changes.status !== undefined) {
+      fields.push(`status = $${idx++}`);
+      values.push(changes.status ?? 'active');
+    }
+    if (changes.isDefault !== undefined) {
+      fields.push(`is_default = $${idx++}`);
+      values.push(changes.isDefault ?? false);
+    }
+    if (changes.remarks !== undefined) {
+      fields.push(`remarks = $${idx++}`);
+      values.push(changes.remarks ?? null);
+    }
+
+    if (fields.length === 0) {
+      return this.getOrganizationById(tenantId, organizationId);
+    }
+
+    values.push(tenantId, organizationId);
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `UPDATE organizations
+         SET ${fields.join(', ')}, updated_at = NOW()
+         WHERE tenant_id = $${idx} AND id = $${idx + 1} AND is_deleted = false
+         RETURNING
+         id,
+         tenant_id as "tenantId",
+         code,
+         name,
+         legal_name as "legalName",
+         gst_no as "gstNo",
+         pan_no as "panNo",
+         cin_no as "cinNo",
+         email,
+         phone,
+         website,
+         base_currency as "baseCurrency",
+         fiscal_calendar as "fiscalCalendar",
+         status,
+         is_default as "isDefault",
+         remarks,
+         created_at as "createdAt",
+         updated_at as "updatedAt",
+         deleted_at as "deletedAt",
+         is_deleted as "isDeleted"`,
+        values,
+      );
+    });
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapOrganizationRow(result.rows[0]);
+  }
+
+  async deactivateOrganization(tenantId: string, organizationId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `UPDATE organizations
+         SET status = 'inactive', is_deleted = true, deleted_at = NOW(), updated_at = NOW()
+         WHERE tenant_id = $1 AND id = $2 AND is_deleted = false
+         RETURNING id`,
+        [tenantId, organizationId],
+      );
+    });
+
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async createBranch(tenantId: string, organizationId: string, input: { code: string; name: string; status?: 'active' | 'inactive' | 'archived'; isHeadOffice?: boolean; isDefault?: boolean; addressLine1?: string | null; addressLine2?: string | null; city?: string | null; district?: string | null; state?: string | null; country?: string | null; postalCode?: string | null; timezone?: string; remarks?: string | null }): Promise<BranchRecord> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      const organization = await client.query(
+        `SELECT id FROM organizations WHERE tenant_id = $1 AND id = $2 AND is_deleted = false AND status = 'active' LIMIT 1`,
+        [tenantId, organizationId],
+      );
+      if (organization.rows.length === 0) {
+        throw new Error('Organization not found or inactive.');
+      }
+
+      return client.query(
+        `INSERT INTO branches (
+         id, tenant_id, organization_id, code, name, status, is_head_office, is_default, address_line1, address_line2, city,
+         district, state, country, postal_code, timezone, remarks, created_at, updated_at, version
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW(), NOW(), 1)
+        RETURNING
+         id,
+         tenant_id as "tenantId",
+         organization_id as "organizationId",
+         code,
+         name,
+         status,
+         is_head_office as "isHeadOffice",
+         is_default as "isDefault",
+         address_line1 as "addressLine1",
+         address_line2 as "addressLine2",
+         city,
+         district,
+         state,
+         country,
+         postal_code as "postalCode",
+         timezone,
+         remarks,
+         created_at as "createdAt",
+         updated_at as "updatedAt",
+         deleted_at as "deletedAt",
+         is_deleted as "isDeleted"`,
+        [
+         uuidV7(),
+         tenantId,
+         organizationId,
+         input.code.trim(),
+         input.name.trim(),
+         input.status ?? 'active',
+         input.isHeadOffice ?? false,
+         input.isDefault ?? false,
+         input.addressLine1 ?? null,
+         input.addressLine2 ?? null,
+         input.city ?? null,
+         input.district ?? null,
+         input.state ?? null,
+         input.country ?? null,
+         input.postalCode ?? null,
+         input.timezone ?? 'UTC',
+         input.remarks ?? null,
+        ],
+      );
+    });
+
+    return this.mapBranchRow(result.rows[0]);
+  }
+
+  async listBranches(tenantId: string, organizationId: string): Promise<BranchRecord[]> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT
+         id,
+         tenant_id as "tenantId",
+         organization_id as "organizationId",
+         code,
+         name,
+         status,
+         is_head_office as "isHeadOffice",
+         is_default as "isDefault",
+         address_line1 as "addressLine1",
+         address_line2 as "addressLine2",
+         city,
+         district,
+         state,
+         country,
+         postal_code as "postalCode",
+         timezone,
+         remarks,
+         created_at as "createdAt",
+         updated_at as "updatedAt",
+         deleted_at as "deletedAt",
+         is_deleted as "isDeleted"
+         FROM branches
+         WHERE tenant_id = $1 AND organization_id = $2 AND is_deleted = false AND status = 'active'
+         ORDER BY name`,
+        [tenantId, organizationId],
+      );
+    });
+
+    return result.rows.map((row) => this.mapBranchRow(row));
+  }
+
+  async getBranchById(tenantId: string, organizationId: string, branchId: string): Promise<BranchRecord | null> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT
+         id,
+         tenant_id as "tenantId",
+         organization_id as "organizationId",
+         code,
+         name,
+         status,
+         is_head_office as "isHeadOffice",
+         is_default as "isDefault",
+         address_line1 as "addressLine1",
+         address_line2 as "addressLine2",
+         city,
+         district,
+         state,
+         country,
+         postal_code as "postalCode",
+         timezone,
+         remarks,
+         created_at as "createdAt",
+         updated_at as "updatedAt",
+         deleted_at as "deletedAt",
+         is_deleted as "isDeleted"
+         FROM branches
+         WHERE tenant_id = $1 AND organization_id = $2 AND id = $3 AND is_deleted = false AND status = 'active'
+         LIMIT 1`,
+        [tenantId, organizationId, branchId],
+      );
+    });
+
+    return result.rows.length > 0 ? this.mapBranchRow(result.rows[0]) : null;
+  }
+
+  async updateBranch(tenantId: string, organizationId: string, branchId: string, changes: Partial<Pick<BranchRecord, 'code' | 'name' | 'status' | 'isHeadOffice' | 'isDefault' | 'addressLine1' | 'addressLine2' | 'city' | 'district' | 'state' | 'country' | 'postalCode' | 'timezone' | 'remarks'>>): Promise<BranchRecord | null> {
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
+
+    if (changes.code !== undefined) {
+      fields.push(`code = $${idx++}`);
+      values.push(String(changes.code).trim());
+    }
+    if (changes.name !== undefined) {
+      fields.push(`name = $${idx++}`);
+      values.push(String(changes.name).trim());
+    }
+    if (changes.status !== undefined) {
+      fields.push(`status = $${idx++}`);
+      values.push(changes.status ?? 'active');
+    }
+    if (changes.isHeadOffice !== undefined) {
+      fields.push(`is_head_office = $${idx++}`);
+      values.push(changes.isHeadOffice ?? false);
+    }
+    if (changes.isDefault !== undefined) {
+      fields.push(`is_default = $${idx++}`);
+      values.push(changes.isDefault ?? false);
+    }
+    if (changes.addressLine1 !== undefined) {
+      fields.push(`address_line1 = $${idx++}`);
+      values.push(changes.addressLine1 ?? null);
+    }
+    if (changes.addressLine2 !== undefined) {
+      fields.push(`address_line2 = $${idx++}`);
+      values.push(changes.addressLine2 ?? null);
+    }
+    if (changes.city !== undefined) {
+      fields.push(`city = $${idx++}`);
+      values.push(changes.city ?? null);
+    }
+    if (changes.district !== undefined) {
+      fields.push(`district = $${idx++}`);
+      values.push(changes.district ?? null);
+    }
+    if (changes.state !== undefined) {
+      fields.push(`state = $${idx++}`);
+      values.push(changes.state ?? null);
+    }
+    if (changes.country !== undefined) {
+      fields.push(`country = $${idx++}`);
+      values.push(changes.country ?? null);
+    }
+    if (changes.postalCode !== undefined) {
+      fields.push(`postal_code = $${idx++}`);
+      values.push(changes.postalCode ?? null);
+    }
+    if (changes.timezone !== undefined) {
+      fields.push(`timezone = $${idx++}`);
+      values.push(changes.timezone ?? 'UTC');
+    }
+    if (changes.remarks !== undefined) {
+      fields.push(`remarks = $${idx++}`);
+      values.push(changes.remarks ?? null);
+    }
+
+    if (fields.length === 0) {
+      return this.getBranchById(tenantId, organizationId, branchId);
+    }
+
+    values.push(tenantId, organizationId, branchId);
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `UPDATE branches
+         SET ${fields.join(', ')}, updated_at = NOW()
+         WHERE tenant_id = $${idx} AND organization_id = $${idx + 1} AND id = $${idx + 2} AND is_deleted = false
+         RETURNING
+         id,
+         tenant_id as "tenantId",
+         organization_id as "organizationId",
+         code,
+         name,
+         status,
+         is_head_office as "isHeadOffice",
+         is_default as "isDefault",
+         address_line1 as "addressLine1",
+         address_line2 as "addressLine2",
+         city,
+         district,
+         state,
+         country,
+         postal_code as "postalCode",
+         timezone,
+         remarks,
+         created_at as "createdAt",
+         updated_at as "updatedAt",
+         deleted_at as "deletedAt",
+         is_deleted as "isDeleted"`,
+        values,
+      );
+    });
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapBranchRow(result.rows[0]);
+  }
+
+  async deactivateBranch(tenantId: string, organizationId: string, branchId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `UPDATE branches
+         SET status = 'inactive', is_deleted = true, deleted_at = NOW(), updated_at = NOW()
+         WHERE tenant_id = $1 AND organization_id = $2 AND id = $3 AND is_deleted = false
+         RETURNING id`,
+        [tenantId, organizationId, branchId],
+      );
+    });
+
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async listUsers(tenantId: string): Promise<UserAdminRecord[]> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT
+         id,
+         tenant_id as "tenantId",
+         organization_id as "organizationId",
+         default_branch_id as "defaultBranchId",
+         username,
+         email,
+         status,
+         created_at as "createdAt",
+         updated_at as "updatedAt",
+         deleted_at as "deletedAt",
+         is_deleted as "isDeleted"
+         FROM users
+         WHERE tenant_id = $1 AND is_deleted = false
+         ORDER BY username`,
+        [tenantId],
+      );
+    });
+
+    return result.rows.map((row) => this.mapUserAdminRow(row));
+  }
+
+  async getUserById(tenantId: string, userId: string): Promise<UserAdminRecord | null> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT
+         id,
+         tenant_id as "tenantId",
+         organization_id as "organizationId",
+         default_branch_id as "defaultBranchId",
+         username,
+         email,
+         status,
+         created_at as "createdAt",
+         updated_at as "updatedAt",
+         deleted_at as "deletedAt",
+         is_deleted as "isDeleted"
+         FROM users
+         WHERE tenant_id = $1 AND id = $2 AND is_deleted = false
+         LIMIT 1`,
+        [tenantId, userId],
+      );
+    });
+
+    return result.rows.length > 0 ? this.mapUserAdminRow(result.rows[0]) : null;
+  }
+
+  async updateUser(tenantId: string, userId: string, changes: Partial<Pick<UserAdminRecord, 'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'status'>>): Promise<UserAdminRecord | null> {
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
+
+    if (changes.username !== undefined) {
+      fields.push(`username = $${idx++}`);
+      values.push(String(changes.username).trim());
+    }
+    if (changes.email !== undefined) {
+      fields.push(`email = $${idx++}`);
+      values.push(String(changes.email).trim().toLowerCase());
+    }
+    if (changes.organizationId !== undefined) {
+      fields.push(`organization_id = $${idx++}`);
+      values.push(changes.organizationId ?? null);
+    }
+    if (changes.defaultBranchId !== undefined) {
+      fields.push(`default_branch_id = $${idx++}`);
+      values.push(changes.defaultBranchId ?? null);
+    }
+    if (changes.status !== undefined) {
+      fields.push(`status = $${idx++}`);
+      values.push(changes.status ?? 'active');
+    }
+
+    if (fields.length === 0) {
+      return this.getUserById(tenantId, userId);
+    }
+
+    values.push(tenantId, userId);
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `UPDATE users
+         SET ${fields.join(', ')}, updated_at = NOW()
+         WHERE tenant_id = $${idx} AND id = $${idx + 1} AND is_deleted = false
+         RETURNING
+         id,
+         tenant_id as "tenantId",
+         organization_id as "organizationId",
+         default_branch_id as "defaultBranchId",
+         username,
+         email,
+         status,
+         created_at as "createdAt",
+         updated_at as "updatedAt",
+         deleted_at as "deletedAt",
+         is_deleted as "isDeleted"`,
+        values,
+      );
+    });
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapUserAdminRow(result.rows[0]);
+  }
+
+  async assignUserToOrganization(tenantId: string, userId: string, organizationId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      const userRow = await client.query(
+        `SELECT id, organization_id as "organizationId", default_branch_id as "defaultBranchId" FROM users WHERE tenant_id = $1 AND id = $2 AND is_deleted = false AND status = 'active' LIMIT 1`,
+        [tenantId, userId],
+      );
+      if (userRow.rows.length === 0) {
+        return false;
+      }
+
+      const organizationRow = await client.query(
+        `SELECT id FROM organizations WHERE tenant_id = $1 AND id = $2 AND is_deleted = false AND status = 'active' LIMIT 1`,
+        [tenantId, organizationId],
+      );
+      if (organizationRow.rows.length === 0) {
+        return false;
+      }
+
+      const currentBranchId = userRow.rows[0].defaultBranchId;
+      if (currentBranchId) {
+        const branchCheck = await client.query(
+         `SELECT id FROM branches WHERE tenant_id = $1 AND organization_id = $2 AND id = $3 AND is_deleted = false AND status = 'active' LIMIT 1`,
+         [tenantId, organizationId, currentBranchId],
+        );
+        if (branchCheck.rows.length === 0) {
+         await client.query(
+           `UPDATE users SET default_branch_id = NULL, updated_at = NOW() WHERE tenant_id = $1 AND id = $2`,
+           [tenantId, userId],
+         );
+        }
+      }
+
+      await client.query(
+        `UPDATE users SET organization_id = $1, updated_at = NOW() WHERE tenant_id = $2 AND id = $3`,
+        [organizationId, tenantId, userId],
+      );
+
+      await client.query(
+        `INSERT INTO user_organization_access (tenant_id, user_id, organization_id)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id, organization_id, tenant_id) DO NOTHING`,
+        [tenantId, userId, organizationId],
+      );
+
+      return true;
+    });
+
+    return result;
+  }
+
+  async assignUserToBranch(tenantId: string, userId: string, branchId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      const userRow = await client.query(
+        `SELECT organization_id as "organizationId" FROM users WHERE tenant_id = $1 AND id = $2 AND is_deleted = false LIMIT 1`,
+        [tenantId, userId],
+      );
+      if (userRow.rows.length === 0) {
+        return false;
+      }
+
+      const branchRow = await client.query(
+        `SELECT organization_id as "organizationId" FROM branches WHERE tenant_id = $1 AND id = $2 AND is_deleted = false AND status = 'active' LIMIT 1`,
+        [tenantId, branchId],
+      );
+      if (branchRow.rows.length === 0) {
+        return false;
+      }
+
+      const userOrganizationId = userRow.rows[0].organizationId;
+      if (userOrganizationId && userOrganizationId !== branchRow.rows[0].organizationId) {
+        return false;
+      }
+
+      const targetOrganizationId = branchRow.rows[0].organizationId;
+      await client.query(
+        `UPDATE users
+         SET organization_id = COALESCE(organization_id, $1), default_branch_id = $2, updated_at = NOW()
+         WHERE tenant_id = $3 AND id = $4`,
+        [targetOrganizationId, branchId, tenantId, userId],
+      );
+
+      await client.query(
+        `INSERT INTO user_branch_access (tenant_id, user_id, branch_id)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id, branch_id, tenant_id) DO NOTHING`,
+        [tenantId, userId, branchId],
+      );
+
+      return true;
+    });
+
+    return result;
+  }
+
+  async activateUser(tenantId: string, userId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `UPDATE users
+         SET status = 'active', updated_at = NOW()
+         WHERE tenant_id = $1 AND id = $2 AND is_deleted = false
+         RETURNING id`,
+        [tenantId, userId],
+      );
+    });
+
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async deactivateUser(tenantId: string, userId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `UPDATE users
+         SET status = 'inactive', updated_at = NOW()
+         WHERE tenant_id = $1 AND id = $2 AND is_deleted = false
+         RETURNING id`,
+        [tenantId, userId],
+      );
+    });
+
+    return (result.rowCount ?? 0) > 0;
   }
 
   async updateUserStatus(tenantId: string, userId: string, status: string): Promise<void> {

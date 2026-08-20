@@ -4,6 +4,7 @@ import type { AuthenticatedUser } from '../../../domain/contracts/authentication
 import { ForbiddenError, UnauthorizedError } from '../../../domain/errors.js';
 import type { AuthenticationService } from '../../../application/services/authentication-service.js';
 import type { AuthorizationService } from '../../../application/services/authorization-service.js';
+import type { CoreEnterpriseService } from '../../../application/services/core-enterprise-service.js';
 import type { UserRegistrationService } from '../../../application/services/user-registration-service.js';
 import type { JwtTokenService } from '../../../infrastructure/security/jwt-token-service.js';
 import type { AppConfig } from '../../../config/schema.js';
@@ -13,6 +14,7 @@ declare module 'fastify' {
     appConfig: AppConfig;
     authService: AuthenticationService;
     authorizationService: AuthorizationService;
+    coreEnterpriseService: CoreEnterpriseService;
     registrationService: UserRegistrationService;
     jwtTokenService: JwtTokenService;
   }

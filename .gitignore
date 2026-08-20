@@ -21,4 +21,8 @@ coverage/
 logs/
 *.log
 
+# Local validation artifacts
+.pgdata/
+probe-*.ts
+
 .env.local
