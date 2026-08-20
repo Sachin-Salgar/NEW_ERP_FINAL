@@ -141,6 +141,17 @@ class FakeAuthorizationRepository {
       { tenantId: 'tenant-1', userId: 'user-1', permissionKey: 'user.manage', source: 'direct' as const },
     ];
   }
+
+  async listRoles() { return []; }
+  async getRoleById() { return null; }
+  async createRole(_tenantId: string, input: any) { return { id: 'role-1', tenantId: _tenantId, ...input, isSystem: !!input.isSystem, sortOrder: input.sortOrder ?? 0, createdAt: new Date(), updatedAt: new Date() }; }
+  async updateRole() { return null; }
+  async listPermissions() { return []; }
+  async assignPermissionsToRole() { return 0; }
+  async removePermissionsFromRole() { return 0; }
+  async assignRoleToUser() { return false; }
+  async revokeRoleFromUser() { return false; }
+  async getUserEffectivePermissions() { return []; }
 }
 
 describe('Phase 2 platform security services', () => {

@@ -28,6 +28,13 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+export class ForbiddenError extends AppError {
+  constructor(message = 'Forbidden', details?: unknown) {
+    super(message, 'FORBIDDEN', 403, true, details);
+    this.name = 'ForbiddenError';
+  }
+}
+
 export class NotFoundError extends AppError {
   constructor(message: string, details?: unknown) {
     super(message, 'NOT_FOUND', 404, true, details);

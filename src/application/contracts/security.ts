@@ -113,6 +113,16 @@ export interface TenantBootstrapRepository {
 
 export interface AuthorizationRepository {
   getPermissionKeysForUser(tenantId: string, userId: string): Promise<UserPermissionRecord[]>;
+  listRoles(tenantId: string): Promise<Array<{ id: string; tenantId: string; code: string; name: string; description?: string | null; isSystem: boolean; sortOrder: number; createdAt?: Date | string | null; updatedAt?: Date | string | null }>>;
+  getRoleById(tenantId: string, roleId: string): Promise<{ id: string; tenantId: string; code: string; name: string; description?: string | null; isSystem: boolean; sortOrder: number; createdAt?: Date | string | null; updatedAt?: Date | string | null } | null>;
+  createRole(tenantId: string, input: { code: string; name: string; description?: string | null; isSystem?: boolean; sortOrder?: number }): Promise<{ id: string; tenantId: string; code: string; name: string; description?: string | null; isSystem: boolean; sortOrder: number; createdAt?: Date | string | null; updatedAt?: Date | string | null }>;
+  updateRole(tenantId: string, roleId: string, changes: { code?: string; name?: string; description?: string | null; isSystem?: boolean; sortOrder?: number }): Promise<{ id: string; tenantId: string; code: string; name: string; description?: string | null; isSystem: boolean; sortOrder: number; createdAt?: Date | string | null; updatedAt?: Date | string | null } | null>;
+  listPermissions(tenantId: string): Promise<Array<{ id: string; moduleCode: string; resource: string; action: string; scope: 'own' | 'branch' | 'organization' | 'tenant' | 'global'; permissionKey: string; displayName: string; description?: string | null; isSystem: boolean }>>;
+  assignPermissionsToRole(tenantId: string, roleId: string, permissionKeys: string[]): Promise<number>;
+  removePermissionsFromRole(tenantId: string, roleId: string, permissionKeys: string[]): Promise<number>;
+  assignRoleToUser(tenantId: string, userId: string, roleId: string): Promise<boolean>;
+  revokeRoleFromUser(tenantId: string, userId: string, roleId: string): Promise<boolean>;
+  getUserEffectivePermissions(tenantId: string, userId: string): Promise<PermissionDescriptor[]>;
 }
 
 export interface AuthenticationRepository extends UserRepository, SessionRepository, UserRegistrationRepository {}

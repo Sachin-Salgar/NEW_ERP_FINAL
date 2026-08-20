@@ -1,7 +1,7 @@
 import { Pool } from 'pg';
 import { v7 as uuidV7 } from 'uuid';
 
-import type { UserPermissionRecord } from '../../../domain/contracts/authorization.js';
+import type { PermissionDescriptor, UserPermissionRecord } from '../../../domain/contracts/authorization.js';
 import type { CreateSessionInput, SessionRecord } from '../../../domain/contracts/authentication.js';
 import type { TenantBootstrapInput, TenantBootstrapResult } from '../../../domain/contracts/bootstrap.js';
 import type {
@@ -179,7 +179,6 @@ export class PostgresPlatformRepository
   }
 
   async getPermissionKeysForUser(tenantId: string, userId: string): Promise<UserPermissionRecord[]> {
-    // Run under tenant context so RLS policies that rely on current_setting('app.current_tenant_id') succeed
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
         `SELECT DISTINCT permission_key, source
@@ -188,11 +187,15 @@ export class PostgresPlatformRepository
            FROM permissions p
            INNER JOIN role_permissions rp ON rp.permission_id = p.id AND rp.tenant_id = $1
            INNER JOIN user_roles ur ON ur.role_id = rp.role_id AND ur.tenant_id = $1 AND ur.user_id = $2
+           INNER JOIN roles r ON r.id = ur.role_id AND r.tenant_id = $1 AND r.is_deleted = false
+           INNER JOIN users u ON u.id = ur.user_id AND u.tenant_id = $1 AND u.is_deleted = false AND u.status = 'active'
+           WHERE u.id = $2
            UNION ALL
            SELECT p.permission_key, 'direct' AS source
            FROM permissions p
            INNER JOIN user_permissions up ON up.permission_id = p.id AND up.tenant_id = $1 AND up.user_id = $2
-           WHERE up.allow = true
+           INNER JOIN users u ON u.id = up.user_id AND u.tenant_id = $1 AND u.is_deleted = false AND u.status = 'active'
+           WHERE up.allow = true AND u.id = $2
          ) AS combined`,
         [tenantId, userId],
       );
@@ -204,6 +207,254 @@ export class PostgresPlatformRepository
       permissionKey: row.permission_key,
       source: row.source,
     }));
+  }
+
+  async listRoles(tenantId: string): Promise<Array<{ id: string; tenantId: string; code: string; name: string; description?: string | null; isSystem: boolean; sortOrder: number; createdAt?: Date | string | null; updatedAt?: Date | string | null }>> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT id, tenant_id as "tenantId", code, name, description, is_system as "isSystem", sort_order as "sortOrder", created_at as "createdAt", updated_at as "updatedAt"
+         FROM roles WHERE tenant_id = $1 AND is_deleted = false ORDER BY sort_order, name`,
+        [tenantId],
+      );
+    });
+
+    return result.rows.map((row) => ({
+      id: row.id,
+      tenantId: row.tenantId,
+      code: row.code,
+      name: row.name,
+      description: row.description ?? null,
+      isSystem: row.isSystem,
+      sortOrder: row.sortOrder,
+      createdAt: row.createdAt ? new Date(row.createdAt) : null,
+      updatedAt: row.updatedAt ? new Date(row.updatedAt) : null,
+    }));
+  }
+
+  async getRoleById(tenantId: string, roleId: string): Promise<{ id: string; tenantId: string; code: string; name: string; description?: string | null; isSystem: boolean; sortOrder: number; createdAt?: Date | string | null; updatedAt?: Date | string | null } | null> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT id, tenant_id as "tenantId", code, name, description, is_system as "isSystem", sort_order as "sortOrder", created_at as "createdAt", updated_at as "updatedAt"
+         FROM roles WHERE tenant_id = $1 AND id = $2 AND is_deleted = false LIMIT 1`,
+        [tenantId, roleId],
+      );
+    });
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      tenantId: row.tenantId,
+      code: row.code,
+      name: row.name,
+      description: row.description ?? null,
+      isSystem: row.isSystem,
+      sortOrder: row.sortOrder,
+      createdAt: row.createdAt ? new Date(row.createdAt) : null,
+      updatedAt: row.updatedAt ? new Date(row.updatedAt) : null,
+    };
+  }
+
+  async updateRole(tenantId: string, roleId: string, changes: { code?: string; name?: string; description?: string | null; isSystem?: boolean; sortOrder?: number }): Promise<{ id: string; tenantId: string; code: string; name: string; description?: string | null; isSystem: boolean; sortOrder: number; createdAt?: Date | string | null; updatedAt?: Date | string | null } | null> {
+    const fields: string[] = ['updated_at = NOW()'];
+    const values: unknown[] = [];
+    let idx = 1;
+
+    if (changes.code !== undefined) {
+      fields.push(`code = $${idx++}`);
+      values.push(changes.code.trim());
+    }
+    if (changes.name !== undefined) {
+      fields.push(`name = $${idx++}`);
+      values.push(changes.name.trim());
+    }
+    if (changes.description !== undefined) {
+      fields.push(`description = $${idx++}`);
+      values.push(changes.description ?? null);
+    }
+    if (changes.isSystem !== undefined) {
+      fields.push(`is_system = $${idx++}`);
+      values.push(changes.isSystem);
+    }
+    if (changes.sortOrder !== undefined) {
+      fields.push(`sort_order = $${idx++}`);
+      values.push(changes.sortOrder);
+    }
+
+    if (fields.length === 1) {
+      return this.getRoleById(tenantId, roleId);
+    }
+
+    values.push(tenantId, roleId);
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `UPDATE roles SET ${fields.join(', ')} WHERE tenant_id = $${idx} AND id = $${idx + 1} AND is_deleted = false
+         RETURNING id, tenant_id as "tenantId", code, name, description, is_system as "isSystem", sort_order as "sortOrder", created_at as "createdAt", updated_at as "updatedAt"`,
+        values,
+      );
+    });
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      tenantId: row.tenantId,
+      code: row.code,
+      name: row.name,
+      description: row.description ?? null,
+      isSystem: row.isSystem,
+      sortOrder: row.sortOrder,
+      createdAt: row.createdAt ? new Date(row.createdAt) : null,
+      updatedAt: row.updatedAt ? new Date(row.updatedAt) : null,
+    };
+  }
+
+  async listPermissions(tenantId: string): Promise<Array<{ id: string; moduleCode: string; resource: string; action: string; scope: 'own' | 'branch' | 'organization' | 'tenant' | 'global'; permissionKey: string; displayName: string; description?: string | null; isSystem: boolean }>> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT id, module_code as "moduleCode", resource, action, scope, permission_key as "permissionKey", display_name as "displayName", description, is_system as "isSystem"
+         FROM permissions ORDER BY module_code, resource, action, permission_key`,
+      );
+    });
+
+    return result.rows.map((row) => ({
+      id: row.id,
+      moduleCode: row.moduleCode,
+      resource: row.resource,
+      action: row.action,
+      scope: row.scope,
+      permissionKey: row.permissionKey,
+      displayName: row.displayName,
+      description: row.description ?? null,
+      isSystem: row.isSystem,
+    }));
+  }
+
+  async assignPermissionsToRole(tenantId: string, roleId: string, permissionKeys: string[]): Promise<number> {
+    const normalized = Array.from(new Set(permissionKeys.filter(Boolean))).map((key) => key.trim());
+    if (normalized.length === 0) {
+      return 0;
+    }
+
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      const permissionRows = await client.query(
+        `SELECT id FROM permissions WHERE permission_key = ANY($1)`,
+        [normalized],
+      );
+      if (permissionRows.rows.length === 0) {
+        return { count: 0 };
+      }
+
+      const roleExists = await client.query(
+        `SELECT 1 FROM roles WHERE tenant_id = $1 AND id = $2 AND is_deleted = false LIMIT 1`,
+        [tenantId, roleId],
+      );
+      if (roleExists.rows.length === 0) {
+        return { count: 0 };
+      }
+
+      const inserted: number[] = [];
+      for (const permission of permissionRows.rows) {
+        const insertResult = await client.query(
+         `INSERT INTO role_permissions (tenant_id, role_id, permission_id)
+          VALUES ($1, $2, $3)
+          ON CONFLICT (role_id, permission_id, tenant_id) DO NOTHING`,
+         [tenantId, roleId, permission.id],
+        );
+        inserted.push(insertResult.rowCount ?? 0);
+      }
+
+      return { count: inserted.reduce((sum, current) => sum + current, 0) };
+    });
+
+    return result.count;
+  }
+
+  async removePermissionsFromRole(tenantId: string, roleId: string, permissionKeys: string[]): Promise<number> {
+    const normalized = Array.from(new Set(permissionKeys.filter(Boolean))).map((key) => key.trim());
+    if (normalized.length === 0) {
+      return 0;
+    }
+
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      const permissionRows = await client.query(
+        `SELECT id FROM permissions WHERE permission_key = ANY($1)`,
+        [normalized],
+      );
+      if (permissionRows.rows.length === 0) {
+        return { count: 0 };
+      }
+
+      const ids = permissionRows.rows.map((row) => row.id);
+      const deleteResult = await client.query(
+        `DELETE FROM role_permissions
+         WHERE tenant_id = $1 AND role_id = $2 AND permission_id = ANY($3)`,
+        [tenantId, roleId, ids],
+      );
+      return { count: deleteResult.rowCount ?? 0 };
+    });
+
+    return result.count;
+  }
+
+  async assignRoleToUser(tenantId: string, userId: string, roleId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      const userRow = await client.query(
+        `SELECT id FROM users WHERE tenant_id = $1 AND id = $2 AND is_deleted = false AND status = 'active' LIMIT 1`,
+        [tenantId, userId],
+      );
+      if (userRow.rows.length === 0) {
+        return false;
+      }
+
+      const roleRow = await client.query(
+        `SELECT id FROM roles WHERE tenant_id = $1 AND id = $2 AND is_deleted = false LIMIT 1`,
+        [tenantId, roleId],
+      );
+      if (roleRow.rows.length === 0) {
+        return false;
+      }
+
+      const insertResult = await client.query(
+        `INSERT INTO user_roles (tenant_id, user_id, role_id)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id, role_id, tenant_id) DO NOTHING`,
+        [tenantId, userId, roleId],
+      );
+
+      return (insertResult.rowCount ?? 0) > 0;
+    });
+
+    return result;
+  }
+
+  async revokeRoleFromUser(tenantId: string, userId: string, roleId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      const deleteResult = await client.query(
+        `DELETE FROM user_roles
+         WHERE tenant_id = $1 AND user_id = $2 AND role_id = $3`,
+        [tenantId, userId, roleId],
+      );
+      return (deleteResult.rowCount ?? 0) > 0;
+    });
+
+    return result;
+  }
+
+  async getUserEffectivePermissions(tenantId: string, userId: string): Promise<PermissionDescriptor[]> {
+    const permissionKeys = await this.getPermissionKeysForUser(tenantId, userId);
+    const permissionRecords = await this.listPermissions(tenantId);
+    const lookup = new Map(permissionRecords.map((permission) => [permission.permissionKey, permission]));
+
+    return permissionKeys
+      .map((permission) => lookup.get(permission.permissionKey))
+      .filter((permission): permission is PermissionDescriptor => Boolean(permission));
   }
 
   async createSession(input: CreateSessionInput): Promise<SessionRecord> {
@@ -358,14 +609,21 @@ export class PostgresPlatformRepository
     };
   }
 
-  async createRole(tenantId: string, code: string, name: string): Promise<{ id: string; tenantId: string; code: string; name: string }> {
-    const id = uuidV7();
+  async createRole(
+    tenantId: string,
+    codeOrInput: string | { code: string; name: string; description?: string | null; isSystem?: boolean; sortOrder?: number },
+    maybeName?: string,
+  ): Promise<{ id: string; tenantId: string; code: string; name: string; description?: string | null; isSystem: boolean; sortOrder: number; createdAt?: Date | string | null; updatedAt?: Date | string | null }> {
+    const input = typeof codeOrInput === 'string'
+      ? { code: codeOrInput, name: maybeName ?? codeOrInput, description: null, isSystem: false, sortOrder: 0 }
+      : codeOrInput;
+
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
         `INSERT INTO roles (id, tenant_id, code, name, description, is_system, sort_order, created_at, updated_at, version)
-         VALUES ($1, $2, $3, $4, $5, false, 0, NOW(), NOW(), 1)
-         RETURNING id, tenant_id as "tenantId", code, name`,
-        [id, tenantId, code, name, null],
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW(), 1)
+         RETURNING id, tenant_id as "tenantId", code, name, description, is_system as "isSystem", sort_order as "sortOrder", created_at as "createdAt", updated_at as "updatedAt"`,
+        [uuidV7(), tenantId, input.code.trim(), input.name.trim(), input.description ?? null, input.isSystem ?? false, input.sortOrder ?? 0],
       );
     });
 
@@ -375,6 +633,11 @@ export class PostgresPlatformRepository
       tenantId: row.tenantId,
       code: row.code,
       name: row.name,
+      description: row.description ?? null,
+      isSystem: row.isSystem,
+      sortOrder: row.sortOrder,
+      createdAt: row.createdAt ? new Date(row.createdAt) : null,
+      updatedAt: row.updatedAt ? new Date(row.updatedAt) : null,
     };
   }
 

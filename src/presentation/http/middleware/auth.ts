@@ -1,7 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import type { AuthenticatedUser } from '../../../domain/contracts/authentication.js';
-import { UnauthorizedError } from '../../../domain/errors.js';
+import { ForbiddenError, UnauthorizedError } from '../../../domain/errors.js';
 import type { AuthenticationService } from '../../../application/services/authentication-service.js';
 import type { AuthorizationService } from '../../../application/services/authorization-service.js';
 import type { UserRegistrationService } from '../../../application/services/user-registration-service.js';
@@ -69,8 +69,25 @@ export function requirePermission(permissionKey: string) {
 
     const allowed = await request.server.authorizationService.hasPermission(request.tenantId, request.user.id, permissionKey);
     if (!allowed) {
-      reply.code(403);
-      throw new UnauthorizedError('Permission denied.');
+      throw new ForbiddenError('Permission denied.');
+    }
+  };
+}
+
+export function requirePermissionOrSelf(permissionKey: string, selfIdGetter?: (request: FastifyRequest) => string | null | undefined) {
+  return async function requirePermissionOrSelfHandler(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    if (!request.user || !request.tenantId) {
+      throw new UnauthorizedError('Authentication is required to perform this action.');
+    }
+
+    const resolvedSelfId = selfIdGetter ? selfIdGetter(request) : null;
+    if (resolvedSelfId && request.user.id === resolvedSelfId) {
+      return;
+    }
+
+    const allowed = await request.server.authorizationService.hasPermission(request.tenantId, request.user.id, permissionKey);
+    if (!allowed) {
+      throw new ForbiddenError('Permission denied.');
     }
   };
 }

@@ -12,6 +12,19 @@ export interface PermissionDescriptor {
   isSystem: boolean;
 }
 
+export interface RoleDescriptor {
+  id: string;
+  tenantId: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  isSystem: boolean;
+  sortOrder: number;
+  createdAt?: string | Date | null;
+  updatedAt?: string | Date | null;
+  isDeleted?: boolean;
+}
+
 export interface UserPermissionContext {
   tenantId: string;
   userId: string;

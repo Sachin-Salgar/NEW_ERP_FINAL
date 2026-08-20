@@ -13,6 +13,7 @@ import { JwtTokenService } from '../../infrastructure/security/jwt-token-service
 import { createLogger } from '../../infrastructure/logging/logger.js';
 import healthRoutes from './routes/health.js';
 import authRoutes from './routes/auth.js';
+import rbacRoutes from './routes/rbac.js';
 
 export async function createApplication(config: AppConfig, providedPool?: Pool): Promise<FastifyInstance> {
   const app = Fastify({
@@ -47,6 +48,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
 
   await app.register(healthRoutes, { prefix: config.API_PREFIX });
   await app.register(authRoutes, { prefix: config.API_PREFIX });
+  await app.register(rbacRoutes, { prefix: config.API_PREFIX });
 
   return app;
 }

@@ -1,8 +1,48 @@
-import type { PermissionDescriptor, PermissionCheckResult } from '../../domain/contracts/authorization.js';
+import type { PermissionDescriptor, PermissionCheckResult, RoleDescriptor } from '../../domain/contracts/authorization.js';
 import type { AuthorizationRepository } from '../contracts/security.js';
 
 export class AuthorizationService {
   constructor(private readonly authorizationRepository: AuthorizationRepository) {}
+
+  async createRole(tenantId: string, input: { code: string; name: string; description?: string | null; isSystem?: boolean; sortOrder?: number }): Promise<RoleDescriptor> {
+    return this.authorizationRepository.createRole(tenantId, input);
+  }
+
+  async listRoles(tenantId: string): Promise<RoleDescriptor[]> {
+    return this.authorizationRepository.listRoles(tenantId);
+  }
+
+  async getRole(tenantId: string, roleId: string): Promise<RoleDescriptor | null> {
+    return this.authorizationRepository.getRoleById(tenantId, roleId);
+  }
+
+  async updateRole(tenantId: string, roleId: string, changes: { code?: string; name?: string; description?: string | null; isSystem?: boolean; sortOrder?: number }): Promise<RoleDescriptor | null> {
+    return this.authorizationRepository.updateRole(tenantId, roleId, changes);
+  }
+
+  async listPermissions(tenantId: string): Promise<PermissionDescriptor[]> {
+    return this.authorizationRepository.listPermissions(tenantId);
+  }
+
+  async assignPermissionsToRole(tenantId: string, roleId: string, permissionKeys: string[]): Promise<number> {
+    return this.authorizationRepository.assignPermissionsToRole(tenantId, roleId, permissionKeys);
+  }
+
+  async removePermissionsFromRole(tenantId: string, roleId: string, permissionKeys: string[]): Promise<number> {
+    return this.authorizationRepository.removePermissionsFromRole(tenantId, roleId, permissionKeys);
+  }
+
+  async assignRoleToUser(tenantId: string, userId: string, roleId: string): Promise<boolean> {
+    return this.authorizationRepository.assignRoleToUser(tenantId, userId, roleId);
+  }
+
+  async revokeRoleFromUser(tenantId: string, userId: string, roleId: string): Promise<boolean> {
+    return this.authorizationRepository.revokeRoleFromUser(tenantId, userId, roleId);
+  }
+
+  async getEffectivePermissions(tenantId: string, userId: string): Promise<PermissionDescriptor[]> {
+    return this.authorizationRepository.getUserEffectivePermissions(tenantId, userId);
+  }
 
   async hasPermission(tenantId: string, userId: string, permissionKey: string): Promise<boolean> {
     const permissions = await this.authorizationRepository.getPermissionKeysForUser(tenantId, userId);
@@ -21,17 +61,6 @@ export class AuthorizationService {
   }
 
   async getPermissions(tenantId: string, userId: string): Promise<PermissionDescriptor[]> {
-    const permissions = await this.authorizationRepository.getPermissionKeysForUser(tenantId, userId);
-    return permissions.map((permission) => ({
-      id: permission.permissionKey,
-      moduleCode: 'platform',
-      resource: permission.permissionKey.split('.')[0] ?? 'platform',
-      action: permission.permissionKey.split('.').slice(1).join('.') || 'read',
-      scope: 'tenant',
-      permissionKey: permission.permissionKey,
-      displayName: permission.permissionKey,
-      description: `Permission granted via ${permission.source}.`,
-      isSystem: true,
-    }));
+    return this.getEffectivePermissions(tenantId, userId);
   }
 }
