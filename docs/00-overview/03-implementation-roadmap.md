@@ -256,8 +256,15 @@ Use these explicit checkboxes so a future AI or developer can quickly determine 
   - [x] Authentication UI (login): COMPLETE (basic implementation)
   - [x] Application shell: COMPLETE (app bar, navigation, logout)
   - [x] Dashboard landing: COMPLETE (placeholder widgets)
+- [x] CORE-01 Organization frontend: IMPLEMENTED (presentation-only)
+  - [x] Organization list: IMPLEMENTED
+  - [x] Organization create: IMPLEMENTED
+  - [x] Organization details: IMPLEMENTED
+  - [x] Organization edit: IMPLEMENTED
+  - [x] Organization deactivate: IMPLEMENTED
+  - Organization frontend validation: PENDING (Flutter SDK unavailable in this environment)
 - [ ] CORE-01 E2E: NOT STARTED
-- [ ] CORE-01 overall: NOT COMPLETE
+- [ ] CORE-01 overall: IN PROGRESS
 
 
 ## Flutter frontend scaffold status
