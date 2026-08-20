@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../core/auth/auth_service.dart';
 import '../core/network/api_client.dart';
 import '../modules/organization/organization_service.dart';
+import '../modules/branch/branch_service.dart';
+import '../modules/user/user_service.dart';
 import '../routing/router.dart';
 import '../themes/app_theme.dart';
 
@@ -22,6 +24,8 @@ class App extends StatefulWidget {
     di.registerLazySingleton(() => OrganizationService(apiClient: di.get<ApiClient>()));
     // Register BranchService
     di.registerLazySingleton(() => BranchService(apiClient: di.get<ApiClient>()));
+    // Register UserService
+    di.registerLazySingleton(() => UserService(apiClient: di.get<ApiClient>()));
 
     await di.get<AuthService>().init();
   }

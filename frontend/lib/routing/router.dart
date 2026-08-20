@@ -6,6 +6,15 @@ import '../modules/organization/list_screen.dart';
 import '../modules/organization/create_screen.dart';
 import '../modules/organization/details_screen.dart';
 import '../modules/organization/edit_screen.dart';
+import '../modules/branch/list_screen.dart';
+import '../modules/branch/create_screen.dart';
+import '../modules/branch/details_screen.dart';
+import '../modules/branch/edit_screen.dart';
+import '../modules/user/list_screen.dart';
+import '../modules/user/create_screen.dart';
+import '../modules/user/details_screen.dart';
+import '../modules/user/edit_screen.dart';
+import '../modules/user/access_screen.dart';
 import '../modules/auth/login_screen.dart';
 
 class AppRouter {
@@ -53,6 +62,22 @@ class AppRouter {
           final branchId = args['branchId'] as String? ?? '';
           return _authGuard((_) => EditBranchScreen(organizationId: orgId, branchId: branchId));
         });
+      case '/users':
+        return MaterialPageRoute(builder: (_) => _authGuard((_) => const UserListScreen()));
+      case '/users/create':
+        return MaterialPageRoute(builder: (_) => _authGuard((_) => const UserCreateScreen()));
+      case '/users/details':
+        return MaterialPageRoute(builder: (_) {
+          final id = settings.arguments as String? ?? '';
+          return _authGuard((_) => const UserDetailsScreen());
+        });
+      case '/users/edit':
+        return MaterialPageRoute(builder: (_) {
+          final id = settings.arguments as String? ?? '';
+          return _authGuard((_) => const UserEditScreen());
+        });
+      case '/users/access':
+        return MaterialPageRoute(builder: (_) => _authGuard((_) => const UserAccessScreen()));
       default:
         return MaterialPageRoute(builder: (_) => Scaffold(body: Center(child: Text('Unknown route: ${settings.name}'))));
     }
