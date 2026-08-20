@@ -270,10 +270,20 @@ Use these explicit checkboxes so a future AI or developer can quickly determine 
   - [x] Branch edit: IMPLEMENTED
   - [x] Branch deactivate: IMPLEMENTED
   - Branch frontend validation: PENDING (Flutter SDK unavailable in this environment)
+- [x] CORE-01 User frontend: IMPLEMENTED (presentation-only)
+  - [x] User list: IMPLEMENTED
+  - [x] User create (admin-only): IMPLEMENTED (calls POST /api/v1/auth/register)
+  - [x] User details: IMPLEMENTED
+  - [x] User edit: IMPLEMENTED (PATCH /api/v1/users/:id)
+  - [x] User activate/deactivate: IMPLEMENTED (POST /api/v1/users/:id/activate|deactivate)
+  - [x] User organization/branch access assignment UI: IMPLEMENTED (POST /api/v1/users/:userId/organizations/:orgId/access, /branches/:branchId/access)
+  - [x] User frontend tests: SCAFFOLDING ADDED (frontend/test/user_widget_test.dart)
+  - User frontend validation: PENDING (Flutter SDK unavailable in this environment)
+  - Implementation commit SHA: 6bb7fd869fa980174be58c573da7d2562c66964a
 - [ ] CORE-01 E2E: NOT STARTED
 - [ ] CORE-01 overall: IN PROGRESS
 
-Next action: CORE-01 Branch frontend completed — next slice: CORE-01 User frontend (per roadmap order), but DO NOT start it until authorized.
+Next action: CORE-01 User frontend completed — next slice: CORE-01 E2E / validation (run flutter tooling, format, analyze, run frontend tests and end-to-end user workflow tests). Validation should be performed in a Flutter-enabled environment.
 
 ## Flutter frontend scaffold status
 
