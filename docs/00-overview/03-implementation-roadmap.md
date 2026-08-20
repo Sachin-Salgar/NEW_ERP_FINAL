@@ -263,9 +263,17 @@ Use these explicit checkboxes so a future AI or developer can quickly determine 
   - [x] Organization edit: IMPLEMENTED
   - [x] Organization deactivate: IMPLEMENTED
   - Organization frontend validation: PENDING (Flutter SDK unavailable in this environment)
+- [x] CORE-01 Branch frontend: IMPLEMENTED (presentation-only)
+  - [x] Branch list: IMPLEMENTED
+  - [x] Branch create: IMPLEMENTED
+  - [x] Branch details: IMPLEMENTED
+  - [x] Branch edit: IMPLEMENTED
+  - [x] Branch deactivate: IMPLEMENTED
+  - Branch frontend validation: PENDING (Flutter SDK unavailable in this environment)
 - [ ] CORE-01 E2E: NOT STARTED
 - [ ] CORE-01 overall: IN PROGRESS
 
+Next action: CORE-01 Branch frontend completed — next slice: CORE-01 User frontend (per roadmap order), but DO NOT start it until authorized.
 
 ## Flutter frontend scaffold status
 
