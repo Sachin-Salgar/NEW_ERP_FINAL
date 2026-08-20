@@ -250,18 +250,25 @@ Use these explicit checkboxes so a future AI or developer can quickly determine 
 - [x] CORE-01 backend: IMPLEMENTED
 - [x] CORE-01 database / RLS: IMPLEMENTED
 - [x] CORE-01 backend integration tests: PRESENT
-- [ ] CORE-01 frontend: NOT STARTED
+- [x] CORE-01 frontend — Foundation: COMPLETE (scaffolded)
+  - [x] Flutter foundation: COMPLETE
+  - [x] API/session foundation: COMPLETE
+  - [x] Authentication UI (login): COMPLETE (basic implementation)
+  - [x] Application shell: COMPLETE (app bar, navigation, logout)
+  - [x] Dashboard landing: COMPLETE (placeholder widgets)
 - [ ] CORE-01 E2E: NOT STARTED
-- [ ] CORE-01: NOT COMPLETE
+- [ ] CORE-01 overall: NOT COMPLETE
 
 
 ## Flutter frontend scaffold status
 
-Search results: no Flutter frontend project found in repository (no pubspec.yaml, no lib/main.dart, no Flutter/Dart source files). Therefore:
+Search results: a Flutter frontend scaffold now exists under `frontend/` with an application entry point and core infrastructure (main.dart, app shell, routing, API client, auth service, secure storage, and dashboard placeholder).
 
-**Flutter frontend scaffold: NOT STARTED**
+**Flutter frontend scaffold: CREATED**
 
-Do not assume a frontend exists. The next implementation action is to scaffold the Flutter frontend according to docs/05-frontend once the product decisions above are acknowledged in the repository.
+Notes:
+- Files committed: frontend/ (initial scaffold commit) and a subsequent commit adding a login screen and routing.
+- Flutter SDK was not available in the current environment; therefore formatting, analyzer, and test execution were NOT run here. Validation is pending in an environment with Flutter tooling.
 
 
 ## Current Resume Point
@@ -274,11 +281,11 @@ This section is the canonical resume marker for future AI sessions and must rema
 - Backend: COMPLETE / IMPLEMENTED
 - Database / RLS: COMPLETE / IMPLEMENTED
 - Backend integration tests: PRESENT
-- Frontend: NOT STARTED
+- Frontend: FOUNDATION IMPLEMENTED (scaffold + login + app shell)
 - E2E: NOT STARTED
 - Tenant creation: OPS-ONLY
 - User registration: ADMIN-ONLY
-- Next action: SCAFFOLD FLUTTER FRONTEND (Phase A: Flutter foundation)
+- Next action: IMPLEMENT CORE-01 Organization frontend (Phase E: Organization UI)
 - Do not start other business modules until CORE-01 frontend + E2E is complete.
 
 
