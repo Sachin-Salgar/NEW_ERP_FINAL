@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/auth/auth_service.dart';
 import '../../core/network/api_client.dart';
-import '../organization/organization_service.dart';
 import 'branch_service.dart';
+import '../../presentation/ui/components/page_header.dart';
 
 class BranchListScreen extends StatefulWidget {
   final String organizationId;
-  const BranchListScreen({Key? key, required this.organizationId}) : super(key: key);
+  const BranchListScreen({Key? key, required this.organizationId})
+    : super(key: key);
 
   @override
   State<BranchListScreen> createState() => _BranchListScreenState();
@@ -28,7 +30,12 @@ class _BranchListScreenState extends State<BranchListScreen> {
   }
 
   Future<void> _init() async {
-    await auth.fetchEffectivePermissions(const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3001'));
+    await auth.fetchEffectivePermissions(
+      const String.fromEnvironment(
+        'API_BASE_URL',
+        defaultValue: 'http://localhost:3001',
+      ),
+    );
     await service.fetchBranches(widget.organizationId);
   }
 
@@ -38,34 +45,77 @@ class _BranchListScreenState extends State<BranchListScreen> {
       value: service,
       child: Consumer<BranchService>(
         builder: (context, svc, _) {
-          if (svc.isLoading) return const Center(child: CircularProgressIndicator());
-          if (svc.error != null) return Center(child: Text('Error: ${svc.error}'));
+          if (svc.isLoading)
+            return const Center(child: CircularProgressIndicator());
+          if (svc.error != null)
+            return Center(child: Text('Error: ${svc.error}'));
 
           final canRead = auth.hasPermission('branch.read');
-          if (!canRead) return Center(child: Text('You do not have permission to view branches.'));
+          if (!canRead)
+            return Center(
+              child: Text('You do not have permission to view branches.'),
+            );
 
           final items = svc.branches;
           return Scaffold(
             appBar: AppBar(title: const Text('Branches')),
-            body: RefreshIndicator(
-              onRefresh: () => svc.fetchBranches(widget.organizationId),
-              child: items.isEmpty
-                  ? ListView(children: [Center(child: Padding(padding: EdgeInsets.all(24), child: Text('No branches found.')))])
-                  : ListView.builder(
-                      itemCount: items.length,
-                      itemBuilder: (context, index) {
-                        final b = items[index];
-                        return ListTile(
-                          title: Text(b['name'] ?? b['code'] ?? 'Unnamed'),
-                          subtitle: Text(b['city'] ?? ''),
-                          onTap: () => Navigator.of(context).pushNamed('/organizations/branches/details', arguments: {'organizationId': widget.organizationId, 'branchId': b['id']}),
-                        );
-                      },
+            body: Column(
+              children: [
+                ErpPageHeader(
+                  title: 'Branches',
+                  subtitle: 'Branches for this organization',
+                  breadcrumbs: const [
+                    ErpBreadcrumbItem(label: 'Dashboard', route: '/dashboard'),
+                    ErpBreadcrumbItem(
+                      label: 'Organizations',
+                      route: '/organizations',
                     ),
+                    ErpBreadcrumbItem(label: 'Branches'),
+                  ],
+                ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () => svc.fetchBranches(widget.organizationId),
+                    child: items.isEmpty
+                        ? ListView(
+                            children: [
+                              Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(24),
+                                  child: Text('No branches found.'),
+                                ),
+                              ),
+                            ],
+                          )
+                        : ListView.builder(
+                            itemCount: items.length,
+                            itemBuilder: (context, index) {
+                              final b = items[index];
+                              return ListTile(
+                                title: Text(
+                                  b['name'] ?? b['code'] ?? 'Unnamed',
+                                ),
+                                subtitle: Text(b['city'] ?? ''),
+                                onTap: () => Navigator.of(context).pushNamed(
+                                  '/organizations/branches/details',
+                                  arguments: {
+                                    'organizationId': widget.organizationId,
+                                    'branchId': b['id'],
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ),
+              ],
             ),
             floatingActionButton: auth.hasPermission('branch.manage')
                 ? FloatingActionButton(
-                    onPressed: () => Navigator.of(context).pushNamed('/organizations/branches/create', arguments: widget.organizationId),
+                    onPressed: () => Navigator.of(context).pushNamed(
+                      '/organizations/branches/create',
+                      arguments: widget.organizationId,
+                    ),
                     child: Icon(Icons.add),
                   )
                 : null,
