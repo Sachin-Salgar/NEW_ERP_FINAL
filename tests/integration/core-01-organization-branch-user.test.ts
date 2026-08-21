@@ -2,15 +2,15 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { Pool } from 'pg';
 import { v7 as uuidV7 } from 'uuid';
 
-import { parseAppConfig } from '../../src/config/schema.js';
+import { parseAppConfig, resolveDatabaseUrl } from '../../src/config/schema.js';
 import { PlatformBootstrapService } from '../../src/application/services/platform-bootstrap-service.js';
 import { TenantBootstrapService } from '../../src/application/services/tenant-bootstrap-service.js';
 import { BcryptPasswordHasher } from '../../src/infrastructure/security/bcrypt-password-hasher.js';
 import { PostgresPlatformRepository } from '../../src/infrastructure/database/repositories/postgres-platform-repository.js';
 import { createApplication } from '../../src/presentation/http/app.js';
 
-const databaseUrl = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL;
-const runIfDatabase = databaseUrl ? it : it.skip;
+const databaseUrl = resolveDatabaseUrl(process.env, { forTest: true });
+const runIfDatabase = it;
 
 describe('CORE-01 organization and branch administration', () => {
   let pool: Pool | undefined;

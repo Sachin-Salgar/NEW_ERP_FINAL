@@ -9,7 +9,13 @@ async function bootstrap(): Promise<void> {
   try {
     await pingDatabase(pool);
   } catch (error) {
-    console.warn('Database not reachable at startup; continuing until readiness checks fail', error);
+    const configuredDbName = new URL(config.DATABASE_URL).pathname.replace(/^\//, '') || '<unknown>';
+    const configuredUser = new URL(config.DATABASE_URL).username || '<unknown>';
+
+    throw new Error(
+      `Unable to connect to the configured PostgreSQL database. Configured database: ${configuredDbName}. Configured user: ${configuredUser}. No alternate database or PostgreSQL user will be created automatically. Check .env.local and the existing PostgreSQL installation.`,
+      { cause: error },
+    );
   }
 
   const app = await createApplication(config);

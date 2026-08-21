@@ -8,9 +8,10 @@ import { PlatformBootstrapService } from '../../src/application/services/platfor
 import { TenantBootstrapService } from '../../src/application/services/tenant-bootstrap-service.js';
 import { BcryptPasswordHasher } from '../../src/infrastructure/security/bcrypt-password-hasher.js';
 import { PostgresPlatformRepository } from '../../src/infrastructure/database/repositories/postgres-platform-repository.js';
+import { resolveDatabaseUrl } from '../../src/config/schema.js';
 
-const databaseUrl = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL;
-const runIfDatabase = databaseUrl ? it : it.skip;
+const databaseUrl = resolveDatabaseUrl(process.env, { forTest: true });
+const runIfDatabase = it;
 
 describe('Phase 2 platform and identity foundation', () => {
   let pool: Pool | undefined;

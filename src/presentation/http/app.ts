@@ -1,5 +1,6 @@
 import { type Pool } from 'pg';
 import Fastify, { type FastifyInstance } from 'fastify';
+import cors from '@fastify/cors';
 
 import type { AppConfig } from '../../config/schema.js';
 import { AuthenticationService } from '../../application/services/authentication-service.js';
@@ -47,6 +48,14 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('coreEnterpriseService', coreEnterpriseService);
   app.decorate('registrationService', registrationService);
   app.decorate('jwtTokenService', jwtTokenService);
+
+  await app.register(cors, {
+    origin: config.CORS_ALLOWED_ORIGINS,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id'],
+    credentials: true,
+    optionsSuccessStatus: 204,
+  });
 
   app.setErrorHandler(buildErrorHandler(config));
 

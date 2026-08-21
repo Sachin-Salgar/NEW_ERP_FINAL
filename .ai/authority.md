@@ -45,6 +45,13 @@ If a feature requires a decision that the authoritative documentation does not e
 
 If two apparently authoritative documents conflict and the conflict cannot be resolved from an approved ADR or governance rule, stop and report the conflict. Do not select one by preference.
 
+
+## Database infrastructure rule
+
+Database infrastructure is developer-owned. AI agents must never create, modify, delete, replace, or provision PostgreSQL databases, PostgreSQL users, or PostgreSQL roles. AI agents must never invent database credentials or connection strings. AI agents must use the project's documented environment configuration and must fail clearly when the configured database is unavailable.
+
+A database connection failure is NOT permission to create another database, create another user, change credentials, or switch to Docker PostgreSQL.
+
 ## AI evidence requirements
 
 For every non-trivial implementation task, the AI should be able to state:

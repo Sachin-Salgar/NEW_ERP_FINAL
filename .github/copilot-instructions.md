@@ -1,5 +1,11 @@
 # NEW_ERP_FINAL — AI Development Contract
 
+## Database ownership rule
+
+Database infrastructure is developer-owned. AI agents must never create, modify, delete, replace, or provision PostgreSQL databases, PostgreSQL users, or PostgreSQL roles. AI agents must never invent database credentials or connection strings. AI agents must use the project's documented environment configuration and must fail clearly when the configured database is unavailable.
+
+A database connection failure is NOT permission to create another database, create another user, change credentials, or switch to Docker PostgreSQL.
+
 ## 0. Default behavior
 
 When the user asks to build, add, change, or fix an ERP feature, operate as a repository-aware implementation agent. Do not merely provide a code snippet. Discover the relevant repository evidence, follow the feature workflow, implement the requested change when the requirement is clear, run applicable validation, and report the result.

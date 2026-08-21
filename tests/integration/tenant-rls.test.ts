@@ -2,13 +2,12 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { Pool } from 'pg';
 import { v7 } from 'uuid';
 
+import { resolveDatabaseUrl } from '../../src/config/schema.js';
 import { applyTenantTableRls } from '../../src/infrastructure/database/rls.js';
 import { withTenantContext } from '../../src/infrastructure/database/tenant-context.js';
 
-const databaseUrl = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL;
-const shouldRunIntegration = Boolean(databaseUrl);
-
-const runIfDatabase = shouldRunIntegration ? it : it.skip;
+const databaseUrl = resolveDatabaseUrl(process.env, { forTest: true });
+const runIfDatabase = it;
 
 const tenantContextKey = 'app.current_tenant_id';
 
