@@ -225,6 +225,49 @@ export const branches = pgTable(
   }),
 );
 
+export const locations = pgTable(
+  'locations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    organizationId: uuid('organization_id').notNull(),
+    code: varchar('code', { length: 50 }).notNull(),
+    name: varchar('name', { length: 255 }).notNull(),
+    description: text('description'),
+    status: orgStatusEnum('status').notNull().default('active'),
+    isDefault: boolean('is_default').notNull().default(false),
+    addressLine1: text('address_line1'),
+    addressLine2: text('address_line2'),
+    city: varchar('city', { length: 100 }),
+    state: varchar('state', { length: 100 }),
+    country: varchar('country', { length: 100 }),
+    postalCode: varchar('postal_code', { length: 20 }),
+    timezone: varchar('timezone', { length: 100 }).notNull().default('UTC'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid('created_by'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }),
+    updatedBy: uuid('updated_by'),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    deletedBy: uuid('deleted_by'),
+    isDeleted: boolean('is_deleted').notNull().default(false),
+    version: integer('version').notNull().default(1),
+  },
+  (table) => ({
+    fkLocationOrgTenant: foreignKey({
+      columns: [table.organizationId, table.tenantId],
+      foreignColumns: [organizations.id, organizations.tenantId],
+      name: 'fk_location_org_tenant',
+    }),
+    uqLocationIdTenant: uniqueIndex('uq_location_id_tenant').on(table.id, table.tenantId),
+    uqTenantOrgLocationCodeActive: uniqueIndex('uq_tenant_org_location_code_active').on(table.tenantId, table.organizationId, table.code).where(sql`${table.isDeleted} = false`),
+    uqDefaultLocation: uniqueIndex('uq_default_location').on(table.organizationId).where(sql`${table.isDefault} = true AND ${table.isDeleted} = false`),
+    checkLocationSoftDelete: check(
+      'check_location_soft_delete',
+      sql`(((${table.isDeleted}) = false AND (${table.deletedAt}) IS NULL) OR ((${table.isDeleted}) = true AND (${table.deletedAt}) IS NOT NULL))`,
+    ),
+  }),
+);
+
 export const users = pgTable(
   'users',
   {
@@ -289,6 +332,7 @@ export const userSessions = pgTable(
     tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
     userId: uuid('user_id').notNull(),
     organizationId: uuid('organization_id'),
+    locationId: uuid('location_id'),
     branchId: uuid('branch_id'),
     accessTokenId: varchar('access_token_id', { length: 255 }),
     refreshTokenHash: varchar('refresh_token_hash', { length: 255 }).notNull(),
@@ -317,6 +361,11 @@ export const userSessions = pgTable(
       columns: [table.organizationId, table.tenantId],
       foreignColumns: [organizations.id, organizations.tenantId],
       name: 'fk_session_org_tenant',
+    }),
+    fkSessionLocationTenant: foreignKey({
+      columns: [table.locationId, table.tenantId],
+      foreignColumns: [locations.id, locations.tenantId],
+      name: 'fk_session_location_tenant',
     }),
     fkSessionBranchTenant: foreignKey({
       columns: [table.branchId, table.tenantId],
@@ -481,6 +530,40 @@ export const userBranchAccess = pgTable(
   }),
 );
 
+export const userLocationAccess = pgTable(
+  'user_location_access',
+  {
+    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').notNull(),
+    organizationId: uuid('organization_id').notNull(),
+    locationId: uuid('location_id').notNull(),
+    isActive: boolean('is_active').notNull().default(true),
+    grantedBy: uuid('granted_by'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }),
+  },
+  (table) => ({
+    pkUserLocationAccessTenant: primaryKey({ columns: [table.userId, table.locationId, table.tenantId], name: 'user_location_access_pkey' }),
+    fkUlaAccessUser: foreignKey({
+      columns: [table.userId, table.tenantId],
+      foreignColumns: [users.id, users.tenantId],
+      name: 'fk_ula_access_user',
+    }),
+    fkUlaAccessOrg: foreignKey({
+      columns: [table.organizationId, table.tenantId],
+      foreignColumns: [organizations.id, organizations.tenantId],
+      name: 'fk_ula_access_org',
+    }),
+    fkUlaAccessLocation: foreignKey({
+      columns: [table.locationId, table.tenantId],
+      foreignColumns: [locations.id, locations.tenantId],
+      name: 'fk_ula_access_location',
+    }),
+    idxUserLocationAccessTenantUser: uniqueIndex('idx_user_location_access_tenant_user').on(table.tenantId, table.userId),
+    idxUserLocationAccessTenantOrg: uniqueIndex('idx_user_location_access_tenant_org').on(table.tenantId, table.organizationId),
+  }),
+);
+
 export const financialYears = pgTable(
   'financial_years',
   {
@@ -535,6 +618,8 @@ export const schema = {
   userPermissions,
   userOrganizationAccess,
   userBranchAccess,
+  userLocationAccess,
+  locations,
   financialYears,
 };
 

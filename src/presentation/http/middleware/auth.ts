@@ -5,9 +5,11 @@ import { ForbiddenError, UnauthorizedError } from '../../../domain/errors.js';
 import type { AuthenticationService } from '../../../application/services/authentication-service.js';
 import type { AuthorizationService } from '../../../application/services/authorization-service.js';
 import type { CoreEnterpriseService } from '../../../application/services/core-enterprise-service.js';
+import type { LocationService } from '../../../application/services/location-service.js';
 import type { UserRegistrationService } from '../../../application/services/user-registration-service.js';
 import type { JwtTokenService } from '../../../infrastructure/security/jwt-token-service.js';
 import type { AppConfig } from '../../../config/schema.js';
+import type { TenantResolutionService } from '../../../application/services/tenant-resolution-service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -15,8 +17,10 @@ declare module 'fastify' {
     authService: AuthenticationService;
     authorizationService: AuthorizationService;
     coreEnterpriseService: CoreEnterpriseService;
+    locationService: LocationService;
     registrationService: UserRegistrationService;
     jwtTokenService: JwtTokenService;
+    tenantResolver: TenantResolutionService;
   }
 
   interface FastifyRequest {

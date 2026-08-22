@@ -9,6 +9,7 @@ import type {
   AuthorizationRepository,
   BranchRecord,
   CoreEnterpriseRepository,
+  LocationRecord,
   OrganizationRecord,
   PlatformBootstrapRepository,
   SessionRepository,
@@ -70,6 +71,30 @@ export class PostgresPlatformRepository
       postalCode: row.postalCode ?? null,
       timezone: row.timezone ?? 'UTC',
       remarks: row.remarks ?? null,
+      createdAt: row.createdAt ? new Date(row.createdAt) : null,
+      updatedAt: row.updatedAt ? new Date(row.updatedAt) : null,
+      deletedAt: row.deletedAt ? new Date(row.deletedAt) : null,
+      isDeleted: row.isDeleted ?? false,
+    };
+  }
+
+  private mapLocationRow(row: any): LocationRecord {
+    return {
+      id: row.id,
+      tenantId: row.tenantId,
+      organizationId: row.organizationId,
+      code: row.code,
+      name: row.name,
+      description: row.description ?? null,
+      status: row.status,
+      isDefault: row.isDefault ?? false,
+      addressLine1: row.addressLine1 ?? null,
+      addressLine2: row.addressLine2 ?? null,
+      city: row.city ?? null,
+      state: row.state ?? null,
+      country: row.country ?? null,
+      postalCode: row.postalCode ?? null,
+      timezone: row.timezone ?? 'UTC',
       createdAt: row.createdAt ? new Date(row.createdAt) : null,
       updatedAt: row.updatedAt ? new Date(row.updatedAt) : null,
       deletedAt: row.deletedAt ? new Date(row.deletedAt) : null,
@@ -247,6 +272,110 @@ export class PostgresPlatformRepository
       passwordHash: row.passwordHash,
       status: row.status,
     };
+  }
+
+  async getTenantById(tenantId: string): Promise<{
+    id: string;
+    name: string;
+    displayName?: string | null;
+    subdomain: string;
+    slug: string;
+    status: string;
+  } | null> {
+    const result = await this.pool.query(
+      `SELECT id, name, display_name as "displayName", subdomain, slug, status
+       FROM tenants WHERE id = $1 AND is_deleted = false LIMIT 1`,
+      [tenantId],
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      name: row.name,
+      displayName: row.displayName ?? null,
+      subdomain: row.subdomain,
+      slug: row.slug,
+      status: row.status,
+    };
+  }
+
+  async findTenantByHost(host: string): Promise<{
+    id: string;
+    name: string;
+    displayName?: string | null;
+    subdomain: string;
+    slug: string;
+    status: string;
+  } | null> {
+    const normalizedHost = (host ?? '').trim().toLowerCase().replace(/:\d+$/, '').replace(/^www\./, '');
+    if (!normalizedHost) {
+      return null;
+    }
+
+    const hostCandidates = new Set<string>([normalizedHost]);
+    const labels = normalizedHost.split('.');
+    if (labels.length > 1) {
+      hostCandidates.add(labels[0]);
+    }
+    const candidates = [...hostCandidates].filter(Boolean);
+    const query = `
+      SELECT id, name, display_name as "displayName", subdomain, slug, status
+      FROM tenants
+      WHERE is_deleted = false
+        AND (
+          LOWER(subdomain) = ANY($1)
+          OR LOWER(slug) = ANY($1)
+        )
+      LIMIT 1
+    `;
+
+    const result = await this.pool.query(query, [candidates]);
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      name: row.name,
+      displayName: row.displayName ?? null,
+      subdomain: row.subdomain,
+      slug: row.slug,
+      status: row.status,
+    };
+  }
+
+  async findUserOrganizationMemberships(tenantId: string, userId: string): Promise<Array<{
+    id: string;
+    tenantId: string;
+    code: string;
+    name: string;
+    status: 'active' | 'inactive' | 'archived';
+    isDefault: boolean;
+  }>> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT o.id, o.tenant_id as "tenantId", o.code, o.name, o.status, o.is_default as "isDefault"
+         FROM user_organization_access uoa
+         INNER JOIN organizations o ON o.id = uoa.organization_id AND o.tenant_id = uoa.tenant_id
+         WHERE uoa.tenant_id = $1 AND uoa.user_id = $2 AND o.is_deleted = false
+         ORDER BY o.name ASC`,
+        [tenantId, userId],
+      );
+    });
+
+    return result.rows.map((row) => ({
+      id: row.id,
+      tenantId: row.tenantId,
+      code: row.code,
+      name: row.name,
+      status: row.status,
+      isDefault: row.isDefault,
+    }));
   }
 
   async getPermissionKeysForUser(tenantId: string, userId: string): Promise<UserPermissionRecord[]> {
@@ -534,31 +663,32 @@ export class PostgresPlatformRepository
     const result = await withTenantContext(this.pool, this.tenantContextKey, input.tenantId, async (client) => {
       return client.query(
         `INSERT INTO user_sessions (
-           id, tenant_id, user_id, organization_id, branch_id, access_token_id, refresh_token_hash, device,
+           id, tenant_id, user_id, organization_id, location_id, branch_id, access_token_id, refresh_token_hash, device,
            user_agent, ip_address, location, is_active, revoked_at, revoked_by, termination_reason,
            login_at, last_activity_at, expires_at, logout_at, updated_at, version
-         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NOW(),NOW(),$16,$17,NOW(),1)
-         RETURNING id, tenant_id as "tenantId", user_id as "userId", organization_id as "organizationId", branch_id as "branchId",
-                   access_token_id as "accessTokenId", is_active as "isActive", expires_at as "expiresAt",
+         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW(),NOW(),$17,$18,NOW(),1)
+         RETURNING id, tenant_id as "tenantId", user_id as "userId", organization_id as "organizationId", location_id as "locationId",
+                   branch_id as "branchId", access_token_id as "accessTokenId", is_active as "isActive", expires_at as "expiresAt",
                    login_at as "loginAt", last_activity_at as "lastActivityAt", revoked_at as "revokedAt", logout_at as "logoutAt"`,
         [
           id,
           input.tenantId,
           input.userId,
           input.organizationId ?? null,
-          input.branchId ?? null,
-          input.accessTokenId ?? null,
-          input.refreshTokenHash,
-          input.device ?? null,
-          input.userAgent ?? null,
-          input.ipAddress ?? null,
+         input.locationId ?? null,
+         input.branchId ?? null,
+         input.accessTokenId ?? null,
+         input.refreshTokenHash,
+         input.device ?? null,
+         input.userAgent ?? null,
+         input.ipAddress ?? null,
+         null,
+         true,
           null,
-          true,
           null,
-          null,
-          null,
-          input.expiresAt,
-          null,
+         null,
+         input.expiresAt,
+         null,
         ],
       );
     });
@@ -569,6 +699,7 @@ export class PostgresPlatformRepository
       tenantId: row.tenantId,
       userId: row.userId,
       organizationId: row.organizationId,
+      locationId: row.locationId ?? null,
       branchId: row.branchId,
       accessTokenId: row.accessTokenId,
       isActive: row.isActive,
@@ -583,7 +714,7 @@ export class PostgresPlatformRepository
   async findSession(sessionId: string, tenantId: string): Promise<SessionRecord | null> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
-        `SELECT id, tenant_id as "tenantId", user_id as "userId", organization_id as "organizationId", branch_id as "branchId",
+        `SELECT id, tenant_id as "tenantId", user_id as "userId", organization_id as "organizationId", location_id as "locationId", branch_id as "branchId",
                 access_token_id as "accessTokenId", is_active as "isActive", expires_at as "expiresAt",
                 login_at as "loginAt", last_activity_at as "lastActivityAt", revoked_at as "revokedAt", logout_at as "logoutAt"
          FROM user_sessions
@@ -603,6 +734,7 @@ export class PostgresPlatformRepository
       tenantId: row.tenantId,
       userId: row.userId,
       organizationId: row.organizationId,
+      locationId: row.locationId ?? null,
       branchId: row.branchId,
       accessTokenId: row.accessTokenId,
       isActive: row.isActive,
@@ -617,7 +749,7 @@ export class PostgresPlatformRepository
   async findSessionByRefreshTokenHash(tenantId: string, refreshTokenHash: string): Promise<SessionRecord | null> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
-        `SELECT id, tenant_id as "tenantId", user_id as "userId", organization_id as "organizationId", branch_id as "branchId",
+        `SELECT id, tenant_id as "tenantId", user_id as "userId", organization_id as "organizationId", location_id as "locationId", branch_id as "branchId",
                 access_token_id as "accessTokenId", is_active as "isActive", expires_at as "expiresAt",
                 login_at as "loginAt", last_activity_at as "lastActivityAt", revoked_at as "revokedAt", logout_at as "logoutAt"
          FROM user_sessions
@@ -637,6 +769,7 @@ export class PostgresPlatformRepository
       tenantId: row.tenantId,
       userId: row.userId,
       organizationId: row.organizationId,
+      locationId: row.locationId ?? null,
       branchId: row.branchId,
       accessTokenId: row.accessTokenId,
       isActive: row.isActive,
@@ -1423,6 +1556,337 @@ export class PostgresPlatformRepository
          WHERE tenant_id = $1 AND organization_id = $2 AND id = $3 AND is_deleted = false
          RETURNING id`,
         [tenantId, organizationId, branchId],
+      );
+    });
+
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async createLocation(tenantId: string, organizationId: string, input: { code: string; name: string; description?: string | null; status?: 'active' | 'inactive' | 'archived'; isDefault?: boolean; addressLine1?: string | null; addressLine2?: string | null; city?: string | null; state?: string | null; country?: string | null; postalCode?: string | null; timezone?: string }): Promise<LocationRecord> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `INSERT INTO locations (
+         id, tenant_id, organization_id, code, name, description, status, is_default,
+         address_line1, address_line2, city, state, country, postal_code, timezone,
+         created_at, updated_at, version
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW(), 1)
+        RETURNING
+         id,
+         tenant_id as "tenantId",
+         organization_id as "organizationId",
+         code,
+         name,
+         description,
+         status,
+         is_default as "isDefault",
+         address_line1 as "addressLine1",
+         address_line2 as "addressLine2",
+         city,
+         state,
+         country,
+         postal_code as "postalCode",
+         timezone,
+         created_at as "createdAt",
+         updated_at as "updatedAt",
+         deleted_at as "deletedAt",
+         is_deleted as "isDeleted"`,
+        [
+         uuidV7(),
+         tenantId,
+         organizationId,
+         input.code.trim(),
+         input.name.trim(),
+         input.description ?? null,
+         input.status ?? 'active',
+         input.isDefault ?? false,
+         input.addressLine1 ?? null,
+         input.addressLine2 ?? null,
+         input.city ?? null,
+         input.state ?? null,
+         input.country ?? null,
+         input.postalCode ?? null,
+         input.timezone ?? 'UTC',
+        ],
+      );
+    });
+
+    return this.mapLocationRow(result.rows[0]);
+  }
+
+  async listLocations(tenantId: string, organizationId: string): Promise<LocationRecord[]> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT
+         id,
+         tenant_id as "tenantId",
+         organization_id as "organizationId",
+         code,
+         name,
+         description,
+         status,
+         is_default as "isDefault",
+         address_line1 as "addressLine1",
+         address_line2 as "addressLine2",
+         city,
+         state,
+         country,
+         postal_code as "postalCode",
+         timezone,
+         created_at as "createdAt",
+         updated_at as "updatedAt",
+         deleted_at as "deletedAt",
+         is_deleted as "isDeleted"
+         FROM locations
+         WHERE tenant_id = $1 AND organization_id = $2 AND is_deleted = false AND status = 'active'
+         ORDER BY name`,
+        [tenantId, organizationId],
+      );
+    });
+
+    return result.rows.map((row) => this.mapLocationRow(row));
+  }
+
+  async getLocationById(tenantId: string, organizationId: string, locationId: string): Promise<LocationRecord | null> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT
+         id,
+         tenant_id as "tenantId",
+         organization_id as "organizationId",
+         code,
+         name,
+         description,
+         status,
+         is_default as "isDefault",
+         address_line1 as "addressLine1",
+         address_line2 as "addressLine2",
+         city,
+         state,
+         country,
+         postal_code as "postalCode",
+         timezone,
+         created_at as "createdAt",
+         updated_at as "updatedAt",
+         deleted_at as "deletedAt",
+         is_deleted as "isDeleted"
+         FROM locations
+         WHERE tenant_id = $1 AND organization_id = $2 AND id = $3 AND is_deleted = false AND status = 'active'
+         LIMIT 1`,
+        [tenantId, organizationId, locationId],
+      );
+    });
+
+    return result.rows.length > 0 ? this.mapLocationRow(result.rows[0]) : null;
+  }
+
+  async updateLocation(tenantId: string, organizationId: string, locationId: string, changes: Partial<Pick<LocationRecord, 'code' | 'name' | 'description' | 'status' | 'isDefault' | 'addressLine1' | 'addressLine2' | 'city' | 'state' | 'country' | 'postalCode' | 'timezone'>>): Promise<LocationRecord | null> {
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
+
+    if (changes.code !== undefined) {
+      fields.push(`code = $${idx++}`);
+      values.push(String(changes.code).trim());
+    }
+    if (changes.name !== undefined) {
+      fields.push(`name = $${idx++}`);
+      values.push(String(changes.name).trim());
+    }
+    if (changes.description !== undefined) {
+      fields.push(`description = $${idx++}`);
+      values.push(changes.description ?? null);
+    }
+    if (changes.status !== undefined) {
+      fields.push(`status = $${idx++}`);
+      values.push(changes.status ?? 'active');
+    }
+    if (changes.isDefault !== undefined) {
+      fields.push(`is_default = $${idx++}`);
+      values.push(changes.isDefault ?? false);
+    }
+    if (changes.addressLine1 !== undefined) {
+      fields.push(`address_line1 = $${idx++}`);
+      values.push(changes.addressLine1 ?? null);
+    }
+    if (changes.addressLine2 !== undefined) {
+      fields.push(`address_line2 = $${idx++}`);
+      values.push(changes.addressLine2 ?? null);
+    }
+    if (changes.city !== undefined) {
+      fields.push(`city = $${idx++}`);
+      values.push(changes.city ?? null);
+    }
+    if (changes.state !== undefined) {
+      fields.push(`state = $${idx++}`);
+      values.push(changes.state ?? null);
+    }
+    if (changes.country !== undefined) {
+      fields.push(`country = $${idx++}`);
+      values.push(changes.country ?? null);
+    }
+    if (changes.postalCode !== undefined) {
+      fields.push(`postal_code = $${idx++}`);
+      values.push(changes.postalCode ?? null);
+    }
+    if (changes.timezone !== undefined) {
+      fields.push(`timezone = $${idx++}`);
+      values.push(changes.timezone ?? 'UTC');
+    }
+
+    if (fields.length === 0) {
+      return this.getLocationById(tenantId, organizationId, locationId);
+    }
+
+    values.push(tenantId, organizationId, locationId);
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `UPDATE locations
+         SET ${fields.join(', ')}, updated_at = NOW()
+         WHERE tenant_id = $${idx} AND organization_id = $${idx + 1} AND id = $${idx + 2} AND is_deleted = false
+         RETURNING
+         id,
+         tenant_id as "tenantId",
+         organization_id as "organizationId",
+         code,
+         name,
+         description,
+         status,
+         is_default as "isDefault",
+         address_line1 as "addressLine1",
+         address_line2 as "addressLine2",
+         city,
+         state,
+         country,
+         postal_code as "postalCode",
+         timezone,
+         created_at as "createdAt",
+         updated_at as "updatedAt",
+         deleted_at as "deletedAt",
+         is_deleted as "isDeleted"`,
+        values,
+      );
+    });
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapLocationRow(result.rows[0]);
+  }
+
+  async deactivateLocation(tenantId: string, organizationId: string, locationId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `UPDATE locations
+         SET status = 'inactive', is_deleted = true, deleted_at = NOW(), updated_at = NOW()
+         WHERE tenant_id = $1 AND organization_id = $2 AND id = $3 AND is_deleted = false
+         RETURNING id`,
+        [tenantId, organizationId, locationId],
+      );
+    });
+
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async listAccessibleLocationsForUser(tenantId: string, userId: string, organizationId?: string | null): Promise<LocationRecord[]> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT l.id,
+               l.tenant_id as "tenantId",
+               l.organization_id as "organizationId",
+               l.code,
+               l.name,
+               l.description,
+               l.status,
+               l.is_default as "isDefault",
+               l.address_line1 as "addressLine1",
+               l.address_line2 as "addressLine2",
+               l.city,
+               l.state,
+               l.country,
+               l.postal_code as "postalCode",
+               l.timezone,
+               l.created_at as "createdAt",
+               l.updated_at as "updatedAt",
+               l.deleted_at as "deletedAt",
+               l.is_deleted as "isDeleted"
+         FROM locations l
+         WHERE l.tenant_id = $1
+          AND l.is_deleted = false
+          AND l.status = 'active'
+          AND EXISTS (
+            SELECT 1
+            FROM user_location_access ula
+            WHERE ula.tenant_id = l.tenant_id
+              AND ula.location_id = l.id
+              AND ula.user_id = $2
+              AND ula.is_active = true
+          )
+          AND ($3::uuid IS NULL OR l.organization_id = $3)
+         ORDER BY l.name`,
+        [tenantId, userId, organizationId ?? null],
+      );
+    });
+
+    return result.rows.map((row) => this.mapLocationRow(row));
+  }
+
+  async getAccessibleLocationByIdForUser(tenantId: string, userId: string, locationId: string, organizationId?: string | null): Promise<LocationRecord | null> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT l.id,
+               l.tenant_id as "tenantId",
+               l.organization_id as "organizationId",
+               l.code,
+               l.name,
+               l.description,
+               l.status,
+               l.is_default as "isDefault",
+               l.address_line1 as "addressLine1",
+               l.address_line2 as "addressLine2",
+               l.city,
+               l.state,
+               l.country,
+               l.postal_code as "postalCode",
+               l.timezone,
+               l.created_at as "createdAt",
+               l.updated_at as "updatedAt",
+               l.deleted_at as "deletedAt",
+               l.is_deleted as "isDeleted"
+         FROM locations l
+         WHERE l.tenant_id = $1
+          AND l.id = $2
+          AND l.is_deleted = false
+          AND l.status = 'active'
+          AND EXISTS (
+            SELECT 1
+            FROM user_location_access ula
+            WHERE ula.tenant_id = l.tenant_id
+              AND ula.location_id = l.id
+              AND ula.user_id = $3
+              AND ula.is_active = true
+          )
+          AND ($4::uuid IS NULL OR l.organization_id = $4)
+         LIMIT 1`,
+        [tenantId, locationId, userId, organizationId ?? null],
+      );
+    });
+
+    return result.rows.length > 0 ? this.mapLocationRow(result.rows[0]) : null;
+  }
+
+  async validateLocationAccess(tenantId: string, userId: string, locationId: string, organizationId?: string | null): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT 1
+         FROM user_location_access ula
+         WHERE ula.tenant_id = $1
+          AND ula.user_id = $2
+          AND ula.location_id = $3
+          AND ula.is_active = true
+          AND ($4::uuid IS NULL OR ula.organization_id = $4)
+         LIMIT 1`,
+        [tenantId, userId, locationId, organizationId ?? null],
       );
     });
 

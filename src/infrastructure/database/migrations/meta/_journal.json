@@ -8,6 +8,34 @@
       "when": 1787110350199,
       "tag": "0000_core-platform-phase-1",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1754240000000,
+      "tag": "0001_location-domain-foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1754240000001,
+      "tag": "0002_location-authorization",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1754240000002,
+      "tag": "0003_active-location-selection",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1754240000003,
+      "tag": "0004_fix_location_access_schema",
+      "breakpoints": true
     }
   ]
 }

@@ -135,10 +135,16 @@ describe('Authorization RBAC vertical slice', () => {
 
     app = await createApplication(config, pool);
 
+    const tenantAHost = tenantAInput.tenant.subdomain;
+    const tenantBHost = tenantBInput.tenant.subdomain;
+
     const adminLogin = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: { 'x-tenant-id': tenantAResult.tenantId },
+      headers: {
+        host: tenantAHost,
+        'x-tenant-id': tenantAResult.tenantId,
+      },
       payload: { identifier: tenantAInput.administrator.username, password: tenantAInput.administrator.password },
     });
     expect(adminLogin.statusCode).toBe(200);
@@ -201,7 +207,10 @@ describe('Authorization RBAC vertical slice', () => {
     const regularUserLogin = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: { 'x-tenant-id': tenantAResult.tenantId },
+      headers: {
+        host: tenantAHost,
+        'x-tenant-id': tenantAResult.tenantId,
+      },
       payload: { identifier: regularUser.username, password: 'Password456!' },
     });
     expect(regularUserLogin.statusCode).toBe(200);
@@ -242,7 +251,10 @@ describe('Authorization RBAC vertical slice', () => {
     const secondAdminLogin = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: { 'x-tenant-id': tenantBResult.tenantId },
+      headers: {
+        host: tenantBHost,
+        'x-tenant-id': tenantBResult.tenantId,
+      },
       payload: { identifier: tenantBInput.administrator.username, password: tenantBInput.administrator.password },
     });
     expect(secondAdminLogin.statusCode).toBe(200);
@@ -269,7 +281,10 @@ describe('Authorization RBAC vertical slice', () => {
     const staleLogin = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: { 'x-tenant-id': tenantAResult.tenantId },
+      headers: {
+        host: tenantAHost,
+        'x-tenant-id': tenantAResult.tenantId,
+      },
       payload: { identifier: regularUser.username, password: 'Password456!' },
     });
     expect(staleLogin.statusCode).toBe(401);

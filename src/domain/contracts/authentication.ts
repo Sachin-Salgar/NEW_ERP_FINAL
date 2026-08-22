@@ -4,6 +4,7 @@ export interface AuthenticatedUser {
   id: string;
   tenantId: string;
   organizationId?: string | null;
+  activeLocationId?: string | null;
   defaultBranchId?: string | null;
   username: string;
   email: string;
@@ -17,6 +18,7 @@ export interface SessionRecord {
   tenantId: string;
   userId: string;
   organizationId?: string | null;
+  locationId?: string | null;
   branchId?: string | null;
   accessTokenId?: string | null;
   isActive: boolean;
@@ -41,6 +43,7 @@ export interface CreateSessionInput {
   tenantId: string;
   userId: string;
   organizationId?: string | null;
+  locationId?: string | null;
   branchId?: string | null;
   accessTokenId?: string | null;
   expiresAt: Date;

@@ -94,10 +94,15 @@ describe('CORE-01 organization and branch administration', () => {
 
     app = await createApplication(config, pool);
 
+    const tenantHost = tenantInput.tenant.subdomain;
+
     const adminLogin = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: { 'x-tenant-id': tenantResult.tenantId },
+      headers: {
+        host: tenantHost,
+        'x-tenant-id': tenantResult.tenantId,
+      },
       payload: { identifier: tenantInput.administrator.username, password: tenantInput.administrator.password },
     });
     expect(adminLogin.statusCode).toBe(200);
@@ -229,7 +234,10 @@ describe('CORE-01 organization and branch administration', () => {
     const limitedLogin = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: { 'x-tenant-id': tenantResult.tenantId },
+      headers: {
+        host: tenantHost,
+        'x-tenant-id': tenantResult.tenantId,
+      },
       payload: { identifier: `limited${uniqueSuffix}`, password: 'Password789!' },
     });
     expect(limitedLogin.statusCode).toBe(200);
@@ -252,7 +260,10 @@ describe('CORE-01 organization and branch administration', () => {
     const memberLogin = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: { 'x-tenant-id': tenantResult.tenantId },
+      headers: {
+        host: tenantHost,
+        'x-tenant-id': tenantResult.tenantId,
+      },
       payload: { identifier: `member${uniqueSuffix}`, password: 'Password456!' },
     });
     expect(memberLogin.statusCode).toBe(401);
@@ -296,7 +307,10 @@ describe('CORE-01 organization and branch administration', () => {
     const otherLogin = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: { 'x-tenant-id': otherTenantResult.tenantId },
+      headers: {
+        host: secondTenantInput.tenant.subdomain,
+        'x-tenant-id': otherTenantResult.tenantId,
+      },
       payload: { identifier: secondTenantInput.administrator.username, password: secondTenantInput.administrator.password },
     });
     const otherToken = otherLogin.json().accessToken as string;

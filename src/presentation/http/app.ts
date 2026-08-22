@@ -6,6 +6,8 @@ import type { AppConfig } from '../../config/schema.js';
 import { AuthenticationService } from '../../application/services/authentication-service.js';
 import { AuthorizationService } from '../../application/services/authorization-service.js';
 import { CoreEnterpriseService } from '../../application/services/core-enterprise-service.js';
+import { LocationService } from '../../application/services/location-service.js';
+import { TenantResolutionService } from '../../application/services/tenant-resolution-service.js';
 import { UserRegistrationService } from '../../application/services/user-registration-service.js';
 import { createDatabasePool } from '../../infrastructure/database/connection.js';
 import { PostgresPlatformRepository } from '../../infrastructure/database/repositories/postgres-platform-repository.js';
@@ -16,6 +18,7 @@ import { createLogger } from '../../infrastructure/logging/logger.js';
 import healthRoutes from './routes/health.js';
 import authRoutes from './routes/auth.js';
 import coreEnterpriseRoutes from './routes/core-enterprise.js';
+import locationRoutes from './routes/location.js';
 import rbacRoutes from './routes/rbac.js';
 
 export async function createApplication(config: AppConfig, providedPool?: Pool): Promise<FastifyInstance> {
@@ -40,14 +43,22 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   const authService = new AuthenticationService(repository, passwordHasher, jwtTokenService);
   const authorizationService = new AuthorizationService(repository);
   const coreEnterpriseService = new CoreEnterpriseService(repository);
+  const locationService = new LocationService(repository);
   const registrationService = new UserRegistrationService(repository, passwordHasher);
+  const tenantResolver = new TenantResolutionService(repository, {
+    TENANT_HOST_MAP: config.TENANT_HOST_MAP,
+    DEPLOYMENT_TENANT_ID: config.DEPLOYMENT_TENANT_ID,
+    NODE_ENV: config.NODE_ENV,
+  });
 
   app.decorate('appConfig', config);
   app.decorate('authService', authService);
   app.decorate('authorizationService', authorizationService);
   app.decorate('coreEnterpriseService', coreEnterpriseService);
+  app.decorate('locationService', locationService);
   app.decorate('registrationService', registrationService);
   app.decorate('jwtTokenService', jwtTokenService);
+  app.decorate('tenantResolver', tenantResolver);
 
   await app.register(cors, {
     origin: config.CORS_ALLOWED_ORIGINS,
@@ -63,6 +74,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(authRoutes, { prefix: config.API_PREFIX });
   await app.register(rbacRoutes, { prefix: config.API_PREFIX });
   await app.register(coreEnterpriseRoutes, { prefix: config.API_PREFIX });
+  await app.register(locationRoutes, { prefix: config.API_PREFIX });
 
   return app;
 }

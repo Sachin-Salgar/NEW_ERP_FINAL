@@ -95,10 +95,15 @@ describe('Authentication vertical slice', () => {
 
     app = await createApplication(config, pool);
 
+    const tenantHost = tenantInput.tenant.subdomain;
+
     const adminLogin = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: { 'x-tenant-id': tenantResult.tenantId },
+      headers: {
+        host: tenantHost,
+        'x-tenant-id': tenantResult.tenantId,
+      },
       payload: { identifier: tenantInput.administrator.username, password: tenantInput.administrator.password },
     });
 
@@ -144,7 +149,10 @@ describe('Authentication vertical slice', () => {
     const loginResponse = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: { 'x-tenant-id': tenantResult.tenantId },
+      headers: {
+        host: tenantHost,
+        'x-tenant-id': tenantResult.tenantId,
+      },
       payload: { identifier: 'newuser', password: 'Password456!' },
     });
 
@@ -209,7 +217,10 @@ describe('Authentication vertical slice', () => {
     const wrongPassword = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: { 'x-tenant-id': tenantResult.tenantId },
+      headers: {
+        host: tenantHost,
+        'x-tenant-id': tenantResult.tenantId,
+      },
       payload: { identifier: 'newuser', password: 'WrongPassword!' },
     });
     expect(wrongPassword.statusCode).toBe(401);
@@ -217,7 +228,10 @@ describe('Authentication vertical slice', () => {
     const unknownUser = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: { 'x-tenant-id': tenantResult.tenantId },
+      headers: {
+        host: tenantHost,
+        'x-tenant-id': tenantResult.tenantId,
+      },
       payload: { identifier: 'ghost-user', password: 'Password123!' },
     });
     expect(unknownUser.statusCode).toBe(401);
@@ -310,11 +324,16 @@ describe('Authentication vertical slice', () => {
       status: 'active',
     });
 
+    const tenantHost = tenantInput.tenant.subdomain;
+
     // Verify the user can authenticate
     const firstLogin = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: { 'x-tenant-id': tenantResult.tenantId },
+      headers: {
+        host: tenantHost,
+        'x-tenant-id': tenantResult.tenantId,
+      },
       payload: { identifier: testUser.username, password: 'Password789!' },
     });
     expect(firstLogin.statusCode).toBe(200);
@@ -326,7 +345,10 @@ describe('Authentication vertical slice', () => {
     const inactiveLogin = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: { 'x-tenant-id': tenantResult.tenantId },
+      headers: {
+        host: tenantHost,
+        'x-tenant-id': tenantResult.tenantId,
+      },
       payload: { identifier: testUser.username, password: 'Password789!' },
     });
     expect(inactiveLogin.statusCode).toBe(401);
@@ -420,11 +442,16 @@ describe('Authentication vertical slice', () => {
       status: 'active',
     });
 
+    const tenantHost = tenantInput.tenant.subdomain;
+
     // Verify the user can authenticate with username
     const usernameLogin = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: { 'x-tenant-id': tenantResult.tenantId },
+      headers: {
+        host: tenantHost,
+        'x-tenant-id': tenantResult.tenantId,
+      },
       payload: { identifier: testUser.username, password: 'PasswordDel!' },
     });
     expect(usernameLogin.statusCode).toBe(200);
@@ -433,7 +460,10 @@ describe('Authentication vertical slice', () => {
     const emailLogin = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: { 'x-tenant-id': tenantResult.tenantId },
+      headers: {
+        host: tenantHost,
+        'x-tenant-id': tenantResult.tenantId,
+      },
       payload: { identifier: testUser.email, password: 'PasswordDel!' },
     });
     expect(emailLogin.statusCode).toBe(200);
@@ -445,7 +475,10 @@ describe('Authentication vertical slice', () => {
     const deletedUsernameLogin = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: { 'x-tenant-id': tenantResult.tenantId },
+      headers: {
+        host: tenantHost,
+        'x-tenant-id': tenantResult.tenantId,
+      },
       payload: { identifier: testUser.username, password: 'PasswordDel!' },
     });
     expect(deletedUsernameLogin.statusCode).toBe(401);
@@ -455,7 +488,10 @@ describe('Authentication vertical slice', () => {
     const deletedEmailLogin = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      headers: { 'x-tenant-id': tenantResult.tenantId },
+      headers: {
+        host: tenantHost,
+        'x-tenant-id': tenantResult.tenantId,
+      },
       payload: { identifier: testUser.email, password: 'PasswordDel!' },
     });
     expect(deletedEmailLogin.statusCode).toBe(401);

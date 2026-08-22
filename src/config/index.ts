@@ -9,7 +9,7 @@ const envPath = existsSync(path.resolve(process.cwd(), '.env.local'))
   ? '.env.local'
   : '.env';
 
-dotenv.config({ path: envPath, override: true });
+dotenv.config({ path: envPath, override: false });
 
 export const loadConfig = () => parseAppConfig(process.env);
 

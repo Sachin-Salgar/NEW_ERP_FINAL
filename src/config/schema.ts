@@ -17,6 +17,8 @@ export const appConfigSchema = z.object({
   JWT_ISSUER: z.string().trim().min(1).default('new-erp-final'),
   TENANT_HEADER: z.string().trim().min(1).default('x-tenant-id'),
   TENANT_CONTEXT_KEY: z.string().trim().min(1).default('app.current_tenant_id'),
+  TENANT_HOST_MAP: z.string().trim().default(''),
+  DEPLOYMENT_TENANT_ID: z.string().trim().default(''),
   CORS_ALLOWED_ORIGINS: z
     .string()
     .transform((value) => value.split(',').map((origin) => origin.trim()).filter(Boolean))
@@ -40,7 +42,7 @@ export function resolveDatabaseUrl(
   let value = env[key]?.trim();
 
   if (!value && env === process.env) {
-    dotenv.config({ path: '.env.local', override: true });
+    dotenv.config({ path: '.env.local', override: false });
     value = process.env[key]?.trim();
   }
 
@@ -60,7 +62,7 @@ export function resolveDatabaseUrl(
 }
 
 export function parseAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
-  dotenv.config({ path: '.env.local', override: true });
+  dotenv.config({ path: '.env.local', override: false });
 
   resolveDatabaseUrl(env);
 

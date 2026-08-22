@@ -158,6 +158,28 @@ export interface BranchRecord {
   isDeleted?: boolean;
 }
 
+export interface LocationRecord {
+  id: string;
+  tenantId: string;
+  organizationId: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  status: 'active' | 'inactive' | 'archived';
+  isDefault: boolean;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  postalCode?: string | null;
+  timezone: string;
+  createdAt?: Date | string | null;
+  updatedAt?: Date | string | null;
+  deletedAt?: Date | string | null;
+  isDeleted?: boolean;
+}
+
 export interface UserAdminRecord {
   id: string;
   tenantId: string;
@@ -183,6 +205,14 @@ export interface CoreEnterpriseRepository {
   getBranchById(tenantId: string, organizationId: string, branchId: string): Promise<BranchRecord | null>;
   updateBranch(tenantId: string, organizationId: string, branchId: string, changes: Partial<Pick<BranchRecord, 'code' | 'name' | 'status' | 'isHeadOffice' | 'isDefault' | 'addressLine1' | 'addressLine2' | 'city' | 'district' | 'state' | 'country' | 'postalCode' | 'timezone' | 'remarks'>>): Promise<BranchRecord | null>;
   deactivateBranch(tenantId: string, organizationId: string, branchId: string): Promise<boolean>;
+  createLocation(tenantId: string, organizationId: string, input: { code: string; name: string; description?: string | null; status?: 'active' | 'inactive' | 'archived'; isDefault?: boolean; addressLine1?: string | null; addressLine2?: string | null; city?: string | null; state?: string | null; country?: string | null; postalCode?: string | null; timezone?: string }): Promise<LocationRecord>;
+  listLocations(tenantId: string, organizationId: string): Promise<LocationRecord[]>;
+  listAccessibleLocationsForUser(tenantId: string, userId: string, organizationId?: string | null): Promise<LocationRecord[]>;
+  getLocationById(tenantId: string, organizationId: string, locationId: string): Promise<LocationRecord | null>;
+  getAccessibleLocationByIdForUser(tenantId: string, userId: string, locationId: string, organizationId?: string | null): Promise<LocationRecord | null>;
+  validateLocationAccess(tenantId: string, userId: string, locationId: string, organizationId?: string | null): Promise<boolean>;
+  updateLocation(tenantId: string, organizationId: string, locationId: string, changes: Partial<Pick<LocationRecord, 'code' | 'name' | 'description' | 'status' | 'isDefault' | 'addressLine1' | 'addressLine2' | 'city' | 'state' | 'country' | 'postalCode' | 'timezone'>>): Promise<LocationRecord | null>;
+  deactivateLocation(tenantId: string, organizationId: string, locationId: string): Promise<boolean>;
   listUsers(tenantId: string): Promise<UserAdminRecord[]>;
   getUserById(tenantId: string, userId: string): Promise<UserAdminRecord | null>;
   updateUser(tenantId: string, userId: string, changes: Partial<Pick<UserAdminRecord, 'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'status'>>): Promise<UserAdminRecord | null>;

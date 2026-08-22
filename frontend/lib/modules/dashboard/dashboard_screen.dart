@@ -61,6 +61,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final theme = Theme.of(context);
     final user = _authService.currentUser;
     final tenant = _authService.currentTenantId;
+    final currentLocation = _authService.currentLocationId ?? 'Not selected';
     final username = user != null
         ? (user['username'] ?? user['email'] ?? 'User')
         : 'User';
@@ -107,6 +108,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         accentColor: Colors.orange,
         loading: false,
       ),
+      ErpStatCard(
+        title: 'Location',
+        value: currentLocation,
+        icon: Icons.location_on_outlined,
+        subtitle: 'Active authorized location',
+        accentColor: Colors.green,
+        loading: false,
+      ),
     ];
 
     final hasNoData =
@@ -125,6 +134,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
               subtitle: 'Overview of your ERP environment',
               breadcrumbs: const [ErpBreadcrumbItem(label: 'Dashboard')],
             ),
+            if (_authService.availableLocations.length > 1) ...[
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () => Navigator.of(context).pushNamed('/location-selection'),
+                  icon: const Icon(Icons.swap_horiz_rounded),
+                  label: const Text('Switch location'),
+                ),
+              ),
+            ],
             const SizedBox(height: 18),
             LayoutBuilder(
               builder: (context, constraints) {

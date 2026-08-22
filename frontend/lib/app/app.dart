@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';
+
 import '../core/auth/auth_service.dart';
 import '../core/network/api_client.dart';
 import '../modules/organization/organization_service.dart';
@@ -15,19 +16,23 @@ class App extends StatefulWidget {
   const App({Key? key}) : super(key: key);
 
   static Future<void> init() async {
-    // Initialize dependency injection, services, and persistent storage
     di.registerLazySingleton<AuthService>(() => AuthService());
-    // Register ApiClient with default base URL; override via --dart-define=API_BASE_URL
-    final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3001');
+    final baseUrl = const String.fromEnvironment(
+      'API_BASE_URL',
+      defaultValue: 'http://localhost:3000',
+    );
     di.registerLazySingleton(() => ApiClient(baseUrl: baseUrl));
-    // Register OrganizationService using the ApiClient
-    di.registerLazySingleton(() => OrganizationService(apiClient: di.get<ApiClient>()));
-    // Register BranchService
-    di.registerLazySingleton(() => BranchService(apiClient: di.get<ApiClient>()));
-    // Register UserService
+    di.registerLazySingleton(
+      () => OrganizationService(apiClient: di.get<ApiClient>()),
+    );
+    di.registerLazySingleton(
+      () => BranchService(apiClient: di.get<ApiClient>()),
+    );
     di.registerLazySingleton(() => UserService(apiClient: di.get<ApiClient>()));
 
-    await di.get<AuthService>().init();
+    final auth = di.get<AuthService>();
+    await auth.init();
+    await auth.bootstrap(baseUrl);
   }
 
   @override
@@ -41,11 +46,19 @@ class _AppState extends State<App> {
       create: (_) => di.get<AuthService>(),
       child: Consumer<AuthService>(
         builder: (context, auth, _) {
+          final route = auth.isAuthenticated
+              ? (auth.requiresOrganizationSelection
+                  ? '/organization-selection'
+                  : auth.requiresLocationSelection
+                      ? '/location-selection'
+                      : '/dashboard')
+              : '/login';
+
           return MaterialApp(
             title: 'NEW ERP',
             theme: AppTheme.lightTheme,
             onGenerateRoute: AppRouter.generateRoute,
-            initialRoute: auth.isAuthenticated ? '/dashboard' : '/login',
+            initialRoute: route,
           );
         },
       ),
