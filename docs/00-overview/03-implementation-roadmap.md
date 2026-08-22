@@ -403,6 +403,21 @@ Notes:
 - 2026-08-20
   - Roadmap snapshot generation: ded0b71ad...
 
+- 2026-08-22
+  - MIGRATIONS: Consolidated location migrations into a single authoritative migration and added tenant RLS (0001_location-domain)
+  - Commit: f57f604 — fix: consolidate location migrations and add tenant RLS
+  - Summary: Merged the previous location migration sequence (0001–0005) into a single idempotent migration file `src/infrastructure/database/migrations/0001_location-domain.sql`. Removed obsolete migration files and updated the migration runner/journal to reference the consolidated migration. Validated end-to-end on a freshly recreated disposable test database: dropped/recreated the test DB using the existing superuser (DATABASE_URL) and ensured ownership appropriate for migration execution by the existing non-superuser test role (`newerp_test_runner`). Applied migrations using the repository migration runner as the test role (TEST_DATABASE_URL). Verified catalog state: `public.locations`, `public.user_location_access`, and `public.user_sessions` all have RLS enabled, FORCE ROW LEVEL SECURITY enabled, and expected tenant isolation policies present. Tenant isolation integration tests executed under `newerp_test_runner` and passed. Typecheck, unit, and integration tests passed. Temporary diagnostic scripts were removed. `.env.local` was not modified or committed.
+  - Files changed:
+    - src/infrastructure/database/migrations/0001_location-domain.sql (new consolidated migration)
+    - src/infrastructure/database/migrate.ts (migrationChecks updated)
+    - src/infrastructure/database/migrations/meta/_journal.json (journal updated)
+    - Deleted: src/infrastructure/database/migrations/0001_location-domain-foundation.sql
+    - Deleted: src/infrastructure/database/migrations/0002_location-authorization.sql
+    - Deleted: src/infrastructure/database/migrations/0003_active-location-selection.sql
+    - Deleted: src/infrastructure/database/migrations/0004_fix_location_access_schema.sql
+    - Deleted: src/infrastructure/database/migrations/0005_add_locations_tenant_isolation_policy.sql
+  - Status: COMPLETE — VALIDATED
+
 (continue appending future entries here)
 
 ---
