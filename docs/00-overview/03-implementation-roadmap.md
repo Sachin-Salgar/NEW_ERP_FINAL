@@ -481,7 +481,7 @@ Notes:
 
 - 2026-08-22
   - AUTH-02.07 Implement edit role UI
-  - Commit: 55e3c68
+  - Commit: 19a0d20
   - Summary: Implemented frontend edit role UI, RoleService get/update methods, ApiClient PATCH support, and widget tests. UI is gated by AuthZService and uses existing ApiClient/ AuthService for tenant and authentication context. Server-side authorization continues to enforce role.manage permission on the PATCH endpoint.
   - Files changed:
     - frontend/lib/core/network/api_client.dart (modified: added patch method)
