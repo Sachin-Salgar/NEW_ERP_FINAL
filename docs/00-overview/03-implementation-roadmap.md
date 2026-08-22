@@ -223,6 +223,23 @@ Each step above must be updated with the Evidence Requirement block after it is 
   - Remaining risks: Some unit tests or mocks that previously assumed concrete TenantResolutionService internals may require small updates in later steps. The adapter uses a runtime delegation to preserve behavior; typing was refined to remove a previous @ts-ignore and the adapter now uses a typed TenantStrategy. Future iterations may further refine types if desired.
   - Next step: TENANT-RESOLUTION.03 — Add comprehensive unit and integration tests (DB-backed) for each resolver strategy, refine factory selection typing, and finalize any configuration option naming (e.g., decide whether to formalize TENANT_RESOLUTION_MODE). Do not extract further behaviors (membership/auth) in this step.
 
+- 2026-08-22
+  - AUTH-02.02 — Frontend authorization state and permission service (COMPLETED — VALIDATED)
+  - Implementation performed: added a canonical AuthZ client-side state service, integrated it with the existing AuthService session lifecycle, provided permission query helpers, UI demo gating, and comprehensive unit tests.
+  - Files changed:
+    - frontend/lib/core/auth/authz_service.dart (new) — ChangeNotifier-style permission service; loads effective permissions from GET /api/v1/rbac/users/:userId/effective-permissions; exposes isLoading/isLoaded, hasPermission, hasAnyPermission, getPermissionKeys, refresh, and clear.
+    - frontend/lib/core/auth/auth_service.dart (modified) — integrated AuthZService during login/restore/refresh/logout flows and delegated hasPermission semantics to the new AuthZService; ensured permission state is cleared on logout.
+    - frontend/test/authz_service_test2.dart (new) — focused unit tests using MockClient and GetIt registration validating permission load, refresh, clear, failure semantics, and isolation between users.
+    - frontend/test/authz_service_test.dart (modified) — placeholder test kept to preserve test structure.
+  - Validation commands executed and results:
+    - flutter analyze (frontend): PASS
+    - flutter test (frontend unit tests): PASS (new tests executed)
+    - npm run -s typecheck: PASS
+    - npm run -s test:unit: PASS
+    - npm run -s test:integration: PASS
+  - Commit: 45d04ea — feat(authz): implement frontend authorization state and permission service
+  - Notes: AuthZService intentionally avoids optimistic-allow semantics. When permissions are not loaded, hasPermission returns false; UI should observe isLoading/isLoaded to avoid showing protected actions while permission fetch is in progress. No backend changes were required.
+
 - <future entries> — append new commits with date, short description, and status
 
 ---
