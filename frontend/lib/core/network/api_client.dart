@@ -14,12 +14,13 @@ class ApiClient {
   final AuthService? authOverride;
 
   ApiClient({
-    required this.baseUrl,
+    this.baseUrl = '',
     this.timeout = const Duration(seconds: 15),
     this.tenantHeaderName = 'x-tenant-id',
     this.authOverride,
     http.Client? httpClient,
-  }) : _client = httpClient ?? http.Client();
+    http.Client? client,
+  }) : _client = httpClient ?? client ?? http.Client();
 
   AuthService get _auth => authOverride ?? GetIt.instance.get<AuthService>();
 
