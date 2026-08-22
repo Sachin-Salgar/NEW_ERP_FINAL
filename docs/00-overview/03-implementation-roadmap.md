@@ -504,6 +504,29 @@ Notes:
     - Commit SHA will be recorded in a follow-up edit to this document after the code commit is created.
   - Status: COMPLETE — VALIDATED
 
+- 2026-08-23
+  - AUTH-02.08 Implement permission catalog UI
+  - Commit: dc2916a
+  - Summary: Implemented frontend permission catalog UI (read-only) with PermissionService, PermissionListScreen, PermissionDetailScreen, and widget tests. UI is gated by AuthZService using permission 'permission.read' and uses ApiClient and AuthService for tenant and authentication context. Server-side permission endpoint GET /rbac/permissions remains authoritative.
+  - Files changed:
+    - frontend/lib/modules/permission/permission_service.dart (new)
+    - frontend/lib/modules/permission/permission_list_screen.dart (new)
+    - frontend/lib/modules/permission/permission_detail_screen.dart (new)
+    - frontend/test/permission/permission_list_screen_test.dart (new)
+  - Tests run:
+    - frontend: flutter analyze: PASS
+    - frontend: flutter test: PASS
+    - backend: npm run typecheck: PASS
+    - backend: npm run test:unit: PASS
+  - Validation commands and results:
+    - cd frontend; flutter analyze: PASS
+    - cd frontend; flutter test --no-pub: PASS
+    - npm run typecheck: PASS
+    - npm run test:unit: PASS
+  - Notes:
+    - Permission catalog UI is read-only and does not allow assigning permissions to roles. No tenant selectors were added; ApiClient attaches tenant header from AuthService.currentTenantId.
+    - Status: COMPLETE — VALIDATED
+
 - 2026-08-20
   - Roadmap snapshot generation: ded0b71ad...
 
