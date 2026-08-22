@@ -35,18 +35,27 @@ class AppRouter {
         );
       case '/dashboard':
         return MaterialPageRoute(
-          builder: (context) =>
-              _authGuard(context, (_) => const DashboardScreen()),
+          builder: (context) => _authGuard(
+            context,
+            (_) => const DashboardScreen(),
+            routeName: settings.name ?? '/dashboard',
+          ),
         );
       case '/organizations':
         return MaterialPageRoute(
-          builder: (context) =>
-              _authGuard(context, (_) => const OrganizationListScreen()),
+          builder: (context) => _authGuard(
+            context,
+            (_) => const OrganizationListScreen(),
+            routeName: settings.name ?? '/organizations',
+          ),
         );
       case '/organizations/create':
         return MaterialPageRoute(
-          builder: (context) =>
-              _authGuard(context, (_) => const CreateOrganizationScreen()),
+          builder: (context) => _authGuard(
+            context,
+            (_) => const CreateOrganizationScreen(),
+            routeName: settings.name ?? '/organizations/create',
+          ),
         );
       case '/organizations/details':
         return MaterialPageRoute(
@@ -55,6 +64,7 @@ class AppRouter {
             return _authGuard(
               context,
               (_) => OrganizationDetailsScreen(id: id),
+              routeName: settings.name ?? '/organizations/details',
             );
           },
         );
@@ -62,7 +72,11 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (context) {
             final id = settings.arguments as String? ?? '';
-            return _authGuard(context, (_) => EditOrganizationScreen(id: id));
+            return _authGuard(
+              context,
+              (_) => EditOrganizationScreen(id: id),
+              routeName: settings.name ?? '/organizations/edit',
+            );
           },
         );
       case '/organizations/branches':
@@ -72,6 +86,7 @@ class AppRouter {
             return _authGuard(
               context,
               (_) => BranchListScreen(organizationId: orgId),
+              routeName: settings.name ?? '/organizations/branches',
             );
           },
         );
@@ -82,6 +97,7 @@ class AppRouter {
             return _authGuard(
               context,
               (_) => CreateBranchScreen(organizationId: orgId),
+              routeName: settings.name ?? '/organizations/branches/create',
             );
           },
         );
@@ -97,6 +113,7 @@ class AppRouter {
                 organizationId: orgId,
                 branchId: branchId,
               ),
+              routeName: settings.name ?? '/organizations/branches/details',
             );
           },
         );
@@ -108,37 +125,54 @@ class AppRouter {
             final branchId = args['branchId'] as String? ?? '';
             return _authGuard(
               context,
-              (_) =>
-                  EditBranchScreen(organizationId: orgId, branchId: branchId),
+              (_) => EditBranchScreen(organizationId: orgId, branchId: branchId),
+              routeName: settings.name ?? '/organizations/branches/edit',
             );
           },
         );
       case '/users':
         return MaterialPageRoute(
-          builder: (context) =>
-              _authGuard(context, (_) => const UserListScreen()),
+          builder: (context) => _authGuard(
+            context,
+            (_) => const UserListScreen(),
+            routeName: settings.name ?? '/users',
+          ),
         );
       case '/users/create':
         return MaterialPageRoute(
-          builder: (context) =>
-              _authGuard(context, (_) => const UserCreateScreen()),
+          builder: (context) => _authGuard(
+            context,
+            (_) => const UserCreateScreen(),
+            routeName: settings.name ?? '/users/create',
+          ),
         );
       case '/users/details':
         return MaterialPageRoute(
           builder: (context) {
-            return _authGuard(context, (_) => const UserDetailsScreen());
+            return _authGuard(
+              context,
+              (_) => const UserDetailsScreen(),
+              routeName: settings.name ?? '/users/details',
+            );
           },
         );
       case '/users/edit':
         return MaterialPageRoute(
           builder: (context) {
-            return _authGuard(context, (_) => const UserEditScreen());
+            return _authGuard(
+              context,
+              (_) => const UserEditScreen(),
+              routeName: settings.name ?? '/users/edit',
+            );
           },
         );
       case '/users/access':
         return MaterialPageRoute(
-          builder: (context) =>
-              _authGuard(context, (_) => const UserAccessScreen()),
+          builder: (context) => _authGuard(
+            context,
+            (_) => const UserAccessScreen(),
+            routeName: settings.name ?? '/users/access',
+          ),
         );
       default:
         return MaterialPageRoute(
@@ -149,11 +183,26 @@ class AppRouter {
     }
   }
 
-  static Widget _authGuard(BuildContext context, WidgetBuilder builder) {
+  static Widget _authGuard(
+    BuildContext context,
+    WidgetBuilder builder, {
+    required String routeName,
+  }) {
     final auth = GetIt.instance.get<AuthService>();
     if (!auth.isAuthenticated) {
       return const LoginScreen();
     }
+
+    if (auth.requiresOrganizationSelection && routeName != '/organization-selection') {
+      return const OrganizationSelectionScreen();
+    }
+
+    if (auth.requiresLocationSelection &&
+        routeName != '/location-selection' &&
+        routeName != '/organization-selection') {
+      return const LocationSelectionScreen();
+    }
+
     return builder(context);
   }
 }

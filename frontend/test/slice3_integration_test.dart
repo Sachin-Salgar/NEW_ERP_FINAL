@@ -1,5 +1,6 @@
 ﻿import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
@@ -7,6 +8,7 @@ import 'package:http/testing.dart';
 
 import 'package:new_erp_final_frontend/core/auth/auth_service.dart';
 import 'package:new_erp_final_frontend/core/network/api_client.dart';
+import 'package:new_erp_final_frontend/routing/router.dart';
 
 class _MemorySecureStorage implements SecureStorageLike {
   final Map<String, String> _values = {};
@@ -336,6 +338,73 @@ void main() {
       expect(auth.selectedOrganizationId, isNull);
       expect(auth.availableOrganizations, isEmpty);
       expect(auth.requiresOrganizationSelection, isFalse);
+    });
+
+    testWidgets('AppRouter redirects authenticated users to the correct selection flow', (tester) async {
+      final storage = _MemorySecureStorage();
+      final client = MockClient((request) {
+        if (request.url.path == '/api/v1/bootstrap') {
+          return Future.value(
+            http.Response(
+              jsonEncode({'deployment': {'tenantId': 'tenant-1'}}),
+              200,
+            ),
+          );
+        }
+        if (request.url.path == '/api/v1/auth/login') {
+          return Future.value(
+            http.Response(
+              jsonEncode({
+                'accessToken': 'test-access-token',
+                'refreshToken': 'refresh-token',
+                'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
+                'user': {'id': 'user-1', 'tenantId': 'tenant-1'},
+                'session': {'tenantId': 'tenant-1'},
+              }),
+              200,
+            ),
+          );
+        }
+        if (request.url.path == '/api/v1/auth/organizations') {
+          return Future.value(
+            http.Response(
+              jsonEncode({
+                'organizations': [
+                  {'id': 'org-1', 'name': 'Org 1', 'code': 'ORG1'},
+                ],
+                'activeOrganizationId': '',
+                'requiresOrganizationSelection': true,
+              }),
+              200,
+            ),
+          );
+        }
+        return Future.value(http.Response('ok', 200));
+      });
+
+      late final AuthService auth;
+      auth = AuthService(
+        secureStorage: storage,
+        apiClientFactory: (baseUrl) => ApiClient(baseUrl: baseUrl, httpClient: client, authOverride: auth),
+      );
+
+      final loginOk = await auth.login('http://example.com', 'user@example.com', 'Password123');
+      expect(loginOk, isTrue);
+      expect(auth.requiresOrganizationSelection, isTrue);
+
+      GetIt.instance.registerSingleton<AuthService>(auth);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          onGenerateRoute: AppRouter.generateRoute,
+          initialRoute: '/dashboard',
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Select organization'), findsOneWidget);
+      expect(find.text('Dashboard'), findsNothing);
     });
   });
 }

@@ -50,6 +50,19 @@ class AuthService extends ChangeNotifier {
   bool requiresOrganizationSelection = false;
   bool requiresLocationSelection = false;
 
+  String get nextPostAuthRoute {
+    if (!isAuthenticated) {
+      return '/login';
+    }
+    if (requiresOrganizationSelection) {
+      return '/organization-selection';
+    }
+    if (requiresLocationSelection) {
+      return '/location-selection';
+    }
+    return '/dashboard';
+  }
+
   String get configuredTenantId => const String.fromEnvironment(
         'TENANT_ID',
         defaultValue: '',
@@ -140,6 +153,37 @@ class AuthService extends ChangeNotifier {
     if (_accessToken != null && _refreshToken != null && _expiresAt != null) {
       notifyListeners();
     }
+  }
+
+  Future<bool> restoreSession(String baseUrl) async {
+    if (_accessToken == null || _refreshToken == null) {
+      return false;
+    }
+
+    if (_expiresAt != null && DateTime.now().isAfter(_expiresAt!)) {
+      await logout();
+      return false;
+    }
+
+    bool loaded = await loadMe(baseUrl);
+    if (!loaded) {
+      final refreshed = await tryRefresh();
+      if (!refreshed) {
+        await logout();
+        return false;
+      }
+      loaded = await loadMe(baseUrl);
+      if (!loaded) {
+        await logout();
+        return false;
+      }
+    }
+
+    final organizationsLoaded = await loadAuthorizedOrganizations(baseUrl);
+    final locationsLoaded = await loadAuthorizedLocations(baseUrl);
+    notifyListeners();
+
+    return organizationsLoaded || locationsLoaded || loaded;
   }
 
   Future<bool> login(String baseUrl, String identifier, String password) async {

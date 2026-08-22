@@ -33,6 +33,9 @@ class App extends StatefulWidget {
     final auth = di.get<AuthService>();
     await auth.init();
     await auth.bootstrap(baseUrl);
+    if (auth.isAuthenticated) {
+      await auth.restoreSession(baseUrl);
+    }
   }
 
   @override
@@ -46,13 +49,7 @@ class _AppState extends State<App> {
       create: (_) => di.get<AuthService>(),
       child: Consumer<AuthService>(
         builder: (context, auth, _) {
-          final route = auth.isAuthenticated
-              ? (auth.requiresOrganizationSelection
-                  ? '/organization-selection'
-                  : auth.requiresLocationSelection
-                      ? '/location-selection'
-                      : '/dashboard')
-              : '/login';
+          final route = auth.nextPostAuthRoute;
 
           return MaterialApp(
             title: 'NEW ERP',
