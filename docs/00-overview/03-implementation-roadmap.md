@@ -256,6 +256,27 @@ Each step above must be updated with the Evidence Requirement block after it is 
   - Commit: 45d04ea — feat(authz): implement frontend authorization state and permission service
   - Notes: AuthZService is designed as a UI-only permission cache and does NOT replace server-side authorization. It records loaded-for user to avoid leaking permissions between sessions. Any further UI wiring (menus/route guards) is part of AUTH-02.05+.
 
+- 2026-08-22
+  - AUTH-02.05 — Implement roles list UI (COMPLETED — VALIDATED)
+  - Implementation performed: added a read-only roles list UI, a RoleService to call the canonical backend roles endpoint, and focused widget tests covering render, empty state, permission-denied, and API error handling. The UI is permission-gated using AuthService/AuthZService.hasPermission('role.read'). No role-management (create/edit/delete) behavior was added in this step.
+  - Files changed:
+    - frontend/lib/modules/role/list_screen.dart (new) — Roles list screen: permission-gated, loading/empty/error states, renders fields returned by the backend (name, description, isSystem marker).
+    - frontend/lib/modules/role/role_service.dart (new) — ChangeNotifier service that calls GET /api/v1/rbac/roles and exposes roles/isLoading/error, uses ApiClient and AuthService.
+    - frontend/test/role_list_screen_test.dart (new) — Widget tests: roles render, permission denied, empty response, API failure.
+  - Backend contract used:
+    - Endpoint: GET /api/v1/rbac/roles
+    - Permission: requirePermission('role.read') on backend route
+    - Response shape: { success: true, roles: RoleDescriptor[] } (RoleDescriptor fields: id, tenantId, code, name, description, isSystem, sortOrder, createdAt, updatedAt)
+    - Tenant scoping: request tenant header or tenant context required by backend (frontend uses ApiClient which attaches tenant header from AuthService.currentTenantId)
+  - Validation commands executed and results:
+    - flutter analyze (frontend): PASS
+    - flutter test (frontend unit tests): PASS (role_list_screen_test.dart executed)
+    - npm run -s typecheck: PASS
+    - npm run -s test:unit: PASS
+    - npm run -s test:integration: PASS
+  - Commit: b266613 — feat(rbac): implement roles list UI
+  - Notes: Read-only UI that respects backend authorization. Uses existing ApiClient and AuthZService. No navigation/menu integration was changed in this step (kept focused). Tests use MockClient and GetIt registration patterns established in the project. Do not combine this entry with unrelated changes.
+
 - <future entries> — append new commits with date, short description, and status
 
 ---
