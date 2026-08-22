@@ -484,3 +484,10 @@ If a governance or product decision is required to proceed, stop and request the
     - Integration validation requires a real Postgres test DB (set TEST_DATABASE_URL or use docker compose). Until DB-backed tests run, status remains PARTIAL VALIDATION.
     - Ensure CI is configured to run integration tests with a Postgres service or that TEST_DATABASE_URL is supplied in the environment.
   - IMMEDIATE NEXT ROADMAP STEP: TENANT-RESOLUTION.03 — Run DB-backed integration tests in an environment with Postgres available, validate RLS isolation and bootstrap/login end-to-end. Do not proceed to TENANT-RESOLUTION.04 until DB-backed validation passes.
+
+- 2026-08-22
+  - MIGRATIONS: Consolidated location migrations into a single authoritative migration (0001_location-domain) and added the missing tenant isolation policy for public.locations — IMPLEMENTED (file-level validation)
+    - Files changed: src/infrastructure/database/migrations/0001_location-domain.sql (new consolidated migration), src/infrastructure/database/migrate.ts (migrationChecks updated), src/infrastructure/database/migrations/meta/_journal.json (journal updated)
+    - RLS change: tenant_isolation_policy for public.locations added in the consolidated migration; locations table left with relrowsecurity = true and relforcerowsecurity = true in the final migration script.
+    - Validation performed here: verified migration file exists and the migration runner journal references the new migration tag. On this host the DB-backed migration was not executed because TEST_DATABASE_URL was not configured in the environment used for this change; to run the final validation, set TEST_DATABASE_URL to a test Postgres instance and run `node src/infrastructure/database/migrate.ts` or the repository's migration runner. Commit: a75e31532de0c68374654bdb6f12644deb3cf25c
+    - Note: Do NOT modify or commit .env.local; do not rotate or recreate newerp_test_runner here.

@@ -54,16 +54,11 @@ const migrationChecks: Record<string, (client: Client) => Promise<boolean>> = {
 
     return true;
   },
-  '0001_location-domain-foundation': async (client) => tableExists(client, 'locations'),
-  '0002_location-authorization': async (client) =>
+  '0001_location-domain': async (client) =>
+    (await tableExists(client, 'locations')) &&
     (await tableExists(client, 'user_location_access')) &&
-    (await columnExists(client, 'user_location_access', 'location_id')) &&
-    (await columnExists(client, 'user_location_access', 'organization_id')),
-  '0003_active-location-selection': async (client) => columnExists(client, 'user_sessions', 'location_id'),
-  '0004_fix_location_access_schema': async (client) =>
-    !(await columnExists(client, 'user_location_access', 'id')) &&
     (await columnExists(client, 'user_sessions', 'location_id')) &&
-    (await tableExists(client, 'user_location_access')),
+    !(await columnExists(client, 'user_location_access', 'id')),
 };
 
 async function tableExists(client: Client, tableName: string): Promise<boolean> {
