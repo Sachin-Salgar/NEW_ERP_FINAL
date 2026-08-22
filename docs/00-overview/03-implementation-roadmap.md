@@ -277,6 +277,31 @@ Each step above must be updated with the Evidence Requirement block after it is 
   - Commit: b266613 — feat(rbac): implement roles list UI
   - Notes: Read-only UI that respects backend authorization. Uses existing ApiClient and AuthZService. No navigation/menu integration was changed in this step (kept focused). Tests use MockClient and GetIt registration patterns established in the project. Do not combine this entry with unrelated changes.
 
+- 2026-08-22
+  - AUTH-02.06 — Implement create role UI (COMPLETED — VALIDATED)
+  - Implementation performed: added a permission-gated Create Role screen and extended RoleService with createRole() to POST to the canonical backend endpoint. Focused widget tests covering render, permission-denied, client-side validation, successful creation handling, backend validation errors, 403, and 500 error handling were added.
+  - Files changed:
+    - frontend/lib/modules/role/create_screen.dart (new) — Create Role screen: form fields for code (required), name (required), description (optional), client-side validation, submission/loading state, and error presentation.
+    - frontend/lib/modules/role/role_service.dart (modified) — Added createRole() to POST /api/v1/rbac/roles, handle validation errors, set loading/error state, and optionally refresh role list on success.
+    - frontend/lib/core/network/api_client.dart (modified) — Constructor extended to accept an injectable http client for testing; preserves existing behavior.
+    - frontend/test/role/create_role_screen_test.dart (new) — Widget tests covering render, permission denied, successful creation, client-side validation, backend validation errors, 403 Forbidden, and 500 Server Error.
+    - frontend/test/test_utils.dart (new) — Test helper to register ApiClient, AuthZService, and AuthService in GetIt for tests.
+  - Backend contract used:
+    - Endpoint: POST /api/v1/rbac/roles
+    - Permission: requirePermission('role.manage') on backend route
+    - Request JSON: { code: string (required), name: string (required), description?: string, isSystem?: boolean }
+    - Response shape: { success: true, role: RoleDescriptor }
+    - Tenant scoping: ApiClient attaches tenant header from AuthService.currentTenantId; backend enforces tenant isolation
+    - Notes: isSystem accepted by backend but omitted from UI (product decision)
+  - Validation commands executed and results:
+    - flutter analyze (frontend): PASS
+    - flutter test (frontend unit tests): PASS (create_role_screen_test.dart executed)
+    - npm run -s typecheck: PASS
+    - npm run -s test:unit: PASS
+    - npm run -s test:integration: PASS
+  - Commit: d8a0051 — feat(rbac): implement create role UI
+  - Notes: Frontend permission checks are UI-level only; backend authorization remains authoritative. The create form does not expose isSystem. Tests use MockClient and GetIt registration patterns. Ensure no unrelated files were staged or committed in this step.
+
 - <future entries> — append new commits with date, short description, and status
 
 ---
