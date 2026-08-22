@@ -527,6 +527,36 @@ Notes:
     - Permission catalog UI is read-only and does not allow assigning permissions to roles. No tenant selectors were added; ApiClient attaches tenant header from AuthService.currentTenantId.
     - Status: COMPLETE — VALIDATED
 
+- 2026-08-23
+    - AUTH-02.09 Implement role-permission assignment UI
+    - Commit: 84f3078
+    - Summary: Implemented frontend RolePermissionScreen to view and assign/unassign permissions for a role, gated by `role.manage`. Added RoleService methods to fetch a role's permissions, assign permissions, and remove permissions. Added backend GET endpoint `GET /rbac/roles/:roleId/permissions` to return the role's assigned permissions (server-side tenant enforcement and `role.manage` permission required). Updated ApiClient to support DELETE with a JSON body. Added widget tests covering loading, assignment, removal, permission gating, and error flows. All validation commands passed.
+    - Files changed:
+      - src/presentation/http/routes/rbac.ts (modified: added GET /rbac/roles/:roleId/permissions)
+      - src/application/contracts/security.ts (modified: service contract extended)
+      - src/application/services/authorization-service.ts (modified: added getPermissionsForRole)
+      - src/infrastructure/database/repositories/postgres-platform-repository.ts (modified: implemented getPermissionsForRole)
+      - frontend/lib/core/network/api_client.dart (modified: allow DELETE with JSON body)
+      - frontend/lib/modules/role/role_service.dart (modified: getRolePermissions, assign/remove methods)
+      - frontend/lib/modules/permission/role_permission_screen.dart (new: role permission assignment UI)
+      - frontend/test/permission/role_permission_screen_test.dart (new: widget tests for role-permission UI)
+    - Tests run:
+      - frontend: flutter analyze: PASS
+      - frontend: flutter test: PASS (including new role-permission tests)
+      - backend: npm run typecheck: PASS
+      - backend: npm run test:unit: PASS
+    - Validation commands and results:
+      - cd frontend; flutter analyze: PASS
+      - cd frontend; flutter test test/permission/role_permission_screen_test.dart -r expanded: PASS
+      - cd frontend; flutter test --no-pub -r expanded: PASS
+      - npm run typecheck: PASS
+      - npm run test:unit: PASS
+    - Notes:
+      - Frontend UI is strictly UX-gated by `auth.hasPermission('role.manage')`. Server-side authorization remains authoritative: GET/POST/DELETE endpoints require `role.manage` and use tenant context from request (no tenant override from client).
+      - GET /rbac/roles/:roleId/permissions returns the permission descriptors assigned to the role. POST/DELETE endpoints for assignment/removal accept `permissionKeys` in the request body (no path param); ApiClient DELETE now supports a JSON body.
+      - No tenant-resolver, RLS, or authentication middleware was modified. No AUTH-02.10+ work was introduced.
+    - Status: COMPLETED — IMPLEMENTED (pending external review)
+
 - 2026-08-20
   - Roadmap snapshot generation: ded0b71ad...
 
