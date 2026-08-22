@@ -93,4 +93,86 @@ class RoleService extends ChangeNotifier {
 
     return null;
   }
+
+  /// Fetch a single role by id
+  Future<Map<String, dynamic>?> getRole(String roleId) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      final resp = await apiClient.get('/api/v1/rbac/roles/$roleId');
+      if (resp.statusCode == 200) {
+        final body = jsonDecode(resp.body) as Map<String, dynamic>;
+        final role = Map<String, dynamic>.from(body['role'] as Map);
+        return role;
+      }
+
+      if (resp.statusCode == 403) {
+        error = 'Forbidden';
+        return null;
+      }
+
+      error = 'Failed to load role: ${resp.statusCode}';
+    } catch (e) {
+      error = e.toString();
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+
+    return null;
+  }
+
+  /// Update an existing role. Returns updated role on success, null on failure.
+  Future<Map<String, dynamic>?> updateRole({required String roleId, String? code, String? name, String? description, bool? isSystem}) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      final body = <String, dynamic>{
+        if (code != null) 'code': code,
+        if (name != null) 'name': name,
+        if (description != null) 'description': description,
+        if (isSystem != null) 'isSystem': isSystem,
+      };
+
+      final resp = await apiClient.patch('/api/v1/rbac/roles/$roleId', body: body);
+
+      if (resp.statusCode == 200) {
+        final respBody = jsonDecode(resp.body) as Map<String, dynamic>;
+        final role = Map<String, dynamic>.from(respBody['role'] as Map);
+        // Refresh local list to reflect update
+        await fetchRoles();
+        return role;
+      }
+
+      if (resp.statusCode == 403) {
+        error = 'Forbidden';
+        return null;
+      }
+
+      try {
+        final respBody = jsonDecode(resp.body) as Map<String, dynamic>;
+        if (respBody['message'] != null) {
+          error = respBody['message'].toString();
+        } else if (respBody['error'] != null) {
+          error = respBody['error'].toString();
+        } else {
+          error = 'Failed to update role: ${resp.statusCode}';
+        }
+      } catch (_) {
+        error = 'Failed to update role: ${resp.statusCode}';
+      }
+    } catch (e) {
+      error = e.toString();
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+
+    return null;
+  }
 }
+

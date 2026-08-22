@@ -479,6 +479,31 @@ Notes:
   - Summary: Implemented login, session restore, tenant/organization/location selection, active-location context, router guards, and frontend regression tests.
   - Status: recorded; partial CORE-01 completion (subitems implemented). Evidence: frontend files and tests, backend routes.
 
+- 2026-08-22
+  - AUTH-02.07 Implement edit role UI
+  - Commit: 55e3c68
+  - Summary: Implemented frontend edit role UI, RoleService get/update methods, ApiClient PATCH support, and widget tests. UI is gated by AuthZService and uses existing ApiClient/ AuthService for tenant and authentication context. Server-side authorization continues to enforce role.manage permission on the PATCH endpoint.
+  - Files changed:
+    - frontend/lib/core/network/api_client.dart (modified: added patch method)
+    - frontend/lib/modules/role/role_service.dart (modified: added getRole/updateRole)
+    - frontend/lib/modules/role/edit_screen.dart (new)
+    - frontend/lib/modules/role/list_screen.dart (modified: added edit navigation)
+    - frontend/test/role/edit_role_screen_test.dart (new)
+  - Tests run:
+    - frontend: flutter analyze: PASS
+    - frontend: flutter test: PASS
+    - backend: npm run typecheck: PASS
+    - backend: npm run test:unit: PASS
+  - Validation commands and results:
+    - cd frontend; flutter analyze: PASS
+    - cd frontend; flutter test --no-pub: PASS
+    - npm run typecheck: PASS
+    - npm run test:unit: PASS
+  - Notes:
+    - Frontend uses AuthZService for gating; server-side endpoint PATCH /rbac/roles/:roleId remains authoritative and requires role.manage. No tenant-related UI controls were added; ApiClient attaches tenant header from AuthService.currentTenantId.
+    - Commit SHA will be recorded in a follow-up edit to this document after the code commit is created.
+  - Status: COMPLETE — VALIDATED
+
 - 2026-08-20
   - Roadmap snapshot generation: ded0b71ad...
 

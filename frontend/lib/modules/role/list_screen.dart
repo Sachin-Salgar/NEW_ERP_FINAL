@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/network/api_client.dart';
 import '../../core/auth/auth_service.dart';
 import 'role_service.dart';
+import 'edit_screen.dart';
 
 class RoleListScreen extends StatelessWidget {
   static const routeName = '/roles';
@@ -63,7 +64,16 @@ class RoleListScreen extends StatelessWidget {
                 return ListTile(
                   title: Text(name),
                   subtitle: desc.isNotEmpty ? Text(desc) : null,
-                  trailing: isSystem ? const Icon(Icons.shield) : null,
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    if (auth.hasPermission('role.manage'))
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () {
+                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => RoleEditScreen(roleId: r['id']?.toString() ?? '')));
+                        },
+                      ),
+                    if (isSystem) const Icon(Icons.shield),
+                  ]),
                 );
               },
             );
