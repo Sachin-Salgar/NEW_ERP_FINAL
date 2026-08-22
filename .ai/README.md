@@ -45,6 +45,38 @@ AI workflow files in `.ai/` explain **how an AI coding assistant should navigate
 8. When required information is missing or contradictory, AI must stop and ask instead of inventing a decision.
 9. A feature is not complete until applicable validation has actually run and passed.
 
+New: Roadmap as implementation-progress authority
+
+- `docs/00-overview/03-implementation-roadmap.md` is the authoritative project-state document for "what has been implemented, validated, and what must be done next." AI sessions MUST consult the roadmap at session start and obey the IMMEDIATE NEXT STEP it contains unless the user explicitly instructs otherwise.
+- Do not infer completion from code, commits, or prior AI messages. The roadmap checkpoint is the single source of truth for implementation progress and the active work item.
+
+Session initialization (MANDATORY)
+
+At the beginning of every AI implementation session the agent must perform the following read-only sequence before making changes or running commands that modify the workspace:
+
+1. Run `git status --short --untracked-files=all` and record the working tree status.
+2. Identify the current branch and recent commits relevant to the active work.
+3. Read `.ai/workflows/feature-development.md` and `.ai/workflows/ai-system.md` to re-establish local workflow rules.
+4. Read `docs/00-overview/03-implementation-roadmap.md` and extract the CURRENT IMPLEMENTATION CHECKPOINT (CURRENT SLICE, CURRENT STEP, IMMEDIATE NEXT STEP, validation requirements, blockers).
+5. Use `.ai/authority.md` to determine which authoritative documents apply to the IMMEDIATE NEXT STEP and read only those documents.
+
+The agent must not start implementation until it can answer: "What exact roadmap step am I implementing?"
+
+Session checkpoint format
+
+Agents should create an ephemeral session-checkpoint that summarizes:
+
+- CURRENT SLICE:
+- CURRENT STEP:
+- STATUS:
+- AUTHORITATIVE DOCS:
+- IMPLEMENTATION TARGET:
+- VALIDATION REQUIRED:
+- KNOWN BLOCKERS:
+- IMMEDIATE NEXT STEP:
+
+This checkpoint is ephemeral (in-memory or session files under `.ai/generated/`) and must not duplicate roadmap state — the roadmap remains authoritative.
+
 ## Local validation commands
 
 From the repository root:

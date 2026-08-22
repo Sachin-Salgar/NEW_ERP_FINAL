@@ -1,318 +1,415 @@
-# Implementation Roadmap
+# Implementation Roadmap (Living)
 
-This implementation roadmap is derived from the authoritative repository documentation in docs/ and the current repository implementation. It is intended to be the single canonical place for a future AI agent or developer to determine the next implementation slice and how to resume development.
+This implementation roadmap is the canonical, living implementation document for NEW_ERP_FINAL. It records both the high-level ERP roadmap and the detailed implementation sequence, including a persistent implementation ledger, current checkpoint, and a verified next-step instruction for humans and AI agents.
 
-Commit SHA (evidence snapshot): ded0b71ad84795dc5aaac65f9d3d0491d47d7e00
-Generated: 2026-08-20T18:30:34+05:30
+This file is authoritative for the immediate development state and must be consulted by every implementation session before coding work begins.
+
+Generated snapshot: 2026-08-22T16:50:04+05:30
+Last evidence-aware update: 2026-08-22 (see Implementation History)
 
 ---
 
-Status legend (explicit):
+STATUS LEGEND
+
 - NOT STARTED
 - PLANNED
 - IN PROGRESS
+- BLOCKED
 - BACKEND COMPLETE
 - FRONTEND IN PROGRESS
 - TESTING
-- COMPLETE
-- BLOCKED
-- NEEDS HUMAN DECISION
+- COMPLETED
+- DEFERRED
 
+USAGE NOTE
 
-## Persistent implementation-status table
-
-For each slice the table records evidence and the current status.
-
-1) Slice ID: AUTH-01
-   - Slice name: Authentication (register / login / refresh / logout / session lifecycle)
-   - Documentation references:
-     - docs/06-security/README.md
-     - docs/04-backend/07-authentication-and-authorization.md
-     - docs/02-architecture/02-system-architecture.md
-   - Scope:
-     - Backend authentication services and JWT lifecycle, session records, refresh handling, session invalidation.
-     - Secure password handling, token creation/verification.
-     - Integration points: registrationService, authService, jwtTokenService, session records.
-   - Dependencies:
-     - Database schema & platform repository (Postgres)
-     - Platform bootstrap/reference data
-     - Tenant context (header or request body)
-   - Database status: SCHEMA & supporting tables exist (repository contains PostgresPlatformRepository and tests exercising DB usage). (See src/infrastructure/database and tests/integration)
-   - Backend status: BACKEND COMPLETE (routes implemented in src/presentation/http/routes/auth.ts; domain contracts and services referenced under src/application and src/infrastructure)
-   - Frontend status: NOT STARTED (no customer-facing frontend code for this slice found in the repository)
-   - Test status: INTEGRATION TESTS EXIST (tests/integration/authentication-flow.test.ts). Tests are present in repo but were not executed as part of creating this roadmap.
-   - Build/typecheck status: Not executed here. Project contains TypeScript sources and config (tsconfig.json).
-   - E2E/user workflow status: Not implemented for frontend; backend endpoints support API flow but end-to-end UX validation remains to be executed when frontend exists.
-   - Overall status: BACKEND COMPLETE (VALIDATION ARTIFACTS PRESENT — tests exist but not executed here)
-   - Commit SHA: ded0b71ad84795dc5aaac65f9d3d0491d47d7e00
-   - Completion date: N/A (not marked complete because frontend + UX validation missing)
-   - Remaining work:
-     - Implement frontend screens and UX for register/login/forgot-password/refresh/logout according to docs/05-frontend.
-     - Run CI/integration tests in a reproducible environment and report results.
-     - Add/validate E2E tests covering the user workflow (frontend -> backend).
-   - Notes/blockers:
-     - Frontend technology per docs is Flutter; no frontend code exists in repo. Need design/UI assets and product decisions for exact UX flows.
-
-2) Slice ID: AUTH-02
-   - Slice name: Authorization (RBAC, permissions, roles, effective permissions)
-   - Documentation references:
-     - docs/08-business-modules/02-core-enterprise-modules.md
-     - docs/04-backend/07-authentication-and-authorization.md
-     - docs/06-security/README.md
-   - Scope:
-     - Role and permission model, role management, permission assignment, effective-permissions evaluation.
-     - Enforcement of permission checks at backend endpoints (requirePermission middleware).
-   - Dependencies:
-     - AUTH-01 (authentication/session context)
-     - Database & core enterprise module data
-   - Database status: Repositories and DB usage exist (see src/infrastructure/database and related repository implementations).
-   - Backend status: BACKEND COMPLETE (routes in src/presentation/http/routes/rbac.ts; middleware and authorizationService referenced)
-   - Frontend status: NOT STARTED
-   - Test status: INTEGRATION TESTS EXIST (tests/integration/authorization-flow.test.ts). Tests are present but were not executed here.
-   - Build/typecheck status: Not executed here.
-   - E2E/user workflow status: Frontend UX not implemented; backend behavior is available for API-driven frontends.
-   - Overall status: BACKEND COMPLETE
-   - Commit SHA: ded0b71ad84795dc5aaac65f9d3d0491d47d7e00
-   - Completion date: N/A
-   - Remaining work:
-     - Frontend role/permission management UI and integration with authentication flows.
-     - Additional E2E tests and CI execution.
-   - Notes/blockers:
-     - No frontend; certain UX/consent flows (role assignment UX) require product decisions.
-
-3) Slice ID: CORE-01
-   - Slice name: Core Enterprise (Organization / Branch / User / Role / Permission foundational features)
-   - Documentation references:
-     - docs/08-business-modules/02-core-enterprise-modules.md
-     - docs/04-backend/README.md
-     - docs/03-database/11-multi-tenancy.md
-     - docs/10-adr/0006-postgresql-rls-tenancy.md
-   - Scope:
-     - Organization and branch management, user profile and assignment, role/permission integration, tenant-scoped administration.
-   - Dependencies:
-     - AUTH-01 and AUTH-02 (authentication & authorization)
-     - Database / RLS (TENANCY-01)
-   - Database status: Database access/repository implementations exist and tenant-RLS helpers exist (see src/infrastructure/database and src/infrastructure/database/rls.js)
-   - Backend status: BACKEND COMPLETE (routes under src/presentation/http/routes/core-enterprise.ts and supporting services exist)
-   - Frontend status: NOT STARTED (no UI code for organization/branch/user workflows)
-   - Test status: INTEGRATION TESTS EXIST (tests/integration/core-01-organization-branch-user.test.ts). Tests present but not executed here.
-   - Build/typecheck status: Not executed here.
-   - E2E/user workflow status: NOT COMPLETE — frontend + UX validation missing; backend APIs support the flows required by the docs.
-   - Overall status: BACKEND COMPLETE (NOT MARKED COMPLETE because frontend/user-facing UX and E2E validation are missing)
-   - Commit SHA: ded0b71ad84795dc5aaac65f9d3d0491d47d7e00
-   - Completion date: N/A
-   - Remaining work:
-     - Implement frontend screens for org/branch/user administration and integrate with auth & RBAC.
-     - Execute full E2E user workflow tests (frontend + backend) and mark COMPLETE only after passing validation.
-   - Notes/blockers:
-     - Frontend implementation decisions (Flutter project, routing, design system) and UI assets required.
-
-4) Slice ID: TENANCY-01
-   - Slice name: Tenant Isolation / PostgreSQL RLS
-   - Documentation references:
-     - docs/10-adr/0006-postgresql-rls-tenancy.md
-     - docs/03-database/11-multi-tenancy.md
-     - docs/06-security/README.md
-   - Scope:
-     - Database-level tenant isolation using PostgreSQL RLS, transaction-local tenant context, tests for RLS behavior.
-   - Dependencies:
-     - Postgres database
-     - Application tenant-context helpers
-   - Database status: IMPLEMENTED (helpers in src/infrastructure/database/rls.js, tenant-context helpers in src/infrastructure/database/tenant-context.js)
-   - Backend status: N/A (this is a DB-level slice but integrated with backend connection handling in tests and infrastructure)
-   - Frontend status: N/A
-   - Test status: INTEGRATION TESTS EXIST (tests/integration/tenant-rls.test.ts) — tests present but not executed here.
-   - Overall status: BACKEND/DB COMPLETE
-   - Commit SHA: ded0b71ad84795dc5aaac65f9d3d0491d47d7e00
-   - Remaining work:
-     - Validate RLS behavior in CI and ensure migration tooling handles RLS policy creation safely in zero-downtime migrations.
-   - Notes/blockers:
-     - Migration/administration pathways must follow ADR guidance (special handling for privileged roles, background jobs, and connection pools).
+- A step is marked COMPLETED only when: implementation exists, required tests exist, validation passes, security requirements are satisfied, authoritative documentation requirements are satisfied, and no known blocking gaps remain.
+- If a step requires product or governance decisions, record those decisions and mark the step NEEDS HUMAN DECISION until resolved.
 
 ---
 
-## Additional planned slices (derived from authoritative docs)
+CURRENT IMPLEMENTATION CHECKPOINT
 
-The following slices are recorded as planned placeholders derived from docs/08-business-modules. They are NOT IMPLEMENTED in the repository at time of snapshot unless explicitly marked above.
+This checkpoint is updated after every meaningful implementation step and is the single source of truth for "what to work on next".
 
-- SALES-01: Sales vertical (see docs/08-business-modules/03-sales-module-architecture.md) — NOT STARTED
-- PROCUREMENT-01: Procurement vertical (see docs/08-business-modules/04-procurement-module-architecture.md) — NOT STARTED
-- INVENTORY-01: Inventory vertical (see docs/08-business-modules/05-inventory-module-architecture.md) — NOT STARTED
-- MANUFACTURING-01: Manufacturing vertical (see docs/08-business-modules/06-manufacturing-module-architecture.md) — NOT STARTED
-- FINANCE-01: Finance vertical (see docs/08-business-modules/07-finance-module-architecture.md) — NOT STARTED
-- HR-01: Human Resources (see docs/08-business-modules/08-hr-module-architecture.md) — NOT STARTED
-- CRM-01: CRM vertical (see docs/08-business-modules/09-crm-module-architecture.md) — NOT STARTED
-- QUALITY-01: Quality Management (see docs/08-business-modules/11-quality-management-module-architecture.md) — NOT STARTED
-- ASSET-01: Asset Maintenance (see docs/08-business-modules/12-asset-maintenance-module-architecture.md) — NOT STARTED
-- BI-01: BI & Analytics (see docs/08-business-modules/13-bi-analytics-module-architecture.md) — NOT STARTED
-- WORKFLOW-01: Workflow / BPM (see docs/08-business-modules/14-workflow-bpm-module-architecture.md) — NOT STARTED
-
----
-
-## NEXT SLICE (exactly ONE)
-
-Based on authoritative documentation and current repository evidence, the one clear next slice is:
-
-NEXT SLICE: CORE-01 (Frontend & E2E user workflow for Core Enterprise)
-
-Rationale:
-- The backend for CORE-01 (organization/branch/user administration) is implemented and has integration tests in the repository, but the frontend and user-facing E2E validation are not present.
-- The repository's implementation strategy requires completing vertical slices end-to-end (DB → domain → backend → frontend → security → E2E) before moving to another module.
-- Completing CORE-01 frontend and full user workflow will convert the existing backend work into a fully validated vertical slice and provide the UI/UX foundation needed by other modules.
-
-High-level scope for NEXT SLICE:
-- Add Flutter frontend screens for Organization List, Organization Create/Edit, Branch List/Create/Edit, User List/Create/Edit, Role assignment flows, and login/register UX per docs/05-frontend and docs/08-business-modules/02-core-enterprise-modules.md.
-- Integrate frontend with /api/v1 endpoints already implemented (auth, core-enterprise, rbac).
-- Implement E2E tests that exercise the full user workflow (register/login → create org → create branch → register member → assign roles/branches → permission checks).
-- Run integration tests and CI validation (typecheck, lint, unit/integration tests) and report results.
+Current phase: Implementation / CORE-01 vertical completion
+Current slice: CORE-01 — Core Enterprise (organization, branch, user, RBAC)
+Current step: CORE-01 → AUTH-02 (frontend authorization & RBAC UX) — pre-implementation mapping
+Current status: IN PROGRESS (overall CORE-01 = PARTIALLY COMPLETE)
+Last completed step: CORE-01 authentication & context flow (frontend session restoration and selection) — Commit: 08cccf7
+Current objective: Prepare and begin AUTH-02 frontend implementation by mapping backend RBAC contracts to frontend authorization architecture and defining the frontend authorization state model.
+Remaining work (top-level): implement frontend authorization admin UX, permission-aware navigation, run full backend integration tests, and execute frontend→backend E2E validations.
+Blockers: product decisions required for organization-scoped role assignment semantics (if needed), CI E2E infrastructure for integrated DB-backed tests, environment for Flutter E2E execution.
+Architectural decisions pending: whether role assignment requires organization/location scoping at the data model layer or can be represented via tenant-scoped roles + effective-permission model. (Document decision before modifying DB schema.)
+Immediate next action: AUTH-02.01 — inspect and map the actual backend RBAC contracts to the frontend authorization architecture and produce a small implementation plan (files, service, API calls, tests).
+Do-not-start-yet modules: SALES-01, PROCUREMENT-01, INVENTORY-01, FINANCE-01, CRM-01, MANUFACTURING-01 (the Business Module Gate is closed until CORE-01 final audit passes)
 
 ---
 
-## How to Resume Development
+1) HIGH-LEVEL ERP ROADMAP (preserve existing sequence)
 
-This section instructs a future AI agent or developer how to continue.
+- TENANCY-01 — Tenant isolation / PostgreSQL RLS (DB-level)
+- AUTH-01 — Authentication (backend session lifecycle, login/refresh/logout)
+- AUTH-02 — Authorization (RBAC: roles, permissions, assignment, evaluation)
+- CORE-01 — Core Enterprise (Organization / Branch / User / Role / Permission foundational features) — vertical E2E completion
+- Business modules (enable only after CORE platform gate): SALES-01, PROCUREMENT-01, INVENTORY-01, FINANCE-01, CRM-01, MANUFACTURING-01, etc.
 
-1. Read this roadmap first: docs/00-overview/03-implementation-roadmap.md (this file).
-2. Find the first incomplete slice: look for the slice with status not COMPLETE. The recommended next slice is CORE-01 (Frontend & E2E).
-3. Read that slice's authoritative documentation:
-   - docs/08-business-modules/02-core-enterprise-modules.md
-   - docs/05-frontend/README.md and relevant frontend UI guidelines in docs/05-frontend/
-   - docs/04-backend/07-authentication-and-authorization.md (for auth integration)
-   - docs/06-security/README.md (for security/tenant isolation)
-4. Inspect the existing implementation evidence:
-   - Backend routes: src/presentation/http/routes/core-enterprise.ts, auth.ts, rbac.ts
-   - Domain contracts: src/domain/contracts/*
-   - Infrastructure: src/infrastructure/database, src/infrastructure/security
-   - Integration tests: tests/integration/core-01-organization-branch-user.test.ts and related auth/rbac tests
-5. Follow the ERP feature-development skill flow (see .github/skills/erp-feature-development/SKILL.md) and the AI workflow in .ai/workflows/feature-development.md.
-6. Implement only that slice (end-to-end):
-   - If adding frontend: create the Flutter project (or use repo's frontend structure if present) following docs/05-frontend and the repository's frontend conventions.
-   - Wire UI to existing API endpoints (use API_PREFIX: /api/v1).
-   - Implement frontend presentation-only validation and rely on backend for authoritative checks.
-7. Add automated tests:
-   - Unit tests for frontend components as appropriate.
-   - E2E tests that simulate user workflows (login → create org → create branch → create/assign users/roles) using a deterministic test database instance.
-8. Run validations:
-   - Typecheck and lint for changed code (tsc, linters if configured).
-   - Run targeted integration tests (tests/integration/* that are relevant) and the new E2E tests.
-   - Ensure database migrations and RLS policies are handled in migration scripts per ADR-0006.
-9. Update the roadmap with evidence:
-   - Record the commit SHA that implements the slice.
-   - Update statuses, completion date, and notes. Attach test run commands and pass/fail outputs.
-   - Mark the slice COMPLETE only after backend + frontend + E2E tests pass in CI.
-10. Identify the next slice and repeat.
+Notes: This high-level ordering is taken from authoritative docs and ADRs. Do not change module ordering without an approved ADR.
 
 ---
 
-## Documentation and evidence consulted
-- docs/00-overview/README.md
-- docs/00-overview/02-governance.md
-- docs/02-architecture/* (Core System Architecture)
-- docs/03-database/* (Database architecture and multi-tenancy)
-- docs/04-backend/* (Backend architecture & auth/authorization)
-- docs/05-frontend/* (Frontend guidance)
-- docs/06-security/* (Security architecture)
-- docs/08-business-modules/* (Core Enterprise module definition)
-- docs/10-adr/0006-postgresql-rls-tenancy.md (RLS ADR)
+2) DETAILED IMPLEMENTATION SEQUENCE (CORE-01 expanded)
 
-Repository evidence:
-- src/presentation/http/routes/auth.ts
-- src/presentation/http/routes/rbac.ts
-- src/presentation/http/routes/core-enterprise.ts
-- src/infrastructure/database/rls.js and tenant-context helpers
-- tests/integration/authentication-flow.test.ts
-- tests/integration/authorization-flow.test.ts
-- tests/integration/core-01-organization-branch-user.test.ts
-- tests/integration/tenant-rls.test.ts
+This section decomposes CORE-01 into step-by-step items that record required implementation and validation gates. Each step must be assigned a status from the STATUS LEGEND.
+
+CORE-01 Detailed Steps
+
+- CORE-01.01 Authentication — [COMPLETED (backend), PARTIAL (frontend)]
+  - Backend routes and services implemented.
+  - Frontend login implemented and validated (widget tests).
+  - Evidence: src/application/services/authentication-service.ts, frontend/lib/core/auth/auth_service.dart, frontend/lib/modules/auth/login_screen.dart
+
+- CORE-01.02 Session management — [COMPLETED (backend+frontend)]
+  - Session creation, refresh, validation implemented. Frontend stores tokens in secure storage and restores session at startup.
+  - Evidence: authentication-service.ts, auth_service.dart
+
+- CORE-01.03 Tenant resolution/context — [PARTIAL]
+  - Backend supports host-based and config-based tenant resolution. Frontend uses tenant header and API paths; host-based bootstrap E2E not validated.
+  - Evidence: tenant-resolution-service.ts, frontend bootstrapping code
+
+- CORE-01.04 Organization selection — [PARTIAL]
+  - Backend list/select endpoints implemented; frontend selection UI implemented and guarded by router.
+  - Evidence: core-enterprise.ts, organization_selection_screen.dart
+
+- CORE-01.05 Location selection — [PARTIAL]
+  - Backend location access and list endpoints implemented; frontend selection UI implemented and propagates active location.
+  - Evidence: location-service.ts, location_selection_screen.dart
+
+- CORE-01.06 Active location context — [PARTIAL]
+  - Active location supported by backend (server session) and frontend sets active location in session context. Needs E2E validation.
+  - Evidence: authentication-service.createSessionForUser, frontend auth state propagation
+
+- CORE-01.07 Organization administration — [PARTIAL]
+  - Backend CRUD routes exist; frontend screens for list/create/edit exist (presentation-only). Validation pending.
+  - Evidence: core-enterprise routes, frontend/modules/organization/*
+
+- CORE-01.08 Branch/location administration — [PARTIAL]
+  - Backend CRUD routes exist; frontend screens for list/create/edit exist (presentation-only). Validation pending.
+  - Evidence: core-enterprise routes, frontend/modules/branch/*
+
+- CORE-01.09 User administration — [PARTIAL]
+  - Backend user endpoints exist; frontend user CRUD and access assignment UI exist. Role/permission assignment UI is missing.
+  - Evidence: frontend/modules/user/*, core-enterprise routes
+
+- CORE-01.10 Backend RBAC — [COMPLETE (backend)]
+  - Roles, permissions, role-permission assignment, user-role assignment, authorizationService, requirePermission middleware, and integration tests exist.
+  - Evidence: src/presentation/http/routes/rbac.ts, src/application/services/authorization-service.ts, postgres repo
+
+- CORE-01.11 Frontend authorization state — [NOT STARTED / PLANNED]
+  - Define AuthZ state model (effective permissions, cached permissions, permission refresh patterns).
+  - UI integration points for permission-dependent visibility must be defined.
+
+- CORE-01.12 Roles management UI — [NOT STARTED]
+  - Roles list/create/edit UI, wired to /rbac/roles endpoints.
+
+- CORE-01.13 Permission catalog UI — [NOT STARTED]
+  - Permission listing UI; read-only catalog of available permissions per tenant.
+
+- CORE-01.14 Role → permission assignment UI — [NOT STARTED]
+  - UI to assign/remove permission keys to roles (POST/DELETE /rbac/roles/:roleId/permissions).
+
+- CORE-01.15 User → role assignment UI — [NOT STARTED]
+  - UI to assign/revoke roles to/from users (POST/DELETE /rbac/users/:userId/roles).
+
+- CORE-01.16 Permission-aware navigation — [NOT STARTED]
+  - Client-side module/menu visibility based on effective permissions (presentation-only; backend remains authoritative).
+
+- CORE-01.17 Permission-aware route guards — [NOT STARTED]
+  - Route guards checking effective permissions before navigating to module routes (UX convenience only; server still enforces access).
+
+- CORE-01.18 Authorization frontend tests — [NOT STARTED]
+  - Widget and integration tests covering roles/permissions UI and permission-driven visibility.
+
+- CORE-01.19 Backend integration / RLS / RBAC validation — [IN PROGRESS]
+  - Execute all tests/integration RBAC and tenant RLS tests in CI with test DB.
+
+- CORE-01.20 Frontend → backend E2E validation — [NOT STARTED]
+  - E2E scenarios simulating real host-based tenant resolution and RBAC enforcement.
+
+- CORE-01.21 Security audit — [NOT STARTED]
+  - Validate secure storage, no secrets in logs, RLS policies, and audit trails meet security docs.
+
+- CORE-01.22 CORE-01 final completion audit — [NOT STARTED]
+  - Final evidence-backed audit confirming all items implemented, validated, and secure.
+
+Each step above must be updated with the Evidence Requirement block after it is completed.
 
 ---
 
-If any of the remaining work items require product or governance decisions (for example, UX choices, module enablement policies, or ADR changes), stop and request that decision rather than inventing a rule.
+3) CURRENT IMPLEMENTATION CHECKPOINT (DETAILED)
 
-## Product Decisions (authoritative for this roadmap)
+- Current slice: CORE-01 (Core Enterprise)
+- Current phase: AUTH-02 preparation (frontend authorization mapping)
+- Current step: AUTH-02.01 — map backend RBAC contracts to frontend authorization architecture (IMMEDIATE NEXT STEP)
+- Status: IN PROGRESS (CORE-01 overall = PARTIALLY COMPLETE)
+- Last completed developer-visible commit: 08cccf7 — feat(core): complete CORE-01 frontend flow
+  - Implemented: authentication, session restoration, tenant context, organization selection, location selection, active-location context, route guards, frontend tests
+- Remaining critical objectives before CORE-01 final audit:
+  - Implement frontend RBAC admin UI (roles/permissions/assignments)
+  - Implement permission-aware navigation and route guards
+  - Run full backend integration tests and RLS tests in CI
+  - Execute frontend→backend E2E including host-based tenant resolution and RBAC enforcement
+  - Complete security audit
+- Blockers and pending decisions:
+  - Organization-scoped vs tenant-scoped role assignment semantics (product decision required)
+  - Provisioning of CI environment for DB-backed integration/E2E tests
+  - Confirmation on public vs admin-only user registration (currently admin-only per product decision)
+- Immediate next action (single):
+  - AUTH-02.01 — Inspect and map the actual backend RBAC contracts to the frontend authorization architecture. Deliverable: mapping document that lists exactly which backend endpoints and payloads will be used by each frontend UI screen, required frontend service methods (AuthZService), caching/refresh rules, and a minimal list of frontend tests to implement first.
 
-The following product decisions are recorded and are authoritative for the current implementation and the roadmap. These decisions were made by the product/architecture authority and must be followed by any future implementation work unless an approved ADR or governance change explicitly updates them.
+---
 
-- Tenant creation: OPS/PLATFORM ADMINISTRATION ONLY
-  - Tenant creation is an administrative/platform operation. Use the existing TenantBootstrapService and platform repository bootstrap mechanism for creating tenants. Do NOT implement public tenant signup, tenant creation UI, or a public tenant creation REST API in this roadmap slice. Any future self-service tenant onboarding must be a separate documented product decision and implementation slice.
+4) IMPLEMENTATION HISTORY (chronological ledger)
 
-- User registration: ADMIN-ONLY
-  - User registration remains an admin-protected operation. The existing protected endpoint POST /api/v1/auth/register (requires authentication and permission 'user.manage') is authoritative. Do NOT implement anonymous or public user signup, email-verification workflows, or change default-role behavior unless later documented.
+- 2026-08-20
+  - Snapshot: ded0b71ad... (roadmap generation)
 
-- Frontend design: FUNCTIONAL-FIRST
-  - Implement a functional-first frontend following the repository frontend architecture and design-system guidance. Do not block CORE-01 on pixel-perfect external design assets. The frontend must remain presentation-only; backend validation and authorization remain authoritative.
+- 2026-08-22
+  - CORE-01 frontend auth/context work committed
+  - Commit: 08cccf7 — feat(core): complete CORE-01 frontend flow
+  - Sub-scope implemented: login, session restore, organization selection, location selection, active-location context, routing guards, frontend widget tests
+  - Status: recorded as completed for those sub-items; overall CORE-01 remains PARTIALLY COMPLETE
 
+- <future entries> — append new commits with date, short description, and status
 
-## CORE-01 explicit status checklist
+---
 
-Use these explicit checkboxes so a future AI or developer can quickly determine the current state and next action.
+5) AUTH-02 DETAILED SEQUENCE (Frontend Authorization / RBAC)
 
-- [x] CORE-01 backend: IMPLEMENTED
-- [x] CORE-01 database / RLS: IMPLEMENTED
-- [x] CORE-01 backend integration tests: PRESENT
-- [x] CORE-01 frontend — Foundation: COMPLETE (scaffolded)
-  - [x] Flutter foundation: COMPLETE
-  - [x] API/session foundation: COMPLETE
-  - [x] Authentication UI (login): COMPLETE (basic implementation)
-  - [x] Application shell: COMPLETE (app bar, navigation, logout)
-  - [x] Dashboard landing: COMPLETE (placeholder widgets)
-- [x] CORE-01 Organization frontend: IMPLEMENTED (presentation-only)
-  - [x] Organization list: IMPLEMENTED
-  - [x] Organization create: IMPLEMENTED
-  - [x] Organization details: IMPLEMENTED
-  - [x] Organization edit: IMPLEMENTED
-  - [x] Organization deactivate: IMPLEMENTED
-  - Organization frontend validation: PENDING (Flutter SDK unavailable in this environment)
-- [x] CORE-01 Branch frontend: IMPLEMENTED (presentation-only)
-  - [x] Branch list: IMPLEMENTED
-  - [x] Branch create: IMPLEMENTED
-  - [x] Branch details: IMPLEMENTED
-  - [x] Branch edit: IMPLEMENTED
-  - [x] Branch deactivate: IMPLEMENTED
-  - Branch frontend validation: PENDING (Flutter SDK unavailable in this environment)
-- [x] CORE-01 User frontend: IMPLEMENTED (presentation-only)
-  - [x] User list: IMPLEMENTED
-  - [x] User create (admin-only): IMPLEMENTED (calls POST /api/v1/auth/register)
-  - [x] User details: IMPLEMENTED
-  - [x] User edit: IMPLEMENTED (PATCH /api/v1/users/:id)
-  - [x] User activate/deactivate: IMPLEMENTED (POST /api/v1/users/:id/activate|deactivate)
-  - [x] User organization/branch access assignment UI: IMPLEMENTED (POST /api/v1/users/:userId/organizations/:orgId/access, /branches/:branchId/access)
-  - [x] User frontend tests: SCAFFOLDING ADDED (frontend/test/user_widget_test.dart)
-  - User frontend validation: PENDING (Flutter SDK unavailable in this environment)
-  - Implementation commit SHA: 6bb7fd869fa980174be58c573da7d2562c66964a
-- [ ] CORE-01 E2E: NOT STARTED
-- [ ] CORE-01 overall: IN PROGRESS
+AUTH-02 is the next major frontend slice and must be implemented in small verifiable steps. It depends on the existing backend RBAC implementation.
 
-Next action: CORE-01 User frontend completed — next slice: CORE-01 E2E / validation (run flutter tooling, format, analyze, run frontend tests and end-to-end user workflow tests). Validation should be performed in a Flutter-enabled environment.
+AUTH-02 tasks (recommended ordering):
 
-## Flutter frontend scaffold status
+- AUTH-02.01 Inspect backend authorization contracts (IMMEDIATE NEXT STEP)
+  - Inspect routes: GET /api/v1/rbac/roles, POST /rbac/roles, PATCH /rbac/roles/:id, GET /rbac/permissions, POST /rbac/roles/:roleId/permissions, POST /rbac/users/:userId/roles, DELETE /rbac/users/:userId/roles/:roleId, GET /rbac/users/:userId/effective-permissions
+  - Output: mapping doc (APIs → frontend methods), JSON examples, error shapes, required headers (tenant/authorization)
+  - Status: NOT STARTED → IN PROGRESS (set as current)
 
-Search results: a Flutter frontend scaffold now exists under `frontend/` with an application entry point and core infrastructure (main.dart, app shell, routing, API client, auth service, secure storage, and dashboard placeholder).
+- AUTH-02.02 Define frontend authorization state and service
+  - Design AuthZService to load effective permissions and expose permission checks and eventing to UI
+  - Define caching, refresh, and invalidation strategies
+  - Status: NOT STARTED
 
-**Flutter frontend scaffold: CREATED**
+- AUTH-02.03 Implement authorization service (AuthZService)
+  - Methods: loadEffectivePermissions(userId), hasPermission(key), getPermissionKeys(), refreshPermissions()
+  - Integrate with existing AuthService and ApiClient
+  - Status: NOT STARTED
+
+- AUTH-02.04 Load effective permissions on session restore
+  - After successful session restore, fetch effective permissions and cache for UI
+  - Status: NOT STARTED
+
+- AUTH-02.05 Implement roles list UI (frontend)
+  - List roles, paginated if needed, with tenant context
+  - Status: NOT STARTED
+
+- AUTH-02.06 Implement create role UI
+  - Form to create role -> POST /rbac/roles
+  - Status: NOT STARTED
+
+- AUTH-02.07 Implement edit role UI
+  - Role details and PATCH /rbac/roles/:id
+  - Status: NOT STARTED
+
+- AUTH-02.08 Implement permission catalog UI
+  - GET /rbac/permissions, display by module/resource/action/scope
+  - Status: NOT STARTED
+
+- AUTH-02.09 Implement role-permission assignment UI
+  - Assign/remove permissions to roles (POST/DELETE /rbac/roles/:roleId/permissions)
+  - Status: NOT STARTED
+
+- AUTH-02.10 Implement user-role assignment UI
+  - POST /rbac/users/:userId/roles and DELETE /rbac/users/:userId/roles/:roleId
+  - Status: NOT STARTED
+
+- AUTH-02.11 Implement permission-aware navigation
+  - Menu and module visibility driven by AuthZService.hasPermission
+  - Ensure UX degrades gracefully until permissions loaded (show loading placeholders)
+  - Status: NOT STARTED
+
+- AUTH-02.12 Implement permission-aware route handling
+  - Route guards that consult AuthZService.hasPermission before navigation (client-side convenience only)
+  - Status: NOT STARTED
+
+- AUTH-02.13 Add frontend tests for AuthZ flows
+  - Widget tests and integration tests that mock backend responses and assert UI visibility and assignment operations
+  - Status: NOT STARTED
+
+- AUTH-02.14 Validate against backend (integration)
+  - Run select integration tests using a test DB and exercise role/permission assignment flows end-to-end
+  - Status: NOT STARTED
+
+- AUTH-02.15 AUTH-02 final audit
+  - Evidence-backed audit with tests and validation results to mark AUTH-02 COMPLETE
+  - Status: NOT STARTED
+
+Notes: Each AUTH-02 step must record the evidence block (files, tests, validation commands, commit SHA) when moved to COMPLETED.
+
+---
+
+6) VALIDATION STATE
+
+- Local validations performed during last implementation: flutter analyze (frontend), flutter test (frontend), npm run typecheck (backend) — these passed during implementation of the auth/context flow.
+- Tests existing but requiring DB: tests/integration/* (authorization-flow, core-01 organization tests, tenant RLS tests). These must run in CI with a test Postgres instance.
+- Required validation before marking CORE-01 COMPLETE:
+  - Full backend integration tests (run in CI with DB)
+  - Full frontend tests (flutter analyze + flutter test)
+  - Frontend→backend E2E tests exercising host-based tenant resolution, session restoration, org selection, location selection, role/permission assignment, and RBAC enforcement
+  - Security audit checks
+
+---
+
+7) BLOCKERS / ARCHITECTURAL DECISIONS
+
+- Organization-scoped role assignment: the backend currently models user_roles as tenant-scoped. If organization-scoped role assignment is required by product, an ADR and data-model change is needed. DO NOT change the DB schema without ADR approval.
+- CI E2E infrastructure: requires a stable test Postgres instance and a plan for test data isolation. Set up a CI job to run integration tests with explicit teardown.
+- Product decisions for UI UX and admin flows: role assignment UX and default-role behavior are product decisions (current product decision: user registration is admin-only).
+
+---
+
+8) DO NOT START YET: BUSINESS MODULE GATE
+
+DO NOT START Business Modules until CORE PLATFORM GATE passes (CORE-01 final audit).
+
+Business modules blocked:
+- Sales
+- Procurement
+- Inventory
+- Finance
+- CRM
+- Manufacturing
+
+The gate is opened only when CORE-01 is COMPLETE (evidence-backed and validated).
+
+---
+
+9) MANDATORY ROADMAP UPDATE WORKFLOW (for AI sessions)
+
+Every Copilot implementation session must follow this roadmap maintenance process:
+
+START:
+1. Read this roadmap (docs/00-overview/03-implementation-roadmap.md).
+2. Read CURRENT IMPLEMENTATION CHECKPOINT.
+3. Identify the exact current step (the step marked as IMMEDIATE NEXT IMPLEMENTATION STEP).
+4. Confirm the intended next action with the user if the step is ambiguous or requires product/governance decisions.
+
+DURING:
+5. Implement only the current step.
+6. Add/update tests for the changed behavior.
+7. Run validations described in the step's validation requirement.
+
+END:
+8. Update this roadmap with: evidence, commit SHA, updated status, validation results, blockers, and the IMMEDIATE NEXT IMPLEMENTATION STEP.
+9. If validation failed, mark the step IN PROGRESS or BLOCKED with failure evidence.
+10. Do not proceed to the next step until the current step is validated and the roadmap updated.
+
+---
+
+10) EVIDENCE REQUIREMENT (How to record completed steps)
+
+For every COMPLETED step record:
+- Implementation files (paths)
+- Tests added/updated (paths)
+- Validation commands run
+- Validation results (pass/fail and key output)
+- Commit SHA implementing the step
+- Security/architecture notes (e.g., tenant/RLS considerations)
+
+Example entry (format to use):
+
+[COMPLETED] CORE-01.05 Location selection
+
+Files:
+- frontend/lib/core/auth/auth_service.dart
+- frontend/lib/modules/auth/location_selection_screen.dart
+
+Tests:
+- frontend/test/slice3_integration_test.dart
+
+Validation:
+- flutter analyze: PASS
+- flutter test: PASS
+
+Commit:
+- 08cccf7
 
 Notes:
-- Files committed: frontend/ (initial scaffold commit) and a subsequent commit adding a login screen and routing.
-- Flutter SDK was not available in the current environment; therefore formatting, analyzer, and test execution were NOT run here. Validation is pending in an environment with Flutter tooling.
-
-
-## Current Resume Point
-
-This section is the canonical resume marker for future AI sessions and must remain highly visible near the top of the roadmap.
-
-**CURRENT RESUME POINT**
-
-- Current slice: CORE-01
-- Backend: COMPLETE / IMPLEMENTED
-- Database / RLS: COMPLETE / IMPLEMENTED
-- Backend integration tests: PRESENT
-- Frontend: FOUNDATION IMPLEMENTED (scaffold + login + app shell)
-- E2E: NOT STARTED
-- Tenant creation: OPS-ONLY
-- User registration: ADMIN-ONLY
-- Next action: IMPLEMENT CORE-01 Organization frontend (Phase E: Organization UI)
-- Do not start other business modules until CORE-01 frontend + E2E is complete.
-
+- Backend remains authoritative for location authorization.
 
 ---
+
+11) IMPLEMENTATION HISTORY (append-only)
+
+- 2026-08-22
+  - CORE-01 frontend authentication/context flow
+  - Commit: 08cccf7
+  - Summary: Implemented login, session restore, tenant/organization/location selection, active-location context, router guards, and frontend regression tests.
+  - Status: recorded; partial CORE-01 completion (subitems implemented). Evidence: frontend files and tests, backend routes.
+
+- 2026-08-20
+  - Roadmap snapshot generation: ded0b71ad...
+
+(continue appending future entries here)
+
+---
+
+12) IMMEDIATE NEXT IMPLEMENTATION STEP (exactly one)
+
+AUTH-02.01 — Inspect and map the actual backend RBAC contracts to the frontend authorization architecture.
+
+Deliverable:
+- A short mapping document (file in repo under docs/ or .ai/generated/) that lists the exact backend endpoints, payload shapes, headers required, expected success and error responses, and the frontend service methods to call. Also specify the initial set of frontend UI screens to implement and the minimal set of tests.
+
+Rationale:
+- Backend RBAC is implemented and ready but frontend authorization architecture must be designed and mapped before implementation. This mapping avoids assumptions and prevents accidental backend contract mismatches.
+
+Do not implement AUTH-02.02 until AUTH-02.01 mapping is completed and reviewed.
+
+---
+
+13) FILES MODIFIED / TO BE MODIFIED
+
+This roadmap update is documentation-only. Implementation files are not modified in this change. When implementing AUTH-02, the following frontend paths are expected to be modified or created:
+- frontend/lib/core/authz_service.dart (new)
+- frontend/lib/modules/rbac/roles_list_screen.dart (new)
+- frontend/lib/modules/rbac/role_edit_screen.dart (new)
+- frontend/lib/modules/rbac/permission_catalog_screen.dart (new)
+- frontend/test/authz_widget_test.dart (new)
+
+Do not create these files now; this is the planned mapping.
+
+---
+
+14) FINAL VALIDATION (post-update checks)
+
+Run locally (or CI) after editing this roadmap:
+- git diff --check
+- git status --short --untracked-files=all
+
+Only documentation/workflow files are expected to change in this task.
+
+---
+
+ROADMAP SUMMARY (quick view)
+
+- CORE-01 status: PARTIALLY COMPLETE
+- Completed: authentication & session restoration (frontend+backend), tenant/context handling, selection flows, active-location propagation, routing guards, backend RBAC foundation
+- Remaining: frontend authorization state + UI (AUTH-02), E2E validation, backend integration finalization, security audit
+- Immediate next step: AUTH-02.01 — map RBAC backend contracts to frontend authorization service
+- Business modules: DO NOT START until CORE-01 final audit passes
+
+---
+
+If a governance or product decision is required to proceed, stop and request the decision rather than invent it.
 

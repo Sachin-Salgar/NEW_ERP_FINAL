@@ -62,3 +62,15 @@ For every non-trivial implementation task, the AI should be able to state:
 - tests inspected;
 - unresolved ambiguities;
 - validation performed after the change.
+
+## Implementation-progress authority (roadmap)
+
+- The living implementation roadmap `docs/00-overview/03-implementation-roadmap.md` is the authoritative source of the project's implementation state and the IMMEDIATE NEXT STEP for AI sessions.
+- AI must consult the roadmap at session start and obey the IMMEDIATE NEXT STEP unless the user explicitly overrides it.
+- Do not mark a roadmap step COMPLETE based solely on code presence. A roadmap step is COMPLETE only when its implementation and validation requirements (as recorded in the roadmap) have actually been executed and recorded in the roadmap.
+
+## Roadmap update requirement
+
+- After every meaningful implementation step the AI MUST update `docs/00-overview/03-implementation-roadmap.md` to record: step status, implementation summary, files changed, tests run, validation commands and results, evidence references, remaining risks, and the IMMEDIATE NEXT STEP.
+- The AI must not declare a step COMPLETE until the roadmap is updated with the evidence of validation and the roadmap shows the step as COMPLETE — the roadmap is the canonical checkpoint for handoffs between sessions.
+

@@ -54,3 +54,4 @@ A request that changes an approved architectural decision, cross-cutting boundar
 - `.ai/workflows/feature-development.md` — feature lifecycle.
 - `.ai/workflows/repository-maintenance.md` — AI/repository maintenance.
 - `.ai/workflows/ai-system.md` — AI workflow design rules.
+- `docs/00-overview/03-implementation-roadmap.md` — living implementation roadmap (authoritative for implementation progress and IMMEDIATE NEXT STEP). Read this at session start.

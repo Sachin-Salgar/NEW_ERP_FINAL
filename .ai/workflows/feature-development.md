@@ -2,14 +2,24 @@
 
 This is the default workflow for implementing a non-trivial ERP feature. It is designed so a clear user request can proceed from discovery to implementation without requiring the user to manually orchestrate AI context files.
 
+Session initialization (MANDATORY before any change)
+
+- At the start of every AI implementation session perform the Session Initialization sequence defined in `.ai/workflows/ai-system.md`.
+- In short: run `git status --short --untracked-files=all`, note branch and recent commits, read the living roadmap `docs/00-overview/03-implementation-roadmap.md` and extract the CURRENT IMPLEMENTATION CHECKPOINT (CURRENT SLICE, CURRENT STEP, IMMEDIATE NEXT STEP), and read only the authoritative documents required for the IMMEDIATE NEXT STEP per `.ai/authority.md`.
+- The agent must explicitly state which roadmap step it will implement before any code modification. If it cannot, STOP and ask.
+
+Roadmap-first rule
+
+- The roadmap is the authoritative implementation-progress source. The agent must normally implement exactly the IMMEDIATE NEXT STEP recorded in the roadmap. Do not skip or re-order roadmap steps without updating the roadmap.
+
 ## Operating modes
 
-- **Clear feature request:** investigate, plan, implement, validate, and report in one controlled run. Do not ask for unnecessary confirmation.
-- **Ambiguous requirement:** investigate what can be established, identify the exact ambiguity, then STOP and ask.
+- **Clear feature request:** investigate, plan, implement, validate, update the roadmap with evidence, and report in one controlled run. Do not ask for unnecessary confirmation unless a governance decision is required.
+- **Ambiguous requirement:** investigate what can be established, identify the exact ambiguity, record the ambiguity in the roadmap if it blocks progress, then STOP and ask.
 - **Authority conflict:** STOP and report the conflicting sources. Do not choose silently.
-- **Architectural/governed change:** STOP at the decision boundary and follow the ADR/governance process before implementation.
+- **Architectural/governed change:** STOP at the decision boundary and follow the ADR/governance process before implementation. Record the block in the roadmap.
 - **Investigation-only request:** do not modify production files.
-- **Review/fix request:** inspect the requested change and validation evidence first; make only the changes required by the review findings.
+- **Review/fix request:** inspect the requested change and validation evidence first; make only the changes required by the review findings and update the roadmap accordingly.
 
 ## Phase 0 — Classify
 

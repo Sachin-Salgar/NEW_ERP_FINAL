@@ -46,6 +46,10 @@ For every non-trivial task:
 11. Validate with applicable tests, typecheck, lint/static analysis, integration/security/database checks, and build.
 12. Review the result against authoritative documentation and report evidence.
 
+Additional mandatory step (roadmap):
+
+- Before implementing any change, read `docs/00-overview/03-implementation-roadmap.md` and follow the IMMEDIATE NEXT STEP recorded there. The roadmap is the authoritative implementation-state document. Do not infer that a step is complete unless the roadmap marks it COMPLETE and records validation evidence.
+
 Do NOT read the entire repository indiscriminately. Repository awareness means discovering the relevant evidence, not loading every file into context.
 
 The detailed lifecycle is defined in `.ai/workflows/feature-development.md` and the reusable ERP feature skill is `.github/skills/erp-feature-development/SKILL.md`.
