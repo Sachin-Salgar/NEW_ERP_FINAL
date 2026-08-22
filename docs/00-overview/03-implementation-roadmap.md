@@ -240,6 +240,22 @@ Each step above must be updated with the Evidence Requirement block after it is 
   - Commit: 45d04ea — feat(authz): implement frontend authorization state and permission service
   - Notes: AuthZService intentionally avoids optimistic-allow semantics. When permissions are not loaded, hasPermission returns false; UI should observe isLoading/isLoaded to avoid showing protected actions while permission fetch is in progress. No backend changes were required.
 
+- 2026-08-22
+  - AUTH-02.03 — Implement authorization service (COMPLETED)
+  - Implementation performed: the AuthZService class was implemented, tested, and integrated with AuthService; it provides permission loading, caching, refresh, clear, and UI helper APIs.
+  - Files changed:
+    - frontend/lib/core/auth/authz_service.dart — implementation of the authorization state service
+    - frontend/lib/core/auth/auth_service.dart — integration points added to call/load/clear permission state
+    - frontend/test/authz_service_test2.dart — unit tests validating expected behaviors
+  - Validation commands executed and results:
+    - flutter analyze (frontend): PASS
+    - flutter test (frontend unit tests): PASS
+    - npm run -s typecheck: PASS
+    - npm run -s test:unit: PASS
+    - npm run -s test:integration: PASS
+  - Commit: 45d04ea — feat(authz): implement frontend authorization state and permission service
+  - Notes: AuthZService is designed as a UI-only permission cache and does NOT replace server-side authorization. It records loaded-for user to avoid leaking permissions between sessions. Any further UI wiring (menus/route guards) is part of AUTH-02.05+.
+
 - <future entries> — append new commits with date, short description, and status
 
 ---
