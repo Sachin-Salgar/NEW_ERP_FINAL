@@ -143,6 +143,18 @@ const rbacRoutes: FastifyPluginAsync = async (fastify) => {
     return { success: true, removed: count };
   });
 
+  // New endpoint: list permissions assigned to a role
+  fastify.get('/rbac/roles/:roleId/permissions', { preHandler: [requireAuth, requirePermission('role.manage')] }, async (request) => {
+    const tenantId = request.tenantId ?? getTenantIdFromRequest(request);
+    if (!tenantId) {
+      throw new ValidationError('Tenant context is required.');
+    }
+
+    const roleId = String((request.params as { roleId?: string }).roleId ?? '');
+    const permissions = await request.server.authorizationService.getPermissionsForRole(tenantId, roleId);
+    return { success: true, permissions };
+  });
+
   fastify.post('/rbac/users/:userId/roles', { preHandler: [requireAuth, requirePermission('user.manage')] }, async (request) => {
     const tenantId = request.tenantId ?? getTenantIdFromRequest(request);
     if (!tenantId) {

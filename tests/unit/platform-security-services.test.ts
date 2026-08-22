@@ -149,6 +149,7 @@ class FakeAuthorizationRepository {
   async listPermissions() { return []; }
   async assignPermissionsToRole() { return 0; }
   async removePermissionsFromRole() { return 0; }
+  async getPermissionsForRole() { return []; }
   async assignRoleToUser() { return false; }
   async revokeRoleFromUser() { return false; }
   async getUserEffectivePermissions() { return []; }

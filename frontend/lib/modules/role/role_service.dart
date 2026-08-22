@@ -174,5 +174,104 @@ class RoleService extends ChangeNotifier {
 
     return null;
   }
-}
 
+  /// Fetch permissions assigned to a role
+  Future<List<Map<String, dynamic>>> getRolePermissions(String roleId) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      final resp = await apiClient.get('/api/v1/rbac/roles/$roleId/permissions');
+      if (resp.statusCode == 200) {
+        final body = jsonDecode(resp.body) as Map<String, dynamic>;
+        final list = (body['permissions'] as List<dynamic>?) ?? [];
+        return List<Map<String, dynamic>>.from(list.map((e) => Map<String, dynamic>.from(e as Map)));
+      }
+
+      if (resp.statusCode == 403) {
+        error = 'Forbidden';
+        return [];
+      }
+
+      error = 'Failed to load role permissions: ${resp.statusCode}';
+    } catch (e) {
+      error = e.toString();
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+
+    return [];
+  }
+
+  /// Assign permission(s) to a role. Returns number assigned on success or 0 on failure.
+  Future<int> assignPermissionsToRole(String roleId, List<String> permissionKeys) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      final resp = await apiClient.post('/api/v1/rbac/roles/$roleId/permissions', body: {'permissionKeys': permissionKeys});
+      if (resp.statusCode == 200) {
+        final body = jsonDecode(resp.body) as Map<String, dynamic>;
+        final assigned = body['assigned'] as int? ?? 0;
+        return assigned;
+      }
+
+      if (resp.statusCode == 403) {
+        error = 'Forbidden';
+        return 0;
+      }
+
+      try {
+        final body = jsonDecode(resp.body) as Map<String, dynamic>;
+        error = body['message']?.toString() ?? body['error']?.toString() ?? 'Failed to assign permission: ${resp.statusCode}';
+      } catch (_) {
+        error = 'Failed to assign permission: ${resp.statusCode}';
+      }
+    } catch (e) {
+      error = e.toString();
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+
+    return 0;
+  }
+
+  /// Remove permission(s) from a role. Returns number removed on success or 0 on failure.
+  Future<int> removePermissionsFromRole(String roleId, List<String> permissionKeys) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      final resp = await apiClient.delete('/api/v1/rbac/roles/$roleId/permissions', body: {'permissionKeys': permissionKeys});
+      if (resp.statusCode == 200) {
+        final body = jsonDecode(resp.body) as Map<String, dynamic>;
+        final removed = body['removed'] as int? ?? 0;
+        return removed;
+      }
+
+      if (resp.statusCode == 403) {
+        error = 'Forbidden';
+        return 0;
+      }
+
+      try {
+        final body = jsonDecode(resp.body) as Map<String, dynamic>;
+        error = body['message']?.toString() ?? body['error']?.toString() ?? 'Failed to remove permission: ${resp.statusCode}';
+      } catch (_) {
+        error = 'Failed to remove permission: ${resp.statusCode}';
+      }
+    } catch (e) {
+      error = e.toString();
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+
+    return 0;
+  }
+}

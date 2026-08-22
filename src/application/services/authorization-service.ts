@@ -32,6 +32,10 @@ export class AuthorizationService {
     return this.authorizationRepository.removePermissionsFromRole(tenantId, roleId, permissionKeys);
   }
 
+  async getPermissionsForRole(tenantId: string, roleId: string): Promise<PermissionDescriptor[]> {
+    return this.authorizationRepository.getPermissionsForRole(tenantId, roleId);
+  }
+
   async assignRoleToUser(tenantId: string, userId: string, roleId: string): Promise<boolean> {
     return this.authorizationRepository.assignRoleToUser(tenantId, userId, roleId);
   }

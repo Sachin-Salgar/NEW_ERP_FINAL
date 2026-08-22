@@ -231,6 +231,8 @@ export interface AuthorizationRepository {
   listPermissions(tenantId: string): Promise<Array<{ id: string; moduleCode: string; resource: string; action: string; scope: 'own' | 'branch' | 'organization' | 'tenant' | 'global'; permissionKey: string; displayName: string; description?: string | null; isSystem: boolean }>>;
   assignPermissionsToRole(tenantId: string, roleId: string, permissionKeys: string[]): Promise<number>;
   removePermissionsFromRole(tenantId: string, roleId: string, permissionKeys: string[]): Promise<number>;
+  // Retrieve permissions assigned to a role
+  getPermissionsForRole(tenantId: string, roleId: string): Promise<PermissionDescriptor[]>;
   assignRoleToUser(tenantId: string, userId: string, roleId: string): Promise<boolean>;
   revokeRoleFromUser(tenantId: string, userId: string, roleId: string): Promise<boolean>;
   getUserEffectivePermissions(tenantId: string, userId: string): Promise<PermissionDescriptor[]>;

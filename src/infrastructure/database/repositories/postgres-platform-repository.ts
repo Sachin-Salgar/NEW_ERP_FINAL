@@ -603,6 +603,34 @@ export class PostgresPlatformRepository
     return result.count;
   }
 
+  async getPermissionsForRole(tenantId: string, roleId: string): Promise<PermissionDescriptor[]> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      const rows = await client.query(
+        `SELECT p.id, p.module_code as "moduleCode", p.resource, p.action, p.scope, p.permission_key as "permissionKey",
+                p.display_name as "displayName", p.description, p.is_system as "isSystem"
+         FROM permissions p
+         INNER JOIN role_permissions rp ON rp.permission_id = p.id AND rp.tenant_id = $1
+         WHERE rp.role_id = $2
+         ORDER BY p.module_code, p.resource, p.action, p.permission_key`,
+        [tenantId, roleId],
+      );
+
+      return rows.rows.map((row: any) => ({
+        id: row.id,
+        moduleCode: row.moduleCode,
+        resource: row.resource,
+        action: row.action,
+        scope: row.scope,
+        permissionKey: row.permissionKey,
+        displayName: row.displayName,
+        description: row.description ?? null,
+        isSystem: row.isSystem,
+      }));
+    });
+
+    return result;
+  }
+
   async assignRoleToUser(tenantId: string, userId: string, roleId: string): Promise<boolean> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       const userRow = await client.query(

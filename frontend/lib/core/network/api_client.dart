@@ -77,8 +77,8 @@ class ApiClient {
     return _sendWithAuth((headers) => _client.patch(url, headers: headers, body: jsonEncode(body ?? {})));
   }
 
-  Future<http.Response> delete(String path) async {
+  Future<http.Response> delete(String path, {Map<String, dynamic>? body}) async {
     final url = Uri.parse('$baseUrl$path');
-    return _sendWithAuth((headers) => _client.delete(url, headers: headers));
+    return _sendWithAuth((headers) => _client.delete(url, headers: headers, body: jsonEncode(body ?? {})));
   }
 }
