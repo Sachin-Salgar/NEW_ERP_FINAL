@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'authz_service.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -25,6 +27,7 @@ class FlutterSecureStorageAdapter implements SecureStorageLike {
 }
 
 class AuthService extends ChangeNotifier {
+  final AuthZService authzService;
   final SecureStorageLike _secureStorage;
   final ApiClient Function(String baseUrl)? _apiClientFactory;
   late ApiClient _apiClient;
@@ -32,8 +35,10 @@ class AuthService extends ChangeNotifier {
   AuthService({
     SecureStorageLike? secureStorage,
     ApiClient Function(String baseUrl)? apiClientFactory,
-  })  : _secureStorage = secureStorage ?? FlutterSecureStorageAdapter(),
-        _apiClientFactory = apiClientFactory ?? ((baseUrl) => ApiClient(baseUrl: baseUrl));
+      AuthZService? authzService,
+    })  : _secureStorage = secureStorage ?? FlutterSecureStorageAdapter(),
+          _apiClientFactory = apiClientFactory ?? ((baseUrl) => ApiClient(baseUrl: baseUrl)),
+          authzService = authzService ?? AuthZService();
 
   String? _accessToken;
   String? _refreshToken;
@@ -72,7 +77,6 @@ class AuthService extends ChangeNotifier {
       _accessToken != null && _expiresAt != null && DateTime.now().isBefore(_expiresAt!);
   String? get accessToken => _accessToken;
 
-  List<String>? _permissions;
 
   void _ensureApiClient(String baseUrl) {
     _apiClient = _apiClientFactory!(baseUrl);
@@ -115,27 +119,18 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<List<String>> fetchEffectivePermissions(String baseUrl) async {
-    _permissions = [];
-    if (_accessToken == null || currentUser == null) return _permissions!;
-    try {
+      _ensureApiClient(baseUrl);
+      if (_accessToken == null || currentUser == null) return [];
       final userId = currentUser!['id'] as String?;
-      if (userId == null) return _permissions!;
-      final resp = await _apiClient.get('/api/v1/rbac/users/$userId/effective-permissions');
-      if (resp.statusCode == 200) {
-        final body = jsonDecode(resp.body) as Map<String, dynamic>;
-        final perms = (body['permissions'] as List<dynamic>?) ?? [];
-        _permissions = perms.map((e) => e.toString()).toList();
-      }
-    } catch (_) {
-      // ignore
+      if (userId == null) return [];
+      final perms = await authzService.loadPermissions(_apiClient, userId);
+      return perms;
     }
-    return _permissions!;
-  }
 
-  bool hasPermission(String key) {
-    if (_permissions == null) return true;
-    return _permissions!.contains(key);
-  }
+    bool hasPermission(String key) {
+      // Delegate to authzService. If not loaded, return false to avoid optimistic allow.
+      return authzService.hasPermission(key);
+    }
 
   Future<void> init() async {
     _accessToken = await _secureStorage.read(key: 'access_token');
@@ -237,6 +232,20 @@ class AuthService extends ChangeNotifier {
       }
 
       await loadAuthorizedLocations(baseUrl);
+
+      // Load effective permissions for the authenticated user without blocking the flow
+      if (currentUser != null) {
+        final userId = currentUser!['id'] as String?;
+        if (userId != null) {
+          try {
+            _ensureApiClient(baseUrl);
+            await authzService.loadPermissions(_apiClient, userId);
+          } catch (_) {
+            // Permission loading failure should not prevent continuation
+          }
+        }
+      }
+
       notifyListeners();
       return true;
     } catch (_) {
@@ -480,6 +489,20 @@ class AuthService extends ChangeNotifier {
       }
 
       await loadAuthorizedLocations(baseUrl);
+
+      // Load effective permissions for the authenticated user without blocking the flow
+      if (currentUser != null) {
+        final userId = currentUser!['id'] as String?;
+        if (userId != null) {
+          try {
+            _ensureApiClient(baseUrl);
+            await authzService.loadPermissions(_apiClient, userId);
+          } catch (_) {
+            // Permission loading failure should not prevent the session from being restored
+          }
+        }
+      }
+
       notifyListeners();
       return true;
     } catch (_) {
@@ -548,6 +571,13 @@ class AuthService extends ChangeNotifier {
     await _secureStorage.delete(key: 'tenant_id');
     await _secureStorage.delete(key: 'organization_id');
     await _secureStorage.delete(key: 'location_id');
+
+    // Clear authorization state
+    try {
+      authzService.clear();
+    } catch (_) {
+      // ignore
+    }
 
     notifyListeners();
   }
