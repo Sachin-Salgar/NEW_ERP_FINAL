@@ -7,7 +7,7 @@ import { AuthenticationService } from '../../application/services/authentication
 import { AuthorizationService } from '../../application/services/authorization-service.js';
 import { CoreEnterpriseService } from '../../application/services/core-enterprise-service.js';
 import { LocationService } from '../../application/services/location-service.js';
-import { TenantResolutionService } from '../../application/services/tenant-resolution-service.js';
+import { createTenantResolver } from '../../application/services/tenant-resolver-factory.js';
 import { UserRegistrationService } from '../../application/services/user-registration-service.js';
 import { createDatabasePool } from '../../infrastructure/database/connection.js';
 import { PostgresPlatformRepository } from '../../infrastructure/database/repositories/postgres-platform-repository.js';
@@ -45,7 +45,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   const coreEnterpriseService = new CoreEnterpriseService(repository);
   const locationService = new LocationService(repository);
   const registrationService = new UserRegistrationService(repository, passwordHasher);
-  const tenantResolver = new TenantResolutionService(repository, {
+  const tenantResolver = createTenantResolver(repository, {
     TENANT_HOST_MAP: config.TENANT_HOST_MAP,
     DEPLOYMENT_TENANT_ID: config.DEPLOYMENT_TENANT_ID,
     NODE_ENV: config.NODE_ENV,
