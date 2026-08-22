@@ -7,6 +7,31 @@
 
 This document defines the functional responsibilities of the core enterprise modules. Security policy and backend authentication implementation remain governed by their canonical security and backend documents.
 
+## Domain Model Relationships
+
+The authoritative business-domain model for the ERP is:
+
+```text
+Tenant
+  └── Organization
+       ├── Legal / Business Identity
+       ├── Tax Registrations
+       ├── Locations / Plants / Branches
+       ├── Users / Memberships
+       └── Business Transactions
+```
+
+This model preserves the separation between:
+
+- **Tenant** — data-isolation and security boundary.
+- **Organization** — legal/business company inside the tenant.
+- **Location / Plant / Branch** — business operation under the organization.
+- **User** — ERP account identity associated with an authenticated identity.
+- **Membership** — the authorization bridge proving the user may operate within the tenant and organization.
+- **Location access** — the permission to operate within specific locations.
+
+A location is not a tenant. A tenant is not automatically equivalent to an organization. The RLS boundary remains tenant-scoped; organization and location metadata are business and authorization context within that boundary.
+
 ## 1. Organization Management
 
 The Organization Management Module provides the organizational foundation for the ERP and the tenant context in which business modules operate.
@@ -24,19 +49,20 @@ Typical organization data includes legal/display name, registration and tax iden
 
 Lifecycle examples such as registration, configuration, active, suspended, and archived are illustrative; exact transitions are governed by implemented business rules.
 
-## 2. Branch Management
+## 2. Branch / Location Management
 
-A branch belongs to exactly one organization and provides a location-level operational context.
+A location, branch, or plant belongs to exactly one organization and provides operational context for business execution. The project documents treat location as a first-class operational dimension under the organization and distinct from the tenant boundary.
 
 ### Core responsibilities
-- Branch profile and lifecycle management.
-- Branch-specific operational configuration.
+- Location profile and lifecycle management.
+- Location-specific operational configuration.
 - Warehouse assignment.
 - Working-day and holiday configuration.
 - Local tax/financial settings where applicable.
-- Multi-branch reporting and operational support.
+- Multi-location reporting and operational support.
+- User location access assignment and validation.
 
-Branch settings may override organization defaults only where the applicable configuration contract permits it.
+Location settings may override organization defaults only where the applicable configuration contract permits it. A location is not a database-isolation boundary and does not replace tenant-scoped RLS.
 
 ## 3. User & Identity Management
 
@@ -46,13 +72,15 @@ The User & Identity Management capability manages ERP user identities and accoun
 - User profile and organizational association.
 - Account lifecycle management.
 - User preferences.
-- Branch/organizational assignment.
+- Organization membership and location-access assignment.
 - Login/security-event history where supported.
 - Integration with authorization, audit, notification, and workflow capabilities.
 
 Authentication mechanisms are governed by the canonical backend authentication/security architecture. This module must not independently introduce alternative authentication protocols or credential storage rules.
 
 Sensitive authentication material shall be handled according to the security architecture and shall not be stored as ordinary profile data.
+
+A user may have memberships across organizations and permitted locations. Those memberships are evaluated in the resolved tenant and organization context before business operations execute.
 
 ## 4. Role Management
 
@@ -62,13 +90,13 @@ Roles group responsibilities and permissions for manageable authorization admini
 - Create and maintain roles.
 - Assign permissions to roles.
 - Assign roles to users.
-- Support organization/branch-scoped assignments where required.
+- Support organization/location-scoped assignments where required.
 - Support lifecycle and audit history.
 - Review role usage.
 
 Example role names are organizational conventions, not mandatory global roles.
 
-A role hierarchy does not imply unrestricted inheritance. Effective authorization must follow the canonical authorization rules.
+A role hierarchy does not imply unrestricted inheritance. Effective authorization must follow the canonical authorization rules and evaluate the active tenant, organization, and location context.
 
 ## 5. Permission Management
 
@@ -94,7 +122,7 @@ Effective access may depend on:
 - User identity.
 - Assigned roles and permissions.
 - Organization/tenant context.
-- Branch or other organizational scope.
+- Location or plant scope.
 - Record ownership.
 - Business rules.
 - Workflow state.
@@ -104,13 +132,19 @@ Data scope is distinct from screen/module visibility.
 ### Illustrative authorization flow
 
 ```text
+Tenant Resolver / Deployment Context
+      ↓
 User Authentication
       ↓
 Identity / Role Resolution
       ↓
+Organization Membership Resolution
+      ↓
+TenantContext + Active Organization
+      ↓
 Permission Evaluation
       ↓
-Organization / Scope Evaluation
+Location Access Resolution
       ↓
 Business Authorization
       ↓
@@ -119,7 +153,7 @@ Authorized Operation
 Audit where required
 ```
 
-The exact implementation flow is governed by the backend authorization architecture.
+The exact implementation flow is governed by the backend authorization architecture. A user cannot access a location or organization unless the backend validates the membership and authorization state within the active tenant context.
 
 ## 7. Module Visibility and Licensing
 

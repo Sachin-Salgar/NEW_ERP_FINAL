@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+
 import '../../core/auth/auth_service.dart';
 import 'user_service.dart';
 
@@ -63,8 +64,10 @@ class _UserEditScreenState extends State<UserEditScreen> {
       'defaultBranchId': _defaultBranchId,
     };
     final ok = await service.updateUser(user!['id'], payload);
-    if (ok) Navigator.pop(context);
-    else setState(() => error = 'Failed to update');
+    if (ok)
+      Navigator.pop(context);
+    else
+      setState(() => error = 'Failed to update');
   }
 
   @override
@@ -81,30 +84,36 @@ class _UserEditScreenState extends State<UserEditScreen> {
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : user == null
-              ? const Center(child: Text('User not found'))
-              : Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      children: [
-                        TextFormField(
-                          controller: _username,
-                          decoration: const InputDecoration(labelText: 'Username'),
-                          validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
-                        ),
-                        TextFormField(
-                          controller: _email,
-                          decoration: const InputDecoration(labelText: 'Email'),
-                          validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
-                        ),
-                        const Spacer(),
-                        if (error != null) Text(error!, style: const TextStyle(color: Colors.red)),
-                        ElevatedButton(onPressed: _submit, child: const Text('Save')),
-                      ],
+          ? const Center(child: Text('User not found'))
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _username,
+                      decoration: const InputDecoration(labelText: 'Username'),
+                      validator: (v) =>
+                          (v == null || v.isEmpty) ? 'Required' : null,
                     ),
-                  ),
+                    TextFormField(
+                      controller: _email,
+                      decoration: const InputDecoration(labelText: 'Email'),
+                      validator: (v) =>
+                          (v == null || v.isEmpty) ? 'Required' : null,
+                    ),
+                    const Spacer(),
+                    if (error != null)
+                      Text(error!, style: const TextStyle(color: Colors.red)),
+                    ElevatedButton(
+                      onPressed: _submit,
+                      child: const Text('Save'),
+                    ),
+                  ],
                 ),
+              ),
+            ),
     );
   }
 }

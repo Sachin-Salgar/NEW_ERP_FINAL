@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+
 import '../../core/auth/auth_service.dart';
 import 'branch_service.dart';
 
 class CreateBranchScreen extends StatefulWidget {
   final String organizationId;
-  const CreateBranchScreen({Key? key, required this.organizationId}) : super(key: key);
+  const CreateBranchScreen({Key? key, required this.organizationId})
+    : super(key: key);
 
   @override
   State<CreateBranchScreen> createState() => _CreateBranchScreenState();
@@ -42,11 +44,23 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
           key: _formKey,
           child: Column(
             children: [
-              TextFormField(controller: _code, decoration: InputDecoration(labelText: 'Code'), validator: (v) => (v == null || v.isEmpty) ? 'Required' : null),
-              TextFormField(controller: _name, decoration: InputDecoration(labelText: 'Name'), validator: (v) => (v == null || v.isEmpty) ? 'Required' : null),
-              TextFormField(controller: _city, decoration: InputDecoration(labelText: 'City')),
+              TextFormField(
+                controller: _code,
+                decoration: InputDecoration(labelText: 'Code'),
+                validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+              ),
+              TextFormField(
+                controller: _name,
+                decoration: InputDecoration(labelText: 'Name'),
+                validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+              ),
+              TextFormField(
+                controller: _city,
+                decoration: InputDecoration(labelText: 'City'),
+              ),
               SizedBox(height: 12),
-              if (_error != null) Text(_error!, style: TextStyle(color: Colors.red)),
+              if (_error != null)
+                Text(_error!, style: TextStyle(color: Colors.red)),
               ElevatedButton(
                 onPressed: _submitting
                     ? null
@@ -58,7 +72,10 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
                           'name': _name.text.trim(),
                           'city': _city.text.trim(),
                         };
-                        final success = await service.createBranch(widget.organizationId, payload);
+                        final success = await service.createBranch(
+                          widget.organizationId,
+                          payload,
+                        );
                         setState(() => _submitting = false);
                         if (success) {
                           Navigator.of(context).pop();
@@ -66,8 +83,10 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
                           setState(() => _error = 'Failed to create branch');
                         }
                       },
-                child: _submitting ? CircularProgressIndicator() : Text('Create'),
-              )
+                child: _submitting
+                    ? CircularProgressIndicator()
+                    : Text('Create'),
+              ),
             ],
           ),
         ),

@@ -54,6 +54,8 @@ Applicable checks may include:
 - Record-level access.
 - Resource-specific policies.
 
+The project architecture requires authorization to evaluate the resolved tenant and organization context, and separately the user's allowed operational locations. A location may refine authorization but does not replace the tenant boundary or the requirement to establish `TenantContext` before database work.
+
 Frontend visibility is not a security control.
 
 ## 1.6 API Security

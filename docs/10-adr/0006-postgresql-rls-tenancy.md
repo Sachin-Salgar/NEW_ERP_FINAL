@@ -10,13 +10,33 @@
 
 The Enterprise ERP Platform uses a shared-database, shared-schema multi-tenant architecture. Application-level tenant filtering is necessary but is vulnerable to implementation mistakes such as a missing tenant predicate.
 
+The project architecture also defines a single product operating across both SaaS and on-premises deployments. SaaS resolves the tenant from the request domain/hostname or custom domain; on-premises resolves it from trusted installation configuration. The tenant is established before login and before the user is authorized for tenant-scoped business operations.
+
 PostgreSQL Row Level Security (RLS) provides an additional database enforcement layer for tenant-owned data.
 
 ## Decision
 
 We will mandate **PostgreSQL RLS for tenant isolation** as a database enforcement layer in addition to application-level authorization and tenant scoping.
 
-RLS is not the sole security boundary: privileged database roles, migrations, administration, and other controlled infrastructure paths must be explicitly governed.
+The database architecture requires the application to resolve the active tenant and organization context before any tenant-scoped transaction begins. The request must establish a valid deployment-resolved `TenantContext`, then open the transaction and execute `SET LOCAL app.current_tenant_id` before the first tenant-owned query or write. This tenant is authoritative for the request and can be derived from a SaaS hostname/custom domain or from trusted on-prem installation configuration; it is not taken from a user-editable client field.
+
+RLS is therefore a final enforcement barrier, not a replacement for identity, tenant resolution, or authorization. Organization and location constraints are evaluated as authorization context within the already-established tenant boundary.
+
+## Mandatory Tenant Isolation Invariants
+
+The following rules are binding for all implementations of this ADR:
+
+- Authentication and tenant resolution are different processes.
+- A user identity does not automatically authorize access to every tenant or organization.
+- The tenant is resolved from trusted deployment metadata, not from frontend state or a user-supplied tenant ID.
+- Organization membership is resolved after authentication and validated before the effective request context is accepted.
+- Location / plant / branch access is evaluated after tenant + organization context has been established and must never replace tenant isolation.
+- `TenantContext` is created only after deployment tenant resolution, authentication, and membership validation succeed.
+- The database transaction begins only after a valid `TenantContext` exists.
+- `SET LOCAL app.current_tenant_id` occurs inside the transaction before any tenant-owned read or write.
+- RLS remains mandatory. Application authorization is still required.
+- Missing or invalid tenant context must fail closed.
+- No default tenant, fallback tenant, hidden tenant alias, or “first tenant” selection is permitted for routine business operations.
 
 ## Rationale
 
@@ -48,12 +68,15 @@ RLS is not the sole security boundary: privileged database roles, migrations, ad
 
 - Tenant-owned tables shall enable RLS and define policies appropriate to their ownership model.
 - Policies shall derive tenant context from a controlled database session/transaction context.
-- The application must establish tenant context **after acquiring a connection and before tenant-owned business operations**, preferably transaction-locally to prevent context leakage through connection pooling.
+- The application must establish tenant context **before any tenant-scoped database transaction begins** and before tenant-owned business operations execute.
+- `SET LOCAL app.current_tenant_id` must occur inside the tenant-scoped transaction, immediately after the transaction begins and before the first tenant-owned query or write.
+- The transaction must receive the resolved tenant ID from the canonical `TenantContext`; it must not use a default, fallback, or hardcoded tenant value.
 - Connection pools must never allow one request's tenant context to remain active for a subsequent request.
 - RLS policies must be tested for SELECT, INSERT, UPDATE, and DELETE behavior as applicable.
 - Background jobs must establish tenant context explicitly; they must not rely on a user request session.
 - Privileged roles that can bypass RLS must be tightly restricted and governed. Such roles are administrative exceptions, not normal application execution paths.
 - Application authorization remains required; RLS does not replace role/permission checks.
+- A request without a valid tenant context must fail closed and must not execute tenant-scoped operations.
 
 ## Related Documents
 

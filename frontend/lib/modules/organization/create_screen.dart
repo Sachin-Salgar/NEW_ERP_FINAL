@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+
 import '../../core/auth/auth_service.dart';
 import 'organization_service.dart';
 
@@ -7,7 +8,8 @@ class CreateOrganizationScreen extends StatefulWidget {
   const CreateOrganizationScreen({Key? key}) : super(key: key);
 
   @override
-  State<CreateOrganizationScreen> createState() => _CreateOrganizationScreenState();
+  State<CreateOrganizationScreen> createState() =>
+      _CreateOrganizationScreenState();
 }
 
 class _CreateOrganizationScreenState extends State<CreateOrganizationScreen> {
@@ -24,15 +26,15 @@ class _CreateOrganizationScreenState extends State<CreateOrganizationScreen> {
   @override
   void initState() {
     super.initState();
-    service = OrganizationService(apiClient: OrganizationService(apiClient: GetIt.instance.get()).apiClient); // placeholder replaced in build
+    // Use DI-registered OrganizationService instance
+    service = GetIt.instance.get<OrganizationService>();
     auth = GetIt.instance.get<AuthService>();
   }
 
   @override
   Widget build(BuildContext context) {
-    final api = GetIt.instance.getOrNull("api_client") as dynamic;
-    // Use local instance if available
-    service = OrganizationService(apiClient: GetIt.instance.get<ApiClient>());
+    // Service is provided via DI; use registered instance
+    service = GetIt.instance.get<OrganizationService>();
 
     final permitted = auth.hasPermission('organization.manage');
     if (!permitted) return Scaffold(body: Center(child: Text('Not permitted')));
@@ -45,11 +47,23 @@ class _CreateOrganizationScreenState extends State<CreateOrganizationScreen> {
           key: _formKey,
           child: Column(
             children: [
-              TextFormField(controller: _code, decoration: InputDecoration(labelText: 'Code'), validator: (v) => (v == null || v.isEmpty) ? 'Required' : null),
-              TextFormField(controller: _name, decoration: InputDecoration(labelText: 'Name'), validator: (v) => (v == null || v.isEmpty) ? 'Required' : null),
-              TextFormField(controller: _legalName, decoration: InputDecoration(labelText: 'Legal Name')),
+              TextFormField(
+                controller: _code,
+                decoration: InputDecoration(labelText: 'Code'),
+                validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+              ),
+              TextFormField(
+                controller: _name,
+                decoration: InputDecoration(labelText: 'Name'),
+                validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+              ),
+              TextFormField(
+                controller: _legalName,
+                decoration: InputDecoration(labelText: 'Legal Name'),
+              ),
               SizedBox(height: 12),
-              if (_error != null) Text(_error!, style: TextStyle(color: Colors.red)),
+              if (_error != null)
+                Text(_error!, style: TextStyle(color: Colors.red)),
               ElevatedButton(
                 onPressed: _submitting
                     ? null
@@ -61,16 +75,22 @@ class _CreateOrganizationScreenState extends State<CreateOrganizationScreen> {
                           'name': _name.text.trim(),
                           'legalName': _legalName.text.trim(),
                         };
-                        final success = await service.createOrganization(payload);
+                        final success = await service.createOrganization(
+                          payload,
+                        );
                         setState(() => _submitting = false);
                         if (success) {
                           Navigator.of(context).pop();
                         } else {
-                          setState(() => _error = 'Failed to create organization');
+                          setState(
+                            () => _error = 'Failed to create organization',
+                          );
                         }
                       },
-                child: _submitting ? CircularProgressIndicator() : Text('Create'),
-              )
+                child: _submitting
+                    ? CircularProgressIndicator()
+                    : Text('Create'),
+              ),
             ],
           ),
         ),

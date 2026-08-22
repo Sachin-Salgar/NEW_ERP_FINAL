@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+
 import '../../core/auth/auth_service.dart';
 import 'user_service.dart';
 
@@ -53,8 +54,14 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
         title: const Text('Confirm'),
         content: const Text('Deactivate this user?'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('Deactivate')),
+          TextButton(
+            onPressed: () => Navigator.of(c).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(c).pop(true),
+            child: const Text('Deactivate'),
+          ),
         ],
       ),
     );
@@ -71,41 +78,61 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : user == null
-              ? const Center(child: Text('User not found'))
-              : Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          ? const Center(child: Text('User not found'))
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Username: ${user!['username'] ?? ''}',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text('Email: ${user!['email'] ?? ''}'),
+                  const SizedBox(height: 8),
+                  Text('Status: ${user!['status'] ?? ''}'),
+                  const SizedBox(height: 16),
+                  Row(
                     children: [
-                      Text('Username: ${user!['username'] ?? ''}', style: Theme.of(context).textTheme.subtitle1),
-                      const SizedBox(height: 8),
-                      Text('Email: ${user!['email'] ?? ''}'),
-                      const SizedBox(height: 8),
-                      Text('Status: ${user!['status'] ?? ''}'),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          if (auth.hasPermission('user.manage'))
-                            ElevatedButton(
-                              onPressed: () => Navigator.pushNamed(context, '/users/edit', arguments: user!['id']),
-                              child: const Text('Edit'),
-                            ),
-                          const SizedBox(width: 8),
-                          if (auth.hasPermission('user.manage') && user!['status'] != 'active')
-                            ElevatedButton(onPressed: _activate, child: const Text('Activate')),
-                          const SizedBox(width: 8),
-                          if (auth.hasPermission('user.manage') && user!['status'] == 'active')
-                            ElevatedButton(onPressed: _deactivate, child: const Text('Deactivate')),
-                          const SizedBox(width: 8),
-                          if (auth.hasPermission('user.manage'))
-                            ElevatedButton(
-                                onPressed: () => Navigator.pushNamed(context, '/users/access', arguments: user!['id']),
-                                child: const Text('Access')),
-                        ],
-                      ),
+                      if (auth.hasPermission('user.manage'))
+                        ElevatedButton(
+                          onPressed: () => Navigator.pushNamed(
+                            context,
+                            '/users/edit',
+                            arguments: user!['id'],
+                          ),
+                          child: const Text('Edit'),
+                        ),
+                      const SizedBox(width: 8),
+                      if (auth.hasPermission('user.manage') &&
+                          user!['status'] != 'active')
+                        ElevatedButton(
+                          onPressed: _activate,
+                          child: const Text('Activate'),
+                        ),
+                      const SizedBox(width: 8),
+                      if (auth.hasPermission('user.manage') &&
+                          user!['status'] == 'active')
+                        ElevatedButton(
+                          onPressed: _deactivate,
+                          child: const Text('Deactivate'),
+                        ),
+                      const SizedBox(width: 8),
+                      if (auth.hasPermission('user.manage'))
+                        ElevatedButton(
+                          onPressed: () => Navigator.pushNamed(
+                            context,
+                            '/users/access',
+                            arguments: user!['id'],
+                          ),
+                          child: const Text('Access'),
+                        ),
                     ],
                   ),
-                ),
+                ],
+              ),
+            ),
     );
   }
 }

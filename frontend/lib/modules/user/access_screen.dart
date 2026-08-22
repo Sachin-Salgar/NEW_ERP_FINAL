@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import '../../core/auth/auth_service.dart';
+
 import '../../modules/organization/organization_service.dart';
 import '../../modules/branch/branch_service.dart';
 import 'user_service.dart';
@@ -36,20 +36,34 @@ class _UserAccessScreenState extends State<UserAccessScreen> {
 
   Future<void> _assignOrg(String userId) async {
     if (selectedOrg == null) return;
-    setState(() { loading = true; error = null; });
+    setState(() {
+      loading = true;
+      error = null;
+    });
     final ok = await userService.assignOrganizationAccess(userId, selectedOrg!);
-    setState(() { loading = false; });
-    if (!ok) setState(() => error = 'Failed to assign organization');
-    else await _loadUser(userId);
+    setState(() {
+      loading = false;
+    });
+    if (!ok)
+      setState(() => error = 'Failed to assign organization');
+    else
+      await _loadUser(userId);
   }
 
   Future<void> _assignBranch(String userId) async {
     if (selectedBranch == null) return;
-    setState(() { loading = true; error = null; });
+    setState(() {
+      loading = true;
+      error = null;
+    });
     final ok = await userService.assignBranchAccess(userId, selectedBranch!);
-    setState(() { loading = false; });
-    if (!ok) setState(() => error = 'Failed to assign branch');
-    else await _loadUser(userId);
+    setState(() {
+      loading = false;
+    });
+    if (!ok)
+      setState(() => error = 'Failed to assign branch');
+    else
+      await _loadUser(userId);
   }
 
   @override
@@ -65,21 +79,45 @@ class _UserAccessScreenState extends State<UserAccessScreen> {
           children: [
             if (orgService.isLoading) const LinearProgressIndicator(),
             DropdownButtonFormField<String>(
-              items: orgService.organizations.map((o) => DropdownMenuItem(value: o['id'], child: Text(o['name'] ?? o['code'] ?? ''))).toList(),
+              items: orgService.organizations
+                  .map<DropdownMenuItem<String>>(
+                    (o) => DropdownMenuItem<String>(
+                      value: o['id'] as String?,
+                      child: Text(o['name'] ?? o['code'] ?? ''),
+                    ),
+                  )
+                  .toList(),
               onChanged: (v) => setState(() => selectedOrg = v),
               decoration: const InputDecoration(labelText: 'Organization'),
             ),
             const SizedBox(height: 8),
-            ElevatedButton(onPressed: userId == null ? null : () => _assignOrg(userId), child: const Text('Assign Organization')),
+            ElevatedButton(
+              onPressed: userId == null ? null : () => _assignOrg(userId),
+              child: const Text('Assign Organization'),
+            ),
             const Divider(),
             DropdownButtonFormField<String>(
-              items: branchService.branches.map((b) => DropdownMenuItem(value: b['id'], child: Text(b['name'] ?? b['code'] ?? ''))).toList(),
+              items: branchService.branches
+                  .map<DropdownMenuItem<String>>(
+                    (b) => DropdownMenuItem<String>(
+                      value: b['id'] as String?,
+                      child: Text(b['name'] ?? b['code'] ?? ''),
+                    ),
+                  )
+                  .toList(),
               onChanged: (v) => setState(() => selectedBranch = v),
               decoration: const InputDecoration(labelText: 'Branch'),
             ),
             const SizedBox(height: 8),
-            ElevatedButton(onPressed: userId == null ? null : () => _assignBranch(userId), child: const Text('Assign Branch')),
-            if (error != null) Padding(padding: const EdgeInsets.only(top:12.0), child: Text(error!, style: const TextStyle(color: Colors.red))),
+            ElevatedButton(
+              onPressed: userId == null ? null : () => _assignBranch(userId),
+              child: const Text('Assign Branch'),
+            ),
+            if (error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 12.0),
+                child: Text(error!, style: const TextStyle(color: Colors.red)),
+              ),
           ],
         ),
       ),

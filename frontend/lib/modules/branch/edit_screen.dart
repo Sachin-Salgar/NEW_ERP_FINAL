@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+
 import '../../core/auth/auth_service.dart';
 import 'branch_service.dart';
 
 class EditBranchScreen extends StatefulWidget {
   final String organizationId;
   final String branchId;
-  const EditBranchScreen({Key? key, required this.organizationId, required this.branchId}) : super(key: key);
+  const EditBranchScreen({
+    Key? key,
+    required this.organizationId,
+    required this.branchId,
+  }) : super(key: key);
 
   @override
   State<EditBranchScreen> createState() => _EditBranchScreenState();
@@ -33,15 +38,23 @@ class _EditBranchScreenState extends State<EditBranchScreen> {
   }
 
   Future<void> _load() async {
-    final data = await service.getBranch(widget.organizationId, widget.branchId);
+    final data = await service.getBranch(
+      widget.organizationId,
+      widget.branchId,
+    );
     if (data == null) {
-      setState(() { _error = 'Not found'; _loading = false; });
+      setState(() {
+        _error = 'Not found';
+        _loading = false;
+      });
       return;
     }
     _code.text = data['code'] ?? '';
     _name.text = data['name'] ?? '';
     _city.text = data['city'] ?? '';
-    setState(() { _loading = false; });
+    setState(() {
+      _loading = false;
+    });
   }
 
   Future<void> _submit() async {
@@ -52,7 +65,11 @@ class _EditBranchScreenState extends State<EditBranchScreen> {
       'name': _name.text.trim(),
       'city': _city.text.trim(),
     };
-    final success = await service.updateBranch(widget.organizationId, widget.branchId, payload);
+    final success = await service.updateBranch(
+      widget.organizationId,
+      widget.branchId,
+      payload,
+    );
     setState(() => _submitting = false);
     if (success) {
       Navigator.of(context).pop();
@@ -63,7 +80,8 @@ class _EditBranchScreenState extends State<EditBranchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_loading)
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
     final permitted = auth.hasPermission('branch.manage');
     if (!permitted) return Scaffold(body: Center(child: Text('Not permitted')));
 
@@ -73,14 +91,31 @@ class _EditBranchScreenState extends State<EditBranchScreen> {
         padding: EdgeInsets.all(16),
         child: Form(
           key: _formKey,
-          child: Column(children: [
-            TextFormField(controller: _code, decoration: InputDecoration(labelText: 'Code'), validator: (v) => (v == null || v.isEmpty) ? 'Required' : null),
-            TextFormField(controller: _name, decoration: InputDecoration(labelText: 'Name'), validator: (v) => (v == null || v.isEmpty) ? 'Required' : null),
-            TextFormField(controller: _city, decoration: InputDecoration(labelText: 'City')),
-            SizedBox(height: 12),
-            if (_error != null) Text(_error!, style: TextStyle(color: Colors.red)),
-            ElevatedButton(onPressed: _submitting ? null : _submit, child: _submitting ? CircularProgressIndicator() : Text('Save'))
-          ]),
+          child: Column(
+            children: [
+              TextFormField(
+                controller: _code,
+                decoration: InputDecoration(labelText: 'Code'),
+                validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+              ),
+              TextFormField(
+                controller: _name,
+                decoration: InputDecoration(labelText: 'Name'),
+                validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+              ),
+              TextFormField(
+                controller: _city,
+                decoration: InputDecoration(labelText: 'City'),
+              ),
+              SizedBox(height: 12),
+              if (_error != null)
+                Text(_error!, style: TextStyle(color: Colors.red)),
+              ElevatedButton(
+                onPressed: _submitting ? null : _submit,
+                child: _submitting ? CircularProgressIndicator() : Text('Save'),
+              ),
+            ],
+          ),
         ),
       ),
     );

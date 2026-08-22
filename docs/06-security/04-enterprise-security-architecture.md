@@ -258,7 +258,63 @@ Multi-tenant and organization-aware deployments shall enforce isolation at the b
 
 Application authorization alone is not sufficient to establish tenant isolation. Where applicable, database-level controls such as PostgreSQL Row-Level Security shall provide defense in depth.
 
-Frontend caches, local state, and client-side filtering must never be treated as tenant-isolation mechanisms.
+The project architecture requires a single shared tenant-aware pipeline for both SaaS and on-premises deployments. Deployment-specific resolution differs, but the security order remains constant.
+
+The architecture defines the following lifecycle invariant:
+
+```text
+ERP URL / Deployment Host
+  ↓
+Tenant Resolver (hostname/custom domain or installation config)
+  ↓
+Bootstrap / deployment metadata
+  ↓
+Login
+  ↓
+Authentication
+  ↓
+Authenticated Identity
+  ↓
+ERP User
+  ↓
+Organization Membership Resolution
+  ↓
+Active Organization Resolution
+  ↓
+Tenant Resolution
+  ↓
+TenantContext
+  ↓
+Tenant-scoped Transaction
+  ↓
+SET LOCAL app.current_tenant_id
+  ↓
+PostgreSQL RLS
+  ↓
+Authorization
+  ↓
+Location / Plant Context
+  ↓
+Business operation
+```
+
+This ordering is mandatory. Tenant resolution must happen before a tenant-scoped database transaction begins. A request without a valid tenant context must fail closed and must not execute tenant-scoped database operations.
+
+### Security Invariants
+1. Authentication establishes identity; it does not by itself establish unrestricted tenant access.
+2. Tenant access requires a valid organization membership and authorization within the resolved tenant context.
+3. Deployment-specific tenant resolution occurs before login, using a trusted host/domain or installation configuration, not a user-editable field.
+4. `TenantContext` is resolved before the database transaction and is treated as a platform/security concern.
+5. `SET LOCAL app.current_tenant_id` occurs inside the tenant-scoped transaction before tenant-owned data is queried or mutated.
+6. PostgreSQL RLS enforces tenant isolation at the database layer.
+7. No fallback or default tenant is permitted for ordinary tenant-scoped operations.
+8. A user cannot select an organization they are not authorized to access.
+9. Roles and permissions are evaluated within the active organization/tenant context.
+10. Location access is an additional authorization dimension, not a replacement for tenant isolation.
+11. Business modules cannot bypass centralized tenant resolution.
+12. Frontend caches, local state, and client-side filtering must never be treated as tenant-isolation mechanisms.
+
+AI agents and implementations must not invent tenant IDs, organization IDs, database credentials, or hidden infrastructure fallback paths.
 
 ## 13. Secrets, Cryptography, and Certificates
 

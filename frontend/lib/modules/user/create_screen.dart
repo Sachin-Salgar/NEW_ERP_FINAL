@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+
 import '../../core/auth/auth_service.dart';
+import '../../modules/organization/organization_service.dart';
 import 'user_service.dart';
 
 class UserCreateScreen extends StatefulWidget {
@@ -19,7 +21,7 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
   String? _defaultBranchId;
 
   final service = GetIt.instance.get<UserService>();
-  final orgService = GetIt.instance.get();
+  final orgService = GetIt.instance.get<OrganizationService>();
   final auth = GetIt.instance.get<AuthService>();
 
   bool _loading = false;
@@ -29,10 +31,7 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
   void initState() {
     super.initState();
     // ensure organizations are loaded in organization service
-    try {
-      final org = GetIt.instance.get<dynamic>();
-      // no-op, keeps analyzer quiet
-    } catch (_) {}
+    orgService.fetchOrganizations();
   }
 
   @override
@@ -96,14 +95,18 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
                 controller: _password,
                 decoration: const InputDecoration(labelText: 'Password'),
                 obscureText: true,
-                validator: (v) => (v == null || v.length < 6) ? 'Min 6 chars' : null,
+                validator: (v) =>
+                    (v == null || v.length < 6) ? 'Min 6 chars' : null,
               ),
               const SizedBox(height: 12),
-              if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
+              if (_error != null)
+                Text(_error!, style: const TextStyle(color: Colors.red)),
               const Spacer(),
               ElevatedButton(
                 onPressed: _loading ? null : _submit,
-                child: _loading ? const CircularProgressIndicator() : const Text('Create'),
+                child: _loading
+                    ? const CircularProgressIndicator()
+                    : const Text('Create'),
               ),
             ],
           ),

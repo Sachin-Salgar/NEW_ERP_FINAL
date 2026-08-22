@@ -1,6 +1,8 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+
 import '../../core/network/api_client.dart';
 import '../../core/auth/auth_service.dart';
 
@@ -12,7 +14,8 @@ class OrganizationService extends ChangeNotifier {
   bool isLoading = false;
   String? error;
 
-  OrganizationService({required this.apiClient}) : auth = GetIt.instance.get<AuthService>();
+  OrganizationService({required this.apiClient})
+    : auth = GetIt.instance.get<AuthService>();
 
   Future<void> fetchOrganizations() async {
     isLoading = true;
@@ -23,7 +26,9 @@ class OrganizationService extends ChangeNotifier {
       if (resp.statusCode == 200) {
         final body = jsonDecode(resp.body) as Map<String, dynamic>;
         final list = (body['organizations'] as List<dynamic>?) ?? [];
-        organizations = List<Map<String, dynamic>>.from(list.map((e) => Map<String, dynamic>.from(e as Map)));
+        organizations = List<Map<String, dynamic>>.from(
+          list.map((e) => Map<String, dynamic>.from(e as Map)),
+        );
       } else {
         error = 'Failed to load organizations: ${resp.statusCode}';
       }
@@ -60,9 +65,15 @@ class OrganizationService extends ChangeNotifier {
     return null;
   }
 
-  Future<bool> updateOrganization(String id, Map<String, dynamic> payload) async {
+  Future<bool> updateOrganization(
+    String id,
+    Map<String, dynamic> payload,
+  ) async {
     try {
-      final resp = await apiClient.put('/api/v1/organizations/$id', body: payload);
+      final resp = await apiClient.put(
+        '/api/v1/organizations/$id',
+        body: payload,
+      );
       if (resp.statusCode == 200) {
         await fetchOrganizations();
         return true;
