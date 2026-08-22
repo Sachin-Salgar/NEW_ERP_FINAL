@@ -13,7 +13,7 @@ class PermissionDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(permissionKey, style: Theme.of(context).textTheme.headline6),
+            Text(permissionKey, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
             const SizedBox(height: 12),
             const Text('Description: (Provided by server if available)'),
             const SizedBox(height: 8),
