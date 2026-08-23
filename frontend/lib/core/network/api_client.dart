@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:async';
 
 import 'package:http/http.dart' as http;
@@ -22,7 +22,21 @@ class ApiClient {
     http.Client? client,
   }) : _client = httpClient ?? client ?? http.Client();
 
-  AuthService get _auth => authOverride ?? GetIt.instance.get<AuthService>();
+  AuthService get _auth {
+    if (authOverride != null) {
+      return authOverride!;
+    }
+
+    try {
+      if (GetIt.instance.isRegistered<AuthService>()) {
+        return GetIt.instance.get<AuthService>();
+      }
+    } catch (_) {
+      // Fall back to a minimal auth instance when the global container has not been initialized.
+    }
+
+    return AuthService();
+  }
 
   Future<http.Response> _sendWithAuth(Future<http.Response> Function(Map<String, String> headers) fn) async {
     final auth = _auth;

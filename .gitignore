@@ -11,6 +11,8 @@ node_modules/
 dist/
 coverage/
 *.tsbuildinfo
+.dart_tool/
+frontend/build/
 
 # Runtime and local environment
 .env

@@ -17,12 +17,16 @@ class AuthZService with ChangeNotifier {
   /// Returns the permission keys on success.
   Future<List<String>> loadPermissions(ApiClient apiClient, String userId) async {
     _isLoading = true;
+    // Clear any stale permission set before a fresh load or refresh so the UI never
+    // keeps permissions from a previous user or prior fetch while the new request is in flight.
+    _permissions = null;
+    _loadedForUserId = null;
     notifyListeners();
 
     try {
       final resp = await apiClient.get('/api/v1/rbac/users/$userId/effective-permissions');
       if (resp.statusCode != 200) {
-        // Do not grant permissions on failure
+        // Do not grant permissions on failure.
         _permissions = null;
         _loadedForUserId = null;
         return [];
