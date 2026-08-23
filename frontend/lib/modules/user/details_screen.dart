@@ -123,6 +123,16 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                         ElevatedButton(
                           onPressed: () => Navigator.pushNamed(
                             context,
+                            '/users/roles',
+                            arguments: user!['id'],
+                          ),
+                          child: const Text('Roles'),
+                        ),
+                      const SizedBox(width: 8),
+                      if (auth.hasPermission('user.manage'))
+                        ElevatedButton(
+                          onPressed: () => Navigator.pushNamed(
+                            context,
                             '/users/access',
                             arguments: user!['id'],
                           ),

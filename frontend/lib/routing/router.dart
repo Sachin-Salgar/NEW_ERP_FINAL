@@ -16,6 +16,7 @@ import '../modules/user/create_screen.dart';
 import '../modules/user/details_screen.dart';
 import '../modules/user/edit_screen.dart';
 import '../modules/user/access_screen.dart';
+import '../modules/user/user_role_assignment_screen.dart';
 import '../modules/auth/login_screen.dart';
 import '../modules/auth/location_selection_screen.dart';
 import '../modules/auth/organization_selection_screen.dart';
@@ -125,7 +126,8 @@ class AppRouter {
             final branchId = args['branchId'] as String? ?? '';
             return _authGuard(
               context,
-              (_) => EditBranchScreen(organizationId: orgId, branchId: branchId),
+              (_) =>
+                  EditBranchScreen(organizationId: orgId, branchId: branchId),
               routeName: settings.name ?? '/organizations/branches/edit',
             );
           },
@@ -166,6 +168,17 @@ class AppRouter {
             );
           },
         );
+      case '/users/roles':
+        return MaterialPageRoute(
+          builder: (context) {
+            final id = settings.arguments as String? ?? '';
+            return _authGuard(
+              context,
+              (_) => UserRoleAssignmentScreen(userId: id),
+              routeName: settings.name ?? '/users/roles',
+            );
+          },
+        );
       case '/users/access':
         return MaterialPageRoute(
           builder: (context) => _authGuard(
@@ -193,7 +206,8 @@ class AppRouter {
       return const LoginScreen();
     }
 
-    if (auth.requiresOrganizationSelection && routeName != '/organization-selection') {
+    if (auth.requiresOrganizationSelection &&
+        routeName != '/organization-selection') {
       return const OrganizationSelectionScreen();
     }
 

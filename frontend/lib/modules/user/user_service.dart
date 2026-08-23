@@ -115,6 +115,33 @@ class UserService extends ChangeNotifier {
     return false;
   }
 
+  Future<bool> assignRoleToUser(String userId, String roleId) async {
+    try {
+      final resp = await apiClient.post(
+        '/api/v1/rbac/users/$userId/roles',
+        body: {'roleId': roleId},
+      );
+      if (resp.statusCode == 200) {
+        final body = jsonDecode(resp.body) as Map<String, dynamic>;
+        return (body['assigned'] as bool?) ?? false;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  Future<bool> revokeRoleFromUser(String userId, String roleId) async {
+    try {
+      final resp = await apiClient.delete(
+        '/api/v1/rbac/users/$userId/roles/$roleId',
+      );
+      if (resp.statusCode == 200) {
+        final body = jsonDecode(resp.body) as Map<String, dynamic>;
+        return (body['revoked'] as bool?) ?? false;
+      }
+    } catch (e) {}
+    return false;
+  }
+
   Future<bool> assignBranchAccess(String userId, String branchId) async {
     try {
       final resp = await apiClient.post(

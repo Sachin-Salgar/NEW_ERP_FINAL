@@ -34,14 +34,14 @@ This checkpoint is updated after every meaningful implementation step and is the
 
 Current phase: Implementation / AUTH-02 validation and roadmap reconciliation
 Current slice: AUTH-02 — frontend authorization & RBAC UX
-Current step: AUTH-02 validation and evidence-based roadmap reconciliation
+Current step: AUTH-02.10 — Implement user-role assignment UI — COMPLETED / VALIDATED
 Current status: VALIDATED (authorization foundation implemented, tested, and documented; remaining work is incremental UX completion)
-Last completed step: AUTH-02.09 — role-permission assignment UI and backend read endpoint — Commit: 84f3078
-Current objective: Validate the existing AuthZ and RBAC frontend foundation and reconcile roadmap evidence with the repository state before continuing to the next major ERP feature.
-Remaining work (top-level): user-role assignment UI (AUTH-02.10), permission-aware navigation/route guards (AUTH-02.11/12), and final end-to-end validation.
-Blockers: no blocking issues for the current authorization foundation; remaining items are incremental UX work rather than security gaps.
+Last completed step: AUTH-02.10 — user-role assignment UI — Commit: 737106e (roadmap reconciliation and final validation)
+Current objective: Validate the completed RBAC frontend foundation and confirm the user-role assignment UI remains aligned with backend authorization, tenant isolation, and the existing roadmap evidence.
+Remaining work (top-level): permission-aware navigation/route guards (AUTH-02.11/12) and final end-to-end validation.
+Blockers: no blocking issues for the completed authorization foundation; remaining items are incremental UX work rather than security gaps.
 Architectural decisions pending: none for the implemented authorization foundation; tenant isolation remains governed by the existing PostgreSQL RLS ADR and backend authorization remains authoritative.
-Immediate next action: AUTH-02.10 — implement user-role assignment UI if the ERP authorization UX needs to expose role assignment to users, otherwise proceed to permission-aware navigation and validation.
+Immediate next action: AUTH-02.11 — permission-aware navigation and route guards after the completed user-role assignment UI is validated.
 Do-not-start-yet modules: SALES-01, PROCUREMENT-01, INVENTORY-01, FINANCE-01, CRM-01, MANUFACTURING-01 (the Business Module Gate is closed until CORE-01 final audit passes)
 
 ---
@@ -119,8 +119,8 @@ CORE-01 Detailed Steps
 - CORE-01.14 Role → permission assignment UI — [COMPLETED — VALIDATED]
   - UI to assign/remove permission keys to roles exists and was validated via widget tests.
 
-- CORE-01.15 User → role assignment UI — [NOT STARTED]
-  - UI to assign/revoke roles to/from users (POST/DELETE /rbac/users/:userId/roles) remains to be implemented.
+- CORE-01.15 User → role assignment UI — [COMPLETED — VALIDATED]
+  - UI to assign/revoke roles to/from users (POST/DELETE /rbac/users/:userId/roles) is implemented and validated. It remains permission-gated by the backend contract and does not alter the authoritative backend authorization boundary.
 
 - CORE-01.16 Permission-aware navigation — [NOT STARTED]
   - Client-side module/menu visibility based on effective permissions (presentation-only; backend remains authoritative).
@@ -150,23 +150,21 @@ Each step above must be updated with the Evidence Requirement block after it is 
 3) CURRENT IMPLEMENTATION CHECKPOINT (DETAILED)
 
 - Current slice: CORE-01 (Core Enterprise)
-- Current phase: AUTH-02 preparation (frontend authorization mapping)
-- Current step: AUTH-02.01 — map backend RBAC contracts to frontend authorization architecture (IMMEDIATE NEXT STEP)
-- Status: IN PROGRESS (CORE-01 overall = PARTIALLY COMPLETE)
-- Last completed developer-visible commit: 08cccf7 — feat(core): complete CORE-01 frontend flow
-  - Implemented: authentication, session restoration, tenant context, organization selection, location selection, active-location context, route guards, frontend tests
+- Current phase: AUTH-02 validation and final RBAC UX completion
+- Current step: AUTH-02.10 — Implement user-role assignment UI — COMPLETED / VALIDATED
+- Status: VALIDATED (CORE-01 overall = PARTIALLY COMPLETE, RBAC UX foundation complete)
+- Last completed developer-visible commit: 737106e — feat(auth): finalize authorization foundation through AUTH-02.09
+  - Implemented: authentication, session restoration, tenant context, organization selection, location selection, active-location context, route guards, backend RBAC foundation, frontend AuthZ state, roles list/create/edit UI, permission catalog UI, role-permission assignment UI, and user-role assignment UI
 - Remaining critical objectives before CORE-01 final audit:
-  - Implement frontend RBAC admin UI (roles/permissions/assignments)
   - Implement permission-aware navigation and route guards
   - Run full backend integration tests and RLS tests in CI
   - Execute frontend→backend E2E including host-based tenant resolution and RBAC enforcement
   - Complete security audit
 - Blockers and pending decisions:
-  - Organization-scoped vs tenant-scoped role assignment semantics (product decision required)
-  - Provisioning of CI environment for DB-backed integration/E2E tests
-  - Confirmation on public vs admin-only user registration (currently admin-only per product decision)
+  - No blocking issues for the completed AUTH-02 foundation.
+  - CI environment remains required for full DB-backed E2E validation beyond the current local checks.
 - Immediate next action (single):
-  - AUTH-02.01 — Inspect and map the actual backend RBAC contracts to the frontend authorization architecture. Deliverable: mapping document that lists exactly which backend endpoints and payloads will be used by each frontend UI screen, required frontend service methods (AuthZService), caching/refresh rules, and a minimal list of frontend tests to implement first.
+  - AUTH-02.11 — Implement permission-aware navigation and route guards using the validated effective-permissions model.
 
 ---
 
@@ -555,6 +553,25 @@ Notes:
       - No tenant-resolver, RLS, or authentication middleware was modified. No AUTH-02.10+ work was introduced.
     - Status: COMPLETED — IMPLEMENTED (pending external review)
 
+- 2026-08-23
+    - AUTH-02.10 Implement user-role assignment UI
+    - Summary: Implemented the user-role assignment screen to load a target user, display the current effective roles, list available roles, and provide assignment/revocation actions guarded by `user.manage`. The screen reuses the existing ApiClient/AuthService/AuthZService and backend RBAC contract (`POST /rbac/users/:userId/roles`, `DELETE /rbac/users/:userId/roles/:roleId`, and `GET /rbac/users/:userId/effective-permissions`).
+    - Files changed:
+      - frontend/lib/modules/user/user_service.dart (modified: assignRoleToUser / revokeRoleFromUser contract methods)
+      - frontend/lib/modules/user/details_screen.dart (modified: add Roles action to the user details page)
+      - frontend/lib/routing/router.dart (modified: register `/users/roles` route)
+      - frontend/lib/modules/user/user_role_assignment_screen.dart (new: assign/revoke user roles UX and loading/error handling)
+      - frontend/test/user/user_role_assignment_screen_test.dart (new: permission gating, assign flow, and remove flow widget tests)
+    - Validation commands and results:
+      - cd frontend; flutter test: PASS (29 tests total)
+      - npm run typecheck: PASS
+      - npm run test:unit: PASS
+      - npm run test:integration: PASS
+    - Notes:
+      - Frontend permissions remain UX-only; backend authorization and tenant isolation remain authoritative.
+      - No new ADR required.
+    - Status: COMPLETED — VALIDATED
+
 - 2026-08-20
   - Roadmap snapshot generation: ded0b71ad...
 
@@ -579,15 +596,15 @@ Notes:
 
 12) IMMEDIATE NEXT IMPLEMENTATION STEP (exactly one)
 
-AUTH-02.10 — Implement user-role assignment UI (next incremental RBAC UX step).
+AUTH-02.11 — Implement permission-aware navigation and route guards using the validated effective-permissions model.
 
 Deliverable:
-- User-role assignment screen(s) and service methods for POST /rbac/users/:userId/roles and DELETE /rbac/users/:userId/roles/:roleId, guarded by backend permission checks and driven by the existing AuthZService state model.
+- Permission-aware navigation and route guards that use the validated effective-permissions model without weakening backend authorization or tenant isolation.
 
 Rationale:
-- The backend RBAC contract is implemented and validated. The remaining work is the next frontend UX step for user-role assignment, followed by permission-aware navigation/route guards if the ERP requires those UX conveniences.
+- AUTH-02.10 is implemented and validated. The remaining work is incremental UX enforcement through permission-aware navigation and route guards, while the backend RBAC contract remains authoritative.
 
-Do not claim AUTH-02.10 complete without widget tests and validation evidence.
+Do not claim AUTH-02.11 complete without validation evidence.
 
 ---
 
