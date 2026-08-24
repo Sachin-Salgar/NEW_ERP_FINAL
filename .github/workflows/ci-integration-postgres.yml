@@ -59,12 +59,34 @@ jobs:
           retries=0
           until pg_isready -h localhost -p 5432 -U postgres -d postgres >/dev/null 2>&1; do
             retries=$((retries+1))
-            if [ "$retries" -ge 60 ]; then
-              echo "Postgres did not become available in time" >&2
-              # Print docker logs for diagnostics (masked by GitHub if secret present)
-              docker logs newerp_test_container || true
+
+            echo "--- readiness attempt ${retries} ---"
+            echo "Container list:"
+            docker ps -a --filter "name=newerp_test_container" || true
+            echo "Container state:"
+            docker inspect newerp_test_container --format 'status={{.State.Status}} running={{.State.Running}} exitcode={{.State.ExitCode}} error={{.State.Error}}' || true
+
+            if docker inspect newerp_test_container --format '{{.State.Running}}' 2>/dev/null | grep -q '^false$'; then
+              echo "Postgres container has exited or is not running; printing recent logs" >&2
+              docker inspect newerp_test_container --format 'status={{.State.Status}} running={{.State.Running}} exitcode={{.State.ExitCode}} error={{.State.Error}}' >&2 || true
+              docker logs --tail 200 newerp_test_container >&2 || true
               exit 1
             fi
+
+            if [ "$retries" -ge 60 ]; then
+              echo "Postgres did not become available in time" >&2
+              echo "Final container state:" >&2
+              docker inspect newerp_test_container --format 'status={{.State.Status}} running={{.State.Running}} exitcode={{.State.ExitCode}} error={{.State.Error}}' >&2 || true
+              echo "Recent container logs:" >&2
+              docker logs --tail 200 newerp_test_container >&2 || true
+              exit 1
+            fi
+
+            if [ "$((retries % 5))" -eq 0 ]; then
+              echo "Recent Postgres logs (tail 100):" >&2
+              docker logs --tail 100 newerp_test_container >&2 || true
+            fi
+
             sleep 2
           done
           echo "Postgres is ready"
