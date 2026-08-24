@@ -646,32 +646,50 @@ If a governance or product decision is required to proceed, stop and request the
 
 If a governance or product decision is required to proceed, stop and request the decision rather than invent it.
 
-- 2026-08-22
-  - TENANT-RESOLUTION.03 — DB-backed tenant isolation and resolver validation — COMPLETE — VALIDATED
-    - Evidence: .env.local loaded, real PostgreSQL 17.x test database used, TEST_DATABASE_URL switched to dedicated non-superuser role (newerp_test_runner, rolsuper=false, rolbypassrls=false), tenant-rls integration test passed under non-superuser, tenant-resolution end-to-end (bootstrap → login) passed, authentication-flow passed, unit tests passed, typecheck passed, temporary diagnostics removed, no changes required to src/infrastructure/database/rls.ts or src/infrastructure/database/tenant-context.ts.
-  - Summary: Added focused DB-backed integration validation tests and a small end-to-end bootstrap→login resolver integration test. Typecheck passed locally, but DB-backed integration tests were not executed in this environment because TEST_DATABASE_URL was not configured and Docker was unavailable.
-  - Files changed (working tree, not committed):
-    - src/application/services/tenant-resolver.ts (interface)
-    - src/application/services/tenant-resolver-factory.ts (factory & adapter)
-    - src/application/services/development-tenant-resolver.ts (strategy)
-    - src/application/services/saas-host-tenant-resolver.ts (strategy)
-    - src/application/services/onprem-installation-tenant-resolver.ts (strategy)
-    - src/presentation/http/app.ts (wired factory into app composition)
-    - tests/unit/tenant-resolver-factory.test.ts (unit)
-    - tests/unit/tenant-resolver-strategies.test.ts (unit)
-    - tests/integration/tenant-resolution-validation.test.ts (new integration test added for TENANT-RESOLUTION.03)
-  - Tests added:
+- 2026-08-24
+  - TENANT-RESOLUTION.03 — DB-backed tenant isolation and resolver validation — COMPLETED — VALIDATED
+    - Validation: Local PostgreSQL-backed validation executed using the repository's existing `.env.local` TEST_DATABASE_URL. All DB-backed integration tests, migrations, and targeted validations executed against the real test database and passed. No application code was modified as part of this validation.
+    - Validation date/time (local): 2026-08-24 09:13:45 +05:30
+    - PostgreSQL:
+      - Version: PostgreSQL 17.10
+      - Test database: newerp_test
+      - Test role: newerp_test_runner
+      - rolsuper: false
+      - rolbypassrls: false
+    - Database credentials:
+      - Existing `.env.local` TEST_DATABASE_URL was used for all validation steps (connection string and password NOT recorded here). No database users or roles were created or modified.
+    - Migration:
+      - Command: `npm run db:migrate` (process used the existing TEST_DATABASE_URL as DATABASE_URL for the run)
+      - Result: migrations successfully checked; already-applied migrations were recognized; no migration errors; migration check completed successfully.
+    - Integration tests:
+      - Command: `npm run test:integration`
+      - Result: PASS — DB-backed integration tests executed against the real PostgreSQL test database and were not skipped due to missing configuration.
+      - Important tests that executed and passed:
+        - tests/integration/tenant-rls.test.ts
+        - tests/integration/tenant-resolution-validation.test.ts
+        - tests/integration/authorization-flow.test.ts
+    - Tenant resolution / bootstrap flow:
+      - Flow validated: `bootstrap → tenant resolution → login → session creation → tenant-scoped DB access` — validated by tests/integration/tenant-resolution-validation.test.ts
+    - RLS isolation:
+      - Validated under the actual non-superuser test role `newerp_test_runner` (rolsuper=false, rolbypassrls=false). Tenant-RLS integration tests passed and demonstrated tenant isolation (cross-tenant access denied as asserted by tests).
+    - Other validation:
+      - `npm run typecheck` → PASS
+      - `npm run test:unit` → PASS (8 files / 26 tests)
+      - `git --no-pager diff --check` → PASS
+    - Repository state:
+      - Baseline commit validated: 939f1421d8b43b6d28b45c666496841e4bb28201
+      - Branch: ai/implementation-foundation
+      - Working tree: clean before this documentation-only update
+    - Notes & scope:
+      - This was a local PostgreSQL validation run. CI validation was not performed as part of this step.
+      - No application code, migrations, RLS policies, tenant resolver logic, authentication, or authorization code were changed during validation.
+      - No secrets are recorded in the roadmap (TEST_DATABASE_URL password and full URL are omitted).
+  - Evidence files referenced:
+    - tests/integration/tenant-rls.test.ts
     - tests/integration/tenant-resolution-validation.test.ts
-  - Typecheck: PASS (tsc --noEmit)
-  - Targeted tests (unit): discovered (unit tests present)
-  - Integration tests (DB-backed): NOT RUN — TEST DISCOVERED BUT SKIPPED in this environment because TEST_DATABASE_URL is not set and Docker is unavailable. To validate, set TEST_DATABASE_URL (pointing to a test Postgres instance) or run `npm run docker:up` and set TEST_DATABASE_URL to the container connection string before running `npm run test:integration`.
-  - @ts-ignore usage: REMOVED in the hardening pass — TenantResolverAdapter is typed against a TenantStrategy interface; no remaining @ts-ignore for this change.
-  - Final architecture after hardening: TenantResolver abstraction with three pluggable strategies and a TenantResolverAdapter that extends TenantResolutionService to preserve the existing Fastify decoration and membership methods. No behavioral changes to bootstrap/login/session/RLS semantics were introduced.
-  - Remaining technical debt / notes:
-    - The TenantResolverAdapter is a compatibility shim (extends TenantResolutionService). Converting to pure composition (removing inheritance) is a future refactor and outside TENANT-RESOLUTION.03 scope.
-    - Integration validation requires a real Postgres test DB (set TEST_DATABASE_URL or use docker compose). Until DB-backed tests run, status remains PARTIAL VALIDATION.
-    - Ensure CI is configured to run integration tests with a Postgres service or that TEST_DATABASE_URL is supplied in the environment.
-  - IMMEDIATE NEXT ROADMAP STEP: TENANT-RESOLUTION.03 — Run DB-backed integration tests in an environment with Postgres available, validate RLS isolation and bootstrap/login end-to-end. Do not proceed to TENANT-RESOLUTION.04 until DB-backed validation passes.
+    - tests/integration/authorization-flow.test.ts
+    - src/infrastructure/database/migrate.ts (migration runner used in validation)
+  - IMMEDIATE NEXT ROADMAP STEP: None — TENANT-RESOLUTION.03 is validated and marked COMPLETED — VALIDATED. Do not proceed to TENANT-RESOLUTION.04 until CI-level validation is added or scheduled, if required.
 
 - 2026-08-22
   - MIGRATIONS: Consolidated location migrations into a single authoritative migration (0001_location-domain) and added the missing tenant isolation policy for public.locations — IMPLEMENTED (file-level validation)
