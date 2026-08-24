@@ -141,8 +141,21 @@ jobs:
 
       - name: Export TEST_DATABASE_URL
         run: |
-          # Use the non-superuser test role for test runs. Do not echo the URL to logs.
-          echo "TEST_DATABASE_URL=postgres://${CI_TEST_ROLE}:${CI_TEST_ROLE_PASSWORD}@localhost:${CI_POSTGRES_PORT}/${CI_TEST_DB}" >> "$GITHUB_ENV"
+          set -euo pipefail
+          # Encode the password so reserved characters remain valid inside the PostgreSQL URL.
+          python - <<'PY'
+          import os
+          import urllib.parse
+
+          role = os.environ['CI_TEST_ROLE']
+          password = os.environ['CI_TEST_ROLE_PASSWORD']
+          db = os.environ['CI_TEST_DB']
+          port = os.environ['CI_POSTGRES_PORT']
+          encoded_password = urllib.parse.quote(password, safe='')
+          postgres_url = f'postgres://{role}:{encoded_password}@localhost:{port}/{db}'
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as env_file:
+              env_file.write(f'TEST_DATABASE_URL={postgres_url}\n')
+          PY
 
       - name: Run migrations
         env:
