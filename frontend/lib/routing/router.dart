@@ -17,11 +17,37 @@ import '../modules/user/details_screen.dart';
 import '../modules/user/edit_screen.dart';
 import '../modules/user/access_screen.dart';
 import '../modules/user/user_role_assignment_screen.dart';
+import '../modules/role/list_screen.dart';
+import '../modules/role/create_screen.dart';
+import '../modules/role/edit_screen.dart';
+import '../modules/permission/permission_list_screen.dart';
 import '../modules/auth/login_screen.dart';
 import '../modules/auth/location_selection_screen.dart';
 import '../modules/auth/organization_selection_screen.dart';
 
 class AppRouter {
+  static const Map<String, String?> routePermissions = {
+    '/dashboard': null,
+    '/organizations': 'organization.read',
+    '/organizations/create': 'organization.manage',
+    '/organizations/details': 'organization.read',
+    '/organizations/edit': 'organization.manage',
+    '/organizations/branches': 'branch.read',
+    '/organizations/branches/create': 'branch.manage',
+    '/organizations/branches/details': 'branch.read',
+    '/organizations/branches/edit': 'branch.manage',
+    '/users': 'user.read',
+    '/users/create': 'user.manage',
+    '/users/details': 'user.read',
+    '/users/edit': 'user.manage',
+    '/users/roles': 'user.manage',
+    '/users/access': 'user.manage',
+    '/roles': 'role.read',
+    '/roles/create': 'role.manage',
+    '/roles/edit': 'role.manage',
+    '/permissions': 'permission.read',
+  };
+
   static Route<dynamic>? generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case '/login':
@@ -187,6 +213,41 @@ class AppRouter {
             routeName: settings.name ?? '/users/access',
           ),
         );
+      case '/roles':
+        return MaterialPageRoute(
+          builder: (context) => _authGuard(
+            context,
+            (_) => const RoleListScreen(),
+            routeName: settings.name ?? '/roles',
+          ),
+        );
+      case '/roles/create':
+        return MaterialPageRoute(
+          builder: (context) => _authGuard(
+            context,
+            (_) => const RoleCreateScreen(),
+            routeName: settings.name ?? '/roles/create',
+          ),
+        );
+      case '/roles/edit':
+        return MaterialPageRoute(
+          builder: (context) {
+            final id = settings.arguments as String? ?? '';
+            return _authGuard(
+              context,
+              (_) => RoleEditScreen(roleId: id),
+              routeName: settings.name ?? '/roles/edit',
+            );
+          },
+        );
+      case '/permissions':
+        return MaterialPageRoute(
+          builder: (context) => _authGuard(
+            context,
+            (_) => const PermissionListScreen(),
+            routeName: settings.name ?? '/permissions',
+          ),
+        );
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(
@@ -194,6 +255,24 @@ class AppRouter {
           ),
         );
     }
+  }
+
+  static Widget _permissionDeniedScreen(
+    String routeName,
+    String permissionKey,
+  ) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Access denied')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            'Access denied for $routeName. Required permission: $permissionKey.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
   }
 
   static Widget _authGuard(
@@ -215,6 +294,11 @@ class AppRouter {
         routeName != '/location-selection' &&
         routeName != '/organization-selection') {
       return const LocationSelectionScreen();
+    }
+
+    final requiredPermission = routePermissions[routeName];
+    if (requiredPermission != null && !auth.hasPermission(requiredPermission)) {
+      return _permissionDeniedScreen(routeName, requiredPermission);
     }
 
     return builder(context);

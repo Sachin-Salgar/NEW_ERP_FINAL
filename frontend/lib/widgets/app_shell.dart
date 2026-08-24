@@ -4,10 +4,50 @@ import 'package:get_it/get_it.dart';
 import '../core/auth/auth_service.dart';
 import '../presentation/ui/components/navigation_sidebar.dart';
 import '../presentation/ui/components/topbar.dart';
+import '../routing/router.dart';
 
 class AppShell extends StatelessWidget {
   final Widget child;
   const AppShell({Key? key, required this.child}) : super(key: key);
+
+  List<Map<String, dynamic>> _navigationItems(AuthService auth) {
+    final items = <Map<String, dynamic>>[
+      {'menuName': 'Dashboard', 'path': '/dashboard', 'permissionKey': null},
+      {
+        'menuName': 'Organizations',
+        'path': '/organizations',
+        'permissionKey': AppRouter.routePermissions['/organizations'],
+      },
+      {
+        'menuName': 'Branches',
+        'path': '/organizations/branches',
+        'permissionKey': AppRouter.routePermissions['/organizations/branches'],
+      },
+      {
+        'menuName': 'Users',
+        'path': '/users',
+        'permissionKey': AppRouter.routePermissions['/users'],
+      },
+      {
+        'menuName': 'Roles',
+        'path': '/roles',
+        'permissionKey': AppRouter.routePermissions['/roles'],
+      },
+      {
+        'menuName': 'Permissions',
+        'path': '/permissions',
+        'permissionKey': AppRouter.routePermissions['/permissions'],
+      },
+    ];
+
+    return items
+        .where(
+          (item) =>
+              item['permissionKey'] == null ||
+              auth.hasPermission(item['permissionKey'] as String),
+        )
+        .toList();
+  }
 
   void _handleNavigate(BuildContext context, String route) {
     Navigator.of(context).pushReplacementNamed(route);
@@ -17,6 +57,7 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = GetIt.instance.get<AuthService>();
     final width = MediaQuery.of(context).size.width;
+    final navItems = _navigationItems(auth);
 
     // Desktop layout: persistent sidebar + topbar
     if (width >= 800) {
@@ -102,17 +143,12 @@ class AppShell extends StatelessWidget {
         child: ListView(
           children: [
             const DrawerHeader(child: Text('Navigation')),
-            ListTile(
-              title: const Text('Dashboard'),
-              onTap: () =>
-                  Navigator.of(context).pushReplacementNamed('/dashboard'),
+            ...navItems.map(
+              (item) => ListTile(
+                title: Text(item['menuName'] as String),
+                onTap: () => _handleNavigate(context, item['path'] as String),
+              ),
             ),
-            const ListTile(
-              title: Text('Organizations (placeholder)'),
-              onTap: null,
-            ),
-            const ListTile(title: Text('Branches (placeholder)'), onTap: null),
-            const ListTile(title: Text('Users (placeholder)'), onTap: null),
           ],
         ),
       ),

@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+
+import '../../../core/auth/auth_service.dart';
+import '../../../routing/router.dart';
 
 class Sidebar extends StatefulWidget {
   final String selectedRoute;
@@ -22,6 +26,7 @@ class _SidebarState extends State<Sidebar> {
           'menuName': 'Dashboard',
           'path': '/dashboard',
           'icon': Icons.dashboard,
+          'permissionKey': null,
         },
       ],
     },
@@ -32,23 +37,60 @@ class _SidebarState extends State<Sidebar> {
           'menuName': 'Organizations',
           'path': '/organizations',
           'icon': Icons.apartment,
+          'permissionKey': AppRouter.routePermissions['/organizations'],
           'childList': null,
         },
         {
           'menuName': 'Branches',
-          'path': '/branches',
+          'path': '/organizations/branches',
           'icon': Icons.store,
+          'permissionKey':
+              AppRouter.routePermissions['/organizations/branches'],
           'childList': null,
         },
         {
           'menuName': 'Users',
           'path': '/users',
           'icon': Icons.people,
+          'permissionKey': AppRouter.routePermissions['/users'],
+          'childList': null,
+        },
+        {
+          'menuName': 'Roles',
+          'path': '/roles',
+          'icon': Icons.admin_panel_settings,
+          'permissionKey': AppRouter.routePermissions['/roles'],
+          'childList': null,
+        },
+        {
+          'menuName': 'Permissions',
+          'path': '/permissions',
+          'icon': Icons.lock_outline,
+          'permissionKey': AppRouter.routePermissions['/permissions'],
           'childList': null,
         },
       ],
     },
   ];
+
+  List<Map<String, dynamic>> _visibleMenuGroups(AuthService auth) {
+    final visibleGroups = <Map<String, dynamic>>[];
+
+    for (final group in _menuGroups) {
+      final menuList = (group['menuList'] as List<dynamic>).where((entry) {
+        final permissionKey = entry['permissionKey'] as String?;
+        return permissionKey == null || auth.hasPermission(permissionKey);
+      }).toList();
+
+      if (menuList.isEmpty) {
+        continue;
+      }
+
+      visibleGroups.add({...group, 'menuList': menuList});
+    }
+
+    return visibleGroups;
+  }
 
   bool _isSelectedPath(BuildContext context, String path) {
     String? routePath = ModalRoute.of(context)?.settings.name;
@@ -173,6 +215,9 @@ class _SidebarState extends State<Sidebar> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = GetIt.instance.get<AuthService>();
+    final visibleGroups = _visibleMenuGroups(auth);
+
     return Container(
       width: 260,
       color: Theme.of(context).canvasColor,
@@ -191,7 +236,7 @@ class _SidebarState extends State<Sidebar> {
             Expanded(
               child: ListView(
                 padding: EdgeInsets.zero,
-                children: _menuGroups.map<Widget>((group) {
+                children: visibleGroups.map<Widget>((group) {
                   final String groupName = group['groupName'] ?? '';
                   final List menuList = group['menuList'] ?? [];
                   return Padding(
