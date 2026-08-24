@@ -20,6 +20,7 @@ jobs:
       # Name of the ephemeral test database and test role that will be created by the job.
       CI_TEST_DB: newerp_test
       CI_TEST_ROLE: newerp_test_runner
+      CI_POSTGRES_PORT: '5433'
       # Do NOT place passwords in repository. The role password is provided via the CI_POSTGRES_PASSWORD secret.
       CI_TEST_ROLE_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
     steps:
@@ -41,17 +42,17 @@ jobs:
         env:
           POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
         run: |
-          set -e
-          echo "Starting Postgres 17.10 container..."
+          set -euo pipefail
+          echo "Starting Postgres 17.10 container on host port ${CI_POSTGRES_PORT}..."
           : > postgres-startup-diagnostics.txt
           echo "=== docker run ===" | tee -a postgres-startup-diagnostics.txt
           docker rm -f newerp_test_container >/dev/null 2>&1 || true
           docker run --name newerp_test_container \
-            -e POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
-            -e POSTGRES_DB=postgres \
-            -e POSTGRES_USER=postgres \
+            --env POSTGRES_PASSWORD \
+            --env POSTGRES_DB=postgres \
+            --env POSTGRES_USER=postgres \
             -d \
-            -p 5432:5432 \
+            -p "${CI_POSTGRES_PORT}:5432" \
             postgres:17.10
 
           echo "=== container existence check ===" | tee -a postgres-startup-diagnostics.txt
@@ -70,10 +71,10 @@ jobs:
         env:
           PGPASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
         run: |
-          set -e
-          echo "Waiting for Postgres to become available..." | tee -a postgres-startup-diagnostics.txt
+          set -euo pipefail
+          echo "Waiting for Postgres to become available on port ${CI_POSTGRES_PORT}..." | tee -a postgres-startup-diagnostics.txt
           retries=0
-          until pg_isready -h localhost -p 5432 -U postgres -d postgres >/dev/null 2>&1; do
+          until pg_isready -h localhost -p "${CI_POSTGRES_PORT}" -U postgres -d postgres >/dev/null 2>&1; do
             retries=$((retries+1))
             echo "--- readiness attempt ${retries} ---" | tee -a postgres-startup-diagnostics.txt
             echo "=== docker ps -a ===" | tee -a postgres-startup-diagnostics.txt
@@ -119,9 +120,9 @@ jobs:
         env:
           PGPASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
         run: |
-          set -e
+          set -euo pipefail
           echo "Creating test database and non-superuser test role..."
-          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 <<'PSQL'
+          psql -h localhost -p "${CI_POSTGRES_PORT}" -U postgres -d postgres -v ON_ERROR_STOP=1 <<'PSQL'
           -- Create the test database if it doesn't exist
           CREATE DATABASE "${CI_TEST_DB}";
           -- Create a non-superuser role for tests; NOBYPASSRLS ensures RLS is not bypassed
@@ -141,7 +142,7 @@ jobs:
       - name: Export TEST_DATABASE_URL
         run: |
           # Use the non-superuser test role for test runs. Do not echo the URL to logs.
-          echo "TEST_DATABASE_URL=postgres://${CI_TEST_ROLE}:${CI_TEST_ROLE_PASSWORD}@localhost:5432/${CI_TEST_DB}" >> $GITHUB_ENV
+          echo "TEST_DATABASE_URL=postgres://${CI_TEST_ROLE}:${CI_TEST_ROLE_PASSWORD}@localhost:${CI_POSTGRES_PORT}/${CI_TEST_DB}" >> "$GITHUB_ENV"
 
       - name: Run migrations
         env:
