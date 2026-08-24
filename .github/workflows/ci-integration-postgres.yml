@@ -1,0 +1,120 @@
+﻿name: CI — Integration Tests (Postgres)
+
+on:
+  push:
+    branches:
+      - main
+      - 'ai/**'
+  pull_request:
+    branches:
+      - main
+      - 'ai/**'
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.10
+        env:
+          # The container superuser password is read from a secret. Configure CI secret CI_POSTGRES_PASSWORD before enabling this workflow.
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      # Name of the ephemeral test database and test role that will be created by the job.
+      CI_TEST_DB: newerp_test
+      CI_TEST_ROLE: newerp_test_runner
+      # Do NOT place passwords in repository. The role password is provided via the CI_POSTGRES_PASSWORD secret.
+      CI_TEST_ROLE_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Postgres client for readiness checks
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client
+
+      - name: Wait for Postgres service (pg_isready loop)
+        env:
+          PGPASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+        run: |
+          echo "Waiting for Postgres to become available..."
+          retries=0
+          until pg_isready -h localhost -p 5432 -U postgres -d postgres >/dev/null 2>&1; do
+            retries=$((retries+1))
+            if [ "$retries" -ge 30 ]; then
+              echo "Postgres did not become available in time" >&2
+              exit 1
+            fi
+            sleep 2
+          done
+          echo "Postgres is ready"
+
+      - name: Create test role and database (non-superuser)
+        env:
+          PGPASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+        run: |
+          set -e
+          echo "Creating test database and non-superuser test role..."
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 <<'PSQL'
+          -- Create the test database if it doesn't exist
+          CREATE DATABASE "${CI_TEST_DB}";
+          -- Create a non-superuser role for tests; NOBYPASSRLS ensures RLS is not bypassed
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${CI_TEST_ROLE}') THEN
+              CREATE ROLE "${CI_TEST_ROLE}" WITH LOGIN PASSWORD '${CI_TEST_ROLE_PASSWORD}' NOSUPERUSER NOBYPASSRLS;
+            END IF;
+            -- Ensure role attributes
+            ALTER ROLE "${CI_TEST_ROLE}" WITH NOSUPERUSER NOBYPASSRLS;
+          END
+          $$;
+          -- Grant privileges on the database to the test role
+          GRANT ALL PRIVILEGES ON DATABASE "${CI_TEST_DB}" TO "${CI_TEST_ROLE}";
+          PSQL
+
+      - name: Export TEST_DATABASE_URL
+        run: |
+          # Use the non-superuser test role for test runs. Do not echo the URL to logs.
+          echo "TEST_DATABASE_URL=postgres://${CI_TEST_ROLE}:${CI_TEST_ROLE_PASSWORD}@localhost:5432/${CI_TEST_DB}" >> $GITHUB_ENV
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+        run: |
+          echo "Running migrations against TEST_DATABASE_URL (hidden)..."
+          npm run db:migrate
+
+      - name: Run integration tests (DB-backed)
+        env:
+          TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+        run: |
+          echo "Running integration tests against TEST_DATABASE_URL (hidden)..."
+          npm run test:integration
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Git diff check
+        run: git --no-pager diff --check
