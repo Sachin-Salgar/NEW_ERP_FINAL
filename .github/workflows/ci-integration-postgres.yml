@@ -41,10 +41,25 @@ jobs:
         env:
           POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
         run: |
+          set -e
           echo "Starting Postgres 17.10 container..."
-          # Remove any existing container with the same name
+          : > postgres-startup-diagnostics.txt
+          echo "=== docker run ===" | tee -a postgres-startup-diagnostics.txt
           docker rm -f newerp_test_container >/dev/null 2>&1 || true
-          docker run --name newerp_test_container -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -e POSTGRES_DB=postgres -e POSTGRES_USER=postgres -d -p 5432:5432 postgres:17.10
+          docker run --name newerp_test_container \
+            -e POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+            -e POSTGRES_DB=postgres \
+            -e POSTGRES_USER=postgres \
+            -d \
+            -p 5432:5432 \
+            postgres:17.10
+
+          echo "=== container existence check ===" | tee -a postgres-startup-diagnostics.txt
+          docker ps -a --filter "name=newerp_test_container" | tee -a postgres-startup-diagnostics.txt
+          echo "=== container inspect ===" | tee -a postgres-startup-diagnostics.txt
+          docker inspect newerp_test_container --format 'status={{.State.Status}} running={{.State.Running}} exitcode={{.State.ExitCode}} error={{.State.Error}}' | tee -a postgres-startup-diagnostics.txt
+          echo "=== container logs (startup) ===" | tee -a postgres-startup-diagnostics.txt
+          docker logs newerp_test_container 2>&1 | tee -a postgres-startup-diagnostics.txt || true
 
       - name: Install Postgres client for readiness checks
         run: |
@@ -55,41 +70,50 @@ jobs:
         env:
           PGPASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
         run: |
-          echo "Waiting for Postgres to become available..."
+          set -e
+          echo "Waiting for Postgres to become available..." | tee -a postgres-startup-diagnostics.txt
           retries=0
           until pg_isready -h localhost -p 5432 -U postgres -d postgres >/dev/null 2>&1; do
             retries=$((retries+1))
-
-            echo "--- readiness attempt ${retries} ---"
-            echo "Container list:"
-            docker ps -a --filter "name=newerp_test_container" || true
-            echo "Container state:"
-            docker inspect newerp_test_container --format 'status={{.State.Status}} running={{.State.Running}} exitcode={{.State.ExitCode}} error={{.State.Error}}' || true
+            echo "--- readiness attempt ${retries} ---" | tee -a postgres-startup-diagnostics.txt
+            echo "=== docker ps -a ===" | tee -a postgres-startup-diagnostics.txt
+            docker ps -a --filter "name=newerp_test_container" 2>&1 | tee -a postgres-startup-diagnostics.txt || true
+            echo "=== docker inspect ===" | tee -a postgres-startup-diagnostics.txt
+            docker inspect newerp_test_container --format 'status={{.State.Status}} running={{.State.Running}} exitcode={{.State.ExitCode}} error={{.State.Error}}' 2>&1 | tee -a postgres-startup-diagnostics.txt || true
 
             if docker inspect newerp_test_container --format '{{.State.Running}}' 2>/dev/null | grep -q '^false$'; then
-              echo "Postgres container has exited or is not running; printing recent logs" >&2
-              docker inspect newerp_test_container --format 'status={{.State.Status}} running={{.State.Running}} exitcode={{.State.ExitCode}} error={{.State.Error}}' >&2 || true
-              docker logs --tail 200 newerp_test_container >&2 || true
+              echo "Postgres container has exited or is not running; printing recent logs" | tee -a postgres-startup-diagnostics.txt >&2
+              docker inspect newerp_test_container --format 'status={{.State.Status}} running={{.State.Running}} exitcode={{.State.ExitCode}} error={{.State.Error}}' 2>&1 | tee -a postgres-startup-diagnostics.txt >&2 || true
+              echo "=== PostgreSQL logs (tail 200) ===" | tee -a postgres-startup-diagnostics.txt >&2
+              docker logs --tail 200 newerp_test_container 2>&1 | tee -a postgres-startup-diagnostics.txt >&2 || true
               exit 1
             fi
 
             if [ "$retries" -ge 60 ]; then
-              echo "Postgres did not become available in time" >&2
-              echo "Final container state:" >&2
-              docker inspect newerp_test_container --format 'status={{.State.Status}} running={{.State.Running}} exitcode={{.State.ExitCode}} error={{.State.Error}}' >&2 || true
-              echo "Recent container logs:" >&2
-              docker logs --tail 200 newerp_test_container >&2 || true
+              echo "Postgres did not become available in time" | tee -a postgres-startup-diagnostics.txt >&2
+              echo "=== final container state ===" | tee -a postgres-startup-diagnostics.txt >&2
+              docker inspect newerp_test_container --format 'status={{.State.Status}} running={{.State.Running}} exitcode={{.State.ExitCode}} error={{.State.Error}}' 2>&1 | tee -a postgres-startup-diagnostics.txt >&2 || true
+              echo "=== final logs ===" | tee -a postgres-startup-diagnostics.txt >&2
+              docker logs --tail 200 newerp_test_container 2>&1 | tee -a postgres-startup-diagnostics.txt >&2 || true
               exit 1
             fi
 
             if [ "$((retries % 5))" -eq 0 ]; then
-              echo "Recent Postgres logs (tail 100):" >&2
-              docker logs --tail 100 newerp_test_container >&2 || true
+              echo "=== PostgreSQL logs (tail 100) ===" | tee -a postgres-startup-diagnostics.txt >&2
+              docker logs --tail 100 newerp_test_container 2>&1 | tee -a postgres-startup-diagnostics.txt >&2 || true
             fi
 
             sleep 2
           done
-          echo "Postgres is ready"
+          echo "Postgres is ready" | tee -a postgres-startup-diagnostics.txt
+
+      - name: Upload Postgres diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: postgres-startup-diagnostics
+          path: postgres-startup-diagnostics.txt
+          if-no-files-found: warn
 
       - name: Create test role and database (non-superuser)
         env:
