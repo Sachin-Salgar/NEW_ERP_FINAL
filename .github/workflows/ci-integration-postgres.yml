@@ -135,8 +135,14 @@ jobs:
             ALTER ROLE "${CI_TEST_ROLE}" WITH NOSUPERUSER NOBYPASSRLS;
           END
           $$;
-          -- Grant privileges on the database to the test role
+          -- Grant privileges on the database and schema to the test role so migrations can create tables and extensions.
           GRANT ALL PRIVILEGES ON DATABASE "${CI_TEST_DB}" TO "${CI_TEST_ROLE}";
+          GRANT USAGE, CREATE ON SCHEMA public TO "${CI_TEST_ROLE}";
+          ALTER SCHEMA public OWNER TO "${CI_TEST_ROLE}";
+          GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${CI_TEST_ROLE}";
+          GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "${CI_TEST_ROLE}";
+          ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO "${CI_TEST_ROLE}";
+          ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO "${CI_TEST_ROLE}";
           PSQL
 
       - name: Export TEST_DATABASE_URL
