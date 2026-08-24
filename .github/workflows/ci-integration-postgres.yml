@@ -138,6 +138,10 @@ jobs:
           $$;
 
           GRANT ALL PRIVILEGES ON DATABASE :"db_name" TO :"role_name";
+          SQL
+
+          psql -h localhost -p "${CI_POSTGRES_PORT}" -U postgres -d "${CI_TEST_DB}" -v ON_ERROR_STOP=1 \
+            -v role_name="${CI_TEST_ROLE}" <<'SQL'
           GRANT USAGE, CREATE ON SCHEMA public TO :"role_name";
           ALTER SCHEMA public OWNER TO :"role_name";
           GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO :"role_name";
