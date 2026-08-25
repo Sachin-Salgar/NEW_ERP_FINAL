@@ -1,0 +1,250 @@
+name: CI - Integration Tests (Postgres)
+
+on:
+  push:
+    branches:
+      - main
+      - 'ai/**'
+  pull_request:
+    branches:
+      - main
+      - 'ai/**'
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    env:
+      CI_TEST_DB: newerp_test
+      CI_TEST_ROLE: newerp_test_runner
+      CI_POSTGRES_PORT: '5433'
+      CI_TEST_ROLE_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies (pnpm)
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.9 --activate
+          pnpm install --frozen-lockfile
+
+      - name: Start Postgres container (docker)
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+        run: |
+          set -euo pipefail
+          echo "Starting Postgres 17.10 container on host port ${CI_POSTGRES_PORT}..."
+          : > postgres-startup-diagnostics.txt
+          echo "=== docker run ===" | tee -a postgres-startup-diagnostics.txt
+          docker rm -f newerp_test_container >/dev/null 2>&1 || true
+          docker run --name newerp_test_container \
+            --env POSTGRES_PASSWORD \
+            --env POSTGRES_DB=postgres \
+            --env POSTGRES_USER=postgres \
+            -d \
+            -p "${CI_POSTGRES_PORT}:5432" \
+            postgres:17.10
+
+          echo "=== container existence check ===" | tee -a postgres-startup-diagnostics.txt
+          docker ps -a --filter "name=newerp_test_container" | tee -a postgres-startup-diagnostics.txt
+          echo "=== container inspect ===" | tee -a postgres-startup-diagnostics.txt
+          docker inspect newerp_test_container --format 'status={{.State.Status}} running={{.State.Running}} exitcode={{.State.ExitCode}} error={{.State.Error}}' | tee -a postgres-startup-diagnostics.txt
+          echo "=== container logs (startup) ===" | tee -a postgres-startup-diagnostics.txt
+          docker logs newerp_test_container 2>&1 | tee -a postgres-startup-diagnostics.txt || true
+
+      - name: Install Postgres client for readiness checks
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client
+
+      - name: Wait for Postgres service (pg_isready loop)
+        env:
+          PGPASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+        run: |
+          set -euo pipefail
+          echo "Waiting for Postgres to become available on port ${CI_POSTGRES_PORT}..." | tee -a postgres-startup-diagnostics.txt
+          retries=0
+          until pg_isready -h localhost -p "${CI_POSTGRES_PORT}" -U postgres -d postgres >/dev/null 2>&1; do
+            retries=$((retries+1))
+            echo "--- readiness attempt ${retries} ---" | tee -a postgres-startup-diagnostics.txt
+            docker ps -a --filter "name=newerp_test_container" 2>&1 | tee -a postgres-startup-diagnostics.txt || true
+            docker inspect newerp_test_container --format 'status={{.State.Status}} running={{.State.Running}} exitcode={{.State.ExitCode}} error={{.State.Error}}' 2>&1 | tee -a postgres-startup-diagnostics.txt || true
+
+            if docker inspect newerp_test_container --format '{{.State.Running}}' 2>/dev/null | grep -q '^false$'; then
+              echo "Postgres container has exited or is not running; printing recent logs" | tee -a postgres-startup-diagnostics.txt >&2
+              docker logs --tail 200 newerp_test_container 2>&1 | tee -a postgres-startup-diagnostics.txt >&2 || true
+              exit 1
+            fi
+
+            if [ "$retries" -ge 60 ]; then
+              echo "Postgres did not become available in time" | tee -a postgres-startup-diagnostics.txt >&2
+              docker logs --tail 200 newerp_test_container 2>&1 | tee -a postgres-startup-diagnostics.txt >&2 || true
+              exit 1
+            fi
+
+            sleep 2
+          done
+          echo "Postgres is ready" | tee -a postgres-startup-diagnostics.txt
+
+      - name: Upload Postgres diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: postgres-startup-diagnostics-fixed
+          path: postgres-startup-diagnostics.txt
+          if-no-files-found: warn
+
+      - name: Create test role and database (non-superuser)
+        env:
+          PGPASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+        run: |
+          set -euo pipefail
+          echo "Creating test database and non-superuser test role..."
+          psql -h localhost -p "${CI_POSTGRES_PORT}" -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            -v db_name="${CI_TEST_DB}" \
+            -v role_name="${CI_TEST_ROLE}" \
+            -v role_password="${CI_TEST_ROLE_PASSWORD}" <<'SQL'
+          SELECT format('CREATE DATABASE %I', :'db_name') \gexec
+          SELECT format('CREATE ROLE %I WITH LOGIN PASSWORD %L NOSUPERUSER NOBYPASSRLS', :'role_name', :'role_password') \gexec
+          ALTER ROLE :"role_name" WITH NOSUPERUSER NOBYPASSRLS;
+          GRANT ALL PRIVILEGES ON DATABASE :"db_name" TO :"role_name";
+          SQL
+
+      - name: Export TEST_DATABASE_URL
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          import urllib.parse
+
+          role = os.environ['CI_TEST_ROLE']
+          password = os.environ['CI_TEST_ROLE_PASSWORD']
+          db = os.environ['CI_TEST_DB']
+          port = os.environ['CI_POSTGRES_PORT']
+          encoded_password = urllib.parse.quote(password, safe='')
+          postgres_url = f'postgres://{role}:{encoded_password}@localhost:{port}/{db}'
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as env_file:
+              env_file.write(f'TEST_DATABASE_URL={postgres_url}\n')
+          PY
+
+      - name: Debug: list public tables (post-migr)
+        env:
+          PGPASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+          PGHOST: localhost
+          PGPORT: ${{ env.CI_POSTGRES_PORT }}
+          PGUSER: ${{ env.CI_TEST_ROLE }}
+          PGDATABASE: ${{ env.CI_TEST_DB }}
+        run: |
+          set -euo pipefail
+          echo "Listing public tables to db-tables.txt"
+          psql -h localhost -p "${CI_POSTGRES_PORT}" -U "${CI_TEST_ROLE}" -d "${CI_TEST_DB}" -c "\dt public.*" > db-tables.txt || true
+
+      - name: Upload DB table list (debug)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-tables-fixed
+          path: db-tables.txt
+          if-no-files-found: warn
+
+      - name: Seed deterministic E2E fixtures
+        env:
+          TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          echo "Seeding deterministic E2E tenant and role fixtures..."
+          node --trace-warnings --trace-uncaught scripts/ci/seed-e2e.js > seed-output.log 2>&1 || (echo "Seed script failed, dumping seed-output.log"; cat seed-output.log >&2; exit 1)
+
+      - name: Upload seed logs (debug)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seed-output-fixed
+          path: seed-output.log
+          if-no-files-found: warn
+
+      - name: Start backend API for E2E validation
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+          TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+          NODE_ENV: test
+          HOST: 0.0.0.0
+          PORT: 3000
+          API_PREFIX: /api/v1
+          JWT_SECRET: e2e-test-jwt-secret-should-be-long-enough
+          TENANT_HEADER: x-tenant-id
+          TENANT_HOST_MAP: '{"localhost":"11111111-1111-4111-8111-111111111111"}'
+          CORS_ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000,http://localhost:7358,http://127.0.0.1:7358
+        run: |
+          set -euo pipefail
+          echo "Starting backend API for the E2E flow..."
+          nohup env DATABASE_URL="$DATABASE_URL" TEST_DATABASE_URL="$TEST_DATABASE_URL" NODE_ENV="$NODE_ENV" HOST="$HOST" PORT="$PORT" API_PREFIX="$API_PREFIX" JWT_SECRET="$JWT_SECRET" TENANT_HEADER="$TENANT_HEADER" TENANT_HOST_MAP="$TENANT_HOST_MAP" CORS_ALLOWED_ORIGINS="$CORS_ALLOWED_ORIGINS" npm run dev > backend-e2e.log 2>&1 &
+          echo $! > backend-e2e.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3000/api/v1/bootstrap > /tmp/backend-bootstrap.json; then
+              echo "Backend is ready."
+              cat /tmp/backend-bootstrap.json
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend failed to become healthy before timeout." >&2
+          if [ -f backend-e2e.log ]; then
+            tail -n 200 backend-e2e.log >&2 || true
+          fi
+          exit 1
+
+      - name: Set up Flutter web SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+
+      - name: Enable Flutter web support
+        run: flutter config --enable-web
+
+      - name: Install Flutter dependencies
+        working-directory: frontend
+        run: flutter pub get
+
+      - name: Run Flutter login and tenant auth E2E test
+        env:
+          API_BASE_URL: http://localhost:3000
+          TENANT_ID: 11111111-1111-4111-8111-111111111111
+        working-directory: frontend
+        run: |
+          set -euo pipefail
+          flutter test integration_test/login_tenant_auth_e2e_test.dart -d chrome \
+            --dart-define=API_BASE_URL=http://localhost:3000 \
+            --dart-define=TENANT_ID=11111111-1111-4111-8111-111111111111
+
+      - name: Upload backend E2E log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-e2e-log-fixed
+          path: backend-e2e.log
+          if-no-files-found: warn
+
+      - name: Run integration tests (DB-backed)
+        env:
+          TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+        run: |
+          echo "Running integration tests against TEST_DATABASE_URL (hidden)..."
+          npm run test:integration
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Git diff check
+        run: git --no-pager diff --check
