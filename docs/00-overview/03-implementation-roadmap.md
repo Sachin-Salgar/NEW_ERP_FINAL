@@ -133,11 +133,18 @@ CORE-01 Detailed Steps
 - CORE-01.18 Authorization frontend tests — [COMPLETED — VALIDATED]
   - Widget and integration tests cover AuthZ behavior, role list/create/edit, permission catalog, and role-permission assignment.
 ns UI and permission-driven visibility.
-- CORE-01.19 Backend integration / RLS / RBAC validation — [IN PROGRESS]
+- CORE-01.19 Backend integration / RLS / RBAC validation — [COMPLETED — VALIDATED]
   - Execute all tests/integration RBAC and tenant RLS tests in CI with test DB.
+  - Evidence: CI run 32804526446 (head_sha b9f72d7d56f5ae0f6b941517e641c078b2cfc5fc) successfully executed Postgres bootstrap, migrations, and DB-backed integration tests. Reference-data seeding idempotency fix (commit b9f72d7) applied to avoid duplicate-key failures (uq_subscription_plans_name).
+  - Validation commands and results:
+    - GitHub Actions run 32804526446 — integration job completed: SUCCESS
+    - Integration tests (DB-backed) — PASS
+    - Unit tests — PASS
+    - Typecheck — PASS
+  - Notes: The DB bootstrap, role creation, and RLS-sensitive integration tests were executed under the non-superuser test role (newerp_test_runner) as part of the CI job. Uploaded diagnostics are available as job artifacts for audit.
 
 - CORE-01.20 Frontend → backend E2E validation — [NOT STARTED]
-  - E2E scenarios simulating real host-based tenant resolution and RBAC enforcement.
+  - E2E scenarios simulating real host-based tenant resolution and RBAC enforcement. This is the IMMEDIATE NEXT STEP and requires defining a small first E2E scenario (login → organization select → permission-gated navigation) and CI infra to run a headless frontend against the test backend.
 
 - CORE-01.21 Security audit — [NOT STARTED]
   - Validate secure storage, no secrets in logs, RLS policies, and audit trails meet security docs.
@@ -165,7 +172,7 @@ Each step above must be updated with the Evidence Requirement block after it is 
   - No blocking issues for the completed AUTH-02 foundation.
   - CI environment remains required for full DB-backed E2E validation beyond the current local checks.
 - Immediate next action (single):
-  - Continue with the actual next roadmap item after AUTH-02.12 validation and confirm end-to-end validation evidence before the next implementation step.
+  - CORE-01.20 — Frontend → backend E2E validation: define and implement the first E2E scenario (login → organization selection → permission-aware navigation) and add CI job(s) to execute it against the existing Postgres-backed integration job. Collect evidence (CI run id, job logs, artifacts) and update this roadmap on success.
 
 ---
 
