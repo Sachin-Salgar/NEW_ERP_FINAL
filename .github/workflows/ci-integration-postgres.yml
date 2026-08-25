@@ -1,4 +1,4 @@
-﻿name: CI — Integration Tests (Postgres)
+name: CI - Integration Tests (Postgres)
 
 on:
   push:
@@ -9,6 +9,7 @@ on:
     branches:
       - main
       - 'ai/**'
+  workflow_dispatch: {}
 
 permissions:
   contents: read
