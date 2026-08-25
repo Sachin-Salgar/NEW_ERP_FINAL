@@ -47,10 +47,15 @@ void main() {
       final auth = GetIt.instance.get<AuthService>();
       expect(auth.isAuthenticated, isTrue);
       expect(auth.currentTenantId, equals(_tenantId));
-      \n      final String? uiToken = auth.accessToken;\n      expect(uiToken, isNotNull, reason: 'UI must have access token after login');\nfinal protectedRolesResponse = await http.get(
-        Uri.parse('$baseUrl/api/v1/rbac/roles'),
+
+      final String? uiToken = auth.accessToken;
+      expect(uiToken, isNotNull, reason: 'UI must have access token after login');
+
+      // Admin: use the real UI token for protected call (string-concat to avoid $ in file)
+      final protectedRolesResponse = await http.get(
+        Uri.parse(baseUrl + '/api/v1/rbac/roles'),
         headers: {
-          'Authorization': 'Bearer ${auth.accessToken}',
+          'Authorization': 'Bearer ' + uiToken!,
           'x-tenant-id': _tenantId,
         },
       );
@@ -60,10 +65,11 @@ void main() {
         reason: 'The authenticated admin should be able to read roles in the tenant.',
       );
 
+      // Tenant mismatch: same token but wrong tenant header
       final mismatchedTenantResponse = await http.get(
-        Uri.parse('$baseUrl/api/v1/rbac/roles'),
+        Uri.parse(baseUrl + '/api/v1/rbac/roles'),
         headers: {
-          'Authorization': 'Bearer ${auth.accessToken}',
+          'Authorization': 'Bearer ' + uiToken!,
           'x-tenant-id': '11111111-1111-4111-8111-111111111112',
         },
       );
@@ -74,7 +80,7 @@ void main() {
       );
 
       final limitedLoginResponse = await http.post(
-        Uri.parse('$baseUrl/api/v1/auth/login'),
+        Uri.parse(baseUrl + '/api/v1/auth/login'),
         headers: {
           'x-tenant-id': _tenantId,
           'Content-Type': 'application/json',
@@ -92,12 +98,12 @@ void main() {
 
       final limitedBody = jsonDecode(limitedLoginResponse.body) as Map<String, dynamic>;
       final limitedToken = limitedBody['accessToken'] as String?;
-      expect(limitedToken, isNotNull);
+      expect(limitedToken, isNotNull, reason: 'Limited-user login must return an access token');
 
       final deniedRoleAccess = await http.get(
-        Uri.parse('$baseUrl/api/v1/rbac/roles'),
+        Uri.parse(baseUrl + '/api/v1/rbac/roles'),
         headers: {
-          'Authorization': 'Bearer $limitedToken',
+          'Authorization': 'Bearer ' + limitedToken!,
           'x-tenant-id': _tenantId,
         },
       );
@@ -109,4 +115,3 @@ void main() {
     });
   });
 }
-
