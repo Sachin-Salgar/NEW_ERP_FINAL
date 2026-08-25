@@ -168,7 +168,7 @@ jobs:
           echo "Running migrations against TEST_DATABASE_URL (hidden)..."
           npm run db:migrate
 
-      - name: Debug: list public tables (post-migrations)
+      - name: "Debug: list public tables (post-migrations)"
         env:
           PGPASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
           PGHOST: localhost
