@@ -1,131 +1,138 @@
 # Frontend Development Standards
 
-<!--
-Title: Frontend Development Standards
-Purpose: Canonical migration from Volume 4 — Frontend Architecture
-Scope: Coding standards, naming conventions, reviews and reusable components
-Audience: Developers and reviewers
-Owner: TBD
-Status: Migrated (Draft)
-Last Reviewed: 2026-08-07
-Related ADRs:
-Related Documents: docs/migration-traceability/volume4-to-docs.md, docs/02-architecture/05-coding-standards.md
--->
+**Document Purpose:** Define coding, naming, documentation, review, and reusable-component standards for frontend development.
 
-Source: Volume 4 — Chapter 23
+## 23.1 Introduction
 
-23.1 Introduction
+Consistent development standards enable multiple developers to work efficiently while preserving architectural integrity.
 
-A consistent development standard enables multiple developers to work efficiently while maintaining architectural integrity.
+These standards complement the repository's authoritative architecture and engineering documents; they do not override more specific architectural or security requirements.
 
-The Enterprise ERP Platform defines coding standards, project organization, documentation requirements, and review processes for all frontend development.
-
-23.2 Objectives
+## 23.2 Objectives
 
 Development standards aim to:
-• Improve consistency.
-• Simplify maintenance.
-• Improve readability.
-• Support onboarding.
-• Reduce defects.
-• Preserve architectural quality.
+- Improve consistency.
+- Simplify maintenance.
+- Improve readability.
+- Support onboarding.
+- Reduce defects.
+- Preserve architectural quality.
 
-23.3 Coding Principles
+## 23.3 Coding Principles
 
-Frontend code shall follow these principles:
-• Readability.
-• Simplicity.
-• Reusability.
-• Predictability.
-• Separation of Concerns.
-• Consistency.
+Frontend code should follow these principles:
+- Readability.
+- Simplicity.
+- Reusability where justified.
+- Predictability.
+- Separation of concerns.
+- Consistency.
 
-Complex solutions shall only be introduced when justified.
+Complex solutions shall only be introduced when justified by an actual requirement.
 
-23.4 Widget Design
+## 23.4 Widget Design
 
-Widgets shall:
-• Have a single responsibility.
-• Remain reusable.
-• Avoid business logic.
-• Receive dependencies through injection.
-• Be independently testable.
+Widgets should:
+- Have clear responsibilities.
+- Remain reusable where reuse provides value.
+- Avoid embedding authoritative business rules.
+- Receive infrastructure/application dependencies through the established dependency mechanism.
+- Be independently testable where practical.
 
-Large widgets should be decomposed into smaller components.
+Large widgets should be decomposed when doing so improves readability and testability.
 
-23.5 Naming Standards
+## 23.5 Naming Standards
 
-Naming shall be descriptive and consistent.
-Examples:
-Widgets
-• CustomerCard
-• SalesTable
-• InventoryChart
+Naming shall be descriptive and consistent with the language/framework conventions used by the repository.
 
-Screens
-• LoginScreen
-• DashboardScreen
-• SalesInvoiceScreen
-
-Providers
-• AuthenticationProvider
-• CustomerProvider
-• InventoryProvider
-
-Services
-• ApiService
-• StorageService
-• NotificationService
-
-23.6 Documentation
-
-Developers shall document:
-• Public APIs.
-• Shared Components.
-• Complex Widgets.
-• Module Architecture.
-• State Providers.
-
-Documentation shall explain architectural decisions where necessary.
-
-23.7 Code Reviews
-
-Every production change shall undergo peer review.
-Review criteria include:
-• Readability.
-• Architecture.
-• Performance.
-• Accessibility.
-• Security.
-• Test Coverage.
-
-No production code shall bypass the review process.
-
-23.8 Reusable Components
-
-Common UI elements shall be centralized.
 Examples include:
-• Buttons.
-• Dialogs.
-• Data Tables.
-• Form Controls.
-• Loading Indicators.
-• Search Components.
-• Empty State Views.
 
-Duplicate implementations should be avoided.
+```text
+CustomerCard
+SalesTable
+InventoryChart
 
-23.9 Continuous Improvement
+LoginScreen
+DashboardScreen
+SalesInvoiceScreen
 
-Frontend standards shall evolve through:
-• Architecture Reviews.
-• Developer Feedback.
-• User Feedback.
-• Performance Analysis.
-• Accessibility Reviews.
+AuthenticationProvider
+CustomerProvider
+InventoryProvider
+```
 
-Continuous improvement ensures long-term maintainability.
+Names must reflect actual responsibility rather than merely following the examples above.
 
-23.10 Summary
+## 23.6 Documentation
 
-Development standards establish a consistent engineering culture that supports large-scale, long-term frontend development.
+Developers should document:
+- Public APIs and contracts where required.
+- Shared components whose behavior is not self-evident.
+- Complex implementation decisions.
+- Module boundaries and non-obvious architectural behavior.
+- State providers where their lifecycle or ownership requires explanation.
+
+Documentation should explain the reason for important architectural decisions rather than restating obvious code.
+
+## 23.7 Code Reviews
+
+Production code changes should undergo the repository's established review process.
+
+Review criteria should include, as applicable:
+- Readability.
+- Architecture.
+- Correctness.
+- Performance.
+- Accessibility.
+- Security.
+- Test coverage.
+
+The actual merge/release policy is governed by repository and CI configuration.
+
+## 23.8 Reusable Components
+
+Common UI patterns should use approved shared components where available.
+
+Examples may include:
+- Buttons.
+- Dialogs.
+- Data Tables.
+- Form Controls.
+- Loading Indicators.
+- Search Components.
+- Empty State Views.
+
+Reuse should not force unrelated business behavior into generic components.
+
+## 23.9 Dependency and Boundary Rules
+
+Frontend code shall:
+- Use the established API boundary for backend communication.
+- Avoid direct database access.
+- Keep authoritative business/security rules on the backend.
+- Respect module boundaries.
+- Avoid unnecessary circular dependencies.
+
+## 23.10 Continuous Improvement
+
+Frontend standards may evolve through:
+- Architecture reviews.
+- Developer feedback.
+- User feedback.
+- Performance analysis.
+- Accessibility reviews.
+- Lessons from implemented features.
+
+Changes to standards shall remain consistent with the repository's authoritative architecture.
+
+## 23.11 Summary
+
+Development standards establish consistent engineering practices while preserving modularity, maintainability, testability, accessibility, and the established frontend/backend boundaries.
+
+## Cross References
+
+- [Flutter Architecture](./02-flutter-architecture.md)
+- [Project Structure](./04-project-structure.md)
+- [Dependency Injection](./06-dependency-injection.md)
+- [API Communication](./09-api-communication.md)
+- [Frontend Testing Strategy](./22-frontend-testing-strategy.md)

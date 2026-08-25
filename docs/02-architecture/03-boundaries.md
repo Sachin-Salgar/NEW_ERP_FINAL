@@ -8,12 +8,17 @@
 
 ## Introduction
 
-Modules in the ERP platform must remain independent while working together as an integrated system. This document defines:
+Modules in the ERP platform must remain independent while working together as an integrated system. The ERP currently uses a **Modular Monolith**: all business modules run inside a single deployable backend application, while their internal implementation boundaries remain enforced.
+
+Module independence therefore means **logical and code-level isolation**, not independent deployment at the current stage.
+
+This document defines:
 
 - How modules establish boundaries
 - How modules communicate
 - What dependencies are allowed
 - How to maintain independence while supporting integration
+- Which future communication mechanisms remain deferred
 
 ---
 
@@ -24,16 +29,18 @@ Modules in the ERP platform must remain independent while working together as an
 Each module has published interfaces that other modules can depend on:
 
 **What modules can know**:
-- Published REST APIs (/api/{module}/...)
+- Published service interfaces
+- Published REST APIs (`/api/{module}/...`)
 - Published data models (schemas, DTOs)
-- Published domain events (if event-driven)
+- Published domain events when event architecture is approved and implemented
 - Documented service contracts
 - Versioned API specifications
 
 **What modules cannot depend on**:
 - Internal implementation details
 - Private methods or services
-- Internal database tables directly
+- Another module's internal repositories
+- Another module's internal database tables directly
 - Undocumented APIs
 - Framework internals
 
@@ -41,10 +48,12 @@ Each module has published interfaces that other modules can depend on:
 
 Module boundaries are enforced through:
 
-1. **Database**: No cross-module database access (except through published APIs)
-2. **Imports**: Backend code dependency checks prevent unauthorized imports
-3. **API**: Communication only through published REST APIs
-4. **Contracts**: Data contracts prevent tight coupling
+1. **Database access**: A module must not directly access another module's internal persistence structures.
+2. **Imports**: Backend code dependency checks prevent unauthorized internal imports.
+3. **Contracts**: Cross-module communication uses published interfaces/contracts.
+4. **Architecture tests**: CI checks should detect circular or unauthorized module dependencies.
+
+The shared PostgreSQL database does not make every table a public integration interface. Ownership remains with the module that owns the data.
 
 ### Example Module Boundary
 
@@ -54,23 +63,23 @@ Sales Module
 │   ├── /api/sales/orders
 │   ├── /api/sales/customers
 │   └── /api/sales/invoices
-├── Domain Events (Published)
+├── Domain Events (when approved)
 │   ├── SalesOrderCreated
 │   ├── SalesOrderApproved
 │   └── InvoicePosted
 └── Internal (Private)
-    ├── sales_orders_temp table
+    ├── sales_orders_temp persistence
     ├── internal job schedulers
     └── internal utilities
 ```
 
 Other modules can:
-- Call /api/sales/orders
-- Subscribe to SalesOrderCreated event
-- Use published data models
+- Call published Sales interfaces
+- Use approved published event contracts when event architecture is available
+- Use published data contracts
 
 Other modules cannot:
-- Query sales_orders_temp directly
+- Query Sales internal persistence directly
 - Call internal schedulers
 - Access internal utilities
 
@@ -78,99 +87,40 @@ Other modules cannot:
 
 ## Communication Patterns
 
-### Pattern 1: Synchronous API Calls
+### Pattern 1: In-Process Published Service Interfaces
 
-**Use Case**: One module needs immediate response from another module.
+Because the ERP is currently a modular monolith, modules may communicate through published in-process service interfaces where the architecture and module contract permit it.
 
-**Example**: Sales module checks inventory availability
-
-```
-Sales Module
-    ↓
-GET /api/inventory/stock/{itemId}
-    ↓
-Inventory Module
-    ↓
-Returns: { available: 100, reserved: 20, total: 120 }
-```
-
-**Characteristics**:
-- Immediate response required
-- Caller waits for completion
-- Failure is immediate and visible
-- Used for read-only or simple operations
+**Use Case**: One module needs an immediate response from another module without introducing a network hop.
 
 **Guidelines**:
-- Keep synchronous calls fast (< 100ms)
-- Use for queries, lookups, validations
-- Avoid long-running operations
-- Have timeout strategy for failures
+- Depend only on the target module's published contract.
+- Do not bypass the target module's business rules or repository boundary.
+- Avoid circular dependencies.
+- Keep transaction ownership explicit.
+- Test the contract at module boundaries.
 
-### Pattern 2: Asynchronous Events (Future)
+### Pattern 2: Synchronous REST API Calls
 
-**Use Case**: One module notifies others of business events.
+REST is the external/client API contract and may also be used for explicitly defined module integration boundaries where required. Internal module calls should prefer the documented in-process contract unless the architecture explicitly requires a network boundary.
 
-**Example**: Sales Order created event triggers Inventory reservation and Accounting posting
-
-```
-Sales Module creates order
-    ↓
-Publishes: SalesOrderCreated { orderId, items... }
-    ↓
-Event Bus
-    ↓
-┌──────────────────┬───────────────────┬─────────────────┐
-│                  │                   │                 │
-Inventory Module  Accounting Module   CRM Module
-(Reserves Stock)  (Posts Ledger)     (Updates Activity)
-```
-
-**Characteristics**:
-- Fire-and-forget
-- Asynchronous processing
-- Loosely coupled modules
-- No immediate response
-- Potential delays
+**Use Case**: An integration requires an API boundary or a future extracted service.
 
 **Guidelines**:
-- Use for notifications of business events
-- Define event schema (versioned)
-- Include traceability (correlation ID)
-- Implement retry logic
-- Have dead-letter queue
+- Keep synchronous calls fast where used.
+- Use for queries, lookups, and operations requiring an immediate response.
+- Avoid long-running operations.
+- Define timeout and failure handling when a network call exists.
 
-**Status**: Deferred to future volumes; currently use synchronous APIs.
+### Pattern 3: Asynchronous Events — Deferred
 
-### Pattern 3: Data Synchronization (Future)
+**Status: Deferred until the event architecture is formally approved and implemented.**
 
-**Use Case**: One module maintains read-only copy of another module's data.
+Use events only where an approved event contract exists. Do not invent an event bus, saga, outbox, or asynchronous consistency model merely because a module interaction could use one.
 
-**Example**: Accounting module maintains customer master copy from Sales
+### Pattern 4: Data Synchronization — Deferred
 
-```
-Sales Module
-    (Source of Truth)
-    ↓
-Publishes: CustomerMasterUpdated
-    ↓
-Accounting Module
-    (Subscribes, maintains local copy)
-```
-
-**Characteristics**:
-- Eventual consistency
-- Asynchronous replication
-- Potential staleness
-- Reduced coupling
-
-**Guidelines**:
-- Only copy data you own
-- Handle failures and retries
-- Implement reconciliation jobs
-- Document refresh frequency
-- Monitor synchronization lag
-
-**Status**: Deferred to future volumes.
+Read-model replication and asynchronous synchronization are future capabilities. They require an approved architecture and explicit ownership/reconciliation rules before implementation.
 
 ---
 
@@ -178,28 +128,25 @@ Accounting Module
 
 ### Dependency Direction Rules
 
+Dependencies must follow explicitly approved module relationships. The examples below are illustrative, not a substitute for a maintained dependency matrix.
+
 ```
-✓ Allowed:
-  Sales Module → Inventory API (sales depends on inventory)
-  Sales Module → Auth Service (sales depends on auth)
-  Inventory Module → Accounting API (inventory depends on accounting)
+✓ Example allowed:
+  Sales Module → Inventory published contract
+  Sales Module → Platform Services
 
 ✗ Forbidden:
-  Inventory Module → Sales API (inventory doesn't depend on sales)
-  Auth Service → Sales Module (platform doesn't depend on modules)
+  Module → another module's internal repository
+  Platform Service → Business Module
   Circular: Sales → Inventory → Sales
 ```
 
 ### Platform Service Dependencies
 
-All modules depend on platform services:
+Business modules may depend on platform services through published contracts:
 
 ```
-Sales Module
-Inventory Module
-Accounting Module
-HR Module
-Manufacturing Module
+Business Modules
     ↓
     ├── Authentication Service
     ├── Authorization Service
@@ -211,83 +158,44 @@ Manufacturing Module
     └── Reporting Service
 ```
 
-Platform services are owned by the platform team and versioned independently.
+Platform services must not take dependencies on business modules merely to implement shared platform behavior.
 
 ### Dependency Matrix
 
+The dependency matrix must be maintained as module specifications are implemented. The examples below are initial directional guidance:
+
 | From | To | Allowed | Rationale |
-|------|----|---------|-----------| 
-| Any Module | Platform Service | ✓ Yes | Modules depend on common services |
-| Sales | Inventory | ✓ Yes | Sales checks stock |
-| Inventory | Sales | ✗ No | Inventory shouldn't know about sales |
-| Manufacturing | Sales | ✗ No | Manufacturing independent from sales |
-| Accounting | Sales | ✓ Yes | Accounting posts sales transactions |
-| Sales | Accounting | ✗ No | Accounting is downstream |
-| Inventory | Accounting | ✓ Yes | Inventory posts transactions |
-| Accounting | Inventory | ✗ No | Accounting doesn't control inventory |
+|------|----|---------|-----------|
+| Any Module | Platform Service | ✓ Yes | Modules may use common platform services |
+| Sales | Inventory | ✓ Only through published contract | Sales may need stock availability |
+| Inventory | Sales | ✗ Default | Avoid reverse dependency unless explicitly approved |
+| Manufacturing | Sales | ✗ Default | Preserve module independence |
+| Accounting | Sales | ✓ Only through published contract when required | Accounting may consume sales business data |
+| Sales | Accounting | ✓ Only through published contract when required | Sales may require accounting validation/posting |
+| Inventory | Accounting | ✓ Only through published contract when required | Inventory may require accounting integration |
+| Accounting | Inventory | ✓ Only through published contract when required | Allowed when a documented business capability requires inventory data |
 
-### Justification
-
-This dependency direction aligns with data flow and business logic:
-- Sales creates orders
-- Orders affect Inventory and Accounting
-- Inventory records movements
-- Movements affect Accounting
-- Accounting is the final record of transactions
-
-Inverse dependencies would create circular logic and violate module independence.
+A future dependency-checking mechanism must validate actual module dependencies against an authoritative matrix rather than hard-code the illustrative examples above.
 
 ---
 
 ## Integration Patterns
 
-### Pattern: Read API for Integration
+### Pattern: Published Contract for Integration
 
-A module publishes read APIs that other modules use to check status or retrieve data:
-
-```
-Sales Order Processing:
-
-1. Sales creates order
-2. Sales checks: GET /api/inventory/stock
-3. Inventory returns: { available: yes/no }
-4. Sales checks: GET /api/accounting/customer-balance
-5. Accounting returns: { balance, creditLimit }
-6. Sales proceeds or rejects
-```
+A module publishes a contract that another module consumes. The consuming module must not access the provider's persistence layer directly.
 
 Benefits:
-- Simple point-to-point
-- Immediate consistency
-- No event infrastructure needed
-- Easy to understand
+- Explicit ownership
+- Easier testing
+- Reduced coupling
+- Future extraction readiness
 
-Drawbacks:
-- Tight coupling
-- Multiple calls per transaction
-- Caller responsible for consistency
+### Pattern: Anti-Corruption Layer — Future
 
-### Pattern: Anti-Corruption Layer (Future)
+When integrating with external systems or legacy domains, use an anti-corruption layer where the architecture requires translation between domain models.
 
-When integrating with external systems or legacy modules, use anti-corruption layer:
-
-```
-Sales Module
-    (Uses Sales Domain Model)
-    ↓
-Anti-Corruption Layer
-    (Translates between domains)
-    ↓
-Legacy System
-    (Uses Legacy Domain Model)
-```
-
-Benefits:
-- Isolates domain models
-- Enables gradual migration
-- Reduces coupling
-
-**Status**: Deferred to future volumes.
+**Status**: Deferred until an applicable integration requires it.
 
 ---
 
@@ -295,179 +203,75 @@ Benefits:
 
 Before module A calls module B, verify:
 
-- ✓ Module B publishes the API being called
-- ✓ The API is documented and versioned
-- ✓ The call is in allowed dependency direction
-- ✓ Error handling is implemented
-- ✓ Timeout handling is implemented
-- ✓ Audit logging is in place
-- ✓ Integration is tested
+- Module B publishes the contract being called
+- The contract is documented and versioned where applicable
+- The dependency direction is permitted
+- Transaction ownership is understood
+- Error handling is implemented
+- Timeout handling exists when a network call is involved
+- Audit logging is in place where required
+- Integration is tested
+- No internal persistence or implementation detail is being bypassed
 
 ---
 
 ## Scalability Implications
 
-The modular architecture supports independent scaling:
+The modular monolith is currently deployed as a single application. Module boundaries should nevertheless allow future extraction if a later approved architecture decision requires independent scaling or deployment.
 
-```
-High-Traffic Modules:
-  - Sales Module (scale more)
-  - Inventory Module (scale more)
-
-Low-Traffic Modules:
-  - Assets Module (scale less)
-  - CRM Module (scale less)
-
-Platform Services:
-  - Auth Service (scale based on all modules)
-  - Audit Service (scale based on all modules)
-```
-
-Each module can be deployed with its own scaling rules.
+Future extraction is an architectural change and requires an approved ADR before implementation.
 
 ---
 
 ## Circular Dependency Prevention
 
-Circular dependencies block independent evolution. The architecture prevents them:
+Circular dependencies block independent evolution. They must be prevented at the module boundary.
 
-### Example 1: Correct Design
-
-```
-Sales → Inventory → Accounting
-(No cycles)
-```
-
-Each module can evolve independently. Sales can add features without affecting Inventory; Inventory can add features without affecting Accounting.
-
-### Example 2: Wrong Design (Circular)
-
-```
-Sales → Inventory → Accounting → Sales
-(Creates cycle)
-```
-
-Accounting wants to create commission entries for Sales. If Accounting calls back to Sales, we create a cycle:
-- Sales → Inventory (for stock check)
-- Inventory → Accounting (for costs)
-- Accounting → Sales (for commissions)
-
-**Solution**: Use events or decouple through platform service:
-
-```
-Sales creates order
-    ↓ (publishes event)
-SalesOrderCreated
-    ↓
-Accounting subscribes
-    (creates commission entry)
-    ↓
-(No cycle; accounting doesn't call sales)
-```
+If two modules require mutual behavior, do not introduce reciprocal internal dependencies merely to make the immediate feature work. Prefer a platform capability, a higher-level orchestration boundary, or a formally approved event/contract pattern as appropriate.
 
 ---
 
 ## API Versioning
 
-Modules publish versioned APIs to support safe evolution:
+External REST APIs use the versioning strategy defined by the current API standards. Do not invent a versioning scheme for a feature if the API governance documentation has not established it.
 
-```
-GET /api/v1/sales/orders (legacy clients)
-GET /api/v2/sales/orders (new clients)
-```
-
-**Guidelines**:
-- Maintain backward compatibility within a major version
-- Support N-1 versions minimum
-- Deprecate with advance notice
-- Document breaking changes
+Where API versioning is not yet fully specified, implementation must identify the open decision rather than silently choosing a breaking-change policy.
 
 ---
 
 ## Dependency Checking
 
-Architectural boundaries are enforced through automated tools:
+Architectural boundaries are intended to be enforced through automated checks such as:
 
 ```bash
-# Check for circular dependencies
 npm run lint:dependencies
-
-# Check for unauthorized imports
 npm run lint:modules
-
-# Validate API contracts
 npm run lint:contracts
 ```
 
-These checks run in CI/CD to prevent boundary violations.
-
----
-
-## Module Communication Sequence
-
-### Order Entry with Multiple Module Integration
-
-```
-Client: POST /api/sales/orders
-    ↓
-API Layer validates request
-    ↓
-SalesOrderService.create()
-    │
-    ├─→ CustomerService.get(customerId)
-    │   └─→ Check customer exists
-    │
-    ├─→ GET /api/inventory/stock
-    │   └─→ Check item availability
-    │
-    ├─→ GET /api/accounting/customer-balance
-    │   └─→ Check credit limit
-    │
-    ├─→ StockRepository.reserve(itemId, quantity)
-    │   └─→ Update stock in database
-    │
-    ├─→ SalesOrderRepository.create(order)
-    │   └─→ Insert order in database
-    │
-    ├─→ LedgerService.postOrder(order)
-    │   └─→ POST to /api/accounting/entries
-    │
-    ├─→ AuditService.log()
-    │   └─→ Insert audit record
-    │
-    └─→ Publish event: SalesOrderCreated
-        (for future modules via event bus)
-
-Response to Client: 201 Created
-```
-
-Each step is independent; failures are handled appropriately.
+These commands are architectural requirements/placeholders until the backend implementation defines their actual tooling. The AI workflow must not claim these commands pass unless they exist and were executed successfully.
 
 ---
 
 ## Related Documents
 
 - **[System Architecture](./02-system-architecture.md)** — Layers within which boundaries apply
+- **[Backend Modular Monolith](../04-backend/03-modular-monolith.md)** — Current deployment and module architecture
 - **[Module Architecture](../08-business-modules/README.md)** — How to structure modules
-- **[Platform Services](../09-platform-services/README.md)** — Shared services all modules use
+- **[Platform Services](../09-platform-services/README.md)** — Shared services
 - **[Architectural Principles](../00-overview/01-architectural-principles.md)** — Principles governing boundaries
 
 ---
 
 ## Summary
 
-Module boundaries enable:
-- Independent development and testing
-- Independent deployment and scaling
-- Clear responsibility and ownership
-- Reduced complexity
-- Future extensibility
+The ERP currently uses a **Modular Monolith**:
 
-Boundaries are maintained through:
-- Published APIs as contracts
-- Database isolation
-- Controlled dependencies
-- Automated enforcement
-- Documentation
+- One deployable backend application
+- Strong logical/code boundaries between modules
+- Published contracts for cross-module communication
+- No direct access to another module's internal persistence
+- Explicit dependency direction
+- Future service extraction only through approved architecture decisions
 
-All module communication must respect these boundaries to maintain architectural integrity.
+This model is the current source of truth for module deployment boundaries.

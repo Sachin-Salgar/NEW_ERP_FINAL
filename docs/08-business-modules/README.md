@@ -1,125 +1,126 @@
 # Business Modules Architecture
 
-This directory contains standards for business module design, structure, and implementation patterns.
+**Status:** Current business-module architecture
+**Scope:** Business-module boundaries, ownership, contracts, and module enablement within the ERP modular monolith.
 
-## From Volume 1
+## Purpose
 
-### Module Architecture
+This directory contains the authoritative business-module architecture and the individual module specifications used when designing and implementing ERP business capabilities.
 
-Each business module shall follow a common internal structure:
+Business modules are **logical boundaries inside the current modular-monolith backend**. They are not independently deployed services. Each module owns its business rules and private persistence while communicating with other modules through published contracts and approved platform capabilities.
 
-| Component | Purpose |
-|-----------|---------|
-| **Database Objects** | Tables, constraints, indexes specific to module |
-| **Domain Model** | Core business concepts and entities |
-| **Business Services** | Business logic and rule implementation |
-| **REST APIs** | Module's public API endpoints |
-| **Permissions** | Module-specific permissions and roles |
-| **Reports** | Module-specific reports and queries |
-| **Configuration** | Module-specific configuration and settings |
-| **Tests** | Unit, integration, and end-to-end tests |
-| **Documentation** | Module design and usage documentation |
+## Current Business Modules
 
-This standardization reduces development complexity and improves maintainability.
+| Document | Module | Purpose |
+|---|---|---|
+| `02-core-enterprise-modules.md` | Core Enterprise | Organization, branch, identity, roles, permissions, and RBAC capabilities |
+| `03-sales-module-architecture.md` | Sales | Sales and order-to-cash business capabilities |
+| `04-procurement-module-architecture.md` | Procurement | Procurement and procure-to-pay business capabilities |
+| `05-inventory-module-architecture.md` | Inventory | Inventory, warehouse, stock, and related control capabilities |
+| `06-manufacturing-module-architecture.md` | Manufacturing | Production planning and manufacturing execution |
+| `07-finance-module-architecture.md` | Finance | Financial accounting and finance capabilities |
+| `08-hr-module-architecture.md` | Human Resources | Employee and HR business capabilities |
+| `09-crm-module-architecture.md` | CRM | Customer relationship and customer-facing sales support capabilities |
+| `11-quality-management-module-architecture.md` | Quality Management | Quality planning, inspection, non-conformance, CAPA, audits, supplier/customer quality, and quality analytics |
+| `12-asset-maintenance-module-architecture.md` | Asset Maintenance | Asset lifecycle, maintenance, service, condition, and maintenance analytics capabilities |
+| `13-bi-analytics-module-architecture.md` | BI & Analytics | Governed analytical, reporting, KPI, and business-intelligence capabilities |
+| `14-workflow-bpm-module-architecture.md` | Workflow / BPM | Business workflow and process-automation usage within the platform architecture |
 
-### Module Boundary Principles
+`01-business-modules-architecture.md` defines the overall module architecture and boundary rules. `02-core-enterprise-modules.md` defines the core enterprise capabilities that provide organizational and authorization foundations.
 
-**Module Independence**:
-- Every module shall be independently maintainable
-- Expose only published interfaces
-- Avoid unnecessary dependencies
-- Remain independent of internal implementation details of other modules
+### Deferred / Removed Modules
 
-**Module Communication**:
-- Modules communicate through published REST APIs
-- No direct database access to another module's tables
-- Modules depend on published contracts, not implementations
-- Depend only on approved platform services
+**Project Management is not currently part of the ERP architecture and its module specification has been deleted.** It must not be treated as an active business module, dependency, licensed capability, or implementation target unless it is explicitly reintroduced through an approved architecture decision.
 
-**Architectural Boundaries**:
-- Each module is a bounded context
-- Clear responsibility within module
-- Clean interface to other modules
-- Minimum coupling with other modules
+## Module Boundary Principles
 
-### Business Modules
+Each business module shall:
 
-The ERP includes these business modules:
+- own its business processes and domain rules;
+- maintain module-specific configuration where applicable;
+- expose explicitly defined application/API contracts;
+- consume platform capabilities only when required;
+- avoid direct access to another module's private implementation or persistence;
+- maintain explicit dependency direction and ownership boundaries;
+- remain independently testable within the modular monolith.
 
-| Module | Purpose | Integration |
-|--------|---------|-------------|
-| **Sales** | Order-to-cash processing | Inventory (stock check), Accounting (posting) |
-| **Purchase** | Procure-to-pay processing | Inventory (receipt), Accounting (posting) |
-| **Inventory** | Stock and warehouse management | Accounting (valuation) |
-| **Manufacturing** | Production planning and execution | Inventory (consumption), Accounting (posting) |
-| **Accounting** | Financial records and reporting | All modules (receives transactions) |
-| **Human Resources** | Employee and organizational data | Payroll (feeds salary), Accounting |
-| **Payroll** | Salary and benefits processing | Accounting (posting) |
-| **Assets** | Fixed asset management | Accounting (depreciation) |
-| **CRM** | Customer relationship management | Sales (customer data) |
+**Module independence does not mean independent deployment.** Future extraction into an independently deployed service requires an approved ADR.
 
-### Module Licensing
+## Module Communication
 
-Organizations subscribe to specific modules:
+### Within the modular monolith
 
-**Required Modules**:
-- Organization & Branch Management
-- Accounting (required for any business)
-- Human Resources (core platform)
-- Payroll (core platform)
+Modules communicate through published in-process application/service contracts where permitted by the architecture.
 
-**Optional Modules**:
-- Sales
-- Purchase
-- Inventory
-- Manufacturing
-- Assets
-- CRM
-- Future modules
+```text
+Module A
+   |
+   | published contract
+   v
+Module B
+```
 
-**Feature Enablement**:
-- Unlicensed modules hidden from UI
-- API endpoints inaccessible for unlicensed modules
-- Module enablement via configuration
-- Dynamic UI updates based on licensed modules
+A module must not bypass another module's published contract by directly calling private classes, repositories, or tables.
 
-### Module Development Standards
+### External clients and integrations
 
-When developing a module:
+External clients and integrations use the appropriate REST/API contracts.
 
-1. **Design Phase**: Define module boundaries and APIs
-2. **Database Phase**: Design tables and constraints
-3. **Service Layer**: Implement business logic
-4. **API Layer**: Expose REST endpoints
-5. **Testing**: Unit, integration, end-to-end tests
-6. **Documentation**: API docs, design docs
-7. **Security**: Permission definitions, audit events
+### Business events
 
-**Standards**:
-- Follow architectural principles
-- Follow naming conventions
-- Follow API design patterns
-- Include comprehensive tests
-- Document decisions via ADRs
+Business events may be used where required by the implementation and authoritative architecture. A conceptual event does not by itself require Kafka, RabbitMQ, or another distributed message broker.
 
----
+## Data Ownership
+
+Each module owns its domain data and persistence behavior.
+
+Other modules must not directly query or mutate another module's private tables, repositories, or persistence implementation. Cross-module data access must use the owning module's published contract or an explicitly approved shared/platform mechanism.
+
+Tenant isolation, RLS, audit, soft-delete, transaction scoping, and related database/security controls remain governed by their canonical architecture documents.
+
+## Module Enablement / Licensing
+
+The architecture supports organizations using only the business capabilities/modules they are configured and licensed to use.
+
+There is **no universal list of business modules that every customer must purchase or enable** in this document. Whether one module requires another is determined by the authoritative dependency and implementation rules of the relevant module.
+
+Module enablement may affect:
+
+- frontend module/feature visibility;
+- available backend capabilities;
+- API authorization;
+- organization configuration;
+- workflow and integration options.
+
+Frontend visibility is not a security boundary. Backend authorization must enforce access regardless of UI visibility.
+
+A customer-specific module selection must not require unrelated modules to be exposed merely because they exist in the ERP product.
+
+## Module Development Standards
+
+When implementing a business module or feature:
+
+1. Identify the owning business module.
+2. Read its authoritative module specification.
+3. Identify required platform capabilities and approved module dependencies.
+4. Preserve the current modular-monolith architecture.
+5. Use published contracts for cross-module interaction.
+6. Keep private persistence private to the owning module.
+7. Implement authorization at the backend boundary.
+8. Add appropriate unit, integration, and end-to-end tests.
+9. Document material architectural decisions through ADRs when required.
+10. Do not introduce speculative microservices, distributed deployment, or message-broker infrastructure.
+
+If ownership, dependency, contract, data boundary, or required behavior is unclear or conflicting, AI must **STOP and ask** rather than inventing an architectural decision.
 
 ## Related Documentation
 
-- [Architectural Boundaries](../02-architecture/03-boundaries.md) — Module communication and isolation
-- [System Architecture](../02-architecture/02-system-architecture.md) — Module architecture within layers
-- [Design Philosophy](../02-architecture/01-design-philosophy.md) — Module-relevant principles
-- [Business Objectives](../01-vision/02-business-objectives.md) — Modular architecture objective
+- [Business Modules Architecture](./01-business-modules-architecture.md) — authoritative module boundaries and communication rules
+- [Core Enterprise Modules](./02-core-enterprise-modules.md) — organization, branch, identity, role, permission, and RBAC capabilities
+- [Backend Module Development Guidelines](../04-backend/21-module-development-guidelines.md) — implementation rules
+- [Enterprise Security Architecture](../06-security/04-enterprise-security-architecture.md) — security boundaries and authorization
+- [Platform Service Architecture](../09-platform-services/01-platform-service-architecture.md) — shared platform capabilities
 
-## Navigation
+## Status
 
-This volume (Volume 1) establishes module architecture principles. Future volumes (Volume 6) will provide:
-- Detailed module specifications
-- Module API standards
-- Module configuration standards
-- Module testing strategies
-- Module deployment procedures
-- Inter-module integration patterns
-- Module lifecycle management
-- Custom module development guide
-- Partner module certification
+This README is the index and orientation document for the current business-module architecture. Individual module specifications are the authoritative source for their respective business domains.

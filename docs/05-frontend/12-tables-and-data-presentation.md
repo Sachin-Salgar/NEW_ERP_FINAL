@@ -1,119 +1,118 @@
 # Tables, Lists & Data Presentation
 
-<!--
-Title: Tables, Lists & Data Presentation
-Purpose: Canonical migration from Volume 4 — Frontend Architecture
-Scope: Data presentation patterns, virtualization, pagination and accessibility
-Audience: Frontend developers
-Owner: TBD
-Status: Migrated (Draft)
-Last Reviewed: 2026-08-07
-Related ADRs:
-Related Documents: docs/migration-traceability/volume4-to-docs.md
--->
+**Document Purpose:** Define frontend patterns for presenting structured ERP data, including tables, lists, pagination, filtering, and responsive presentation.
 
-Source: Volume 4 — Chapter 12
+## 12.1 Introduction
 
-12.1 Introduction
+ERP systems present large amounts of structured business information. Customers, products, invoices, inventory, employees, transactions, reports, and audit-related information may be displayed as tables or lists.
 
-ERP systems primarily present structured business information.
+The frontend shall use consistent data-presentation patterns while allowing each business workflow to select the presentation best suited to its data and platform.
 
-Customers, products, invoices, inventory, employees, transactions, reports, and audit logs are typically displayed as tables or lists.
+## 12.2 Objectives
 
-The Enterprise ERP Platform adopts standardized data presentation components to ensure consistency and efficiency.
+The data-presentation strategy aims to:
+- Improve readability.
+- Support large datasets.
+- Enable efficient searching and filtering.
+- Simplify navigation.
+- Improve productivity.
+- Maintain visual consistency.
 
-12.2 Objectives
+## 12.3 Data Table Features
 
-The data presentation strategy aims to:
-• Improve readability.
-• Support large datasets.
-• Enable efficient searching.
-• Simplify navigation.
-• Improve user productivity.
-• Maintain visual consistency.
+Business tables may support:
+- Sorting.
+- Filtering.
+- Pagination.
+- Search.
+- Column resizing where supported.
+- Column visibility.
+- Row selection.
+- Export where authorized.
 
-12.3 Data Table Features
+Not every table requires every feature. Features shall be selected according to the business workflow and platform constraints.
 
-Standard business tables shall support:
-• Sorting.
-• Filtering.
-• Pagination.
-• Search.
-• Column resizing.
-• Column visibility.
-• Row selection.
-• Export.
+## 12.4 Search
 
-These features shall behave consistently across modules.
+Search functionality may include:
+- Instant search where appropriate.
+- Advanced search.
+- Saved filters.
+- Search history where useful.
 
-12.4 Search
+Search behavior shall remain predictable and must respect organization/tenant scope and authorization.
 
-Search functionality shall include:
-• Instant search where appropriate.
-• Advanced search.
-• Saved filters.
-• Search history.
+## 12.5 Filtering
 
-Search behavior shall remain predictable throughout the application.
+Users may filter data using criteria such as:
+- Date Range.
+- Status.
+- Branch.
+- Organization.
+- Customer.
+- Supplier.
+- Employee.
 
-12.5 Filtering
+Filters shall be represented through the backend query/API contract. Client-side filtering must not be used to bypass backend data-access restrictions.
 
-Users may filter data using:
-• Date Range.
-• Status.
-• Branch.
-• Organization.
-• Customer.
-• Supplier.
-• Employee.
+## 12.6 Pagination
 
-Filters shall integrate with backend query APIs.
+Large datasets should use server-side pagination or another backend-supported bounded retrieval strategy.
 
-12.6 Pagination
+Typical controls may include:
+- First Page.
+- Previous Page.
+- Next Page.
+- Last Page where supported.
+- Page Size Selection.
 
-Large datasets shall use server-side pagination.
-Typical controls include:
-• First Page.
-• Previous Page.
-• Next Page.
-• Last Page.
-• Page Size Selection.
+The API contract shall define the supported pagination model rather than the frontend inventing one independently.
 
-Pagination improves performance and usability.
+## 12.7 Bulk Operations
 
-12.7 Bulk Operations
+Tables may support bulk actions such as:
+- Delete.
+- Export.
+- Approve.
+- Assign.
+- Print.
+- Archive.
 
-Tables may support bulk actions.
-Examples include:
-• Delete.
-• Export.
-• Approve.
-• Assign.
-• Print.
-• Archive.
+Bulk operations shall be submitted through the backend APIs and must respect authorization, business rules, and transaction semantics. The frontend must not assume that hiding an action is sufficient to secure it.
 
-Bulk operations shall respect user permissions.
+## 12.8 Responsive Tables
 
-12.8 Responsive Tables
+Desktop platforms may display full data grids where appropriate.
 
-Desktop platforms shall display complete data grids.
-Mobile devices may:
-• Collapse columns.
-• Display cards.
-• Use expandable rows.
+Smaller screens may:
+- Collapse columns.
+- Display cards.
+- Use expandable rows.
+- Reduce non-essential information.
 
-Presentation may vary while preserving functionality.
+Presentation may vary by platform while preserving the required business functionality and accessibility.
 
-12.9 Empty States
+## 12.9 Empty States
 
 Empty datasets shall display informative messages.
+
 Examples:
-• No Customers Found.
-• No Inventory Available.
-• No Transactions Recorded.
+- No Customers Found.
+- No Inventory Available.
+- No Transactions Recorded.
 
-Appropriate actions, such as creating a new record, should be suggested.
+Where appropriate, the empty state may suggest a permitted next action such as creating a record or changing a filter.
 
-12.10 Summary
+## 12.10 Accessibility
 
-Standardized tables and data presentation components provide a consistent, efficient, and scalable experience for viewing and managing business information across the Enterprise ERP Platform.
+Data presentation components shall support accessible labels, meaningful focus order, readable status information, and appropriate keyboard interaction on platforms where these capabilities apply.
+
+## 12.11 Summary
+
+Standardized tables and data-presentation components provide a consistent, efficient, accessible, and scalable experience for viewing and managing business information across the Enterprise ERP Platform.
+
+## Cross References
+
+- [Design System](./10-design-system.md)
+- [API Communication](./09-api-communication.md)
+- [Accessibility](./21-accessibility.md)

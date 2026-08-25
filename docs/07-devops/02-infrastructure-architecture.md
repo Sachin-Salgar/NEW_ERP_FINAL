@@ -1,134 +1,85 @@
 # Infrastructure Architecture
 
-**Source:** Volume 5 — Infrastructure Architecture
+**Document Purpose:** Define infrastructure principles and deployment building blocks for the Enterprise ERP Platform.
 
-## Introduction
+## 1. Introduction
 
-Infrastructure provides the computing resources required to operate the ERP platform.
+Infrastructure provides the compute, network, storage, and supporting services required to operate the ERP platform.
 
-The architecture supports both on-premises and cloud deployments while maintaining consistent application behavior.
+The architecture can support on-premises or cloud deployment. Specific infrastructure choices depend on deployment requirements and shall not be hard-coded into application architecture without an explicit decision.
 
-## Objectives
-
-Infrastructure aims to:
+## 2. Objectives
 
 - Support enterprise workloads.
-- Enable horizontal scaling.
-- Improve reliability.
-- Simplify maintenance.
-- Support disaster recovery.
-- Minimize downtime.
+- Provide appropriate reliability and availability.
+- Enable vertical and horizontal growth where practical.
+- Support maintenance and recovery.
+- Minimize avoidable service disruption.
 
-## Infrastructure Components
-
-Typical deployment includes:
+## 3. Typical Components
 
 ```text
 Users
-
-↓
-
-Load Balancer
-
-↓
-
-Flutter Web (Optional)
-
-↓
-
-Backend Services
-
-↓
-
+  ↓
+Load Balancer / Reverse Proxy
+  ↓
+Frontend / Backend Services
+  ↓
 PostgreSQL
-
-↓
-
-Cache
-
-↓
-
-Queue Workers
-
-↓
-
-Object Storage
-
-↓
-
-Monitoring
+  ↓
+Cache / Queue Workers / Object Storage
+  ↓
+Monitoring and Logging
 ```
 
-Components may be distributed across multiple servers.
+Not every deployment requires every component, and components may be combined or distributed according to deployment size.
 
-## Compute Resources
+## 4. Compute
 
-Infrastructure may consist of:
+Compute may use physical servers, virtual machines, cloud instances, or containers. The selected model is an infrastructure/deployment decision.
 
-- Physical Servers.
-- Virtual Machines.
-- Cloud Instances.
-- Containers.
+## 5. Storage
 
-The deployment model depends on organizational requirements.
+Storage may include:
+- Database storage.
+- Application/object storage.
+- Backup storage.
+- Log storage.
 
-## Storage
+Each category shall have appropriate persistence, security, capacity, and recovery policies.
 
-Storage categories include:
+## 6. Network Segmentation
 
-- Application Files.
-- Database Storage.
-- Object Storage.
-- Backup Storage.
-- Log Storage.
+Where applicable, infrastructure should separate public-facing, application, database, and management traffic according to security requirements. Actual network topology and firewall rules belong to deployment documentation.
 
-Each storage type shall have independent backup policies.
+## 7. Availability
 
-## Network Segmentation
+Critical services should use redundancy, health monitoring, and appropriate failover mechanisms where the required availability justifies the complexity.
 
-Infrastructure shall separate:
+Availability targets are deployment/business requirements, not a universal infrastructure value.
 
-- Public Network.
-- Application Network.
-- Database Network.
-- Management Network.
+## 8. Scalability
 
-Segmentation reduces security risks.
+Infrastructure may scale vertically or horizontally. Scaling decisions should be based on measured workload, capacity, reliability, and operational requirements.
 
-## High Availability
+## 9. Infrastructure Documentation
 
-Critical services shall support:
+Deployed infrastructure should maintain current documentation for:
+- Network topology.
+- Server/compute inventory.
+- Service dependencies.
+- Storage.
+- Firewall/security boundaries.
+- Recovery dependencies.
 
-- Redundant Components.
-- Automatic Failover.
-- Health Monitoring.
-- Load Distribution.
+## 10. Summary
 
-Availability requirements shall be defined according to deployment size.
+Infrastructure architecture provides a consistent foundation for reliable ERP operation while allowing deployment-specific implementation choices.
 
-## Scalability
+## Cross References
 
-Infrastructure shall support:
-
-- Vertical Scaling.
-- Horizontal Scaling.
-- Future Cloud Migration.
-
-Scaling shall minimize application disruption.
-
-## Documentation
-
-Infrastructure documentation shall include:
-
-- Network Diagrams.
-- Server Inventory.
-- IP Allocation.
-- Firewall Rules.
-- Storage Layout.
-- Service Dependencies.
-
-Documentation shall remain synchronized with deployed infrastructure.
-
-## Summary
-
-A standardized infrastructure architecture enables reliable, secure, and scalable ERP deployments across multiple deployment models.
+- [DevOps Architecture](./01-devops-architecture.md)
+- [Environment Management](./03-environment-management.md)
+- [Reliability & Fault Tolerance](./06-reliability-fault-tolerance.md)
+- [Scalability](./07-scalability.md)
+- [Backup & Disaster Recovery](./09-backup-disaster-recovery.md)

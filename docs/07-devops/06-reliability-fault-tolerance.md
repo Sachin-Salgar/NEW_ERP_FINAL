@@ -1,97 +1,70 @@
 # Reliability and Fault Tolerance
 
-**Source:** Volume 5 — Reliability & Fault Tolerance
+**Document Purpose:** Define reliability and fault-tolerance principles for the ERP platform.
 
-## Introduction
+## 1. Objectives
 
-Enterprise systems must continue operating reliably despite hardware failures, software defects, network interruptions, or unexpected workloads.
+The platform should:
+- Reduce avoidable downtime.
+- Detect failures quickly.
+- Recover safely.
+- Isolate faults.
+- Preserve data integrity.
+- Provide graceful degradation where practical.
 
-The Enterprise ERP Platform shall incorporate fault-tolerant design principles to maximize availability and minimize business disruption.
+## 2. Principles
 
-## Objectives
+- Avoid single points of failure where availability requirements justify redundancy.
+- Fail safely.
+- Recover automatically where reliable automation exists.
+- Monitor critical dependencies.
+- Isolate failures.
+- Protect persistent business data.
 
-Reliability aims to:
+## 3. Health Checks
 
-- Reduce downtime.
-- Improve availability.
-- Support graceful degradation.
-- Enable rapid recovery.
-- Improve operational resilience.
+Critical services should expose appropriate health/readiness information for their deployment environment.
 
-## Reliability Principles
+Possible dependencies include:
+- API service.
+- Database.
+- Queue processing.
+- Storage.
+- Cache.
 
-The platform follows these principles:
+The exact health endpoint and orchestration mechanism are implementation/deployment choices.
 
-- Eliminate Single Points of Failure.
-- Fail Gracefully.
-- Recover Automatically.
-- Detect Failures Quickly.
-- Isolate Faults.
-- Preserve Data Integrity.
+## 4. Recovery
 
-## Health Checks
+Infrastructure may use service/container restart, worker recovery, node replacement, or other mechanisms where appropriate. Automated recovery must not conceal persistent failures or cause unsafe repeated operations.
 
-Every critical service shall expose health endpoints.
+## 5. Redundancy
 
-Examples:
+Depending on availability requirements, critical components may use multiple application instances, workers, load-balancing, replicated storage, or database availability mechanisms.
 
-- API Health.
-- Database Connectivity.
-- Queue Availability.
-- Storage Accessibility.
-- Cache Health.
+Redundancy shall be selected according to actual requirements rather than assumed universally.
 
-Deployment orchestration shall use these checks for automated recovery.
+## 6. Capacity
 
-## Automatic Recovery
+Capacity planning should monitor:
+- CPU.
+- Memory.
+- Storage.
+- Database growth.
+- User/workload growth.
+- Queue and transaction load.
 
-Infrastructure shall support:
+## 7. Failure Scenarios
 
-- Service Restart.
-- Container Restart.
-- Node Replacement.
-- Worker Recovery.
+Operational runbooks should address relevant scenarios including service failure, database failure, storage failure, network failure, and failed deployment.
 
-Recovery actions shall be automated wherever practical.
+## 8. Summary
 
-## Redundancy
+Reliability architecture combines failure detection, appropriate redundancy, safe recovery, capacity planning, and data-integrity protection to support dependable ERP operation.
 
-Critical infrastructure may include:
+## Cross References
 
-- Multiple Application Servers.
-- Redundant Load Balancers.
-- Database Replication.
-- Multiple Worker Instances.
-- Redundant Storage.
-
-Redundancy improves availability.
-
-## Capacity Planning
-
-Capacity planning shall monitor:
-
-- CPU Growth.
-- Memory Consumption.
-- Storage Growth.
-- Database Expansion.
-- User Growth.
-- Transaction Growth.
-
-Forecasting enables proactive scaling.
-
-## Failure Scenarios
-
-Operational procedures shall define responses for:
-
-- Server Failure.
-- Database Failure.
-- Storage Failure.
-- Network Failure.
-- Service Crash.
-- Deployment Failure.
-
-Documented procedures reduce recovery time.
-
-## Summary
-
-Reliability and fault tolerance ensure that the Enterprise ERP Platform remains available, resilient, and capable of supporting uninterrupted business operations.
+- [Infrastructure Architecture](./02-infrastructure-architecture.md)
+- [Observability](./08-observability.md)
+- [Backup & Disaster Recovery](./09-backup-disaster-recovery.md)
+- [Operations Management](./11-operations-management.md)

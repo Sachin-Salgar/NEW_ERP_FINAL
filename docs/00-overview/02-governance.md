@@ -13,7 +13,7 @@
 | Item | Value |
 |------|-------|
 | Document Series | Enterprise ERP Software Architecture |
-| Volume | 1 — Vision, Principles & Core Architecture |
+| Documentation Area | Overview — Governance |
 | Version | 1.0 |
 | Status | Reference |
 | Audience | Architects, Developers, QA Engineers, DevOps Engineers, Technical Leads |
@@ -34,14 +34,13 @@ The Software Architecture Document and all Architecture Decision Records require
 ### Document Governance
 
 | Aspect | Standard |
-|--------|----------|
+|------|----------|
 | Document Owner | Architecture Review Board |
 | Approval Authority | Architecture Review Board (unanimous) |
 | Change Process | Architecture Decision Record (ADR) |
 | Review Cycle | Annual or upon significant change |
 | Binding Status | Binding on all teams unless superseded by approved ADR |
 | Effective Date | Upon approval |
-| Next Review Date | Q4 2024 |
 
 ### Change History
 
@@ -141,42 +140,35 @@ When uncertainty exists about architectural guidance, decisions shall follow thi
 
 ### 1. Software Architecture Document (SAD)
 
-The Software Architecture Document (this series) is the baseline architectural guidance for the ERP platform. Sections in the SAD are binding until formally superseded.
-
-**Example**: The SAD specifies PostgreSQL as the database. This is binding until an approved ADR explicitly supersedes this decision.
+The current authoritative architecture documentation under `docs/` is the baseline architectural guidance for the ERP platform. Sections in the SAD are binding within their stated scope until formally superseded.
 
 ### 2. Architecture Decision Records (ADRs)
 
 Approved Architecture Decision Records supersede affected sections of the SAD. An approved ADR takes precedence over the SAD for the decision it addresses.
 
-**Example**: An approved ADR may decide to add MongoDB for a specific use case (document storage), superseding the "PostgreSQL only" SAD requirement for that specific scope.
-
-**Important**: ADR supersession is scoped. An ADR that approves MongoDB for document storage does not invalidate the SAD requirement for transactional data in PostgreSQL.
+**Important**: ADR supersession is scoped. An ADR that approves a different technology or strategy for one bounded use case does not invalidate unrelated SAD requirements.
 
 ### 3. Development Standards
 
 Detailed implementation standards that operationalize SAD and ADR decisions. These define HOW to implement architectural decisions.
 
-**Example**: The SAD specifies "secure communication"; Development Standards define "TLS 1.3 minimum, cipher suites X/Y/Z, certificate pinning for mobile."
-
 ### 4. Module Specifications
 
 Module-specific design documents that apply SAD, ADR, and Development Standards to a particular business module.
 
-**Example**: Sales Module Specification applies database constraints, API patterns, and security standards from higher levels.
-
 ### 5. Source Code
 
-Source code is NOT the primary architectural reference. Source code should conform to the hierarchy above. If source code conflicts with architecture documents, the architecture documents are correct and the source code is a defect.
+Source code is NOT the primary architectural reference. Source code should conform to the hierarchy above. If source code conflicts with architecture documents, the architecture documents are authoritative and the source code is a defect until the governing decision is changed through the ADR process.
 
 ### Conflict Resolution
 
 If conflict exists between levels:
-- SAD vs. ADR: ADR wins (if properly approved)
-- SAD vs. Development Standards: Development Standards clarify but cannot contradict SAD
-- Any level vs. Source Code: The architecture level is authoritative
+- SAD vs. approved ADR: ADR wins within the ADR's explicit scope
+- SAD vs. Development Standards: Development Standards clarify but cannot contradict SAD/approved ADRs
+- Module specification vs. higher-level architecture: higher-level architecture wins unless an approved ADR explicitly changes it
+- Any authoritative level vs. source code: the authoritative documentation wins
 
-**Process**: If source code conflicts with architecture, file a defect and update source code to conform.
+If authoritative documentation conflicts internally, AI and engineering teams must STOP and surface the conflict for human resolution. No implementation may silently choose one interpretation.
 
 ---
 
@@ -212,7 +204,7 @@ If a team violates architectural principles:
 Core technology replacement requires:
 
 1. **Proof of Concept** — Demonstrate new technology solves problem better than current
-2. **Performance Evaluation** — Benchmarks showing improvement in relevant metrics
+2. **Performance Evaluation** — Benchmarks showing improvement in relevant
 3. **Migration Strategy** — Detailed plan for existing code transition
 4. **Architecture Review Board Approval** — Required before committing to change
 5. **Architecture Decision Record** — Documents decision and rationale
@@ -222,18 +214,14 @@ Core technology replacement requires:
 
 Technologies in the official stack have a typical lifecycle:
 
-| Phase | Duration | Action |
-|-------|----------|--------|
+| Phase | Typical Duration | Action |
+|-------|------------------|--------|
 | Stable | 3-5 years | Actively used; updates/patches applied |
 | Maintenance | 1-2 years | No new features; security/critical fixes only |
 | Deprecated | 6-12 months | New projects use replacement; old projects migrate |
-| End-of-Life | | Removed from stack |
+| End-of-Life | As determined | Removed from stack |
 
-**Example**: Node.js 16 → Node.js 18 (new stack) → deprecation period → removal
-
----
-
-## ADR Index Location
+### ADR Index Location
 
 Architecture Decision Records are stored in `docs/10-adr/` and indexed at [docs/10-adr/README.md](../10-adr/README.md).
 
@@ -242,26 +230,26 @@ Each ADR has:
 - Title
 - Status (proposed, approved, superseded, deprecated)
 - Decision date
-- Architecture Review Board approval signatures
-- Reference to affected SAD section (if applicable)
+- Architecture Review Board approval record
+- Reference to affected architecture section (if applicable)
 
 ---
 
-## Backend Governance (Volume 3 additions)
+## Backend Governance
 
-The following backend-specific governance guidance (Volume 3 — Chapter 26) supplements the global document control and governance policies above. These items apply to backend services, modules, and operational practices and are subject to the same ADR approval and review processes described earlier.
+The backend-specific governance guidance in the backend documentation supplements these global policies and is subject to the same ADR approval and review processes.
 
 ### Backend Governance Objectives
 
-• Preserve architectural consistency for backend services.
-• Control technical debt specific to backend implementations.
-• Standardize backend development practices and dependency management.
-• Improve collaboration between backend, database, security, and devops teams.
-• Support long-term maintainability and protect business continuity for backend services.
+- Preserve architectural consistency for backend services.
+- Control technical debt specific to backend implementations.
+- Standardize backend development practices and dependency management.
+- Improve collaboration between backend, database, security, and DevOps teams.
+- Support long-term maintainability and protect business continuity for backend services.
 
 ### Backend ADRs
 
-Significant technical decisions related to backend architecture shall be documented using ADRs. Each ADR must include context, problem statement, alternatives considered, decision, consequences, date, and decision owner. ADRs provide historical context for backend design choices.
+Significant technical decisions related to backend architecture shall be documented using ADRs. Each ADR must include context, problem statement, alternatives considered, decision, consequences, date, and decision owner.
 
 ### Backend Database Governance
 
@@ -295,9 +283,9 @@ Backend architecture shall evolve through:
 
 ### Review Triggers
 
-The SAD or its ADRs are reviewed when:
+The architecture documentation or its ADRs are reviewed when:
 
-- **Scheduled Review**: Annual Q4 review (required)
+- **Scheduled Review**: Annual review (required)
 - **Technology Change**: New approved technology in stack
 - **Major Feature**: New business capability changes architecture
 - **Incident**: Production incident reveals architectural weakness
@@ -308,8 +296,8 @@ The SAD or its ADRs are reviewed when:
 
 Architecture Review Board meeting produces:
 
-- **Decision**: SAD sections are accurate and complete
-- **Clarifications**: Updates needed to SAD
+- **Decision**: Architecture documentation is accurate and complete
+- **Clarifications**: Updates needed
 - **ADR Actions**: New ADRs required
 - **Implementation Impact**: Teams notified of changes
 
@@ -318,29 +306,34 @@ Architecture Review Board meeting produces:
 ## Binding Status Clarification
 
 **Binding Documents**:
-- Software Architecture Document (this series) — Binding for all teams
-- Approved Architecture Decision Records — Binding for affected scope
+- Current authoritative architecture documentation under `docs/` — binding within stated scope
+- Approved Architecture Decision Records — binding within affected scope
 
-**Advisory Documents**:
-- Volume 2+ documents not yet refactored into docs/ — Reference for context
-- External best practices — Informational, implemented through ADRs if adopted
+**Advisory / Non-binding Documents**:
+- Proposed, superseded, and deprecated ADRs
+- Migration/traceability documents unless they explicitly contain a current binding decision
+- External best practices until adopted through the architecture process
 
-**Open Decisions** (Deferred to Later Volumes):
+There is no legacy architecture archive in this repository. Current modular documents are the maintained source of truth.
 
-These architectural areas are not yet formally decided in Volume 1 but are scheduled for later volumes:
+### Open Decisions
 
-- Tenancy isolation model (database schema strategy, row-level security details)
-- API governance standards (versioning strategy, OpenAPI standards, idempotency rules)
-- Authentication details (MFA, OIDC/SAML support, device trust)
-- Database integrity model (trigger governance, constraint strategy)
-- Deployment topology (Kubernetes strategy, auto-scaling policies)
-- Observability architecture (metrics, logs, tracing standards)
-- Module dependency enforcement rules (circular dependency detection)
-- Event-driven architecture (event contracts, saga patterns, outbox pattern)
-- Search architecture (Elasticsearch/Typesense strategy, indexing)
-- Rule engine (business rule execution, formula engine)
-- Localization and internationalization (language support, timezone safety)
-- Offline capability (mobile offline mode, conflict resolution)
+The following areas remain explicitly undecided. They are not permissions for AI or developers to choose an architecture silently:
+
+- Tenancy isolation details beyond the approved RLS decision
+- API governance details not yet specified by an approved decision
+- Authentication details not yet specified by an approved decision
+- Database integrity model details not yet specified
+- Deployment topology details not yet specified
+- Observability standards not yet specified
+- Module dependency enforcement implementation
+- Event-driven architecture beyond currently approved scope
+- Search architecture
+- Rule engine architecture
+- Localization and internationalization
+- Offline capability
+
+When a requested feature depends materially on one of these unresolved decisions, implementation must stop at the decision boundary and request an explicit architectural decision/ADR.
 
 ---
 
@@ -368,16 +361,14 @@ The governance framework ensures:
 
 - **Consistency**: Architectural decisions are coordinated and aligned
 - **Accountability**: Decision rationale is documented and traceable
-- **Authority**: Clear decision-making hierarchy and approval process
+- **Authority**: Clear decision-making hierarchy and precedence rules
 - **Flexibility**: ADRs allow decisions to evolve as context changes
 - **Sustainability**: Documentation remains current and authoritative
 
 All architectural decisions must follow this governance framework to maintain the integrity and consistency of the ERP platform architecture.
 
----
-
 ## Related Documentation
 
-- [Architectural Principles](./01-architectural-principles.md) — The ten principles that guide decisions
-- [Architecture Decision Records](../10-adr/README.md) — Individual architectural decisions
-- [System Architecture](../02-architecture/README.md) — How architecture decisions are implemented
+- [Architectural Principles](./01-architectural-principles.md)
+- [Architecture Decision Records](../10-adr/README.md)
+- [System Architecture](../02-architecture/README.md)

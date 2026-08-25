@@ -12,7 +12,7 @@ An enterprise resource planning system is more than a collection of business app
 
 The Enterprise ERP System is designed as a modern, modular, scalable, and enterprise-grade business platform intended to support organizations of different sizes and industries.
 
-Unlike traditional ERP systems that operate as tightly coupled monolithic applications, this ERP adopts a modular architecture where each business capability exists as an independent module operating on a common platform.
+The ERP is implemented as a **modular monolith**: business capabilities are organized into logical modules within one backend application and operate on a common platform and database architecture. Modules have explicit boundaries and contracts, but are not independently deployed services in the current architecture.
 
 The platform is designed around the principle that organizations should only use and pay for the functionality they require, with the ability to enable or disable modules through configuration without requiring modifications to the application.
 
@@ -32,9 +32,10 @@ The vision comprises four key dimensions:
 - Recognized for quality, support, and innovation
 
 **2. Modular**: 
-- Organized as independent business modules
-- Modules integrate through published interfaces
-- Modules can be deployed, updated, and maintained independently
+- Organized as logical business modules
+- Modules integrate through published application/service contracts
+- Module implementation, testing, and evolution are isolated within the modular monolith
+- Independent deployment is not part of the current architecture and requires an approved architecture decision
 
 **3. Integrated**: 
 - Single source of truth for organizational data
@@ -58,7 +59,7 @@ The mission of this project is to provide an ERP platform that:
 2. **Eliminates duplicate data entry** through a single integrated source of business information
 3. **Provides a single source of truth** where all business stakeholders access authoritative organizational data
 4. **Supports organizations of all sizes** from small businesses to large enterprises without architectural compromise
-5. **Allows modules to be deployed independently** so organizations can upgrade capabilities without full-system downtime
+5. **Maintains modular boundaries** so capabilities can be developed, tested, maintained, and evolved independently within the unified backend
 6. **Maintains predictable performance** through documented capacity tiers and scalability models
 7. **Supports future expansion** without fundamental architectural redesign
 
@@ -109,7 +110,7 @@ Traditional monolithic ERP systems (SAP, Oracle, Microsoft Dynamics) are powerfu
 - Subscription licensing (pay for what you use)
 - Modern technology stack (JavaScript, PostgreSQL, Flutter)
 - Cloud and on-premises deployment options
-- Faster implementation and customization
+- Strong module boundaries within the modular monolith
 
 ### Against Best-of-Breed Approach
 Organizations that assemble multiple point solutions face:
@@ -124,7 +125,7 @@ The Enterprise ERP System provides the simplicity of a single platform with the 
 Existing SaaS solutions often lack:
 - Customization depth required by enterprises
 - On-premises deployment option
-- Module-level independence
+- Module-level logical independence
 - Data ownership and control
 
 The Enterprise ERP System provides both SaaS and on-premises options with deep customization capability.

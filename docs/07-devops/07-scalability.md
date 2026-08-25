@@ -1,111 +1,64 @@
 # Scalability
 
-**Source:** Volume 5 — Scalability Strategy
+**Document Purpose:** Define scalability principles for increasing ERP workload, organizations, data, and operational capacity.
 
-## Introduction
+## 1. Objectives
 
-The Enterprise ERP Platform is designed to support organizations ranging from small businesses to large multi-branch enterprises.
+Scalability should:
+- Support workload growth.
+- Preserve acceptable performance.
+- Maintain required availability.
+- Use resources efficiently.
+- Avoid unnecessary architectural redesign.
 
-The infrastructure architecture shall support growth without requiring significant redesign.
+## 2. Principles
 
-Scalability shall be considered throughout application, database, networking, storage, and deployment architectures.
+- Prefer horizontal scaling where application architecture supports it.
+- Use vertical scaling where appropriate.
+- Measure workload before scaling.
+- Avoid introducing distributed complexity without a demonstrated requirement.
+- Preserve transactional consistency and authorization boundaries.
 
-## Objectives
+## 3. Application Scaling
 
-The scalability strategy aims to:
-
-- Support organizational growth.
-- Improve system responsiveness.
-- Maintain availability.
-- Optimize resource utilization.
-- Enable future expansion.
-
-## Scaling Principles
-
-The platform follows these principles:
-
-- Scale Horizontally whenever practical.
-- Minimize Single Points of Failure.
-- Automate Scaling.
-- Monitor Resource Usage.
-- Optimize before Expanding.
-
-Infrastructure growth shall be driven by measurable operational requirements.
-
-## Horizontal Scaling
-
-Application services may scale by increasing the number of running instances.
-
-Illustrative architecture:
+Stateless application services may scale by increasing instances behind a suitable load-balancing mechanism.
 
 ```text
 Load Balancer
-
-↓
-
-API Server 1
-
-↓
-
-API Server 2
-
-↓
-
-API Server 3
-
-↓
-
-Database
+   ↓
+API Instance 1
+API Instance 2
+API Instance N
+   ↓
+Shared Persistent Services
 ```
 
-Load balancing distributes requests across available instances.
+The actual topology depends on deployment requirements.
 
-## Vertical Scaling
+## 4. Vertical Scaling
 
-Where horizontal scaling is impractical, resources may be increased by adding:
+Compute, memory, storage, or network capacity may be increased when vertical scaling is more appropriate than adding instances.
 
-- CPU.
-- Memory.
-- Storage.
-- Network Bandwidth.
+## 5. Database Scaling
 
-Vertical scaling shall be planned to minimize service interruption.
+Potential techniques include connection-pool tuning, query optimization, indexing, partitioning, read replicas where appropriate, and archival strategies.
 
-## Database Scaling
+Any database scaling technique must preserve transaction semantics and data integrity.
 
-Database scalability may include:
+## 6. Storage Scaling
 
-- Read Replicas.
-- Connection Pooling.
-- Query Optimization.
-- Partitioning.
-- Archiving Historical Data.
+Database, object, backup, and log storage should be able to grow according to their distinct capacity and retention requirements.
 
-Database scaling strategies shall preserve transactional consistency.
+## 7. Future Growth
 
-## Storage Scaling
+The architecture should remain extensible for future workload and analytical requirements. Specific technologies such as distributed processing, AI, ML, or IoT are not current commitments merely because they may be future integration options.
 
-Storage infrastructure shall support:
+## 8. Summary
 
-- Capacity Expansion.
-- Object Storage Growth.
-- Backup Storage Growth.
-- Archive Storage.
+Scalability should be evidence-driven and introduced in proportion to real workload and business requirements while preserving correctness and operational simplicity.
 
-Storage shall scale independently of compute resources.
+## Cross References
 
-## Future Expansion
-
-The architecture shall support future technologies including:
-
-- Distributed Processing.
-- Advanced Analytics.
-- Artificial Intelligence.
-- Machine Learning.
-- IoT Integration.
-
-Scalability planning shall accommodate evolving business requirements.
-
-## Summary
-
-A scalable architecture enables the ERP platform to support increasing workloads while maintaining reliability and performance.
+- [Infrastructure Architecture](./02-infrastructure-architecture.md)
+- [Reliability & Fault Tolerance](./06-reliability-fault-tolerance.md)
+- [Performance Optimization](../04-backend/20-performance-optimization.md)

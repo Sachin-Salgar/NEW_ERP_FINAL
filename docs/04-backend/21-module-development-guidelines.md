@@ -1,8 +1,6 @@
 # Module Development Guidelines
 
-Document Purpose: Chapter 24 from Volume 3 — Module Development Guidelines
-
-Source: Enterprise ERP Software Architecture — Volume 3 (Chapter 24)
+**Document Purpose:** Define the standard development guidelines and contracts for ERP business modules.
 
 ---
 
@@ -13,125 +11,112 @@ Source: Enterprise ERP Software Architecture — Volume 3 (Chapter 24)
 
 ---
 
-## Chapter 24
+## 21.1 Introduction
 
-### 24.1 Introduction
-
-The Enterprise ERP Platform consists of independent business modules that collectively form a unified application.
+The Enterprise ERP Platform consists of independent business modules that collectively form a unified modular-monolith application.
 To ensure consistency across modules, every development team shall follow standardized module design principles.
 Module consistency simplifies maintenance, onboarding, testing, and long-term evolution.
 
-### 24.2 Objectives
+"Independent" means logically isolated in ownership and boundaries; it does not mean separately deployed services.
+
+## 21.2 Objectives
 
 The module guidelines aim to:
-• Standardize development.
-• Promote maintainability.
-• Reduce duplication.
-• Improve code quality.
-• Support modular architecture.
-• Enable future scalability.
+- Standardize development.
+- Promote maintainability.
+- Reduce duplication.
+- Improve code quality.
+- Support modular architecture.
+- Enable future scalability.
 
-### 24.3 Standard Module Structure
+## 21.3 Standard Module Structure
 
-Each module shall contain:
-Routes
+Each module shall contain the structures required by its responsibilities, following the project's established vertical-slice conventions. Where applicable, these include:
+- Routes/API adapters.
+- Application/services.
+- Repositories/data access.
+- Domain model.
+- Validation.
+- Events.
+- DTOs/contracts.
+- Tests.
+- Module configuration.
 
-Controllers
+Not every module is required to contain every structure when that structure is not applicable.
 
-Services
-
-Repositories
-
-Domain
-
-Validation
-
-Events
-
-DTOs
-
-Tests
-
-Configuration
-
-All modules shall follow the same internal organization.
-
-### 24.4 Module Responsibilities
+## 21.4 Module Responsibilities
 
 A module owns:
-• Business Rules.
-• Domain Entities.
-• Database Access.
-• Validation.
-• APIs.
-• Events.
+- Business Rules.
+- Domain Entities.
+- Its authoritative Database Access.
+- Module-specific Validation.
+- APIs/contracts it exposes.
+- Events it publishes.
 
 A module shall not own another module's business logic.
 
-### 24.5 Public Interfaces
+## 21.5 Public Interfaces
 
-Modules expose functionality through:
-• Service Interfaces.
-• Events.
-• API Endpoints.
+Modules may expose functionality through:
+- Published Application/Service Interfaces for internal module-to-module interaction.
+- Events for asynchronous integration where appropriate.
+- REST API Endpoints for external clients and integrations.
 
 Internal implementation details shall remain private.
 
-### 24.6 Dependencies
+## 21.6 Dependencies
 
 Permitted dependencies include:
-• Shared Infrastructure.
-• Shared Utilities.
-• Public Module Interfaces.
+- Shared Platform Infrastructure.
+- Approved Shared Utilities.
+- Published Module Interfaces.
 
 Direct dependencies on another module's internal implementation are prohibited.
+Cross-module writes are prohibited. Read-only cross-module data access is permitted only where explicitly justified under the database architecture, particularly for approved reporting/read-model use cases.
 
-### 24.7 Shared Components
+## 21.7 Shared Components
 
-The following components may be shared:
-• Authentication.
-• Authorization.
-• Logging.
-• Notifications.
-• Configuration.
-• Utilities.
+The following capabilities may be provided by the platform and shared:
+- Authentication.
+- Authorization.
+- Logging.
+- Notifications.
+- Configuration.
+- Approved Utilities.
 
 Business rules shall not be moved into shared libraries merely to reduce duplication.
 
-### 24.8 Module Independence
+## 21.8 Module Independence
 
 Each module should be capable of:
-• Independent development.
-• Independent testing.
-• Independent documentation.
-• Future extraction into a microservice if required.
+- Independent development.
+- Independent testing.
+- Independent documentation.
+- Future extraction into a separately deployed service if required by a future architectural decision.
 
-Clear module boundaries protect long-term maintainability.
+The current architecture remains a modular monolith; independent deployment is not a current requirement.
 
-### 24.9 Documentation
+## 21.9 Documentation
 
-Every module shall include:
-• Functional Overview.
-• API Documentation.
-• Domain Model.
-• Events.
-• Database Changes.
-• Configuration.
-• Test Coverage.
+Every module shall include, where applicable:
+- Functional Overview.
+- API Documentation.
+- Domain Model.
+- Events.
+- Database Changes.
+- Configuration.
+- Test Coverage.
 
 Documentation shall evolve alongside the module.
 
-### 24.10 Summary
+## 21.10 Summary
 
 Standardized module development enables the ERP to grow in a controlled and predictable manner while preserving architectural consistency across all business domains.
 
 ---
 
-Cross References
+## Cross References
 
-- docs/04-backend/03-modular-monolith.md
-- docs/02-architecture/01-design-philosophy.md
-
-References
-
-- Volume 3 — Backend Architecture (source)
+- [Modular Monolith](./03-modular-monolith.md)
+- [Design Philosophy](../02-architecture/01-design-philosophy.md)

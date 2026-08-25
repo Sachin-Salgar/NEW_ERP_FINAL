@@ -1,198 +1,143 @@
 # Architecture Decision Records (ADRs)
 
-This directory contains all approved Architecture Decision Records for the ERP platform.
+This directory contains the Architecture Decision Records (ADRs) for the ERP platform.
 
 ## What is an ADR?
 
-An Architecture Decision Record (ADR) is a document that captures an important architectural decision made on a project or in an organization.
+An ADR records an important architectural decision, its context, alternatives, rationale, consequences, scope, and affected documentation.
 
-Each ADR documents:
-- **Context**: What problem are we solving?
-- **Decision**: What did we decide?
-- **Rationale**: Why did we make this choice?
-- **Alternatives Considered**: What other options did we evaluate?
-- **Consequences**: What are the positive and negative impacts?
-- **References**: What other documents does this affect?
+Each ADR should document:
+
+- **Context** — the problem and circumstances.
+- **Decision** — what was decided.
+- **Rationale** — why it was decided.
+- **Alternatives Considered** — other options and why they were not selected.
+- **Consequences** — positive and negative effects.
+- **Scope** — the architecture area governed by the decision.
+- **Implementation Notes** — constraints and guidance, without silently turning unresolved TODOs into decisions.
+- **References** — affected canonical documentation and related ADRs.
+
+## ADR Status
+
+- **Proposed** — under consideration; not binding and must not be treated as implementation authority.
+- **Approved** — approved by the Architecture Review Board; binding only within the ADR's explicit scope.
+- **Superseded** — replaced by a later approved ADR; not binding.
+- **Deprecated** — no longer recommended; not binding for new decisions.
+
+Only **Approved** ADRs are authoritative architectural decisions.
+
+## Authority Rules
+
+Approved ADRs override conflicting architecture documentation **only within the scope explicitly covered by the ADR**.
+
+A Proposed ADR is evidence of a possible future decision, not permission for AI or developers to implement it as an architectural commitment.
+
+If an ADR conflicts with another authoritative document and the scope cannot be resolved unambiguously, implementation must **STOP and ask** for human resolution.
+
+ADRs do not override higher-level governance, security, legal, or regulatory requirements unless their scope explicitly and validly covers the matter.
 
 ## ADR Format
 
-Each ADR follows this structure:
-
-```
+```text
 # ADR-NNNN: [Decision Title]
 
 **Date**: YYYY-MM-DD
 **Status**: Proposed | Approved | Superseded | Deprecated
 **Approval Date**: YYYY-MM-DD (if approved)
-**Approved By**: [Architecture Review Board members]
+**Approved By**: [Architecture Review Board]
+**Scope**: [Explicit scope]
 
 ## Context
 
-[Describe the issue that motivated this decision]
+[Problem and context]
 
 ## Decision
 
-[Describe the decision that was made]
+[Decision]
 
 ## Rationale
 
-[Explain why this decision was made over alternatives]
+[Why this decision]
 
 ## Alternatives Considered
 
-1. **Alternative 1**: [Description]
-   - Pros: [...]
-   - Cons: [...]
-
-2. **Alternative 2**: [Description]
-   - Pros: [...]
-   - Cons: [...]
+[Alternatives and reasons]
 
 ## Consequences
 
-### Positive
-- [...]
-
-### Negative
-- [...]
+[Positive and negative consequences]
 
 ## Implementation Notes
 
-[Any implementation guidance or gotchas]
+[Implementation guidance and unresolved TODOs]
 
 ## Related Documents
 
-- [Document 1]
-- [Document 2]
-
-## References
-
-- [External reference 1]
-- [External reference 2]
+[Repository references]
 ```
 
 ## ADR Lifecycle
 
-### Status Values
-
-- **Proposed**: Decision under consideration, awaiting Architecture Review Board evaluation
-- **Approved**: Decision approved by Architecture Review Board; ready for implementation
-- **Superseded**: An approved ADR has superseded this decision (see reference)
-- **Deprecated**: No longer recommended but not superseded (use with caution)
-
-### Progression
-
-```
+```text
 Proposed
     ↓
-Architecture Review Board Meeting
-    ↓
-Approved  OR  Rejected
-    ↓
-Implementation
-    ↓
-(May be Superseded by later ADR)
+Architecture Review Board
+    ├── Rejected → close without implementation
+    └── Approved
+          ↓
+      Implementation
+          ↓
+      May later be superseded or deprecated
 ```
+
+Implementation must not begin solely because an ADR exists; its status and scope must authorize the decision.
 
 ## Current ADRs
 
-### Volume 1 Foundation ADRs
+| ID | Title | Status | Date | Scope |
+|----|-------|--------|------|-------|
+| [0005](./0005-uuid-version-standard.md) | UUID Version Standard | Approved | 2026-08-07 | UUID primary identifier generation |
+| [0006](./0006-postgresql-rls-tenancy.md) | PostgreSQL RLS for Tenancy | Approved | 2026-08-07 | Tenant isolation for tenant-owned PostgreSQL data |
+| [0007](./0007-zero-downtime-migrations.md) | Zero-Downtime Migration Strategy | Approved | 2026-08-07 | Production database migrations |
+| [0008](./0008-event-contracts-versioning.md) | Event Contracts & Versioning | Proposed | 2026-08-07 | Cross-module/integration event contract versioning |
+| [0009](./0009-token-refresh-rotation.md) | Token Strategy — Refresh Token Rotation | Proposed | 2026-08-07 | Refresh-token lifecycle |
 
-Currently, Volume 1 establishes architectural principles through the main SAD (Software Architecture Document) rather than individual ADRs. The following ADR areas are anticipated:
-
-**Pending ADRs** (to be created as decisions are formalized):
-- Multi-Tenant Isolation Strategy
-- API Versioning Strategy
-- Authentication Architecture (JWT details)
-- Event-Driven Architecture (if adopted)
-- Microservice Extraction Criteria
-- Database Partitioning Strategy
-- Offline Synchronization (if implemented)
-- Search Architecture (Elasticsearch vs. alternatives)
-- Rule Engine Architecture (if adopted)
-- Localization Architecture (if adopted)
+This table is the authoritative status index for the ADRs listed above. Each ADR's `Status` field must agree with this table. A disagreement is a documentation defect that must be resolved before implementation relies on that ADR.
 
 ## How to Create an ADR
 
-1. **Identify the decision**: What architectural decision needs to be made?
-2. **Document the context**: Why is this decision needed?
-3. **Propose a decision**: What is the recommended choice?
-4. **Consider alternatives**: What other options exist?
-5. **Assess consequences**: What are the impacts?
-6. **Request review**: Submit to Architecture Review Board
-7. **Get approval**: Board reviews and approves
-8. **Implement**: Update documentation and implementation accordingly
-
-## ADR Index
-
-| ID | Title | Status | Date |
-|----|-------|--------|------|
-| [0005](./0005-uuid-version-standard.md) | UUID Version Standard | Approved | 2026-08-07 |
-| [0006](./0006-postgresql-rls-tenancy.md) | PostgreSQL RLS for Tenancy | Approved | 2026-08-07 |
-| [0007](./0007-zero-downtime-migrations.md) | Zero-Downtime Migration Strategy | Approved | 2026-08-07 |
-| [0008](./0008-event-contracts-versioning.md) | Event Contracts & Versioning | Proposed | 2026-08-07 |
-| [0009](./0009-token-refresh-rotation.md) | Token Strategy — Refresh Token Rotation | Proposed | 2026-08-07 |
-
-*ADRs will be added as architectural decisions are formalized*
-
-## Architecture Decision Rules
-
-When creating an ADR:
-
-### Required Sections
-- Title (clear, concise)
-- Date (creation/approval date)
-- Status (Proposed, Approved, etc.)
-- Context (why is this needed?)
-- Decision (what did we decide?)
-- Rationale (why this choice?)
-
-### Recommended Sections
-- Alternatives Considered
-- Consequences (positive and negative)
-- Implementation Notes
-- Related Documents
-- References
-
-### Publishing an ADR
-
-1. Create new file: `docs/10-adr/ADR-NNNN-title.md`
-2. Follow the ADR format
-3. Submit as pull request
-4. Architecture Review Board reviews
-5. If approved, merge with status "Approved"
+1. Identify the architectural decision.
+2. Define the context and problem.
+3. Propose the decision.
+4. Consider alternatives.
+5. Define the explicit scope.
+6. Assess consequences.
+7. Submit the ADR for Architecture Review Board review.
+8. If approved, update the ADR status and affected authoritative documentation.
+9. Implement only when an applicable approved decision authorizes the implementation.
 
 ## ADR Numbering
 
-ADRs are numbered sequentially:
-- ADR-0001: First decision
-- ADR-0002: Second decision
-- etc.
+ADRs use sequential identifiers: `ADR-0001`, `ADR-0002`, etc.
 
-Next available number: ADR-0010 (next unused number)
+The next available identifier after the current index is **ADR-0010**.
 
 ## Superseding an ADR
 
 When an ADR is superseded:
 
-1. Mark original ADR status as "Superseded"
-2. Add reference to superseding ADR
-3. Create new ADR with new decision
-4. Update all references in documentation
-
-Example:
-```
-**Status**: Superseded by ADR-0005
-```
+1. Mark the original ADR `Superseded`.
+2. Reference the superseding ADR.
+3. Create the new ADR with a new identifier.
+4. Update affected documentation.
+5. Ensure AI/navigation indexes reflect the new status.
 
 ## Related Documentation
 
-- [Document Control & Governance](../00-overview/02-governance.md) — ADR governance and approval process
-- [Architectural Principles](../00-overview/01-architectural-principles.md#principle-10-documentation-is-part-of-the-product) — Documentation requirement
-- [Decision-Making Hierarchy](../00-overview/02-governance.md#decision-making-hierarchy) — How ADRs fit in architecture
+- [Document Control & Governance](../00-overview/02-governance.md)
+- [Architectural Principles](../00-overview/01-architectural-principles.md)
+- [Core System Architecture](../02-architecture/README.md)
 
 ## Summary
 
-Architecture Decision Records provide traceability and rationale for architectural decisions. Every significant architectural decision should have an ADR documenting the choice, alternatives considered, and consequences.
-
-ADRs evolve as the project evolves. Decisions can be superseded when new context emerges or technology changes.
+ADRs provide traceability for major architectural decisions. They evolve as the ERP evolves, but only approved decisions are binding within their defined scope. Proposed decisions must never be treated as implementation authority.

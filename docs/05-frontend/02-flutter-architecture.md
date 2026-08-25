@@ -1,38 +1,26 @@
 # Flutter Architecture
 
-<!--
-Title: Flutter Architecture
-Purpose: Canonical migration from Volume 4 — Frontend Architecture
-Scope: Flutter-specific frontend architecture guidance
-Audience: Frontend developers, architects
-Owner: TBD
-Status: Migrated (Draft)
-Last Reviewed: 2026-08-07
-Related ADRs:
-Related Documents: docs/migration-traceability/volume4-to-docs.md
--->
+**Document Purpose:** Define the canonical Flutter-specific frontend architecture for the Enterprise ERP Platform.
 
-Source: Volume 4 — Chapter 2
+---
 
-2.1 Introduction
+## 2.1 Introduction
 
-Flutter provides a modern UI framework for building high-performance cross-platform applications from a single codebase.
+Flutter provides the cross-platform UI foundation for the ERP. The frontend is organized to keep presentation concerns separate from application coordination, state, API communication, and backend business rules.
 
-The Enterprise ERP Platform adopts Flutter to reduce development effort while ensuring consistent functionality across all supported platforms.
-
-2.2 Objectives
+## 2.2 Objectives
 
 The Flutter architecture aims to:
-• Maintain a single codebase.
-• Support multiple operating systems.
-• Maximize code reuse.
-• Enable rapid development.
-• Deliver native-like performance.
-• Simplify maintenance.
+- Maintain a coherent cross-platform codebase.
+- Maximize appropriate code reuse.
+- Enable rapid development.
+- Provide consistent UX across supported platforms.
+- Isolate platform-specific capabilities.
+- Keep business-rule authority in the backend.
 
-2.3 Layered Structure
+## 2.3 Layered Structure
 
-The frontend shall be organized into the following layers:
+The frontend shall use the following logical responsibilities:
 
 Presentation
 
@@ -46,70 +34,79 @@ State Management
 
 ↓
 
-Services
+Services / API Client
 
 ↓
 
-API Client
+Backend REST API
 
-↓
+Each layer has a defined responsibility. The exact source-code organization is governed by the project structure and module-development standards.
 
-Backend
-
-Each layer shall have clearly defined responsibilities.
-
-2.4 Presentation Layer
+## 2.4 Presentation Layer
 
 Responsibilities include:
-• Screens.
-• Widgets.
-• Dialogs.
-• Forms.
-• Tables.
-• Charts.
-• Navigation.
-Presentation components shall not contain business rules.
+- Screens.
+- Widgets.
+- Dialogs.
+- Forms.
+- Tables.
+- Charts.
+- Navigation UI.
 
-2.5 Application Layer
+Presentation components shall not contain authoritative business rules.
+
+## 2.5 Application Layer
 
 Responsibilities include:
-• UI workflows.
-• Screen coordination.
-• User interactions.
-• Navigation control.
-The application layer bridges user interactions with backend services.
+- UI workflows.
+- Screen coordination.
+- User interactions.
+- Navigation coordination.
+- Orchestration of frontend state and services.
 
-2.6 Service Layer
+The application layer coordinates frontend behavior; it does not replace backend business logic.
 
-Frontend services are responsible for:
-• API communication.
-• Authentication management.
-• File uploads.
-• Local storage.
-• Notification handling.
-Services shall not perform business calculations.
+## 2.6 State Management
 
-2.7 Platform Independence
+State-management mechanisms are responsible for representing and coordinating frontend state. The selected framework and provider organization are defined by the state-management document.
 
-Platform-specific implementations shall be isolated using Flutter abstractions.
+Frontend state shall not become an alternative system of record for ERP business data.
+
+## 2.7 Service and API Client Layer
+
+Frontend services/API clients are responsible for communication with backend APIs and platform capabilities such as:
+- Authentication interaction.
+- API requests.
+- File transfer.
+- Local storage where required.
+- Notification/platform integration.
+
+Services shall not perform authoritative business calculations or bypass backend authorization.
+
+## 2.8 Platform Independence
+
+Platform-specific implementations shall be isolated behind appropriate Flutter abstractions.
 Examples include:
-• File selection.
-• Printing.
-• Camera access.
-• Notifications.
-• Local storage.
-This approach minimizes platform-dependent code.
+- File selection.
+- Printing.
+- Camera access.
+- Notifications.
+- Local storage.
 
-2.8 Benefits
+## 2.9 Backend Boundary
 
-Flutter provides:
-• Excellent UI performance.
-• Hot Reload.
-• Strong widget ecosystem.
-• Cross-platform deployment.
-• Modern development tools.
-These features accelerate ERP development.
+The frontend is a client of the backend. Backend APIs are authoritative for authentication, authorization, tenant/organization access, validation, business rules, financial calculations, workflows, and persistence.
 
-2.9 Summary
+Client-side validation may improve UX but must never be relied upon as the security or business-rule enforcement point.
 
-Flutter forms the presentation foundation of the ERP, providing a unified user experience across desktop, mobile, and web platforms.
+## 2.10 Summary
+
+Flutter provides the presentation foundation of the ERP while the layered frontend architecture maintains clear separation of UI, application coordination, state, API communication, and backend responsibilities.
+
+## Related Documents
+
+- [Frontend Overview](./01-frontend-overview.md)
+- [Modular Frontend Architecture](./03-modular-frontend-architecture.md)
+- [Project Structure](./04-project-structure.md)
+- [State Management](./05-state-management.md)
+- [Backend Architecture](../04-backend/README.md)

@@ -1,98 +1,109 @@
 # Security Operations
 
-**Source:** Volume 5 — Security Operations
+**Document Purpose:** Define operational security practices for monitoring, vulnerability management, incident response, access governance, and security awareness.
 
-## Introduction
+## 3.1 Scope
 
-Security Operations (SecOps) continuously protects the Enterprise ERP Platform against evolving cybersecurity threats.
+Security Operations (SecOps) continuously protects the Enterprise ERP Platform against evolving security threats across development, deployment, infrastructure, and production operations.
 
-Security is not a one-time activity but an ongoing operational responsibility integrated into development, deployment, and production operations.
+Security Operations complements application and enterprise security architecture; it does not replace technical controls implemented by the platform.
 
-## Objectives
+## 3.2 Objectives
 
 Security Operations aims to:
-
 - Detect threats.
-- Prevent unauthorized access.
+- Prevent and identify unauthorized access.
 - Protect business information.
-- Respond to incidents.
-- Maintain compliance.
-- Continuously improve security posture.
+- Respond to security incidents.
+- Support applicable compliance requirements.
+- Continuously improve the security posture.
 
-## Security Monitoring
+## 3.3 Security Monitoring
 
-Operational monitoring shall include:
+Operational monitoring should cover relevant security events, including:
+- Authentication activity.
+- Failed login attempts.
+- Privileged actions.
+- Authorization failures.
+- API abuse indicators.
+- Configuration changes.
+- Suspicious network activity.
+- Security-relevant application events.
 
-- Authentication Activity.
-- Failed Login Attempts.
-- Privileged Actions.
-- API Abuse Detection.
-- Configuration Changes.
-- Suspicious Network Activity.
+Alerts shall be defined according to operational risk and deployment requirements.
 
-Security events shall generate alerts where appropriate.
+## 3.4 Vulnerability Management
 
-## Vulnerability Management
+The security process should include appropriate vulnerability-management activities such as:
+- Dependency scanning.
+- Container scanning where containers are used.
+- Infrastructure scanning where applicable.
+- Operating-system security updates.
+- Security patch management.
 
-The platform shall periodically perform:
+The exact tooling and scanning schedule are implementation/operations decisions and shall not be assumed by application documentation.
 
-- Dependency Scanning.
-- Container Scanning.
-- Infrastructure Scanning.
-- Operating System Updates.
-- Security Patch Management.
+Critical vulnerabilities shall be handled according to organizational risk and incident-management policy.
 
-Critical vulnerabilities shall be addressed promptly according to organizational policy.
+## 3.5 Incident Response
 
-## Incident Response
+Security incidents should follow a structured lifecycle:
 
-Security incidents shall follow a structured lifecycle:
+```text
+Detection
+   ↓
+Analysis
+   ↓
+Containment
+   ↓
+Eradication
+   ↓
+Recovery
+   ↓
+Post-Incident Review
+```
 
-- Detection
-- Analysis
-- Containment
-- Eradication
-- Recovery
-- Post-Incident Review
+Incidents shall be documented and reviewed according to organizational procedures.
 
-Each incident shall be documented and reviewed.
-
-## Access Management
+## 3.6 Access Management
 
 Administrative access shall follow:
-
 - Least Privilege.
-- Multi-Factor Authentication (where supported).
-- Strong Password Policies.
-- Periodic Access Reviews.
-- Immediate Revocation of Unnecessary Access.
+- Strong authentication.
+- Multi-factor authentication where supported and required by policy.
+- Periodic access review.
+- Timely revocation of unnecessary access.
 
-Administrative actions shall be audited.
+Administrative actions shall be auditable.
 
-## Compliance
+## 3.7 Compliance
 
 Security operations shall support applicable organizational, contractual, and regulatory requirements.
 
-Examples may include:
+Specific compliance frameworks depend on deployment requirements and must not be assumed unless explicitly adopted.
 
-- Audit Requirements.
-- Data Protection Regulations.
-- Financial Controls.
-- Industry Standards.
+## 3.8 Security Awareness
 
-Specific compliance frameworks depend on deployment requirements.
+Relevant operational personnel should receive periodic guidance covering:
+- Phishing awareness.
+- Credential protection.
+- Incident reporting.
+- Secure operational practices.
 
-## Security Awareness
+Human awareness complements technical security controls.
 
-Operational personnel shall receive periodic training covering:
+## 3.9 Continuous Improvement
 
-- Phishing Awareness.
-- Credential Protection.
-- Incident Reporting.
-- Secure Operational Practices.
+Security operations should use monitoring results, incidents, vulnerability findings, audits, and lessons learned to improve the platform's security posture.
 
-Human awareness complements technical controls.
+## 3.10 Summary
 
-## Summary
+Security Operations provides continuous protection through monitoring, vulnerability management, access governance, incident response, awareness, and ongoing improvement.
 
-Security Operations provides continuous protection for the Enterprise ERP Platform through monitoring, prevention, incident response, and ongoing improvement.
+## Cross References
+
+- [Backend Security](./01-backend-security.md)
+- [Frontend Security](./02-frontend-security.md)
+- [Enterprise Security Architecture](./04-enterprise-security-architecture.md)
+- [Logging and Observability](../04-backend/16-logging-and-observability.md)
+- [Architecture Decision Records](../10-adr/README.md)

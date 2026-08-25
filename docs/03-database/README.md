@@ -13,7 +13,7 @@ This domain defines the authoritative database architecture for the Enterprise E
 3. [Naming Conventions](./03-naming-conventions.md) - Standardized identifiers, booleans, and UTC/Timestamptz rules.
 4. [Schema Organization](./04-schema-organization.md) - Physical module isolation using PostgreSQL schemas.
 5. [Data Types & Columns](./05-data-types.md) - Numeric precision and JSONB governance policies.
-6. [Primary Key Strategy](./06-primary-keys.md) - UUIDv7 standard for distributed identifiers.
+6. [Primary Key Strategy](./06-primary-keys.md) - UUIDv7 standard for identifiers.
 7. [Referential Integrity](./07-referential-integrity.md) - Foreign Key standards and circular dependency prevention.
 
 ### Part III: Lifecycle & Visibility
@@ -38,16 +38,13 @@ This domain defines the authoritative database architecture for the Enterprise E
 ## Appendices
 - [Standard SQL Templates](./appendix-templates.md)
 
-## From Volume 1 Principles
+## Key Principles
 
-**Database Platform**: PostgreSQL
-**System of Record**: Single source of truth.
-**ORM**: Drizzle ORM (Type-safe SQL).
-
-### Key Principles
 1. **Database First**: Data model design precedes application development.
 2. **Integrity by Constraint**: Critical business rules enforced by database constraints.
 3. **Multi-Tenant**: Row-Level Security (RLS) enforces isolation.
+4. **System of Record**: PostgreSQL is the authoritative persistence layer and single source of truth for ERP data.
+5. **ORM**: Drizzle ORM is the current type-safe database access technology.
 
 ## Related Documentation
 - [System Architecture](../02-architecture/02-system-architecture.md)

@@ -1,113 +1,111 @@
 # Data Visualization
 
-<!--
-Title: Data Visualization
-Purpose: Canonical migration from Volume 4 — Frontend Architecture
-Scope: Visualization components, chart types, KPI cards and interactivity
-Audience: Frontend developers and analysts
-Owner: TBD
-Status: Migrated (Draft)
-Last Reviewed: 2026-08-07
-Related ADRs:
-Related Documents: docs/migration-traceability/volume4-to-docs.md
--->
+**Document Purpose:** Define frontend principles for presenting business data through charts, KPIs, and interactive visualizations.
 
-Source: Volume 4 — Chapter 18
+## 18.1 Introduction
 
-18.1 Introduction
+Visual representation of business data can help users identify trends, monitor performance, and understand information efficiently.
 
-Visual representation of business data enables users to identify trends, monitor performance, and make informed decisions more efficiently than reviewing tabular data alone.
+The frontend shall use standardized visualization components where they improve dashboards, reports, and analytical workflows.
 
-The Enterprise ERP Platform shall provide standardized visualization components integrated throughout dashboards and reports.
+Visualization is a presentation concern. The backend remains authoritative for the underlying business data and calculations.
 
-18.2 Objectives
+## 18.2 Objectives
 
 The visualization strategy aims to:
-• Improve understanding.
-• Highlight trends.
-• Support business decisions.
-• Maintain visual consistency.
-• Improve executive reporting.
+- Improve understanding.
+- Highlight meaningful trends.
+- Support business decisions.
+- Maintain visual consistency.
+- Support analytical reporting.
 
-18.3 Visualization Principles
+## 18.3 Visualization Principles
 
-Charts shall be:
-• Accurate.
-• Simple.
-• Readable.
-• Responsive.
-• Accessible.
+Charts should be:
+- Accurate with respect to the supplied backend data.
+- Simple and readable.
+- Responsive.
+- Accessible.
+- Appropriate for the data being represented.
 
-Decorative graphics that do not provide business value shall be avoided.
+Decorative graphics that do not provide business value should be avoided.
 
-18.4 Supported Charts
+## 18.4 Visualization Types
 
-The frontend shall support:
-• Bar Charts.
-• Line Charts.
-• Pie Charts.
-• Donut Charts.
-• Area Charts.
-• Stacked Bar Charts.
-• Scatter Charts.
-• Gauge Charts.
+The design system may support visualization types such as:
+- Bar Charts.
+- Line Charts.
+- Pie Charts.
+- Donut Charts.
+- Area Charts.
+- Stacked Bar Charts.
+- Scatter Charts.
+- Gauge Charts.
 
-Chart selection shall be appropriate for the underlying data.
+The exact chart library and supported chart set are implementation decisions. A visualization type shall be selected according to the data and analytical purpose rather than being required everywhere.
 
-18.5 KPI Cards
+## 18.5 KPI Cards
 
 Key Performance Indicators may include:
-• Revenue.
-• Profit.
-• Outstanding Payments.
-• Inventory Value.
-• Employee Count.
-• Active Customers.
+- Revenue.
+- Profit.
+- Outstanding Payments.
+- Inventory Value.
+- Employee Count.
+- Active Customers.
 
-KPIs shall present concise and meaningful summaries.
+KPI definitions, calculations, authorization, and data scope must come from authoritative backend/reporting contracts. The frontend shall not independently calculate authoritative financial or business KPIs from partial client state.
 
-18.6 Trend Analysis
+## 18.6 Trend Analysis
 
 Visualizations may display:
-• Daily Trends.
-• Weekly Trends.
-• Monthly Trends.
-• Quarterly Trends.
-• Yearly Trends.
+- Daily Trends.
+- Weekly Trends.
+- Monthly Trends.
+- Quarterly Trends.
+- Yearly Trends.
 
-Users shall be able to adjust time periods where applicable.
+Time periods and aggregation rules shall follow the relevant backend/report contract.
 
-18.7 Interactive Features
+## 18.7 Interactive Features
 
 Charts may support:
-• Tooltips.
-• Zooming.
-• Drill-down.
-• Legend filtering.
-• Data highlighting.
+- Tooltips.
+- Zooming where useful.
+- Drill-down.
+- Legend filtering.
+- Data highlighting.
 
-Interactive features shall enhance analysis without increasing complexity.
+Interactive behavior should improve analysis without obscuring the underlying data or creating misleading interpretations.
 
-18.8 Responsiveness
+## 18.8 Responsiveness
 
-Charts shall adapt to:
-• Mobile.
-• Tablet.
-• Desktop.
-• Large Displays.
+Visualizations should adapt to supported form factors, including where applicable:
+- Mobile.
+- Tablet.
+- Desktop.
+- Large Displays.
 
-Readability shall be preserved across all supported devices.
+Complex visualizations may require an alternative presentation on smaller screens rather than simply being scaled down.
 
-18.9 Accessibility
+## 18.9 Accessibility
 
-Visualizations shall include:
-• Descriptive labels.
-• Keyboard accessibility where applicable.
-• Alternative text for screen readers.
-• High-contrast compatibility.
+Visualizations shall provide accessible information through appropriate mechanisms, which may include:
+- Descriptive labels.
+- Accessible data summaries.
+- Keyboard interaction where applicable.
+- Screen-reader-compatible semantics or equivalent accessible representations.
+- Sufficient visual contrast.
 
-Accessibility requirements apply equally to graphical components.
+A chart must not be the sole means of communicating essential business information when an accessible textual or tabular representation is required.
 
-18.10 Summary
+## 18.10 Summary
 
-Standardized visualization components improve business insight while maintaining consistency throughout dashboards, reports, and analytical views.
+Standardized visualization components improve business insight while preserving backend authority, design consistency, responsiveness, and accessibility.
+
+## Cross References
+
+- [Dashboard Architecture](./16-dashboard-architecture.md)
+- [Reporting Framework](./17-reporting-framework.md)
+- [Design System](./10-design-system.md)
+- [Accessibility](./21-accessibility.md)

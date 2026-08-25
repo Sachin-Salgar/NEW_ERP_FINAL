@@ -1,14 +1,11 @@
 # Dependency Injection & Inversion of Control
 
-Document Purpose: Chapter 5 from Volume 3 — Dependency Injection & IoC
-
-Source: Enterprise ERP Software Architecture — Volume 3 (Chapter 5)
+## Document Purpose
+Define Dependency Injection and Inversion of Control standards for the ERP backend.
 
 ---
 
-## Chapter 5
-
-### 5.1 Introduction
+## 5.1 Introduction
 
 As applications grow, directly creating dependencies inside classes leads to tightly coupled code that is difficult to test and maintain.
 
@@ -16,7 +13,7 @@ The Enterprise ERP Platform adopts Dependency Injection (DI) and Inversion of Co
 
 Classes shall receive required dependencies rather than creating them internally.
 
-### 5.2 Objectives
+## 5.2 Objectives
 
 The dependency injection strategy aims to:
 • Reduce coupling.
@@ -25,7 +22,7 @@ The dependency injection strategy aims to:
 • Promote modularity.
 • Enable easier replacement of implementations.
 
-### 5.3 Principle of Dependency Inversion
+## 5.3 Principle of Dependency Inversion
 
 High-level business logic shall depend on abstractions rather than concrete implementations.
 
@@ -42,7 +39,7 @@ Repository Implementation
 
 The service is unaware of the underlying database technology.
 
-### 5.4 Constructor Injection
+## 5.4 Constructor Injection
 
 Dependencies should be provided through constructors.
 
@@ -59,7 +56,7 @@ Database
 
 This makes dependencies explicit and simplifies testing.
 
-### 5.5 Repository Interfaces
+## 5.5 Repository Interfaces
 
 Each module shall define repository interfaces.
 Example:
@@ -69,7 +66,7 @@ Example:
 
 Concrete implementations using Drizzle ORM shall remain within the Infrastructure Layer.
 
-### 5.6 Service Dependencies
+## 5.6 Service Dependencies
 
 Business services may depend upon:
 • Repository Interfaces.
@@ -80,7 +77,7 @@ Business services may depend upon:
 
 Services should avoid unnecessary dependencies.
 
-### 5.7 Dependency Lifetime
+## 5.7 Dependency Lifetime
 
 The backend shall define appropriate lifetimes for injected components.
 Typical categories include:
@@ -90,7 +87,7 @@ Typical categories include:
 
 Lifetime selection shall consider performance, thread safety, and resource usage.
 
-### 5.8 Testing Benefits
+## 5.8 Testing Benefits
 
 Dependency Injection enables:
 • Mock repositories.
@@ -100,7 +97,7 @@ Dependency Injection enables:
 
 Unit tests can therefore execute without requiring external systems.
 
-### 5.9 Anti-Patterns
+## 5.9 Anti-Patterns
 
 The following practices are prohibited:
 • Creating dependencies using new inside business services.
@@ -108,18 +105,14 @@ The following practices are prohibited:
 • Circular dependencies.
 • Service Locator pattern for ordinary business logic.
 
-### 5.10 Summary
+## 5.10 Summary
 
 Dependency Injection provides a flexible foundation for modular backend development.
 By separating interfaces from implementations, the ERP becomes easier to maintain, test, and extend.
 
 ---
 
-Cross References
+## Cross References
 
 - docs/04-backend/02-clean-architecture.md
 - docs/04-backend/09-repository-pattern.md
-
-References
-
-- Volume 3 — Backend Architecture (source)

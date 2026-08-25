@@ -1,50 +1,60 @@
 # ADR-0005: UUID Version Standard
 
-**Date**: 2026-08-07
-**Status**: Approved
-**Approval Date**: 2026-08-07
-**Approved By**: Architecture Review Board
+**Date**: 2026-08-07  
+**Status**: Approved  
+**Approval Date**: 2026-08-07  
+**Approved By**: Architecture Review Board  
+**Scope**: Primary identifier generation for persistent ERP entities
 
 ## Context
 
-The ERP requires a globally unique identifier (UUID) for all primary business entities to support distributed systems, offline synchronization, and secure external APIs. However, standard UUID v4 (random) can lead to poor database index performance (B-Tree fragmentation) due to lack of sortability.
+The ERP requires globally unique identifiers for persistent business entities to support tenant isolation, APIs, synchronization, imports, and future distributed capabilities. UUID v4 is valid but does not provide time ordering, which can reduce locality for B-tree indexes as tables grow.
 
 ## Decision
 
-We will standardize on **UUID v7** for all primary keys.
+The platform will standardize on **UUID v7** for newly generated primary identifiers where UUIDs are used.
+
+This decision does not require retrofitting existing identifiers solely to change UUID versions. Existing data migrations must follow the applicable migration ADR and preserve referential integrity.
 
 ## Rationale
 
-- **Sortability**: UUID v7 includes a 48-bit timestamp, making it time-ordered. This ensures better locality in B-Tree indexes and reduces fragmentation.
-- **Global Uniqueness**: Maintains the 128-bit collision resistance required for enterprise data.
-- **Compatibility**: Remains compatible with existing UUID data types in PostgreSQL and most libraries.
+- **Time ordering**: UUID v7 embeds a timestamp component and is suitable for time-ordered insertion patterns.
+- **Global uniqueness**: Retains the 128-bit UUID representation.
+- **PostgreSQL compatibility**: PostgreSQL supports UUID as a native data type.
+- **API suitability**: UUIDs do not expose a simple sequential business-record count.
 
 ## Alternatives Considered
 
-1. **UUID v4**: High risk of index bloat and performance degradation over time as table size increases.
-2. **BigInt (Auto-increment)**: Exposes business volume, hard to synchronize across distributed systems, and leaks information via URLs.
+1. **UUID v4** — valid and widely supported, but lacks UUID v7's time-ordering characteristics.
+2. **BIGINT / auto-increment** — compact and efficient, but requires centralized/sequenced allocation and exposes sequential identifiers.
 
 ## Consequences
 
 ### Positive
-- Improved database write performance for large tables.
-- Efficient index page utilization.
-- Natural time-ordering for records created via UUID.
+
+- Better locality for many append-oriented B-tree workloads than randomly generated UUID v4 values.
+- Consistent identifier-generation standard across the platform.
+- Suitable for API and synchronization boundaries.
 
 ### Negative
-- Slightly more complex generation logic compared to v4 (requires timestamp).
+
+- UUID v7 generation must be supported consistently by the selected application/runtime libraries.
+- Time ordering is not a substitute for a business timestamp; UUID ordering must not be used as the authoritative business-event time.
+- Existing UUIDs are not automatically converted to v7.
 
 ## Implementation Notes
 
-- Backend services shall use a library that supports UUID v7 generation.
-- Database default values for `id` columns should be set to generate UUID v7 where possible or supplied by the application.
+- Backend code shall use an approved UUID v7 implementation.
+- Database defaults may generate UUID v7 where the selected PostgreSQL version and approved implementation support it; otherwise the application may supply the identifier.
+- Identifier generation must not be implemented independently by individual business modules with incompatible conventions.
+- Primary-key choice does not replace tenant isolation, authorization, audit, or business-key constraints.
 
 ## Related Documents
 
-- [Volume 2: Database Architecture](../03-database/README.md)
+- [Database Architecture](../03-database/README.md)
 - [Primary Key Strategy](../03-database/06-primary-keys.md)
 
 ## References
 
-- IETF UUID v7 Specification
-- PostgreSQL UUID Data Type Documentation
+- IETF UUID specification
+- PostgreSQL UUID data type documentation

@@ -1,0 +1,30 @@
+# AI-generated local repository context
+.ai/generated/*
+!.ai/generated/.gitkeep
+
+# Local development/editor files
+.vscode/
+.idea/
+
+# Dependencies and build artifacts
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.dart_tool/
+frontend/build/
+
+# Runtime and local environment
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# Local validation artifacts
+.pgdata/
+probe-*.ts
+
+.env.local

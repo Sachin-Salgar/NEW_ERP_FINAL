@@ -1,171 +1,100 @@
 # Deployment Architecture
 
-> Legacy Volume 3 deployment reference.
-> The current canonical DevOps guidance is in the new Volume 5 DevOps documents under the same directory.
-> See [01-devops-architecture.md](01-devops-architecture.md), [05-ci-cd-pipeline.md](05-ci-cd-pipeline.md), and [08-observability.md](08-observability.md).
+**Document Purpose:** Define the deployment architecture and release principles for the Enterprise ERP Platform.
 
-Document Purpose: Chapter 23 from Volume 3 — Deployment Architecture
+## 1. Introduction
 
-Source: Enterprise ERP Software Architecture — Volume 3 (Chapter 23)
+Deployment architecture defines how application components are packaged, released, operated, and recovered across supported environments.
 
----
+The platform supports containerized deployment and may operate on on-premises or cloud infrastructure according to deployment requirements.
 
-## Chapter 23
+## 2. Objectives
 
-### 23.1 Introduction
+- Repeatable deployments.
+- Reliable releases.
+- Controlled operational risk.
+- Appropriate scalability.
+- Recovery and rollback capability.
+- Post-deployment validation.
 
-The deployment architecture defines how the backend is packaged, deployed, operated, and scaled across different environments.
-The Enterprise ERP Platform is designed for containerized deployment while remaining compatible with both on-premises and cloud-hosted infrastructure.
-The deployment architecture prioritizes reliability, repeatability, and operational simplicity.
+## 3. Environment Progression
 
-### 23.2 Objectives
+The deployment lifecycle may progress through isolated environments such as:
 
-The deployment strategy aims to:
-• Simplify deployments.
-• Improve reliability.
-• Support scalability.
-• Enable automated releases.
-• Reduce operational risk.
-• Support disaster recovery.
+```text
+Development → Testing → Staging → Production
+```
 
-### 23.3 Deployment Environments
+The exact environment topology is defined by environment-management requirements. Production data and secrets shall not be shared casually across environments.
 
-The ERP supports multiple deployment environments.
-Development
+## 4. Deployment Components
 
-↓
+A deployment may contain:
 
-Testing
-
-↓
-
-Staging
-
-↓
-
-Production
-
-Each environment shall remain isolated with independent configuration and data.
-
-### 23.4 Containerization
-
-Backend services shall be packaged as Docker containers.
-Benefits include:
-• Consistent environments.
-• Simplified deployment.
-• Easy scaling.
-• Predictable runtime behavior.
-• Improved portability.
-
-Application containers shall remain stateless wherever possible.
-
-### 23.5 Infrastructure Components
-
-A typical deployment consists of:
-Load Balancer
-
-↓
-
-Backend Application
-
-↓
-
+```text
+Load Balancer / Reverse Proxy
+          ↓
+Application Services
+          ↓
 PostgreSQL
+          ↓
+Cache / Queue Workers / Object Storage
+          ↓
+Monitoring and Logging
+```
 
-↓
+The actual topology depends on deployment size and infrastructure choices.
 
-Cache
+## 5. Containerization
 
-↓
+Application services should use the repository's containerization standards where containers are selected as the deployment mechanism. Application containers should remain stateless where practical; persistent business data belongs in persistent infrastructure.
 
-Queue Workers
+## 6. CI/CD Integration
 
-↓
+Deployments should be driven by the established CI/CD process:
 
-Object Storage
-
-↓
-
-Monitoring
-
-Components may be distributed across multiple servers depending on deployment size.
-
-### 23.6 CI/CD Integration
-
-Deployment shall integrate with Continuous Integration and Continuous Deployment (CI/CD).
-Typical pipeline:
-Source Code
-
-↓
-
-Build
-
-↓
-
-Automated Tests
-
-↓
-
-Security Checks
-
-↓
-
-Container Build
-
-↓
-
+```text
+Source Change
+    ↓
+Validation / Tests
+    ↓
+Build Artifact
+    ↓
 Deployment
-
-↓
-
+    ↓
+Health Validation
+    ↓
 Monitoring
+```
 
-Production deployments shall occur only after successful validation.
+Production release gates and approvals are governed by the repository's actual CI/CD and operational policy.
 
-### 23.7 Rolling Updates
+## 7. Deployment Strategies
 
-Where infrastructure permits, deployments should support rolling updates.
-Benefits include:
-• Reduced downtime.
-• Controlled rollout.
-• Easier rollback.
-• Improved availability.
+Rolling, blue-green, canary, or maintenance-window deployment may be used where the infrastructure and operational requirements justify them. No single strategy is mandatory for every deployment.
 
-Deployment strategy shall minimize business disruption.
+## 8. Database Changes
 
-### 23.8 Backup Before Deployment
+Deployments involving schema changes shall follow the database migration process, including validation and recovery planning. Backup and recovery requirements are defined by the backup/disaster-recovery architecture.
 
-Production deployments affecting database schema shall require:
-• Verified backup.
-• Migration validation.
-• Rollback planning.
-• Deployment approval.
+## 9. Post-Deployment Validation
 
-No production migration shall occur without recovery procedures.
+Validation should include, as applicable:
+- Application/API health.
+- Database connectivity.
+- Background processing.
+- Authentication.
+- Error and performance indicators.
 
-### 23.9 Monitoring After Deployment
+## 10. Summary
 
-Following deployment, administrators shall verify:
-• Application health.
-• API availability.
-• Database connectivity.
-• Queue processing.
-• Error rates.
-• Performance metrics.
+Deployment architecture provides a controlled path from validated software changes to reliable operation while preserving environment isolation, recovery capability, and operational observability.
 
-Post-deployment monitoring reduces operational risk.
+## Cross References
 
-### 23.10 Summary
-
-The deployment architecture provides a repeatable, secure, and scalable process for delivering backend updates while minimizing operational disruption.
-
----
-
-Cross References
-
-- docs/04-backend/16-logging-and-observability.md
-- docs/04-backend/19-testing-strategy.md
-
-References
-
-- Volume 3 — Backend Architecture (source)
+- [DevOps Architecture](./01-devops-architecture.md)
+- [Environment Management](./03-environment-management.md)
+- [Containerization](./04-containerization.md)
+- [CI/CD Pipeline](./05-ci-cd-pipeline.md)
+- [Backup & Disaster Recovery](./09-backup-disaster-recovery.md)
+- [Observability](./08-observability.md)

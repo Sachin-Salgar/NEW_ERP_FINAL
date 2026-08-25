@@ -1,277 +1,100 @@
 # Platform Services Architecture
 
-This directory contains the design and standards for platform-wide services that all business modules depend on.
+This directory defines shared platform capabilities used by ERP business modules. These capabilities address cross-cutting concerns and must be consumed through approved contracts rather than reimplemented independently inside business modules.
 
-## From Volume 1
+## Current Architectural Position
 
-### Platform Services Overview
+The ERP backend is a **modular monolith**. Platform services are therefore logical shared capabilities within the current backend, not independently deployed microservices by default.
 
-In addition to business modules, the ERP provides platform-wide services:
+A platform capability may be extracted into an independently deployed service later only through an approved architectural decision.
 
-| Service | Purpose | Ownership | All Modules Use |
-|---------|---------|-----------|-----------------|
-| **Authentication Service** | User login, token generation, session management | Platform Team | Yes |
-| **Authorization Service** | Permission checking, role-based access control | Platform Team | Yes |
-| **Audit Service** | Audit event logging, compliance logging | Platform Team | Yes |
-| **Notification Service** | User notifications, alerts, escalations | Platform Team | Yes |
-| **File Storage Service** | Document management, file uploads/downloads | Platform Team | Yes |
-| **Configuration Service** | Organization settings, system configuration | Platform Team | Yes |
-| **Scheduler Service** | Background jobs, scheduled tasks | Platform Team | Yes |
-| **Reporting Service** | Report engine, report scheduling, distribution | Platform Team | Yes |
+## Platform Capabilities
 
-### Design Principle: Platform Before Features
+| Document | Capability | Role |
+|---|---|---|
+| `01-platform-service-architecture.md` | Core platform services | Notifications, document management, workflow capability and shared platform boundaries |
+| `02-enterprise-integration-platform.md` | Enterprise integration | APIs, events, messaging, connectors, synchronization, EDI and managed file transfer |
+| `03-ai-platform-architecture.md` | AI platform | AI/ML, document intelligence, MLOps and enterprise assistants |
+| `04-enterprise-configuration-framework.md` | Configuration | Governed platform-wide configuration and hierarchy |
+| `05-localization-internationalization.md` | Globalization | Languages, locales, currencies, regional configuration and localization |
 
-**Statement**: Platform stability is more important than rapid feature development. Infrastructure such as Authentication, Authorization, Logging, Notifications, and Reporting Infrastructure shall exist before dependent modules are developed.
+Other platform capabilities may be defined in their authoritative architecture documents when ownership is established.
 
-**Consequence**: Business modules must not implement their own:
-- Authentication (use Auth Service)
-- Audit logging (use Audit Service)
-- Notifications (use Notification Service)
-- File storage (use File Storage Service)
-- Configuration (use Configuration Service)
-- Scheduling (use Scheduler Service)
+## Platform Before Features
 
-Sharing these services ensures consistency and centralized governance.
+Business modules must not independently implement shared infrastructure for:
 
-### Authentication Service
+- Authentication and authorization.
+- Audit logging.
+- Notification delivery.
+- File/document storage.
+- Shared configuration management.
+- Scheduling/background infrastructure.
+- Enterprise integration infrastructure.
+- AI infrastructure.
 
-**Responsibilities**:
-- User login (username/password validation)
-- JWT token generation
-- Token validation
-- Refresh token management
-- Session management
-- Logout and token blacklist
+A module may contain domain-specific behavior that uses these capabilities, but the shared platform contract remains authoritative for the cross-cutting concern.
 
-**Scope**:
-- Handles JWT token lifecycle
-- Integrates with organization and user databases
-- Provides tokens consumed by all modules
+## Ownership and Boundaries
 
-**Future Enhancements**:
-- Multi-factor authentication (MFA)
-- OIDC/SAML integration
-- Device trust and registration
-- Biometric authentication
-- SSO support
+Platform services do not become owners of business-domain records merely because they provide a shared capability.
 
-### Authorization Service
+For example:
 
-**Responsibilities**:
-- Role definition and management
-- Permission definition
-- User-to-role assignment
-- Permission checking
-- Fine-grained authorization
-- Segregation of duties
+- Finance owns financial transactions.
+- Inventory owns inventory transactions.
+- HR owns HR records.
+- Sales owns sales-domain records.
+- Quality owns quality records.
+- Asset Maintenance owns maintenance records.
 
-**Scope**:
-- Manages roles and permissions across all modules
-- Provides permission checking APIs
-- Organization-specific role configuration
+Platform capabilities coordinate or provide infrastructure around these records through approved contracts.
 
-**Permission Model**:
-- Resource-based: `module:resource:action`
-- Example: `sales:orders:create`, `accounting:ledger:post`
-- Hierarchical where applicable
+## Security
 
-### Audit Service
+Platform capabilities follow the canonical security architecture in `docs/06-security/04-enterprise-security-architecture.md`.
 
-**Responsibilities**:
-- Record audit events
-- Maintain immutable audit log
-- Provide audit log retrieval
-- Compliance reporting
+They must preserve tenant isolation, authorization, auditability, data classification, and other applicable security controls.
 
-**Audit Coverage**:
-- User login/logout
-- Record creation, update, deletion
-- Approval/rejection
-- Permission grants/revocations
-- Privileged access
-- Failed authorization attempts
-- Sensitive data access
-- Configuration changes
-- Module licensing changes
+## Configuration
 
-**Audit Record Contents**:
-- Actor (user, system, service)
-- Tenant (organization)
-- Timestamp
-- Operation (create, update, delete, approve, etc.)
-- Resource affected
-- Before/after values
-- Result (success/failure)
-- Correlation ID
-- IP address
+Platform-level configuration is governed by `04-enterprise-configuration-framework.md`. Module-specific configuration remains with the owning module. Integration-specific configuration remains with the Enterprise Integration Platform.
 
-### Notification Service
+## Globalization
 
-**Responsibilities**:
-- Send user notifications
-- Manage notification preferences
-- Handle notification delivery
-- Support multiple channels (in-app, email, SMS, future)
+Platform-level localization is governed by `05-localization-internationalization.md`. Frontend-specific localization remains governed by `docs/05-frontend/20-localization.md`.
 
-**Scope**:
-- Notifications for approvals pending
-- Alerts for thresholds exceeded
-- Reminders for tasks
-- System notifications
+## Integration
 
-**Future Channels**:
-- In-app notifications
-- Email
-- SMS
-- Push notifications
-- Mobile app alerts
-- Slack/Teams integration
+The Enterprise Integration Platform is the canonical location for shared external connectivity. Business modules should expose/use published contracts rather than implementing point-to-point infrastructure independently.
 
-### File Storage Service
+## AI
 
-**Responsibilities**:
-- Store documents and files
-- Manage file versioning
-- File retrieval and download
-- File deletion and archival
-- Access control
+The AI Platform provides optional/approved AI capabilities. AI output is not authoritative business data and must not bypass business-module validation, authorization, or audit requirements.
 
-**Scope**:
-- ERP documents (invoices, POs, receipts)
-- Attachments
-- Master file imports
-- Report exports
-- Configuration backups
+## Module Usage Pattern
 
-**Storage Strategy**:
-- Supports both on-premises (local disk) and cloud (S3, Azure Blob)
-- Tenant-isolated storage
-- Encryption at rest (if required)
-- Backup integration
-
-### Configuration Service
-
-**Responsibilities**:
-- Store organization settings
-- Provide configuration retrieval
-- Manage configuration updates
-- Handle different config levels (system, organization, user)
-
-**Configuration Types**:
-- Organization settings (name, logo, address)
-- Financial year definitions
-- Tax settings
-- Branch definitions
-- Number series
-- Approval workflows
-- Module-specific configuration
-
-**Scope**:
-- Organization-wide settings
-- Tenant-specific configuration
-- User preferences
-
-### Scheduler Service
-
-**Responsibilities**:
-- Execute scheduled jobs
-- Manage job scheduling
-- Provide job execution history
-- Handle job retries
-- Monitor job health
-
-**Scheduled Jobs**:
-- Monthly financial closing
-- Daily inventory valuation
-- Payroll processing
-- Report generation
-- Data cleanup and archival
-- Backup procedures
-
-**Features**:
-- Cron-based scheduling
-- One-time scheduling
-- Retry logic for failures
-- Execution history
-- Job monitoring
-
-### Reporting Service
-
-**Responsibilities**:
-- Execute reports
-- Manage report definitions
-- Schedule report runs
-- Deliver reports
-- Archive reports
-
-**Report Types**:
-- Standard reports (pre-built)
-- Organization-configured reports
-- Ad-hoc queries
-- Export formats (PDF, Excel, CSV)
-
-**Delivery**:
-- On-demand execution
-- Scheduled delivery (email)
-- Report archive
-
----
-
-## Platform Service Versioning
-
-Platform services are independently versioned:
-
-| Service | Version | Update Cycle |
-|---------|---------|--------------|
-| Authentication | v1, v2, ... | Quarterly |
-| Authorization | v1, v2, ... | Quarterly |
-| Audit | v1, v2, ... | Quarterly |
-| Others | v1, v2, ... | Quarterly |
-
-**Policy**: Support N-1 versions to allow gradual migration.
-
----
-
-## Module Dependency on Platform Services
-
-```
-Sales Module
-Inventory Module
-Accounting Module
-HR Module
-Manufacturing Module
-    ↓ (all depend on)
-    ├── Authentication Service
-    ├── Authorization Service
-    ├── Audit Service
-    ├── Notification Service
-    ├── File Storage Service
-    ├── Configuration Service
-    ├── Scheduler Service
-    └── Reporting Service
+```text
+Business Module
+      ↓
+Published Platform Contract
+      ↓
+Platform Capability
+      ↓
+Approved Infrastructure / Integration
 ```
 
-Modules call platform services to perform cross-cutting concerns rather than implementing duplicate functionality.
+## AI/Copilot Implementation Rules
 
----
+AI-assisted development must:
 
-## Related Documentation
+- Check the relevant platform document before creating shared infrastructure.
+- Reuse existing platform contracts.
+- Avoid duplicate services and duplicate ownership.
+- Never invent providers, deployment models, or capabilities that are not established by the repository.
+- Keep business-domain ownership with the owning module.
+- STOP and ask when platform ownership, contract boundaries, security, or architectural intent is unclear.
 
-- [Architectural Principles](../00-overview/01-architectural-principles.md#principle-5-platform-before-features) — Platform Before Features principle
-- [Design Philosophy](../02-architecture/01-design-philosophy.md#design-philosophy-1-platform-first-modules-second) — Platform First philosophy
-- [Business Modules](./README.md) — How modules use platform services
+## Status
 
-## Navigation
-
-This volume (Volume 1) establishes platform services architecture principles. Future volumes (Volume 7) will provide:
-- Detailed service specifications
-- Authentication architecture
-- Authorization model details
-- Audit system design
-- Notification architecture
-- File storage patterns
-- Configuration management
-- Scheduler design
-- Reporting engine design
-- Service versioning strategy
-- Service deployment procedures
+These documents define the current platform-service architecture for the repository. Detailed implementation may proceed only where the corresponding capability and contract are sufficiently defined and approved.

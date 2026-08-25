@@ -1,100 +1,117 @@
 # Security Architecture
 
-This directory contains security controls, authentication, authorization, and security standards.
+## Purpose
 
-## From Volume 1
+This directory contains the authoritative security architecture and security standards for the Enterprise ERP Platform.
 
-### Security by Design Principle
+Security is a cross-cutting architectural concern. Backend, frontend, platform services, database, integrations, and operations shall conform to the security principles and controls defined here and in applicable approved ADRs.
 
-Security shall be incorporated into every architectural layer through:
-- **Authentication**: User identity verification
-- **Authorization**: Permission-based access control
-- **Encryption**: Protecting data in transit and at rest
-- **Input Validation**: Preventing injection attacks
-- **Audit Logging**: Recording all security-relevant events
-- **Secure Communication**: TLS encryption for all network traffic
+## Authority
 
-Security shall never be treated as a feature added after implementation; it is an architectural concern.
+- Security principles and policy in this directory are authoritative for ERP modules and platform services.
+- Approved ADRs in `docs/10-adr/` supersede this documentation only within the explicit scope of the approved decision.
+- Implementation details belong in the relevant backend, frontend, database, platform, or DevOps documentation and must conform to the applicable security architecture.
+- When a required security behavior is not established by current documentation or an approved ADR, implementation must stop at that decision boundary rather than inventing security behavior.
 
-### Authentication
+## Security by Design
 
-**Technology**: JWT-based authentication
+Security shall be incorporated throughout the architecture through appropriate controls including:
+- Authentication.
+- Authorization.
+- Encryption.
+- Input validation.
+- Secure communication.
+- Audit logging.
+- Monitoring and threat detection.
+- Data isolation.
+- Secrets protection.
 
-**Components**:
-- Authentication Service (login, token generation)
-- Token validation on every API request
-- Refresh token management
-- Session management
+Security shall not be treated as a feature added after implementation.
 
-**Token Management**:
-- Access tokens: Short-lived, signed tokens
-- Refresh tokens: Long-lived tokens for obtaining new access tokens
-- Token rotation on each refresh
-- Logout via token blacklist
+## Current Baseline
 
-### Authorization
+The current documented authentication baseline uses JWT-based access and refresh tokens. Token lifecycle and refresh/rotation behavior are governed by the canonical backend authentication documentation and applicable ADRs.
 
-**Model**: Role-Based Access Control (RBAC)
+The current authorization baseline uses centralized, policy-driven authorization with RBAC/permission-based access control and applicable organization/tenant/data-isolation rules.
 
-**Implementation**:
-- Users belong to roles
-- Roles have permissions
-- Permissions gate API endpoints
-- Fine-grained permission naming
+Capabilities such as MFA, SSO, OIDC/SAML federation, passwordless authentication, certificate-based authentication, ABAC, or PBAC require explicit implementation decisions before being treated as implemented platform behavior.
 
-**Permission Examples**:
-- sales:orders:create
-- sales:orders:read
-- sales:orders:update
-- sales:orders:approve
-- accounting:ledger:post
+## Authorization and Tenant Isolation
 
-### Security at Each Layer
+Authorization and database isolation are complementary controls.
 
-**Presentation Layer**:
-- HTTPS/TLS enforcement
-- CSRF token validation
-- Secure token storage
-- Input sanitization
+```text
+Identity
+  ↓
+Authentication
+  ↓
+Authorization / organizational scope
+  ↓
+Business operation
+  ↓
+Database transaction context
+  ↓
+PostgreSQL RLS tenant isolation
+```
 
-**API Layer**:
-- Authentication validation
-- Authorization checks
-- Rate limiting
-- Request size limits
-- Secure error messages
+Passing application authorization must never be treated as permission to bypass database isolation.
 
-**Business Layer**:
-- Business rule enforcement
-- Permission validation
-- Audit event generation
-- Data access controls
+## Security at Each Layer
 
-**Data Layer**:
-- Encryption at rest (where required)
-- Row-Level Security policies
-- Referential integrity constraints
-- Query audit trails
+### Frontend
 
----
+The frontend shall:
+- Use secure session/token handling.
+- Minimize sensitive local storage.
+- Avoid exposing secrets through logs or errors.
+- Use backend-provided authorization information for presentation decisions.
+
+Frontend controls never replace backend authorization or validation.
+
+### API / Backend
+
+The backend shall enforce:
+- Authentication.
+- Authorization.
+- Input validation.
+- Appropriate rate/request limits.
+- Safe error handling.
+- Business and security rules.
+- Audit/security event generation where required.
+
+### Data Layer
+
+The data architecture shall apply appropriate controls including:
+- PostgreSQL Row-Level Security where defined by the tenant-isolation architecture.
+- Referential integrity.
+- Controlled data access.
+- Encryption at rest where required.
+- Auditing where required.
+
+### Operations
+
+Security Operations shall provide monitoring, vulnerability management, incident response, access governance, and continuous improvement appropriate to the deployment.
+
+## Documents
+
+- [Backend Security](./01-backend-security.md)
+- [Frontend Security](./02-frontend-security.md)
+- [Security Operations](./03-security-operations.md)
+- [Enterprise Security Architecture](./04-enterprise-security-architecture.md)
 
 ## Related Documentation
 
-- [Architectural Principles](../00-overview/01-architectural-principles.md#principle-7-security-by-design) — Security by Design principle
-- [System Architecture](../02-architecture/02-system-architecture.md) — How security is implemented across layers
-- [Technology Stack](../05-frontend/01-technology-stack.md#authentication) — JWT and authentication technology
-- [Security Operations](03-security-operations.md) — Continuous security monitoring and incident response
+- [Architectural Principles](../00-overview/01-architectural-principles.md)
+- [System Architecture](../02-architecture/02-system-architecture.md)
+- [Database Multi-Tenant Architecture](../03-database/11-multi-tenancy.md)
+- [Backend Authentication & Authorization](../04-backend/07-authentication-and-authorization.md)
+- [Backend Logging & Observability](../04-backend/16-logging-and-observability.md)
+- [Architecture Decision Records](../10-adr/README.md)
 
-## Navigation
+## Maintenance Rules
 
-This volume (Volume 1) establishes security architectural principles. Current security operations guidance is available in the canonical security documentation.
-
-Future volumes will provide:
-- Detailed authentication architecture
-- Multi-factor authentication
-- Single sign-on (OIDC/SAML) integration
-- Encryption key management
-- Vulnerability scanning processes
-- Security testing standards
-- Incident response procedures
-- Compliance requirements
+- Keep security ownership explicit.
+- Do not duplicate security policy in module-specific documentation when a centralized rule already exists.
+- Do not retain obsolete migration metadata in active security documents.
+- Do not invent security mechanisms, protocols, policy values, compliance frameworks, or operational tooling.
+- Resolve ambiguous security decisions through an approved architectural decision before implementation.

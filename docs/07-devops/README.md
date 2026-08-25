@@ -1,34 +1,66 @@
 # DevOps, Infrastructure & Deployment
 
-This directory contains canonical DevOps documentation for deployment, infrastructure, operations, and observability.
+## Purpose
 
-## Canonical Documents
+This directory is the active DevOps architecture portal for the Enterprise ERP Platform. It defines deployment, infrastructure, environments, containers, CI/CD, reliability, scalability, observability, backup/recovery, and production operations.
 
-- [01-devops-architecture.md](01-devops-architecture.md) — DevOps architecture and operational framework
-- [02-infrastructure-architecture.md](02-infrastructure-architecture.md) — Infrastructure design, segmentation, and availability
-- [03-environment-management.md](03-environment-management.md) — Environment topology, promotion, and configuration separation
-- [04-containerization.md](04-containerization.md) — Container standards, image management, and runtime architecture
-- [05-ci-cd-pipeline.md](05-ci-cd-pipeline.md) — CI/CD pipeline, validation, deployment, and rollback
-- [06-reliability-fault-tolerance.md](06-reliability-fault-tolerance.md) — Fault tolerance, health checks, and recovery principles
-- [07-scalability.md](07-scalability.md) — Scaling strategies for compute, database, and storage
-- [08-observability.md](08-observability.md) — Monitoring, dashboards, and centralized logging
-- [09-backup-disaster-recovery.md](09-backup-disaster-recovery.md) — Backup strategy and disaster recovery planning
-- [11-operations-management.md](11-operations-management.md) — Maintenance, incident management, and operational support
+## Active Documents
 
-## Legacy and Historical Reference
+### Architecture and Deployment
 
-- [01-deployment-architecture.md](01-deployment-architecture.md) — Legacy Volume 3 deployment architecture. This file is retained for historical reference only. For current DevOps guidance, use the canonical files listed above.
+- [01-devops-architecture.md](01-devops-architecture.md) — DevOps principles and operational framework
+- [01-deployment-architecture.md](01-deployment-architecture.md) — Deployment architecture and release principles
+- [02-infrastructure-architecture.md](02-infrastructure-architecture.md) — Infrastructure and network/storage principles
+- [03-environment-management.md](03-environment-management.md) — Environment isolation and promotion
+- [04-containerization.md](04-containerization.md) — Containerization and image lifecycle
 
-## Related Canonical Documentation
+### Delivery and Reliability
 
+- [05-ci-cd-pipeline.md](05-ci-cd-pipeline.md) — CI/CD validation and delivery
+- [06-reliability-fault-tolerance.md](06-reliability-fault-tolerance.md) — Reliability and failure recovery
+- [07-scalability.md](07-scalability.md) — Workload and infrastructure scaling
+
+### Operations
+
+- [08-observability.md](08-observability.md) — Metrics, logs, traces, health, and alerting
+- [09-backup-disaster-recovery.md](09-backup-disaster-recovery.md) — Backup and disaster recovery
+- [11-operations-management.md](11-operations-management.md) — Maintenance and production operations
+
+There is no `10` document in the current repository and it has not been invented or renumbered.
+
+## Architectural Principles
+
+- Automate repeatable operational work where appropriate.
+- Keep environments isolated.
+- Treat deployment configuration and secrets as environment-specific.
+- Prefer immutable, versioned release artifacts.
+- Make production changes controlled and recoverable.
+- Monitor systems according to operational requirements.
+- Test recovery rather than assuming backups are recoverable.
+- Scale according to measured workload.
+- Keep vendor/tool choices separate from architectural principles unless explicitly established.
+
+## Boundaries
+
+- Application business logic belongs to backend/frontend architecture documentation.
+- Security controls are governed jointly with [Security Architecture](../06-security/README.md).
+- Database-specific backup/recovery details belong to [Database Documentation](../03-database/README.md) where applicable.
+- CI/CD implementation details are determined by the actual repository workflows and deployment configuration.
+- This documentation must not invent a CI provider, cloud provider, orchestrator, artifact registry, monitoring product, RTO/RPO value, retention period, or operational SLA unless explicitly established elsewhere.
+
+## Related Documentation
+
+- [Backend Architecture](../04-backend/README.md)
+- [Frontend Architecture](../05-frontend/README.md)
+- [Security Architecture](../06-security/README.md)
+- [Database Architecture](../03-database/README.md)
 - [Documentation Management](../00-overview/documentation-management.md)
 - [Governance](../00-overview/02-governance.md)
-- [Security Operations](../06-security/03-security-operations.md)
-- [Backend Logging and Observability](../04-backend/16-logging-and-observability.md)
-- [Database Backup and Recovery](../03-database/17-backup-recovery.md)
 
-## Navigation
+## Maintenance Rules
 
-This directory is the canonical home for Volume 5 operational content in the repository.
-
-Use the listed documents for deployment architecture, CI/CD, observability, resilience, and production operations.
+- Keep this README synchronized with the actual files in this directory.
+- Remove obsolete migration/volume metadata from active documents.
+- Do not create duplicate documents for the same operational concern without resolving ownership.
+- Do not convert illustrative deployment patterns into mandatory implementation requirements without an explicit architecture decision.
+- When an operational requirement is unclear, stop and resolve the ambiguity before encoding it as architecture.

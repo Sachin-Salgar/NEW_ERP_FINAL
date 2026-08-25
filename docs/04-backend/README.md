@@ -1,28 +1,30 @@
 # Backend Architecture
 
-This directory contains backend runtime, framework, and server-side technology standards.
+This directory contains the authoritative backend architecture, runtime, framework, API, infrastructure, quality, and module-development standards for the Enterprise ERP Platform.
 
-## Documents Contained (organized)
+The backend is currently implemented as a **modular monolith**. Modules are logically independent in ownership and boundaries, but are not separately deployed services. Internal module interaction uses published application/service contracts and events where appropriate; external clients and integrations use the REST API.
+
+## Documents Contained
 
 ### Overview
-- [01-backend-overview.md](01-backend-overview.md) — Backend Architecture overview and high-level responsibilities
-- [27-volume3-summary.md](27-volume3-summary.md) — Volume 3 summary and key decisions
+- [01-backend-overview.md](01-backend-overview.md) — Backend architecture overview and responsibilities
 
 ### Core Architecture
-- [02-clean-architecture.md](02-clean-architecture.md) — Clean Architecture & Layered Design
-- [03-modular-monolith.md](03-modular-monolith.md) — Modular Monolith approach
+- [02-clean-architecture.md](02-clean-architecture.md) — Clean Architecture and layered design
+- [03-modular-monolith.md](03-modular-monolith.md) — Current modular-monolith architecture
 - [04-domain-driven-design.md](04-domain-driven-design.md) — Domain-Driven Design (DDD)
+- [05-dependency-injection-ioc.md](05-dependency-injection-ioc.md) — Dependency Injection and IoC
 
 ### API & Integration
 - [06-api-design-standards.md](06-api-design-standards.md) — API design standards and REST architecture
-- [07-authentication-and-authorization.md](07-authentication-and-authorization.md) — Authentication & Authorization
+- [07-authentication-and-authorization.md](07-authentication-and-authorization.md) — Authentication and authorization
 
 ### Services & Business Logic
-- [08-service-layer-design.md](08-service-layer-design.md) — Service layer responsibilities and transactions
-- [09-repository-pattern.md](09-repository-pattern.md) — Repository pattern and data access guidance
+- [08-service-layer-design.md](08-service-layer-design.md) — Service-layer responsibilities and transactions
+- [09-repository-pattern.md](09-repository-pattern.md) — Repository pattern and data-access guidance
 
 ### Data, Validation & Error Handling
-- [10-validation-strategy.md](10-validation-strategy.md) — Validation strategy (Zod, multi-layer)
+- [10-validation-strategy.md](10-validation-strategy.md) — Validation strategy
 - [11-error-handling-framework.md](11-error-handling-framework.md) — Error handling and correlation IDs
 
 ### Events & Asynchronous Processing
@@ -31,131 +33,97 @@ This directory contains backend runtime, framework, and server-side technology s
 
 ### Infrastructure & Operations
 - [14-file-storage-architecture.md](14-file-storage-architecture.md) — File storage and metadata
-- [15-notification-framework.md](15-notification-framework.md) — Notification framework (templates & channels)
-- [16-logging-and-observability.md](16-logging-and-observability.md) — Logging, metrics and health checks
-- [17-caching-strategy.md](17-caching-strategy.md) — Caching policy and keying
+- [15-notification-framework.md](15-notification-framework.md) — Notification framework
+- [16-logging-and-observability.md](16-logging-and-observability.md) — Logging, metrics, health checks, and observability
+- [17-caching-strategy.md](17-caching-strategy.md) — Caching policy, consistency, and keying
 - [18-configuration-management.md](18-configuration-management.md) — Configuration management and secrets
 
 ### Quality & Performance
-- [19-testing-strategy.md](19-testing-strategy.md) — Testing strategy (unit/integration/e2e)
-- [20-performance-optimization.md](20-performance-optimization.md) — Performance guidance and load testing
+- [19-testing-strategy.md](19-testing-strategy.md) — Unit, integration, and end-to-end testing strategy
+- [20-performance-optimization.md](20-performance-optimization.md) — Performance engineering and load testing
 
 ### Module Development
-- [21-module-development-guidelines.md](21-module-development-guidelines.md) — Module structure, responsibilities, and documentation requirements
+- [21-module-development-guidelines.md](21-module-development-guidelines.md) — Module structure, boundaries, responsibilities, and development rules
 
-### Cross references (canonical)
-- [Governance (global)](../00-overview/02-governance.md) — Document Control & Governance (single source of truth)
-- [Coding Standards (global)](../02-architecture/05-coding-standards.md) — Global coding standards
-- [Security (global)](../06-security/01-backend-security.md) — Backend security best practices
-- [DevOps / Deployment](../07-devops/01-deployment-architecture.md) — Deployment architecture and CI/CD
-- [ADRs](../10-adr/README.md) — Architecture Decision Records index
-- [Migration Traceability](../migration-traceability/volume3-to-docs.md) — Mapping from Volume 3 to repo files
+## Backend Runtime
 
-This directory contains backend runtime, framework, and server-side technology standards. For further details see the linked documents above.
+### Node.js
 
-This directory contains backend runtime, framework, and server-side technology standards.
+Node.js is the selected backend runtime environment for the ERP backend.
 
-## From Volume 1
-
-### Backend Runtime: Node.js
-
-**Selection Rationale**: Node.js has been selected as the backend runtime environment due to:
-- High performance for I/O-heavy operations
-- Large ecosystem with extensive packages
-- Asynchronous architecture supporting concurrent requests
-- Excellent API development frameworks
-- Mature package ecosystem
-- Cross-platform support (Windows, Linux, macOS)
-
-**Responsibilities**:
-- Host all backend services for the ERP
-- Execute business logic
-- Manage database connections
-- Coordinate module services
+**Responsibilities:**
+- Host the backend application.
+- Execute application and business logic.
+- Manage database connections through the application data-access layer.
+- Coordinate module services.
 
 ### Backend Language: TypeScript
 
-**Selection Rationale**: All backend development shall be performed using TypeScript due to:
-- Static typing for type safety
-- Improved maintainability
-- Better IDE support and autocompletion
-- Compile-time error detection
-- Easier refactoring
-- Better developer productivity
+All backend production code shall be written in TypeScript.
 
-**Standard**: Plain JavaScript shall not be used for production backend code. All backend code must be TypeScript.
+Plain JavaScript shall not be used for production backend code.
 
 ### Web Framework: Fastify
 
-**Selection Rationale**: Fastify has been selected as the preferred HTTP framework due to:
-- High performance
-- Schema-based validation
-- Excellent TypeScript support
-- Plugin architecture for modularity
-- Low overhead
+Fastify is the selected HTTP framework.
 
-**Responsibilities**:
-- Expose all REST APIs
-- Handle HTTP requests/responses
-- Validation and routing
-- Error handling
+**Responsibilities:**
+- Expose REST APIs.
+- Handle HTTP requests and responses.
+- Provide routing and request handling.
+- Participate in validation and error handling according to the backend standards.
 
 ### Backend Responsibilities
 
-The Backend Layer is responsible for:
-- **Business Rules**: Enforcing all business policies
-- **Calculations**: Stock calculations, tax computation, financial postings
-- **Workflows**: Approval chains, business processes
-- **Validation**: Business constraint validation
-- **Security**: Permission enforcement, encryption
-- **Audit**: Logging of all business operations
-- **Integration**: Coordinating with database and platform services
+The backend is responsible for:
+- **Business Rules:** Enforcing authoritative business policies.
+- **Calculations:** Stock calculations, tax computation, financial postings, and other domain calculations.
+- **Workflows:** Approval chains and business processes.
+- **Validation:** Request, business, and domain constraint validation as applicable.
+- **Security:** Authentication, authorization, tenant/organization isolation, and required security controls.
+- **Audit:** Producing authoritative audit records where required by the security/database architecture.
+- **Integration:** Coordinating with the database, platform capabilities, and external integrations.
 
 ### Business Logic Centralization
 
-**Critical Principle**: All business logic must be implemented in backend services. Frontend cannot enforce business policies.
+All authoritative business logic must be implemented in the backend/domain and application layers. Frontend code must not be the authoritative enforcement point for business policies.
 
-Examples of backend-only logic:
-- Stock calculations
-- Ledger postings
-- Tax computation
-- Credit limit validation
-- Approval workflows
-- Inventory reservations
-- Manufacturing planning
-- Discount validation
-
-Frontend may perform UX validation (e.g., "field required"), but backend independently validates all business rules.
+Frontend applications may perform UX validation, but the backend independently validates and enforces all security and business rules.
 
 ### CPU-Heavy Workloads
 
-Node.js is strong for I/O-heavy APIs but may have limitations for CPU-heavy tasks such as:
-- Large report generation
-- Complex optimization algorithms
-- Manufacturing planning calculations
-- Batch data processing
+CPU-intensive workloads such as large report generation, complex optimization, manufacturing planning, or batch processing must not block API event-loop processing. They should use the worker/job architecture when the workload requires asynchronous or isolated processing.
 
-**Guidance**: CPU-intensive workloads should run in isolated workers or specialized services and must not block API event loops.
+## Architectural Boundary Rules
 
----
+- Modules own their business logic and authoritative data-access boundaries.
+- Direct dependencies on another module's internal implementation are prohibited.
+- Cross-module writes are prohibited.
+- Justified read-only cross-module access is permitted under the database architecture, particularly for approved reporting/read-model use cases.
+- Internal module interaction uses published application/service interfaces and events where appropriate.
+- REST APIs are the external communication interface for clients and integrations.
+- Module enablement/licensing for an organization is separate from user authorization within that organization.
 
 ## Related Documentation
 
-- [System Architecture](../02-architecture/02-system-architecture.md) — Business Layer description
-- [Technology Stack](../05-frontend/README.md) — Backend technology selection
-- [Design Philosophy](../02-architecture/01-design-philosophy.md) — Business Logic Centralization
-- [Volume 3 — Backend Architecture](../archive/Enterprise ERP Software Architecture - Volume 3 – Backend Architecture.md) — Detailed backend standards
+- [System Architecture](../02-architecture/02-system-architecture.md) — Overall system architecture
+- [Backend Overview](./01-backend-overview.md) — Backend architecture
+- [Backend Modular Monolith](./03-modular-monolith.md) — Current backend deployment architecture
+- [Design Philosophy](../02-architecture/01-design-philosophy.md) — Architectural principles
+- [Backend Module Development](./21-module-development-guidelines.md) — Module implementation rules
+- [Global Governance](../00-overview/02-governance.md) — Global document control and governance
+- [Coding Standards](../02-architecture/05-coding-standards.md) — Global coding standards
+- [Security](../06-security/01-backend-security.md) — Backend security requirements
+- [Deployment Architecture](../07-devops/01-deployment-architecture.md) — Deployment architecture and CI/CD
+- [Architecture Decision Records](../10-adr/README.md) — ADRs
 
 ## Navigation
 
-This volume (Volume 1) provides architectural principles for backend design. See **Volume 3** for:
-- Backend service structure
-- API design standards
-- Error handling patterns
-- Middleware architecture
-- Service composition patterns
-- Dependency injection standards
-- Testing strategies
-- Performance optimization
-- Worker thread patterns
-- Job queue architecture
+Start with:
+- [Backend Overview](./01-backend-overview.md)
+- [Clean Architecture](./02-clean-architecture.md)
+- [Modular Monolith](./03-modular-monolith.md)
+- [API Standards](./06-api-design-standards.md)
+- [Authentication & Authorization](./07-authentication-and-authorization.md)
+- [Module Development Guidelines](./21-module-development-guidelines.md)
+- [Testing Strategy](./19-testing-strategy.md)

@@ -1,100 +1,132 @@
 # Frontend Architecture — Portal
 
-Purpose
+## Purpose
 
-This README is the frontend architecture portal. It provides high-level purpose, navigation, and links to canonical frontend documents. Use this page as the starting point for frontend design, development and reviews.
+This README is the frontend architecture portal. It provides the starting point for frontend design, development, review, and maintenance.
 
-Scope
+The documents in this directory define frontend architecture and engineering guidance. Where a more specific authoritative repository document establishes a constraint, that document governs the relevant decision.
 
-Covers architecture, UI framework, state management, navigation, APIs, performance, offline, dashboards, visualization, testing and frontend engineering standards.
+## Scope
 
-Audience
+This directory covers:
 
-Frontend developers, architects, QA, product owners, DevOps, and technical writers.
+- Flutter application architecture
+- Technology stack
+- Modular frontend architecture
+- Project structure
+- State management
+- Dependency injection
+- Navigation and routing
+- API communication
+- Design system
+- Forms and data entry
+- Tables and data presentation
+- Offline-aware behavior
+- Performance
+- Dashboards
+- Reporting
+- Data visualization
+- Notifications
+- Localization
+- Accessibility
+- Frontend testing
+- Development standards
 
-Owner
+## Audience
 
-TBD
+Frontend developers, architects, QA engineers, product owners, DevOps engineers, and technical writers.
 
-Status
+## Status
 
-Migrated (Draft) — 2026-08-07
+**Active architecture documentation**
 
-Architecture Principles (Frontend)
+This directory is maintained as current repository documentation. Obsolete migration/volume-summary documents are not part of the active frontend document set.
 
-- API-First Communication
-- Modular Design
-- Single Responsibility for Widgets
-- Offline-Aware (not fully offline)
-- Accessibility-First
-- Testability by Design
-- Performance: measure before optimizing
-- Localization-Ready
+## Architecture Principles
 
-Document Structure (grouped for discoverability)
+- API-first communication
+- Modular design
+- Clear responsibility boundaries
+- Backend-authoritative business and security rules
+- Offline-aware operation, not a fully offline ERP
+- Accessibility by design
+- Testability by design
+- Performance measured before optimization
+- Localization-ready architecture
 
-Core
-- [01-frontend-overview.md](01-frontend-overview.md) — Overview & high-level architecture
-- [01-technology-stack.md](01-technology-stack.md) — Technology stack (existing)
+## Document Structure
 
-Architecture & Patterns
-- [02-flutter-architecture.md](02-flutter-architecture.md) — Flutter specific architecture
-- [03-modular-frontend-architecture.md](03-modular-frontend-architecture.md) — Modular design & modules
+### Core
+
+- [01-frontend-overview.md](01-frontend-overview.md) — Overview and high-level architecture
+- [01-technology-stack.md](01-technology-stack.md) — Frontend technology stack
+
+### Architecture & Patterns
+
+- [02-flutter-architecture.md](02-flutter-architecture.md) — Flutter architecture
+- [03-modular-frontend-architecture.md](03-modular-frontend-architecture.md) — Modular frontend design
 - [04-project-structure.md](04-project-structure.md) — Project layout and organization
-- [06-dependency-injection.md](06-dependency-injection.md) — DI patterns
-- [05-state-management.md](05-state-management.md) — State management (Riverpod)
+- [05-state-management.md](05-state-management.md) — Riverpod state-management guidance
+- [06-dependency-injection.md](06-dependency-injection.md) — Dependency injection
 
-Navigation & Routing
-- [07-navigation-architecture.md](07-navigation-architecture.md) — Navigation patterns
-- [08-routing-strategy.md](08-routing-strategy.md) — Routing strategy and deep links
+### Navigation & Routing
 
-UI Framework
-- [10-design-system.md](10-design-system.md) — Design tokens, components and theming
-- [11-forms-and-data-entry.md](11-forms-and-data-entry.md) — Forms, validation, drafts
-- [12-tables-and-data-presentation.md](12-tables-and-data-presentation.md) — Tables, virtualization, pagination
+- [07-navigation-architecture.md](07-navigation-architecture.md) — Navigation architecture
+- [08-routing-strategy.md](08-routing-strategy.md) — Routing and deep-link principles
 
-Offline & Performance
-- [14-offline-support.md](14-offline-support.md) — Offline-aware patterns & sync
-- [15-performance-optimization.md](15-performance-optimization.md) — Lazy loading, rendering, monitoring
+### Communication & UI
 
-Dashboards & Reporting
-- [16-dashboard-architecture.md](16-dashboard-architecture.md) — Dashboard components & personalization
-- [17-reporting-framework.md](17-reporting-framework.md) — Reporting UX and structure
-- [18-data-visualization.md](18-data-visualization.md) — Charts and KPI visualizations
+- [09-api-communication.md](09-api-communication.md) — Backend API communication
+- [10-design-system.md](10-design-system.md) — Design system and reusable components
+- [11-forms-and-data-entry.md](11-forms-and-data-entry.md) — Forms and data entry
+- [12-tables-and-data-presentation.md](12-tables-and-data-presentation.md) — Tables and data presentation
 
-Cross-cutting & Quality
-- [19-notification-system.md](19-notification-system.md) — Notification UX (frontend)
-- [20-localization.md](20-localization.md) — Localization & i18n
-- [21-accessibility.md](21-accessibility.md) — Accessibility guidelines
-- [22-frontend-testing-strategy.md](22-frontend-testing-strategy.md) — Testing strategy
-- [23-development-standards.md](23-development-standards.md) — Coding standards and reviews
+### Offline & Performance
 
-Summary & Traceability
-- [24-volume4-summary.md](24-volume4-summary.md) — Volume 4 summary and decisions
-- [../migration-traceability/volume4-to-docs.md](../migration-traceability/volume4-to-docs.md) — Authoritative mapping (single source)
+- [14-offline-support.md](14-offline-support.md) — Offline-aware behavior and local storage
+- [15-performance-optimization.md](15-performance-optimization.md) — Frontend performance
 
-Cross-References (canonical)
-- Security: [../06-security/02-frontend-security.md](../06-security/02-frontend-security.md)
-- Backend API standards: [../04-backend/06-api-design-standards.md](../04-backend/06-api-design-standards.md)
-- DevOps / CI: [../07-devops/README.md](../07-devops/README.md)
-- ADRs: [../10-adr/README.md](../10-adr/README.md)
+### Dashboards & Reporting
 
-Diagrams (placeholders)
+- [16-dashboard-architecture.md](16-dashboard-architecture.md) — Dashboard architecture
+- [17-reporting-framework.md](17-reporting-framework.md) — Reporting framework
+- [18-data-visualization.md](18-data-visualization.md) — Data visualization
 
-Each major document should list required diagrams. Example placeholders:
-- C4 Container Diagram: docs/assets/diagrams/frontend-c4-container.png (placeholder)
-- Sequence Diagram (Login): docs/assets/diagrams/frontend-login-sequence.png (placeholder)
-- State Diagram (Auth/Caching): docs/assets/diagrams/frontend-auth-state.png (placeholder)
+### Cross-Cutting & Quality
 
-How to contribute
+- [19-notification-system.md](19-notification-system.md) — Frontend notification system
+- [20-localization.md](20-localization.md) — Localization and internationalization
+- [21-accessibility.md](21-accessibility.md) — Accessibility
+- [22-frontend-testing-strategy.md](22-frontend-testing-strategy.md) — Frontend testing
+- [23-development-standards.md](23-development-standards.md) — Frontend development standards
 
-- Update the canonical document directly (preserve history).
-- If introducing a new frontend topic, discuss on the Architecture Review Board before creating a new canonical file.
-- For UI changes, add/maintain component docs under docs/05-frontend/components/ when appropriate.
+## Authoritative Boundaries
 
-Latest migration notes
+The frontend is not the system of record for enterprise business state.
 
-- Per-file traceability HTML comments were removed; use docs/migration-traceability/volume4-to-docs.md as the central mapping file.
-- Metadata headers were added to frontend documents (Title, Purpose, Scope, Owner, Status, Last Reviewed).
+In particular:
 
-If you need a different grouping (fewer files or folders), confirm before a structural reorganization — recommended to defer major consolidations until all volumes are migrated.
+- Backend APIs are the authoritative application boundary for business operations.
+- Backend authorization is authoritative; hiding frontend navigation/actions is not security.
+- Backend validation and domain rules remain authoritative.
+- Frontend state and cache are not authoritative business data.
+- Frontend file handling uses the established backend file-storage boundary.
+- Reporting calculations and authoritative business data come from backend/reporting contracts.
+
+## Cross-References
+
+- [Backend Architecture](../04-backend/README.md)
+- [Backend API Design Standards](../04-backend/06-api-design-standards.md)
+- [Backend Authentication and Authorization](../04-backend/07-authentication-and-authorization.md)
+- [Backend Testing Strategy](../04-backend/19-testing-strategy.md)
+- [Security Documentation](../06-security/README.md)
+- [DevOps Documentation](../07-devops/README.md)
+- [ADR Documentation](../10-adr/README.md)
+
+## Maintenance Rules
+
+- Update the canonical document when an architectural decision changes.
+- Do not retain obsolete migration metadata in active frontend documents.
+- Do not create duplicate documents for the same architectural concern without first resolving ownership.
+- Do not invent implementation details that have not been established by the repository.
+- When a requirement is unclear, stop and resolve the ambiguity before encoding it as architecture.

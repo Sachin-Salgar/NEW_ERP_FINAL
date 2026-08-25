@@ -1,133 +1,124 @@
 # Logging & Observability
 
-Document Purpose: Chapter 17 from Volume 3 — Logging & Observability
-
-Source: Enterprise ERP Software Architecture — Volume 3 (Chapter 17)
+**Document Purpose:** Define the logging and observability standards for the Enterprise ERP Platform.
 
 ---
 
-## Chapter 17
-
-### 17.1 Introduction
+## 16.1 Introduction
 
 Effective logging and observability are essential for maintaining a reliable enterprise application.
 Logs enable developers, administrators, and support teams to understand system behavior, diagnose issues, monitor performance, and investigate incidents.
 The Enterprise ERP Platform adopts structured logging and comprehensive observability throughout all backend components.
 
-### 17.2 Objectives
+## 16.2 Objectives
 
 The logging framework aims to:
-• Improve troubleshooting.
-• Support monitoring.
-• Enable auditing.
-• Simplify incident investigation.
-• Improve operational visibility.
-• Support compliance.
+- Improve troubleshooting.
+- Support monitoring.
+- Enable incident investigation.
+- Improve operational visibility.
+- Support compliance.
 
-### 17.3 Log Levels
+Audit records remain governed by the audit architecture and must not be replaced by ordinary operational logs.
+
+## 16.3 Log Levels
 
 The ERP shall use standardized log levels.
-Level	Purpose
-Trace	Detailed diagnostics
-Debug	Development information
-Information	Normal business events
-Warning	Recoverable issues
-Error	Failed operations
-Critical	System failures
+
+| Level | Purpose |
+|---|---|
+| Trace | Detailed diagnostics |
+| Debug | Development information |
+| Information | Normal operational events |
+| Warning | Recoverable issues |
+| Error | Failed operations |
+| Critical | System failures |
 
 Consistent log levels simplify operational monitoring.
 
-### 17.4 Structured Logging
+## 16.4 Structured Logging
 
 Logs shall be machine-readable.
 Typical fields include:
-• Timestamp.
-• Correlation ID.
-• User ID.
-• Organization ID.
-• Module.
-• Service.
-• Operation.
-• Severity.
-• Message.
+- Timestamp.
+- Correlation ID.
+- User ID where available and appropriate.
+- Organization/Tenant ID where available and appropriate.
+- Module.
+- Service/component.
+- Operation.
+- Severity.
+- Message.
 
 Structured logging improves searching and automated analysis.
+Sensitive information, credentials, access tokens, and confidential data shall not be logged.
 
-### 17.5 Correlation IDs
+## 16.5 Correlation IDs
 
-Every request shall receive a unique Correlation ID.
-This identifier shall appear consistently in:
-• API Logs.
-• Background Jobs.
-• Event Processing.
-• Audit Logs.
-• External Service Calls.
+Every request shall receive a unique correlation ID.
+The identifier should be propagated through related application operations, background jobs, event processing, and external service calls where the technical flow supports propagation.
 
-Correlation IDs enable complete request tracing.
+Correlation IDs enable tracing across related operations but are not a substitute for audit identifiers or immutable audit records.
 
-### 17.6 Business Logging
+## 16.6 Business Logging
 
-Significant business operations shall be logged.
+Significant business operations may produce operational logs for troubleshooting and monitoring.
 Examples:
-• Invoice Posted.
-• Payment Received.
-• Inventory Adjusted.
-• Payroll Processed.
-• Approval Completed.
+- Invoice Posted.
+- Payment Received.
+- Inventory Adjusted.
+- Payroll Processed.
+- Approval Completed.
 
-Business logs complement audit records.
+Business logs complement audit records. Business actions requiring authoritative historical evidence shall use the audit mechanism defined by the database/security architecture.
 
-### 17.7 Metrics
+## 16.7 Metrics
 
 The observability platform shall collect operational metrics.
 Examples include:
-• API Response Time.
-• Database Query Duration.
-• Queue Length.
-• CPU Usage.
-• Memory Usage.
-• Cache Hit Ratio.
-• Active Sessions.
+- API Response Time.
+- Database Query Duration.
+- Queue Length.
+- CPU Usage.
+- Memory Usage.
+- Cache Hit Ratio.
+- Active Sessions.
 
 Metrics support proactive performance optimization.
 
-### 17.8 Health Checks
+## 16.8 Health Checks
 
 The backend shall expose health endpoints for infrastructure monitoring.
 Typical health indicators include:
-• Database Connectivity.
-• Queue Availability.
-• Cache Availability.
-• Storage Accessibility.
-• External Service Status.
+- Database Connectivity.
+- Queue Availability where applicable.
+- Cache Availability where applicable.
+- Storage Accessibility where applicable.
+- External Service Status where applicable.
 
-Health endpoints shall not expose confidential information.
+Health endpoints shall not expose confidential information or unnecessary infrastructure details.
 
-### 17.9 Alerting
+## 16.9 Alerting
 
 Operational alerts shall be generated for significant events.
 Examples:
-• High Error Rate.
-• Database Failure.
-• Queue Backlog.
-• Storage Failure.
-• Authentication Attack.
-• Low Disk Space.
+- High Error Rate.
+- Database Failure.
+- Queue Backlog.
+- Storage Failure.
+- Authentication Attack Indicators.
+- Low Disk Space.
 
 Alerts shall be configurable according to operational requirements.
 
-### 17.10 Summary
+## 16.10 Summary
 
 Structured logging and observability provide operational transparency throughout the Enterprise ERP Platform.
 They enable rapid diagnosis, proactive monitoring, and improved system reliability.
 
 ---
 
-Cross References
+## Cross References
 
-- docs/04-backend/11-error-handling-framework.md
-- docs/07-devops/01-deployment-architecture.md
-
-References
-
-- Volume 3 — Backend Architecture (source)
+- [Error Handling Framework](./11-error-handling-framework.md)
+- [Deployment Architecture](../07-devops/01-deployment-architecture.md)
