@@ -9,6 +9,8 @@ on:
     branches:
       - main
       - 'ai/**'
+  workflow_dispatch: {}
+
 
 permissions:
   contents: read
