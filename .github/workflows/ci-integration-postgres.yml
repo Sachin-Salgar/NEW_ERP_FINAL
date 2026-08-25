@@ -190,36 +190,51 @@ jobs:
       - name: Install Flutter dependencies
         working-directory: frontend
         run: flutter pub get
-      - name: Install ChromeDriver
+      - name: Install & Start standalone ChromeDriver (non-snap) — diagnostic
         run: |
           set -euo pipefail
-          sudo apt-get update -y
-          sudo apt-get install -y chromium-chromedriver
 
-          echo "=== DIAGNOSTIC: paths and versions (may be empty) ==="
-          which chromedriver || true
-          chromedriver --version || true
-          which chromium || true
-          chromium --version || true
-          which chromium-browser || true
-          chromium-browser --version || true
-          which google-chrome || true
-          google-chrome --version || true
+          # Use the system Google Chrome binary (per test A/B setup)
+          GOOGLE_CHROME_BIN=/usr/bin/google-chrome
+          echo "Google Chrome binary path: $(which $GOOGLE_CHROME_BIN 2>/dev/null || true)"
+          echo "Google Chrome version:"
+          $GOOGLE_CHROME_BIN --version || true
 
-          echo "=== DIAGNOSTIC: running chrome/chromedriver processes ==="
-          ps aux | grep -E 'chrome|chromium' | grep -v grep || true
-          ps aux | grep chromedriver | grep -v grep || true
+          # Detect Chrome version and try to download matching ChromeDriver from Chrome for Testing
+          CHROME_VERSION=$($GOOGLE_CHROME_BIN --version 2>/dev/null | awk '{print $3}' || true)
+          echo "Detected Chrome version: ${CHROME_VERSION:-<unknown>}"
 
-      - name: Start ChromeDriver
-        run: |
-          set -euo pipefail
+          mkdir -p /tmp/chromedriver || true
+
+          if [ -n "$CHROME_VERSION" ]; then
+            TARGET_URL="https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROME_VERSION}/chromedriver-linux64.zip"
+            echo "Attempting to download ChromeDriver for exact Chrome version: $TARGET_URL"
+            if curl -fSL -o /tmp/chromedriver_linux64.zip "$TARGET_URL"; then
+              echo "Downloaded chromedriver zip for ${CHROME_VERSION}"
+            else
+              echo "Exact-match chromedriver download failed; falling back to 'latest' chromedriver"
+              # Fallback: download the 'latest' ChromeDriver (Chrome for Testing)
+              curl -fSL -o /tmp/chromedriver_linux64.zip "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/latest/chromedriver-linux64.zip" || { echo "Fallback download failed"; exit 1; }
+            fi
+          else
+            echo "Could not determine chrome version; downloading latest chromedriver as fallback"
+            curl -fSL -o /tmp/chromedriver_linux64.zip "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/latest/chromedriver-linux64.zip" || { echo "Download failed"; exit 1; }
+          fi
+
+          echo "Unpacking chromedriver to /tmp/chromedriver"
+          unzip -o /tmp/chromedriver_linux64.zip -d /tmp/chromedriver || true
+          chmod +x /tmp/chromedriver/chromedriver || true
+          echo "Standalone chromedriver path: /tmp/chromedriver/chromedriver"
+          /tmp/chromedriver/chromedriver --version || true
+
+          # Ensure /tmp/chromedriver is used, not a snap binary
           rm -f /tmp/chromedriver.log || true
-          nohup chromedriver --port=4444 --url-base=/wd/hub >/tmp/chromedriver.log 2>&1 & echo $! > chromedriver.pid
+          nohup /tmp/chromedriver/chromedriver --port=4444 --url-base=/wd/hub >/tmp/chromedriver.log 2>&1 & echo $! > chromedriver.pid
 
           # wait for chromedriver to accept connections
           for i in $(seq 1 30); do
             if nc -z localhost 4444; then
-              echo "chromedriver ready"
+              echo "standalone chromedriver ready"
               break
             fi
             sleep 1
@@ -232,8 +247,12 @@ jobs:
           if [ -f chromedriver.pid ]; then
             ps -fp "$(cat chromedriver.pid)" || true
           else
-            ps aux | grep chromedriver | grep -v grep || true
+            ps aux | grep /tmp/chromedriver | grep -v grep || true
           fi
+
+          echo "=== DIAGNOSTIC: running chrome/chromedriver processes ==="
+          ps aux | grep -E 'chrome|chromium' | grep -v grep || true
+          ps aux | grep chromedriver | grep -v grep || true
 
       - name: ChromeDriver WebDriver-level diagnostic
         run: |
