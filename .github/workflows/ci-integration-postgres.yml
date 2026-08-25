@@ -237,7 +237,7 @@ jobs:
       - name: Set up Flutter web SDK
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.5'
+          flutter-version: '3.47.1'
 
       - name: Enable Flutter web support
         run: flutter config --enable-web
@@ -246,14 +246,34 @@ jobs:
         working-directory: frontend
         run: flutter pub get
 
-      - name: Run Flutter login and tenant auth E2E test
+      - name: Install ChromeDriver
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y chromium-chromedriver
+
+      - name: Start ChromeDriver
+        run: |
+          set -euo pipefail
+          nohup chromedriver --port=4444 --url-base=/wd/hub >/tmp/chromedriver.log 2>&1 & echo $! > chromedriver.pid
+          # wait for chromedriver to accept connections
+          for i in $(seq 1 30); do
+            if nc -z localhost 4444; then
+              echo "chromedriver ready"
+              break
+            fi
+            sleep 1
+          done
+          tail -n 200 /tmp/chromedriver.log || true
+
+      - name: Run Flutter login and tenant auth E2E test (drive)
         env:
           API_BASE_URL: http://localhost:3000
           TENANT_ID: 11111111-1111-4111-8111-111111111111
         working-directory: frontend
         run: |
           set -euo pipefail
-          flutter test integration_test/login_tenant_auth_e2e_test.dart -d chrome \
+          flutter drive --driver=test_driver/integration_test.dart --target=integration_test/login_tenant_auth_e2e_test.dart -d chrome --no-resident \
             --dart-define=API_BASE_URL=http://localhost:3000 \
             --dart-define=TENANT_ID=11111111-1111-4111-8111-111111111111
 
