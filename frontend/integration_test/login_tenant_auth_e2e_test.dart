@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:integration_test/integration_test.dart';
+import 'package:flutter/material.dart';
 
 import 'package:new_erp_final_frontend/app/app.dart';
 import 'package:new_erp_final_frontend/core/auth/auth_service.dart';
