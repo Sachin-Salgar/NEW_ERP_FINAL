@@ -55,6 +55,8 @@ async function main() {
     console.log('tenants table existence:', tenantsTable.rows[0].tenants_tbl);
 
     await client.query('BEGIN');
+    // Set session tenant context so RLS policies that depend on app.current_tenant_id allow inserts
+    await client.query("SELECT set_config('app.current_tenant_id', $1, true)", [TENANT_ID]);
 
     await client.query(
       `INSERT INTO tenants (id, name, display_name, subdomain, slug, timezone, currency, locale, status, created_at)
