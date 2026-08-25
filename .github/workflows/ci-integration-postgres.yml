@@ -167,6 +167,76 @@ jobs:
           echo "Running migrations against TEST_DATABASE_URL (hidden)..."
           npm run db:migrate
 
+      - name: Seed deterministic E2E fixtures
+        env:
+          TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          echo "Seeding deterministic E2E tenant and role fixtures..."
+          node scripts/ci/seed-e2e.js
+
+      - name: Start backend API for E2E validation
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+          TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+          NODE_ENV: test
+          HOST: 0.0.0.0
+          PORT: 3000
+          API_PREFIX: /api/v1
+          JWT_SECRET: e2e-test-jwt-secret-should-be-long-enough
+          TENANT_HEADER: x-tenant-id
+          TENANT_HOST_MAP: '{"localhost":"11111111-1111-4111-8111-111111111111"}'
+          CORS_ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000,http://localhost:7358,http://127.0.0.1:7358
+        run: |
+          set -euo pipefail
+          echo "Starting backend API for the E2E flow..."
+          nohup env DATABASE_URL="$DATABASE_URL" TEST_DATABASE_URL="$TEST_DATABASE_URL" NODE_ENV="$NODE_ENV" HOST="$HOST" PORT="$PORT" API_PREFIX="$API_PREFIX" JWT_SECRET="$JWT_SECRET" TENANT_HEADER="$TENANT_HEADER" TENANT_HOST_MAP="$TENANT_HOST_MAP" CORS_ALLOWED_ORIGINS="$CORS_ALLOWED_ORIGINS" npm run dev > backend-e2e.log 2>&1 &
+          echo $! > backend-e2e.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3000/api/v1/bootstrap > /tmp/backend-bootstrap.json; then
+              echo "Backend is ready."
+              cat /tmp/backend-bootstrap.json
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend failed to become healthy before timeout." >&2
+          if [ -f backend-e2e.log ]; then
+            tail -n 200 backend-e2e.log >&2 || true
+          fi
+          exit 1
+
+      - name: Set up Flutter web SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+
+      - name: Enable Flutter web support
+        run: flutter config --enable-web
+
+      - name: Install Flutter dependencies
+        working-directory: frontend
+        run: flutter pub get
+
+      - name: Run Flutter login and tenant auth E2E test
+        env:
+          API_BASE_URL: http://localhost:3000
+          TENANT_ID: 11111111-1111-4111-8111-111111111111
+        working-directory: frontend
+        run: |
+          set -euo pipefail
+          flutter test integration_test/login_tenant_auth_e2e_test.dart -d chrome \
+            --dart-define=API_BASE_URL=http://localhost:3000 \
+            --dart-define=TENANT_ID=11111111-1111-4111-8111-111111111111
+
+      - name: Upload backend E2E log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-e2e-log
+          path: backend-e2e.log
+          if-no-files-found: warn
+
       - name: Run integration tests (DB-backed)
         env:
           TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}

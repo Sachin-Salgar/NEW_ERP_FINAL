@@ -133,6 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 28),
                       TextFormField(
+                        key: const ValueKey('login_identifier_field'),
                         controller: _identifierController,
                         textInputAction: TextInputAction.next,
                         validator: (value) {
@@ -174,6 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 18),
                       TextFormField(
+                        key: const ValueKey('login_password_field'),
                         controller: _passwordController,
                         obscureText: _obscurePassword,
                         textInputAction: TextInputAction.done,
@@ -302,6 +304,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: double.infinity,
                         height: 56,
                         child: FilledButton(
+                          key: const ValueKey('login_submit_button'),
                           onPressed: _isSubmitting ? null : _submit,
                           style: FilledButton.styleFrom(
                             backgroundColor: const Color(0xFF1E6FEA),
