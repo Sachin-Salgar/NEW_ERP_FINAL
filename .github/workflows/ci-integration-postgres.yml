@@ -167,6 +167,25 @@ jobs:
           echo "Running migrations against TEST_DATABASE_URL (hidden)..."
           npm run db:migrate
 
+      - name: Debug: list public tables (post-migrations)
+        env:
+          PGPASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+          PGHOST: localhost
+          PGPORT: ${{ env.CI_POSTGRES_PORT }}
+          PGUSER: ${{ env.CI_TEST_ROLE }}
+          PGDATABASE: ${{ env.CI_TEST_DB }}
+        run: |
+          set -euo pipefail
+          echo "Listing public tables to db-tables.txt"
+          psql -h localhost -p "${CI_POSTGRES_PORT}" -U "${CI_TEST_ROLE}" -d "${CI_TEST_DB}" -c "\dt public.*" > db-tables.txt || true
+      - name: Upload DB table list (debug)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-tables
+          path: db-tables.txt
+          if-no-files-found: warn
+
       - name: Seed deterministic E2E fixtures
         env:
           TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
