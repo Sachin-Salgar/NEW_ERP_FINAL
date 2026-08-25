@@ -704,3 +704,4 @@ If a governance or product decision is required to proceed, stop and request the
     - RLS change: tenant_isolation_policy for public.locations added in the consolidated migration; locations table left with relrowsecurity = true and relforcerowsecurity = true in the final migration script.
     - Validation performed here: verified migration file exists and the migration runner journal references the new migration tag. On this host the DB-backed migration was not executed because TEST_DATABASE_URL was not configured in the environment used for this change; to run the final validation, set TEST_DATABASE_URL to a test Postgres instance and run `node src/infrastructure/database/migrate.ts` or the repository's migration runner. Commit: a75e31532de0c68374654bdb6f12644deb3cf25c
     - Note: Do NOT modify or commit .env.local; do not rotate or recreate newerp_test_runner here.
+\n<!-- ci-trigger: push to run integration workflow -->
