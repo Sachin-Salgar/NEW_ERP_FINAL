@@ -122,14 +122,10 @@ export class PostgresPlatformRepository
     plans: Array<{ name: string; description?: string | null; priceMonthly: number; maxUsers?: number | null; maxStorageGb?: number | null; isActive?: boolean }>,
   ): Promise<void> {
     for (const plan of plans) {
-      const existing = await this.pool.query('SELECT id FROM subscription_plans WHERE name = $1 LIMIT 1', [plan.name]);
-      if (existing.rows.length > 0) {
-        continue;
-      }
-
       await this.pool.query(
         `INSERT INTO subscription_plans (id, name, description, price_monthly, max_users, max_storage_gb, is_active, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+         ON CONFLICT (name) DO NOTHING`,
         [uuidV7(), plan.name, plan.description ?? null, plan.priceMonthly, plan.maxUsers ?? null, plan.maxStorageGb ?? null, plan.isActive ?? true],
       );
     }
@@ -144,25 +140,21 @@ export class PostgresPlatformRepository
         : null;
       const parentId = parentResult?.rows[0]?.id ?? null;
 
-      const existing = await this.pool.query('SELECT id FROM modules WHERE code = $1 LIMIT 1', [module.code]);
-      if (existing.rows.length > 0) {
-        continue;
-      }
-
       await this.pool.query(
         `INSERT INTO modules (id, parent_module_id, code, name, module_group, description, icon, route, is_core, sort_order, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+         ON CONFLICT (code) DO NOTHING`,
         [
-          uuidV7(),
-          parentId,
-          module.code,
-          module.name,
-          module.moduleGroup ?? 'Administration',
-          module.description ?? null,
-          module.icon ?? null,
-          module.route ?? null,
-          module.isCore ?? false,
-          module.sortOrder ?? 0,
+         uuidV7(),
+         parentId,
+         module.code,
+         module.name,
+         module.moduleGroup ?? 'Administration',
+         module.description ?? null,
+         module.icon ?? null,
+         module.route ?? null,
+         module.isCore ?? false,
+         module.sortOrder ?? 0,
         ],
       );
     }
@@ -172,24 +164,20 @@ export class PostgresPlatformRepository
     permissions: Array<{ moduleCode: string; resource: string; action: string; scope?: 'own' | 'branch' | 'organization' | 'tenant' | 'global'; permissionKey: string; displayName: string; description?: string | null; isSystem?: boolean }>,
   ): Promise<void> {
     for (const permission of permissions) {
-      const existing = await this.pool.query('SELECT id FROM permissions WHERE permission_key = $1 LIMIT 1', [permission.permissionKey]);
-      if (existing.rows.length > 0) {
-        continue;
-      }
-
       await this.pool.query(
         `INSERT INTO permissions (id, module_code, resource, action, scope, permission_key, display_name, description, is_system)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         ON CONFLICT (permission_key) DO NOTHING`,
         [
-          uuidV7(),
-          permission.moduleCode,
-          permission.resource,
-          permission.action,
-          permission.scope ?? 'tenant',
-          permission.permissionKey,
-          permission.displayName,
-          permission.description ?? null,
-          permission.isSystem ?? false,
+         uuidV7(),
+         permission.moduleCode,
+         permission.resource,
+         permission.action,
+         permission.scope ?? 'tenant',
+         permission.permissionKey,
+         permission.displayName,
+         permission.description ?? null,
+         permission.isSystem ?? false,
         ],
       );
     }
