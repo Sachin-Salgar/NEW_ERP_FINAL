@@ -200,32 +200,60 @@ jobs:
           echo "Google Chrome version:"
           $GOOGLE_CHROME_BIN --version || true
 
-          # Detect Chrome version and try to download matching ChromeDriver from Chrome for Testing
+          # Detect Chrome version and use Chrome-for-Testing metadata to select a compatible chromedriver
           CHROME_VERSION=$($GOOGLE_CHROME_BIN --version 2>/dev/null | awk '{print $3}' || true)
           echo "Detected Chrome version: ${CHROME_VERSION:-<unknown>}"
+          CHROME_MAJOR=$(echo "${CHROME_VERSION}" | cut -d. -f1 || true)
+          echo "Detected Chrome major version: ${CHROME_MAJOR:-<unknown>}"
 
           mkdir -p /tmp/chromedriver || true
 
-          if [ -n "$CHROME_VERSION" ]; then
-            TARGET_URL="https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROME_VERSION}/chromedriver-linux64.zip"
-            echo "Attempting to download ChromeDriver for exact Chrome version: $TARGET_URL"
-            if curl -fSL -o /tmp/chromedriver_linux64.zip "$TARGET_URL"; then
-              echo "Downloaded chromedriver zip for ${CHROME_VERSION}"
-            else
-              echo "Exact-match chromedriver download failed; falling back to 'latest' chromedriver"
-              # Fallback: download the 'latest' ChromeDriver (Chrome for Testing)
-              curl -fSL -o /tmp/chromedriver_linux64.zip "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/latest/chromedriver-linux64.zip" || { echo "Fallback download failed"; exit 1; }
-            fi
+          # Official Chrome-for-Testing metadata that lists releases per milestone with downloads
+          METADATA_URL="https://googlechromelabs.github.io/chrome-for-testing/latest-versions-per-milestone-with-downloads.json"
+          echo "Fetching Chrome-for-Testing metadata from: ${METADATA_URL}"
+          metadata=$(curl --fail --show-error --location --retry 5 --retry-delay 3 -sS "$METADATA_URL") || { echo "ERROR: failed to download metadata from ${METADATA_URL}"; echo "curl exit code: $?"; exit 1; }
+
+          echo "Selecting chromedriver download URL for Linux (platform=linux64) matching milestone=${CHROME_MAJOR}"
+          # Try using jq if available, otherwise use python for JSON parsing
+          if command -v jq >/dev/null 2>&1; then
+            DRIVER_URL=$(echo "$metadata" | jq -r --argjson m ${CHROME_MAJOR:-0} '.[] | select(.milestone == ($m|tonumber)) | .downloads.chromedriver[]? | select(.platform=="linux64") | .url' | head -n1 || true)
           else
-            echo "Could not determine chrome version; downloading latest chromedriver as fallback"
-            curl -fSL -o /tmp/chromedriver_linux64.zip "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/latest/chromedriver-linux64.zip" || { echo "Download failed"; exit 1; }
+            DRIVER_URL=$(python3 - <<'PY' "$metadata"
+import sys, json
+data = json.load(sys.stdin)
+major = int(sys.argv[1]) if len(sys.argv)>1 and sys.argv[1].isdigit() else None
+url = ''
+for item in data:
+    if major is not None and item.get('milestone') == major:
+        for cd in item.get('downloads', {}).get('chromedriver', []):
+            if cd.get('platform') == 'linux64':
+                url = cd.get('url', '')
+                break
+    if url:
+        break
+print(url)
+PY
+"$CHROME_MAJOR") || true
           fi
 
+          # If we did not find a per-milestone entry, fall back to the 'latest' chromedriver download URL
+          if [ -z "$DRIVER_URL" ] || [ "$DRIVER_URL" = "null" ]; then
+            echo "No exact per-milestone chromedriver URL found in metadata for milestone ${CHROME_MAJOR}; falling back to the canonical 'latest' chromedriver URL."
+            DRIVER_URL="https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/latest/chromedriver-linux64.zip"
+          fi
+
+          echo "Selected chromedriver URL: ${DRIVER_URL}"
+
+          # Download the driver with retries and show errors if the download fails
+          echo "Downloading chromedriver zip to /tmp/chromedriver_linux64.zip"
+          curl --fail --show-error --location --retry 5 --retry-delay 3 -o /tmp/chromedriver_linux64.zip "$DRIVER_URL" || { echo "ERROR: chromedriver download failed from ${DRIVER_URL}"; exit 1; }
+
           echo "Unpacking chromedriver to /tmp/chromedriver"
-          unzip -o /tmp/chromedriver_linux64.zip -d /tmp/chromedriver || true
+          unzip -o /tmp/chromedriver_linux64.zip -d /tmp/chromedriver || { echo "ERROR: unzip failed"; exit 1; }
           chmod +x /tmp/chromedriver/chromedriver || true
-          echo "Standalone chromedriver path: /tmp/chromedriver/chromedriver"
+          echo "Selected ChromeDriver binary version (from /tmp/chromedriver/chromedriver --version):"
           /tmp/chromedriver/chromedriver --version || true
+          echo "Standalone chromedriver path: /tmp/chromedriver/chromedriver"
 
           # Ensure /tmp/chromedriver is used, not a snap binary
           rm -f /tmp/chromedriver.log || true
