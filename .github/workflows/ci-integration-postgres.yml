@@ -192,7 +192,15 @@ jobs:
         run: |
           set -euo pipefail
           echo "Seeding deterministic E2E tenant and role fixtures..."
-          node scripts/ci/seed-e2e.js
+          # Run seed with trace and capture output to seed-output.log
+          node --trace-warnings --trace-uncaught scripts/ci/seed-e2e.js > seed-output.log 2>&1 || (echo "Seed script failed, dumping seed-output.log"; cat seed-output.log >&2; exit 1)
+      - name: Upload seed logs (debug)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seed-output
+          path: seed-output.log
+          if-no-files-found: warn
 
       - name: Start backend API for E2E validation
         env:

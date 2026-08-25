@@ -18,6 +18,21 @@ const LIMITED_EMAIL = 'e2e-limited@example.com';
 const PASSWORD = 'Password123!';
 
 async function main() {
+  try {
+    console.log('--- E2E seed starting ---');
+    console.log('Node version: ' + process.version);
+    const databaseUrl = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL;
+    if (!databaseUrl) {
+      console.error('TEST_DATABASE_URL or DATABASE_URL is required');
+      process.exit(2);
+    }
+    // Mask password in printed URL
+    const maskedDbUrl = databaseUrl.replace(/:\/\/([^:]+):([^@]+)@/, '://$1:***@');
+    console.log('Using TEST_DATABASE_URL (masked): ' + maskedDbUrl);
+  } catch (preError) {
+    console.error('Pre-seed diagnostics failed', preError && preError.stack ? preError.stack : preError);
+  }
+
   const databaseUrl = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL;
   if (!databaseUrl) {
     console.error('TEST_DATABASE_URL or DATABASE_URL is required');
@@ -25,9 +40,20 @@ async function main() {
   }
 
   const client = new Client({ connectionString: databaseUrl });
-  await client.connect();
+  try {
+    await client.connect();
+  } catch (connErr) {
+    console.error('Failed to connect to database:', connErr && connErr.stack ? connErr.stack : connErr);
+    process.exit(4);
+  }
 
   try {
+    console.log('DB connection successful, performing basic checks...');
+    const v = await client.query('SELECT version() AS v');
+    console.log('Postgres version:', v.rows && v.rows[0] && v.rows[0].v ? v.rows[0].v : '<unknown>');
+    const tenantsTable = await client.query("SELECT to_regclass('public.tenants') as tenants_tbl");
+    console.log('tenants table existence:', tenantsTable.rows[0].tenants_tbl);
+
     await client.query('BEGIN');
 
     await client.query(
@@ -154,10 +180,11 @@ async function main() {
     console.log(`Seeded limited user: ${LIMITED_EMAIL}`);
   } catch (error) {
     await client.query('ROLLBACK').catch(() => undefined);
-    console.error('E2E seed failed.', error);
+    console.error('E2E seed failed. Error:');
+    console.error(error && error.stack ? error.stack : error);
     process.exit(3);
   } finally {
-    await client.end();
+    await client.end().catch(() => undefined);
   }
 }
 
