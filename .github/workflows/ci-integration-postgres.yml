@@ -195,10 +195,27 @@ jobs:
           set -euo pipefail
           sudo apt-get update -y
           sudo apt-get install -y chromium-chromedriver
+
+          echo "=== DIAGNOSTIC: paths and versions (may be empty) ==="
+          which chromedriver || true
+          chromedriver --version || true
+          which chromium || true
+          chromium --version || true
+          which chromium-browser || true
+          chromium-browser --version || true
+          which google-chrome || true
+          google-chrome --version || true
+
+          echo "=== DIAGNOSTIC: running chrome/chromedriver processes ==="
+          ps aux | grep -E 'chrome|chromium' | grep -v grep || true
+          ps aux | grep chromedriver | grep -v grep || true
+
       - name: Start ChromeDriver
         run: |
           set -euo pipefail
+          rm -f /tmp/chromedriver.log || true
           nohup chromedriver --port=4444 --url-base=/wd/hub >/tmp/chromedriver.log 2>&1 & echo $! > chromedriver.pid
+
           # wait for chromedriver to accept connections
           for i in $(seq 1 30); do
             if nc -z localhost 4444; then
@@ -207,8 +224,45 @@ jobs:
             fi
             sleep 1
           done
+
+          echo "=== CHROMEDRIVER STARTUP LOG (tail) ==="
           tail -n 200 /tmp/chromedriver.log || true
+
+          echo "=== CHROMEDRIVER PROCESS INFO ==="
+          if [ -f chromedriver.pid ]; then
+            ps -fp "$(cat chromedriver.pid)" || true
+          else
+            ps aux | grep chromedriver | grep -v grep || true
+          fi
+
+      - name: ChromeDriver WebDriver-level diagnostic
+        run: |
+          set -euo pipefail
+          echo "Checking chromedriver /status endpoint"
+          curl -sS http://localhost:4444/wd/hub/status || true
+
+          echo "Attempting a lightweight WebDriver new session (diagnostic only, will delete if created)"
+          session_response=$(curl -s -X POST http://localhost:4444/wd/hub/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"browserName":"chrome","goog:chromeOptions":{"args":["--headless=new","--disable-gpu"]}}}}' || true)
+          echo "Session response: $session_response"
+
+          # Try to extract session id for both JSON shapes
+          sess=$(echo "$session_response" | sed -n 's/.*"sessionId"\s*:\s*"\([^"]*\)".*/\1/p' || true)
+          if [ -z "$sess" ]; then
+            sess=$(echo "$session_response" | sed -n 's/.*"value"\s*:\s*{\s*"sessionId"\s*:\s*"\([^"]*\)".*/\1/p' || true)
+          fi
+          if [ -n "$sess" ]; then
+            echo "Created WebDriver session: $sess"
+            curl -s -X DELETE http://localhost:4444/wd/hub/session/$sess || true
+            echo "Deleted session $sess"
+          else
+            echo "No WebDriver session created (session_response may contain error details)"
+          fi
+
+          echo "Current chromedriver processes after session check:"
+          ps aux | grep chromedriver | grep -v grep || true
+
       - name: Run Flutter login and tenant auth E2E test (drive)
+        timeout-minutes: 10
         env:
           API_BASE_URL: http://localhost:3000
           TENANT_ID: 11111111-1111-4111-8111-111111111111
@@ -225,6 +279,25 @@ jobs:
           name: backend-e2e-log
           path: backend-e2e.log
           if-no-files-found: warn
+      - name: Post-E2E ChromeDriver & Chrome diagnostics
+        if: always()
+        run: |
+          set -euo pipefail
+          echo "=== ChromeDriver log ==="
+          cat /tmp/chromedriver.log || true
+          echo ""
+          echo "=== ChromeDriver process ==="
+          ps aux | grep chromedriver | grep -v grep || true
+          echo ""
+          echo "=== Chrome/Chromium processes ==="
+          ps aux | grep -E 'chrome|chromium' | grep -v grep || true
+          echo ""
+          echo "=== Listening ports ==="
+          ss -lntp || true
+          echo ""
+          echo "=== dmesg tail (kernel logs may show crashes) ==="
+          sudo dmesg | tail -n 200 || true
+
       - name: Run integration tests (DB-backed)
         env:
           TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
