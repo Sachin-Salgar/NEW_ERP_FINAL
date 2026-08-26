@@ -28,6 +28,13 @@ void _dumpPendingExceptions(WidgetTester tester, String stage) {
   }
 }
 
+Future<void> _settle(WidgetTester tester) async {
+  await tester.pumpAndSettle(
+    const Duration(milliseconds: 100),
+    timeout: const Duration(seconds: 30),
+  );
+}
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -49,7 +56,7 @@ void main() {
 
       await tester.pumpWidget(const App());
       _dumpPendingExceptions(tester, 'after pumpWidget');
-      await tester.pumpAndSettle(const Duration(seconds: 10));
+      await _settle(tester);
       _dumpPendingExceptions(tester, 'after initial pumpAndSettle');
 
       expect(
@@ -61,7 +68,7 @@ void main() {
       await tester.enterText(find.byKey(const ValueKey('login_identifier_field')), _adminEmail);
       await tester.enterText(find.byKey(const ValueKey('login_password_field')), _adminPassword);
       await tester.tap(find.byKey(const ValueKey('login_submit_button')));
-      await tester.pumpAndSettle(const Duration(seconds: 15));
+      await _settle(tester);
       _dumpPendingExceptions(tester, 'after login pumpAndSettle');
 
       expect(find.text('Select organization'), findsOneWidget);
@@ -73,7 +80,7 @@ void main() {
       expect(authBeforeOrganization.requiresOrganizationSelection, isTrue);
 
       await tester.tap(find.text('E2E Organization').first);
-      await tester.pumpAndSettle(const Duration(seconds: 15));
+      await _settle(tester);
       _dumpPendingExceptions(tester, 'after organization selection');
 
       expect(find.text('Select location'), findsOneWidget);
@@ -85,7 +92,7 @@ void main() {
       expect(authBeforeLocation.availableLocations.length, equals(2));
 
       await tester.tap(find.text('E2E Main Location').first);
-      await tester.pumpAndSettle(const Duration(seconds: 15));
+      await _settle(tester);
       _dumpPendingExceptions(tester, 'after location selection');
 
       expect(find.text('Dashboard'), findsOneWidget);
