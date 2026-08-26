@@ -238,10 +238,7 @@ jobs:
           echo "Verified standalone ChromeDriver is executable and compatible"
 
           rm -f /tmp/chromedriver.log || true
-          nohup "$CHROMEDRIVER_BIN" \
-            --port=4444 \
-            --url-base=/wd/hub \
-            >/tmp/chromedriver.log 2>&1 &
+          nohup "$CHROMEDRIVER_BIN" --port=4444 >/tmp/chromedriver.log 2>&1 &
           echo $! > chromedriver.pid
 
           for i in $(seq 1 30); do
@@ -269,10 +266,10 @@ jobs:
         run: |
           set -euo pipefail
           echo "Checking chromedriver /status endpoint"
-          curl -sS http://localhost:4444/wd/hub/status || true
+          curl -sS http://localhost:4444/status
 
           echo "Attempting a lightweight WebDriver new session (diagnostic only, will delete if created)"
-          session_response=$(curl -s -X POST http://localhost:4444/wd/hub/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"browserName":"chrome","goog:chromeOptions":{"args":["--headless=new","--disable-gpu"]}}}}' || true)
+          session_response=$(curl -sS -X POST http://localhost:4444/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"browserName":"chrome","goog:chromeOptions":{"args":["--headless=new","--disable-gpu"]}}}}')
           echo "Session response: $session_response"
 
           sess=$(echo "$session_response" | sed -n 's/.*"sessionId"\s*:\s*"\([^"]*\)".*/\1/p' || true)
@@ -281,10 +278,11 @@ jobs:
           fi
           if [ -n "$sess" ]; then
             echo "Created WebDriver session: $sess"
-            curl -s -X DELETE http://localhost:4444/wd/hub/session/$sess || true
+            curl -sS -X DELETE http://localhost:4444/session/$sess || true
             echo "Deleted session $sess"
           else
             echo "No WebDriver session created (session_response may contain error details)"
+            exit 1
           fi
 
           echo "Current chromedriver processes after session check:"
@@ -306,6 +304,10 @@ jobs:
             -d web-server \
             --web-port=7358 \
             --browser-name=chrome \
+            --driver-port=4444 \
+            --headless \
+            --web-run-headless \
+            --web-browser-flag="--no-sandbox" \
             --dart-define=API_BASE_URL=http://localhost:3000 \
             --dart-define=TENANT_ID=11111111-1111-4111-8111-111111111111
       - name: Upload backend E2E log
