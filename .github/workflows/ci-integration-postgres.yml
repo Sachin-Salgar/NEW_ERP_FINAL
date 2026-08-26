@@ -194,22 +194,20 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Use the system Google Chrome binary (per test A/B setup)
-          GOOGLE_CHROME_BIN=/usr/bin/google-chrome
-          echo "Google Chrome binary path: $(which $GOOGLE_CHROME_BIN 2>/dev/null || true)"
-          echo "Google Chrome version:"
-          $GOOGLE_CHROME_BIN --version || true
-
           GOOGLE_CHROME_BIN=/usr/bin/google-chrome
           echo "Google Chrome path: $(which "$GOOGLE_CHROME_BIN" 2>/dev/null || true)"
           echo "Google Chrome version:"
           "$GOOGLE_CHROME_BIN" --version || true
 
-          CHROME_VERSION=$($GOOGLE_CHROME_BIN --version 2>/dev/null | awk '{print $3}' || true)
-          echo "Detected Chrome version: ${CHROME_VERSION:-<unknown>}"
+          CHROME_VERSION=$("$GOOGLE_CHROME_BIN" --version 2>/dev/null | awk '{print $3}')
+          if [ -z "$CHROME_VERSION" ]; then
+            echo "ERROR: Could not determine installed Chrome version"
+            exit 1
+          fi
+          echo "Detected Chrome version: $CHROME_VERSION"
 
           echo "Installing official standalone ChromeDriver via Puppeteer Browsers"
-          npx --yes @puppeteer/browsers install chromedriver@stable --path /tmp/chrome-for-testing
+          npx --yes @puppeteer/browsers install "chromedriver@$CHROME_VERSION" --path /tmp/chrome-for-testing
 
           CHROMEDRIVER_BIN=$(find /tmp/chrome-for-testing -type f -name chromedriver | head -n 1)
           if [ -z "$CHROMEDRIVER_BIN" ]; then
