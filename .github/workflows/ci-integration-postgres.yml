@@ -279,7 +279,7 @@ jobs:
           CHROME_BIN: /usr/bin/google-chrome
         working-directory: frontend
         run: |
-          set -euo pipefail
+          set +e
           flutter drive \
             --verbose \
             --driver=test_driver/integration_test.dart \
@@ -292,7 +292,19 @@ jobs:
             --web-run-headless \
             --web-browser-flag="--no-sandbox" \
             --dart-define=API_BASE_URL=http://localhost:3000 \
-            --dart-define=TENANT_ID=11111111-1111-4111-8111-111111111111
+            --dart-define=TENANT_ID=11111111-1111-4111-8111-111111111111 2>&1 | tee flutter-drive.log
+          status=${PIPESTATUS[0]}
+          echo "Flutter drive exit code: $status"
+          echo "=== Flutter drive exception/error summary ==="
+          grep -nE 'Exception|Error|FAILED|failure|Multiple exceptions|══|stack trace|Stack trace' flutter-drive.log | tail -n 250 || true
+          exit "$status"
+      - name: Upload Flutter drive log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-drive-log
+          path: frontend/flutter-drive.log
+          if-no-files-found: warn
       - name: Upload backend E2E log
         if: always()
         uses: actions/upload-artifact@v4
