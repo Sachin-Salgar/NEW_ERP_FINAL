@@ -58,10 +58,14 @@ export class LocationService {
   async listAccessibleLocationsForUser(tenantId: string, userId: string, organizationId?: string | null): Promise<LocationRecord[]> {
     this.requireTenant(tenantId);
     const normalizedUserId = (userId ?? '').trim();
+    const normalizedOrganizationId = (organizationId ?? '').trim();
     if (!normalizedUserId) {
       throw new ValidationError('User identity is required to list accessible locations.');
     }
-    return this.repository.listAccessibleLocationsForUser(tenantId, normalizedUserId, organizationId ?? null);
+    if (!normalizedOrganizationId) {
+      return [];
+    }
+    return this.repository.listAccessibleLocationsForUser(tenantId, normalizedUserId, normalizedOrganizationId);
   }
 
   async getLocationById(tenantId: string, organizationId: string, locationId: string): Promise<LocationRecord | null> {
@@ -77,23 +81,28 @@ export class LocationService {
     this.requireTenant(tenantId);
     const normalizedUserId = (userId ?? '').trim();
     const normalizedLocationId = (locationId ?? '').trim();
+    const normalizedOrganizationId = (organizationId ?? '').trim();
     if (!normalizedUserId) {
       throw new ValidationError('User identity is required to resolve a location.');
     }
     if (!normalizedLocationId) {
       throw new ValidationError('Location ID is required.');
     }
-    return this.repository.getAccessibleLocationByIdForUser(tenantId, normalizedUserId, normalizedLocationId, organizationId ?? null);
+    if (!normalizedOrganizationId) {
+      return null;
+    }
+    return this.repository.getAccessibleLocationByIdForUser(tenantId, normalizedUserId, normalizedLocationId, normalizedOrganizationId);
   }
 
   async validateLocationAccess(tenantId: string, userId: string, locationId: string, organizationId?: string | null): Promise<boolean> {
     this.requireTenant(tenantId);
     const normalizedUserId = (userId ?? '').trim();
     const normalizedLocationId = (locationId ?? '').trim();
-    if (!normalizedUserId || !normalizedLocationId) {
+    const normalizedOrganizationId = (organizationId ?? '').trim();
+    if (!normalizedUserId || !normalizedLocationId || !normalizedOrganizationId) {
       return false;
     }
-    return this.repository.validateLocationAccess(tenantId, normalizedUserId, normalizedLocationId, organizationId ?? null);
+    return this.repository.validateLocationAccess(tenantId, normalizedUserId, normalizedLocationId, normalizedOrganizationId);
   }
 
   async updateLocation(
