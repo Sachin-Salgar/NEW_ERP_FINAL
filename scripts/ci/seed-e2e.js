@@ -8,6 +8,9 @@ const { Client } = pg;
 
 const TENANT_ID = '11111111-1111-4111-8111-111111111111';
 const ORGANIZATION_ID = '22222222-2222-4222-8222-222222222222';
+const ORGANIZATION_TWO_ID = '77777777-7777-4777-8777-777777777777';
+const LOCATION_ONE_ID = '88888888-8888-4888-8888-888888888888';
+const LOCATION_TWO_ID = '99999999-9999-4999-8999-999999999999';
 const ADMIN_ROLE_ID = '33333333-3333-4333-8333-333333333333';
 const LIMITED_ROLE_ID = '44444444-4444-4444-8444-444444444444';
 const ADMIN_USER_ID = '55555555-5555-4555-8555-555555555555';
@@ -87,9 +90,18 @@ async function main() {
 
     await client.query(
       `INSERT INTO organizations (id, tenant_id, code, name, legal_name, status, is_default, created_at)
-       VALUES ($1, $2, $3, $4, $4, 'active', true, NOW())
+       VALUES ($1, $2, $3, $4, $4, 'active', true, NOW()),
+              ($5, $2, $6, $7, $7, 'active', false, NOW())
        ON CONFLICT (id) DO NOTHING`,
-      [ORGANIZATION_ID, TENANT_ID, 'E2E_ORG', 'E2E Organization'],
+      [
+        ORGANIZATION_ID,
+        TENANT_ID,
+        'E2E_ORG',
+        'E2E Organization',
+        ORGANIZATION_TWO_ID,
+        'E2E_ORG_2',
+        'E2E Secondary Organization',
+      ],
     );
 
     await client.query(
@@ -104,12 +116,21 @@ async function main() {
 
     await client.query(
       `INSERT INTO organization_modules (tenant_id, organization_id, module_id, enabled, enabled_at)
-       SELECT $1, $2, m.id, true, NOW()
-       FROM modules m
-       WHERE m.is_core = true
+       SELECT $1, o.id, m.id, true, NOW()
+       FROM organizations o
+       CROSS JOIN modules m
+       WHERE o.tenant_id = $1 AND m.is_core = true
        ON CONFLICT (organization_id, module_id) DO UPDATE
        SET enabled = true, disabled_at = NULL`,
-      [TENANT_ID, ORGANIZATION_ID],
+      [TENANT_ID],
+    );
+
+    await client.query(
+      `INSERT INTO locations (id, tenant_id, organization_id, code, name, status, is_default, timezone, created_at)
+       VALUES ($1, $2, $3, 'E2E_LOC_1', 'E2E Main Location', 'active', true, 'UTC', NOW()),
+              ($4, $2, $3, 'E2E_LOC_2', 'E2E Secondary Location', 'active', false, 'UTC', NOW())
+       ON CONFLICT (id) DO NOTHING`,
+      [LOCATION_ONE_ID, TENANT_ID, ORGANIZATION_ID, LOCATION_TWO_ID],
     );
 
     const adminPasswordHash = await bcrypt.hash(PASSWORD, 10);
@@ -215,9 +236,17 @@ async function main() {
 
     await client.query(
       `INSERT INTO user_organization_access (tenant_id, user_id, organization_id)
-       VALUES ($1, $2, $3), ($1, $4, $3)
+       VALUES ($1, $2, $3), ($1, $2, $4), ($1, $5, $3)
        ON CONFLICT (user_id, organization_id, tenant_id) DO NOTHING`,
-      [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, LIMITED_USER_ID],
+      [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, ORGANIZATION_TWO_ID, LIMITED_USER_ID],
+    );
+
+    await client.query(
+      `INSERT INTO user_location_access (tenant_id, user_id, organization_id, location_id, is_active)
+       VALUES ($1, $2, $3, $4, true),
+              ($1, $2, $3, $5, true)
+       ON CONFLICT (user_id, location_id, tenant_id) DO UPDATE SET is_active = true`,
+      [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, LOCATION_ONE_ID, LOCATION_TWO_ID],
     );
 
     await client.query('COMMIT');
