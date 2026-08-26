@@ -14,6 +14,7 @@ const _organizationId = '22222222-2222-4222-8222-222222222222';
 const _adminEmail = 'e2e@example.com';
 const _adminPassword = 'Password123!';
 const _limitedEmail = 'e2e-limited@example.com';
+const _moduleCode = 'e2e-rbac';
 
 void _dumpPendingExceptions(WidgetTester tester, String stage) {
   var index = 0;
@@ -95,25 +96,29 @@ void main() {
       expect(auth.currentOrganizationId, equals(_organizationId));
       expect(auth.currentLocationId, isNotNull);
       expect(auth.requiresOrganizationSelection, isFalse);
-      expect(auth.requiresLocationSelection, isTrue);
+      expect(auth.requiresLocationSelection, isFalse);
 
       final String? uiToken = auth.accessToken;
       expect(uiToken, isNotNull, reason: 'UI must have access token after login');
 
-      final modulesResponse = await http.get(
-        Uri.parse(baseUrl + '/api/v1/auth/modules'),
-        headers: {
-          'Authorization': 'Bearer ' + uiToken!,
-          'x-tenant-id': _tenantId,
-        },
-      );
-      expect(modulesResponse.statusCode, 200);
-      final modulesBody = jsonDecode(modulesResponse.body) as Map<String, dynamic>;
-      final modules = (modulesBody['modules'] as List<dynamic>?) ?? const [];
+      Future<Map<String, dynamic>> fetchModules() async {
+        final response = await http.get(
+          Uri.parse(baseUrl + '/api/v1/auth/modules'),
+          headers: {
+            'Authorization': 'Bearer ' + uiToken!,
+            'x-tenant-id': _tenantId,
+          },
+        );
+        expect(response.statusCode, 200);
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+
+      var modulesBody = await fetchModules();
+      var modules = (modulesBody['modules'] as List<dynamic>?) ?? const [];
       expect(
-        modules.any((module) => (module as Map<String, dynamic>)['code'] == 'security'),
+        modules.any((module) => (module as Map<String, dynamic>)['code'] == _moduleCode),
         isTrue,
-        reason: 'Security must be enabled for the organization before RBAC access is allowed.',
+        reason: 'The E2E module must be enabled for the selected organization before authorization is evaluated.',
       );
 
       final protectedRolesResponse = await http.get(
@@ -126,17 +131,25 @@ void main() {
       expect(
         protectedRolesResponse.statusCode,
         200,
-        reason: 'The authenticated admin should be able to read roles while the security module is enabled.',
+        reason: 'The authenticated admin should be able to read roles while the required module is enabled.',
       );
 
-      final disableSecurityResponse = await http.post(
-        Uri.parse(baseUrl + '/api/v1/auth/modules/security/disable'),
+      final disableModuleResponse = await http.post(
+        Uri.parse(baseUrl + '/api/v1/auth/modules/' + _moduleCode + '/disable'),
         headers: {
           'Authorization': 'Bearer ' + uiToken!,
           'x-tenant-id': _tenantId,
         },
       );
-      expect(disableSecurityResponse.statusCode, 200);
+      expect(disableModuleResponse.statusCode, 200);
+
+      modulesBody = await fetchModules();
+      modules = (modulesBody['modules'] as List<dynamic>?) ?? const [];
+      expect(
+        modules.any((module) => (module as Map<String, dynamic>)['code'] == _moduleCode),
+        isFalse,
+        reason: 'A disabled organization module must disappear from accessible module discovery.',
+      );
 
       final deniedRoleAccess = await http.get(
         Uri.parse(baseUrl + '/api/v1/rbac/roles'),
@@ -151,14 +164,22 @@ void main() {
         reason: 'Permission alone must not grant access when the organization module is disabled.',
       );
 
-      final enableSecurityResponse = await http.post(
-        Uri.parse(baseUrl + '/api/v1/auth/modules/security/enable'),
+      final enableModuleResponse = await http.post(
+        Uri.parse(baseUrl + '/api/v1/auth/modules/' + _moduleCode + '/enable'),
         headers: {
           'Authorization': 'Bearer ' + uiToken!,
           'x-tenant-id': _tenantId,
         },
       );
-      expect(enableSecurityResponse.statusCode, 200);
+      expect(enableModuleResponse.statusCode, 200);
+
+      modulesBody = await fetchModules();
+      modules = (modulesBody['modules'] as List<dynamic>?) ?? const [];
+      expect(
+        modules.any((module) => (module as Map<String, dynamic>)['code'] == _moduleCode),
+        isTrue,
+        reason: 'Re-enabling the organization module must restore module discovery.',
+      );
 
       final restoredRoleAccess = await http.get(
         Uri.parse(baseUrl + '/api/v1/rbac/roles'),
