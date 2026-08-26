@@ -7,6 +7,7 @@ import { AuthenticationService } from '../../application/services/authentication
 import { AuthorizationService } from '../../application/services/authorization-service.js';
 import { CoreEnterpriseService } from '../../application/services/core-enterprise-service.js';
 import { LocationService } from '../../application/services/location-service.js';
+import { ModuleAccessService } from '../../application/services/module-access-service.js';
 import { createTenantResolver } from '../../application/services/tenant-resolver-factory.js';
 import { UserRegistrationService } from '../../application/services/user-registration-service.js';
 import { createDatabasePool } from '../../infrastructure/database/connection.js';
@@ -42,6 +43,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   const jwtTokenService = new JwtTokenService(config);
   const authService = new AuthenticationService(repository, passwordHasher, jwtTokenService);
   const authorizationService = new AuthorizationService(repository);
+  const moduleAccessService = new ModuleAccessService(pool, config.TENANT_CONTEXT_KEY);
   const coreEnterpriseService = new CoreEnterpriseService(repository);
   const locationService = new LocationService(repository);
   const registrationService = new UserRegistrationService(repository, passwordHasher);
@@ -54,6 +56,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('appConfig', config);
   app.decorate('authService', authService);
   app.decorate('authorizationService', authorizationService);
+  app.decorate('moduleAccessService', moduleAccessService);
   app.decorate('coreEnterpriseService', coreEnterpriseService);
   app.decorate('locationService', locationService);
   app.decorate('registrationService', registrationService);
