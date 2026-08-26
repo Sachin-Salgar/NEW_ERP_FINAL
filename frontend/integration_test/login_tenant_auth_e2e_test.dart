@@ -14,17 +14,37 @@ const _adminEmail = 'e2e@example.com';
 const _adminPassword = 'Password123!';
 const _limitedEmail = 'e2e-limited@example.com';
 
+Future<void> _waitForFinder(
+  WidgetTester tester,
+  Finder finder, {
+  Duration timeout = const Duration(seconds: 30),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    if (finder.evaluate().isNotEmpty) {
+      return;
+    }
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+
+  expect(
+    finder,
+    findsOneWidget,
+    reason: 'Timed out waiting for the expected UI element.',
+  );
+}
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('E2E login and authorization flow', () {
     setUp(() async {
-      GetIt.instance.reset();
+      await GetIt.instance.reset();
       await App.init();
     });
 
-    tearDown(() {
-      GetIt.instance.reset();
+    tearDown(() async {
+      await GetIt.instance.reset();
     });
 
     testWidgets('admin login establishes tenant context and backend authorization is enforced', (tester) async {
@@ -34,16 +54,22 @@ void main() {
       );
 
       await tester.pumpWidget(const App());
-      await tester.pumpAndSettle(const Duration(seconds: 10));
+      await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Welcome back'), findsOneWidget);
+      final loginIdentifierField = find.byKey(const ValueKey('login_identifier_field'));
+      final loginPasswordField = find.byKey(const ValueKey('login_password_field'));
+      final loginSubmitButton = find.byKey(const ValueKey('login_submit_button'));
 
-      await tester.enterText(find.byKey(const ValueKey('login_identifier_field')), _adminEmail);
-      await tester.enterText(find.byKey(const ValueKey('login_password_field')), _adminPassword);
-      await tester.tap(find.byKey(const ValueKey('login_submit_button')));
-      await tester.pumpAndSettle(const Duration(seconds: 15));
+      await _waitForFinder(tester, find.text('Welcome back'));
+      await _waitForFinder(tester, loginIdentifierField);
+      await _waitForFinder(tester, loginPasswordField);
+      await _waitForFinder(tester, loginSubmitButton);
 
-      expect(find.text('Dashboard'), findsOneWidget);
+      await tester.enterText(loginIdentifierField, _adminEmail);
+      await tester.enterText(loginPasswordField, _adminPassword);
+      await tester.tap(loginSubmitButton);
+
+      await _waitForFinder(tester, find.text('Dashboard'));
 
       final auth = GetIt.instance.get<AuthService>();
       expect(auth.isAuthenticated, isTrue);
