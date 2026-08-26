@@ -31,12 +31,12 @@ void main() {
 
   group('E2E login and authorization flow', () {
     setUp(() async {
-      GetIt.instance.reset();
+      await GetIt.instance.reset();
       await App.init();
     });
 
-    tearDown(() {
-      GetIt.instance.reset();
+    tearDown(() async {
+      await GetIt.instance.reset();
     });
 
     testWidgets('admin login establishes tenant context and backend authorization is enforced', (tester) async {
@@ -50,7 +50,11 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 10));
       _dumpPendingExceptions(tester, 'after initial pumpAndSettle');
 
-      expect(find.text('Welcome back'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('login_identifier_field')),
+        findsOneWidget,
+        reason: 'The tenant bootstrap should leave an unauthenticated user on the login screen.',
+      );
 
       await tester.enterText(find.byKey(const ValueKey('login_identifier_field')), _adminEmail);
       await tester.enterText(find.byKey(const ValueKey('login_password_field')), _adminPassword);
