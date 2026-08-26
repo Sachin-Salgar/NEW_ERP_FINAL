@@ -193,6 +193,26 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     };
   });
 
+  fastify.get('/auth/effective-permissions', { preHandler: requireAuth }, async (request) => {
+    if (!request.user || !request.tenantId) {
+      throw new UnauthorizedError('Authentication required.');
+    }
+
+    const permissions = await request.server.moduleAccessService.listEffectivePermissions(request.tenantId, request.user.id);
+    const modules = await request.server.moduleAccessService.listEffectiveModules(request.tenantId, request.user.id);
+    return {
+      success: true,
+      userId: request.user.id,
+      permissions,
+      modules: modules.filter((module) => module.authorized).map((module) => ({
+        code: module.code,
+        name: module.name,
+        route: module.route,
+        moduleGroup: module.moduleGroup,
+      })),
+    };
+  });
+
   // Allows an authenticated user to request an active organization. Backend validates
   // that the requested organization is available for the user and issues a new
   // effective session for that organization.
@@ -207,10 +227,8 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ success: false, message: 'organizationId is required' });
     }
 
-    // Validate membership in tenantResolver - it will throw ForbiddenError when invalid
     await request.server.tenantResolver.resolveUserMemberships(request.tenantId, request.user.id, requestedOrg);
 
-    // Create a new session for the user scoped to the requested organization
     const result = await request.server.authService.createSessionForUser(request.tenantId, request.user.id, requestedOrg);
     if (!result.success || !result.user || !result.session) {
       throw new UnauthorizedError('Failed to create organization session.');
