@@ -75,7 +75,7 @@ export function requirePermission(permissionKey: string) {
       throw new UnauthorizedError('Authentication is required to perform this action.');
     }
 
-    const allowed = await request.server.moduleAccessService.hasPermission(request.tenantId, request.user.id, permissionKey);
+    const allowed = await request.server.authorizationService.hasPermission(request.tenantId, request.user.id, permissionKey);
     if (!allowed) {
       throw new ForbiddenError('Permission denied or module is not enabled for the organization.');
     }
@@ -93,7 +93,7 @@ export function requirePermissionOrSelf(permissionKey: string, selfIdGetter?: (r
       return;
     }
 
-    const allowed = await request.server.moduleAccessService.hasPermission(request.tenantId, request.user.id, permissionKey);
+    const allowed = await request.server.authorizationService.hasPermission(request.tenantId, request.user.id, permissionKey);
     if (!allowed) {
       throw new ForbiddenError('Permission denied or module is not enabled for the organization.');
     }
