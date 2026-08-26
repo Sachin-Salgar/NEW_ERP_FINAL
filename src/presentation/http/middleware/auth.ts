@@ -99,7 +99,7 @@ function moduleCodeForPermission(permissionKey: string): string {
     case 'role':
     case 'permission':
     case 'session':
-      return 'security';
+      return 'e2e-rbac';
     default:
       return prefix;
   }
