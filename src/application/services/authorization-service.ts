@@ -68,13 +68,15 @@ export class AuthorizationService {
   }
 
   async hasAnyPermission(tenantId: string, userId: string, permissionKeys: string[]): Promise<PermissionCheckResult[]> {
-    const permissions = await this.authorizationRepository.getPermissionKeysForUser(tenantId, userId);
-    const permissionSet = new Set(permissions.map((entry) => entry.permissionKey));
+    const permissions = await this.getEffectivePermissions(tenantId, userId);
+    const permissionSet = new Set(permissions.map((permission) => permission.permissionKey));
 
     return permissionKeys.map((permissionKey) => ({
       permissionKey,
       allowed: permissionSet.has(permissionKey),
-      source: permissionSet.has(permissionKey) ? permissions.find((entry) => entry.permissionKey === permissionKey)?.source ?? 'role' : 'none',
+      source: permissionSet.has(permissionKey)
+        ? permissions.find((permission) => permission.permissionKey === permissionKey)?.source ?? 'role'
+        : 'none',
     }));
   }
 
