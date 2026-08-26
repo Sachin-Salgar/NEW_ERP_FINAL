@@ -43,6 +43,17 @@ Do not read every document by default. Follow the domain map and task dependenci
 
 ## Current implementation visibility
 
-This branch currently serves as the AI-workflow construction branch. The AI must inspect the actual implementation tree before assuming that backend/frontend/database source directories exist or are complete.
+The repository now contains a validated authentication-context and module-access implementation slice:
 
-When implementation is added, update this map only when a stable repository structure or module boundary has been established. Do not use the map as a substitute for inspecting actual source files.
+- `src/application/services/authentication-service.ts` — defers active organization context when multiple memberships require selection.
+- `src/application/services/location-service.ts` — prevents location access without an active organization.
+- `src/application/services/module-access-service.ts` — evaluates tenant module enablement together with effective user authorization.
+- `src/presentation/http/middleware/auth.ts` — backend permission enforcement remains authoritative and now includes module enablement.
+- `frontend/lib/core/auth/authz_service.dart` — consumes module-aware effective authorization state.
+- `tests/integration/login-context-flow.test.ts` — organization-before-location sequencing coverage.
+- `tests/integration/authorization-flow.test.ts` — module disable/restore authorization coverage.
+- `frontend/integration_test/login_tenant_auth_e2e_test.dart` — tenant/login/effective-module/RBAC E2E coverage.
+- `docs/10-adr/0010-login-context-and-module-access.md` — architectural decision and validation record.
+- `docs/04-backend/08-login-context-and-module-access-implementation.md` — implementation contract.
+
+This map remains navigation metadata only. Architectural authority remains in `docs/` and approved ADRs; AI must still inspect the actual source before making implementation assumptions.
