@@ -423,7 +423,6 @@ class AuthService extends ChangeNotifier {
       await _secureStorage.write(key: 'organization_id', value: currentOrganizationId!);
       await _secureStorage.delete(key: 'location_id');
 
-      await loadAuthorizedOrganizations(baseUrl);
       await loadAuthorizedLocations(baseUrl);
       await loadAccessibleModules(baseUrl);
       await _loadPermissionsIfContextReady(baseUrl);
@@ -579,4 +578,3 @@ class AuthService extends ChangeNotifier {
   }
 
   String _determineBaseUrl() => const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
-}
