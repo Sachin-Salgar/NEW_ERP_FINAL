@@ -17,14 +17,45 @@ const _limitedEmail = 'e2e-limited@example.com';
 const _moduleCode = 'e2e-rbac';
 
 void _dumpPendingExceptions(WidgetTester tester, String stage) {
-  var index = 0;
+  // Collect all pending exceptions but surface a single, detailed root cause.
+  final exceptions = <Object>[];
   while (true) {
     final exception = tester.takeException();
-    if (exception == null) {
-      break;
-    }
-    index += 1;
-    debugPrint('E2E PENDING EXCEPTION [$stage #$index]: $exception');
+    if (exception == null) break;
+    exceptions.add(exception);
+  }
+
+  if (exceptions.isEmpty) return;
+
+  final first = exceptions.first;
+  StackTrace? firstStack;
+
+  // Try to extract a stack trace when possible.
+  if (first is Error && first.stackTrace != null) {
+    firstStack = first.stackTrace;
+  } else {
+    // As a best-effort fallback, capture the current stack; this may help when
+    // the underlying exception object does not carry its original stack.
+    firstStack = StackTrace.current;
+  }
+
+  debugPrint('E2E EXCEPTIONS [$stage]: total=${exceptions.length}');
+  debugPrint('E2E FIRST EXCEPTION TYPE [$stage]: ${first.runtimeType}');
+  debugPrint('E2E FIRST EXCEPTION MESSAGE [$stage]: ${first.toString()}');
+
+  if (firstStack != null) {
+    debugPrint('E2E FIRST EXCEPTION STACK [$stage]:');
+    debugPrintStack(stackTrace: firstStack, label: 'E2E_STACK');
+  } else {
+    debugPrint('E2E FIRST EXCEPTION STACK [$stage]: <none available>');
+  }
+
+  // Print a few samples to detect repetition patterns.
+  for (var i = 0; i < exceptions.length && i < 5; i++) {
+    debugPrint('E2E EXC SAMPLE [$stage #${i + 1}]: ${exceptions[i]}');
+  }
+  if (exceptions.length > 5) {
+    debugPrint('E2E EXC SAMPLE: ... ${exceptions.length - 5} more');
   }
 }
 
