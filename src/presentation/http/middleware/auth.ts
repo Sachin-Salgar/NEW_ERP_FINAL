@@ -89,10 +89,38 @@ export function requireModule(moduleCode: string) {
   };
 }
 
+function moduleCodeForPermission(permissionKey: string): string {
+  const prefix = permissionKey.split('.')[0]?.trim() ?? '';
+  switch (prefix) {
+    case 'tenant':
+      return 'tenant-configuration';
+    case 'user':
+      return 'user-management';
+    case 'role':
+    case 'permission':
+    case 'session':
+      return 'security';
+    default:
+      return prefix;
+  }
+}
+
 export function requirePermission(permissionKey: string) {
   return async function requirePermissionHandler(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     if (!request.user || !request.tenantId) {
       throw new UnauthorizedError('Authentication is required to perform this action.');
+    }
+    if (!request.user.organizationId) {
+      throw new ForbiddenError('An active organization is required to perform this action.');
+    }
+
+    const moduleEnabled = await request.server.moduleAccessService.isModuleEnabled(
+      request.tenantId,
+      request.user.organizationId,
+      moduleCodeForPermission(permissionKey),
+    );
+    if (!moduleEnabled) {
+      throw new ForbiddenError('Module access denied.');
     }
 
     const allowed = await request.server.authorizationService.hasPermission(request.tenantId, request.user.id, permissionKey);
@@ -111,6 +139,19 @@ export function requirePermissionOrSelf(permissionKey: string, selfIdGetter?: (r
     const resolvedSelfId = selfIdGetter ? selfIdGetter(request) : null;
     if (resolvedSelfId && request.user.id === resolvedSelfId) {
       return;
+    }
+
+    if (!request.user.organizationId) {
+      throw new ForbiddenError('An active organization is required to perform this action.');
+    }
+
+    const moduleEnabled = await request.server.moduleAccessService.isModuleEnabled(
+      request.tenantId,
+      request.user.organizationId,
+      moduleCodeForPermission(permissionKey),
+    );
+    if (!moduleEnabled) {
+      throw new ForbiddenError('Module access denied.');
     }
 
     const allowed = await request.server.authorizationService.hasPermission(request.tenantId, request.user.id, permissionKey);
