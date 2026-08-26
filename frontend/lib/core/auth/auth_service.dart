@@ -85,19 +85,16 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
         return null;
       }
-
       final body = jsonDecode(resp.body) as Map<String, dynamic>;
       final deployment = (body['deployment'] as Map<String, dynamic>?) ?? {};
       final tenantId = (deployment['tenantId'] ?? '').toString().trim();
       deploymentInfo = deployment;
       currentTenantId = tenantId.isEmpty ? null : tenantId;
-
       if (currentTenantId != null && currentTenantId!.isNotEmpty) {
         await _secureStorage.write(key: 'tenant_id', value: currentTenantId!);
       } else {
         await _secureStorage.delete(key: 'tenant_id');
       }
-
       notifyListeners();
       return body;
     } catch (_) {
@@ -134,20 +131,15 @@ class AuthService extends ChangeNotifier {
     selectedOrganizationId = currentOrganizationId;
     selectedLocationId = currentLocationId;
     if (exp != null) _expiresAt = DateTime.tryParse(exp);
-
-    if (_accessToken != null && _refreshToken != null && _expiresAt != null) {
-      notifyListeners();
-    }
+    if (_accessToken != null && _refreshToken != null && _expiresAt != null) notifyListeners();
   }
 
   Future<bool> restoreSession(String baseUrl) async {
     if (_accessToken == null || _refreshToken == null) return false;
-
     if (_expiresAt != null && DateTime.now().isAfter(_expiresAt!)) {
       await logout();
       return false;
     }
-
     bool loaded = await loadMe(baseUrl);
     if (!loaded) {
       final refreshed = await tryRefresh();
@@ -161,7 +153,6 @@ class AuthService extends ChangeNotifier {
         return false;
       }
     }
-
     final organizationsLoaded = await loadAuthorizedOrganizations(baseUrl);
     if (requiresOrganizationSelection || currentOrganizationId == null) {
       availableLocations = const [];
@@ -170,7 +161,6 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return organizationsLoaded || loaded;
     }
-
     final locationsLoaded = await loadAuthorizedLocations(baseUrl);
     await loadAccessibleModules(baseUrl);
     notifyListeners();
@@ -181,49 +171,31 @@ class AuthService extends ChangeNotifier {
     _ensureApiClient(baseUrl);
     final bootstrapResponse = await bootstrap(baseUrl);
     if (bootstrapResponse == null || (currentTenantId ?? '').trim().isEmpty) return false;
-
     try {
       final resp = await _apiClient.post('/api/v1/auth/login', body: {
         'identifier': identifier,
         'password': password,
       });
       if (resp.statusCode != 200) return false;
-
       final body = jsonDecode(resp.body) as Map<String, dynamic>;
       _accessToken = body['accessToken'] as String?;
       _refreshToken = body['refreshToken'] as String?;
       _expiresAt = DateTime.tryParse(body['expiresAt'] as String? ?? '');
       currentUser = body['user'] as Map<String, dynamic>?;
-
       final session = (body['session'] as Map<String, dynamic>?) ?? {};
       final resolvedTenantId = (session['tenantId'] ?? currentUser?['tenantId'] ?? currentTenantId ?? '').toString().trim();
       currentTenantId = resolvedTenantId.isEmpty ? null : resolvedTenantId;
-      currentOrganizationId = (session['organizationId'] ?? '').toString().trim().isEmpty
-          ? null
-          : session['organizationId'].toString();
-      currentLocationId = (session['locationId'] ?? '').toString().trim().isEmpty
-          ? null
-          : session['locationId'].toString();
-
-      if (currentTenantId != null && currentTenantId!.isNotEmpty) {
-        await _secureStorage.write(key: 'tenant_id', value: currentTenantId!);
-      }
-      if (_accessToken != null && _accessToken!.trim().isNotEmpty) {
-        await _secureStorage.write(key: 'access_token', value: _accessToken!);
-      }
-      if (_refreshToken != null && _refreshToken!.trim().isNotEmpty) {
-        await _secureStorage.write(key: 'refresh_token', value: _refreshToken!);
-      }
-      if (_expiresAt != null) {
-        await _secureStorage.write(key: 'expires_at', value: _expiresAt!.toIso8601String());
-      }
-
+      currentOrganizationId = (session['organizationId'] ?? '').toString().trim().isEmpty ? null : session['organizationId'].toString();
+      currentLocationId = (session['locationId'] ?? '').toString().trim().isEmpty ? null : session['locationId'].toString();
+      if (currentTenantId != null && currentTenantId!.isNotEmpty) await _secureStorage.write(key: 'tenant_id', value: currentTenantId!);
+      if (_accessToken != null && _accessToken!.trim().isNotEmpty) await _secureStorage.write(key: 'access_token', value: _accessToken!);
+      if (_refreshToken != null && _refreshToken!.trim().isNotEmpty) await _secureStorage.write(key: 'refresh_token', value: _refreshToken!);
+      if (_expiresAt != null) await _secureStorage.write(key: 'expires_at', value: _expiresAt!.toIso8601String());
       final orgsLoaded = await loadAuthorizedOrganizations(baseUrl);
       if (!orgsLoaded) {
         notifyListeners();
         return false;
       }
-
       if (requiresOrganizationSelection || currentOrganizationId == null) {
         availableLocations = const [];
         availableModules = const [];
@@ -232,11 +204,9 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
         return true;
       }
-
       await loadAuthorizedLocations(baseUrl);
       await loadAccessibleModules(baseUrl);
       await _loadPermissionsIfContextReady(baseUrl);
-
       notifyListeners();
       return true;
     } catch (_) {
@@ -253,7 +223,6 @@ class AuthService extends ChangeNotifier {
 
   Future<bool> loadAuthorizedOrganizations(String baseUrl) async {
     if (_accessToken == null || _accessToken!.trim().isEmpty) return false;
-
     try {
       _ensureApiClient(baseUrl);
       final resp = await _apiClient.get('/api/v1/auth/organizations');
@@ -266,13 +235,11 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
         return false;
       }
-
       final body = jsonDecode(resp.body) as Map<String, dynamic>;
       final list = (body['organizations'] as List<dynamic>?) ?? const [];
       availableOrganizations = list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
       final activeOrganizationId = (body['activeOrganizationId'] ?? '').toString().trim();
       requiresOrganizationSelection = body['requiresOrganizationSelection'] == true;
-
       if (availableOrganizations.isEmpty) {
         currentOrganizationId = null;
         selectedOrganizationId = null;
@@ -292,7 +259,6 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
         return false;
       }
-
       notifyListeners();
       return true;
     } catch (_) {
@@ -308,7 +274,6 @@ class AuthService extends ChangeNotifier {
 
   Future<bool> loadAuthorizedLocations(String baseUrl) async {
     if (_accessToken == null || _accessToken!.trim().isEmpty || currentOrganizationId == null) return false;
-
     try {
       _ensureApiClient(baseUrl);
       final resp = await _apiClient.get('/api/v1/locations');
@@ -321,12 +286,10 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
         return false;
       }
-
       final body = jsonDecode(resp.body) as Map<String, dynamic>;
       final list = (body['locations'] as List<dynamic>?) ?? const [];
       availableLocations = list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
       final activeLocationId = (body['activeLocationId'] ?? currentLocationId ?? '').toString().trim();
-
       if (availableLocations.isEmpty) {
         currentLocationId = null;
         selectedLocationId = null;
@@ -342,16 +305,13 @@ class AuthService extends ChangeNotifier {
         currentLocationId = fallbackId.isEmpty ? null : fallbackId;
         selectedLocationId = currentLocationId;
         requiresLocationSelection = currentLocationId == null;
-        if (currentLocationId != null) {
-          await _secureStorage.write(key: 'location_id', value: currentLocationId!);
-        }
+        if (currentLocationId != null) await _secureStorage.write(key: 'location_id', value: currentLocationId!);
       } else {
         currentLocationId = null;
         selectedLocationId = null;
         requiresLocationSelection = true;
         await _secureStorage.delete(key: 'location_id');
       }
-
       notifyListeners();
       return true;
     } catch (_) {
@@ -367,7 +327,6 @@ class AuthService extends ChangeNotifier {
 
   Future<bool> loadAccessibleModules(String baseUrl) async {
     if (_accessToken == null || _accessToken!.trim().isEmpty || currentOrganizationId == null) return false;
-
     try {
       _ensureApiClient(baseUrl);
       final resp = await _apiClient.get('/api/v1/auth/modules');
@@ -376,7 +335,6 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
         return false;
       }
-
       final body = jsonDecode(resp.body) as Map<String, dynamic>;
       final list = (body['modules'] as List<dynamic>?) ?? const [];
       availableModules = list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
@@ -392,22 +350,18 @@ class AuthService extends ChangeNotifier {
   Future<bool> selectOrganization(String organizationId) async {
     final normalizedId = organizationId.trim();
     if (normalizedId.isEmpty) return false;
-
     final match = availableOrganizations.any((org) => (org['id'] ?? '').toString() == normalizedId);
     if (!match) return false;
-
     try {
       final baseUrl = _determineBaseUrl();
       _ensureApiClient(baseUrl);
       final resp = await _apiClient.post('/api/v1/auth/organizations/select', body: {'organizationId': normalizedId});
       if (resp.statusCode != 200) return false;
-
       final body = jsonDecode(resp.body) as Map<String, dynamic>;
       _accessToken = body['accessToken'] as String? ?? _accessToken;
       _refreshToken = body['refreshToken'] as String? ?? _refreshToken;
       _expiresAt = DateTime.tryParse(body['expiresAt']?.toString() ?? '') ?? _expiresAt;
       currentUser = body['user'] as Map<String, dynamic>? ?? currentUser;
-
       final session = (body['session'] as Map<String, dynamic>?) ?? {};
       final resolvedTenantId = (session['tenantId'] ?? currentTenantId ?? '').toString().trim();
       currentTenantId = resolvedTenantId.isEmpty ? currentTenantId : resolvedTenantId;
@@ -416,17 +370,14 @@ class AuthService extends ChangeNotifier {
       currentLocationId = null;
       selectedLocationId = null;
       requiresOrganizationSelection = false;
-
       if (_accessToken != null && _accessToken!.trim().isNotEmpty) await _secureStorage.write(key: 'access_token', value: _accessToken!);
       if (_refreshToken != null && _refreshToken!.trim().isNotEmpty) await _secureStorage.write(key: 'refresh_token', value: _refreshToken!);
       if (_expiresAt != null) await _secureStorage.write(key: 'expires_at', value: _expiresAt!.toIso8601String());
       await _secureStorage.write(key: 'organization_id', value: currentOrganizationId!);
       await _secureStorage.delete(key: 'location_id');
-
       await loadAuthorizedLocations(baseUrl);
       await loadAccessibleModules(baseUrl);
       await _loadPermissionsIfContextReady(baseUrl);
-
       notifyListeners();
       return true;
     } catch (_) {
@@ -437,38 +388,31 @@ class AuthService extends ChangeNotifier {
   Future<bool> selectLocation(String locationId) async {
     final normalizedId = locationId.trim();
     if (normalizedId.isEmpty || currentOrganizationId == null) return false;
-
     final match = availableLocations.any((location) => (location['id'] ?? '').toString() == normalizedId);
     if (!match) return false;
-
     try {
       final baseUrl = _determineBaseUrl();
       _ensureApiClient(baseUrl);
       final resp = await _apiClient.post('/api/v1/locations/$normalizedId/select');
       if (resp.statusCode != 200) return false;
-
       final body = jsonDecode(resp.body) as Map<String, dynamic>;
       _accessToken = body['accessToken'] as String? ?? _accessToken;
       _refreshToken = body['refreshToken'] as String? ?? _refreshToken;
       _expiresAt = DateTime.tryParse(body['expiresAt']?.toString() ?? '') ?? _expiresAt;
       currentUser = body['user'] as Map<String, dynamic>? ?? currentUser;
-
       final session = (body['session'] as Map<String, dynamic>?) ?? {};
       currentOrganizationId = (session['organizationId'] ?? currentOrganizationId).toString();
       currentLocationId = (session['locationId'] ?? normalizedId).toString();
       selectedLocationId = currentLocationId;
       requiresLocationSelection = false;
-
       if (_accessToken != null && _accessToken!.trim().isNotEmpty) await _secureStorage.write(key: 'access_token', value: _accessToken!);
       if (_refreshToken != null && _refreshToken!.trim().isNotEmpty) await _secureStorage.write(key: 'refresh_token', value: _refreshToken!);
       if (_expiresAt != null) await _secureStorage.write(key: 'expires_at', value: _expiresAt!.toIso8601String());
       if (currentLocationId != null) await _secureStorage.write(key: 'location_id', value: currentLocationId!);
       await _secureStorage.write(key: 'organization_id', value: currentOrganizationId!);
-
       await loadAuthorizedLocations(baseUrl);
       await loadAccessibleModules(baseUrl);
       await _loadPermissionsIfContextReady(baseUrl);
-
       notifyListeners();
       return true;
     } catch (_) {
@@ -491,9 +435,7 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
         return true;
       }
-    } catch (_) {
-      // ignore
-    }
+    } catch (_) {}
     return false;
   }
 
@@ -504,10 +446,7 @@ class AuthService extends ChangeNotifier {
         _ensureApiClient(baseUrl);
         await _apiClient.post('/api/v1/auth/logout');
       }
-    } catch (_) {
-      // ignore
-    }
-
+    } catch (_) {}
     _accessToken = null;
     _refreshToken = null;
     _expiresAt = null;
@@ -522,20 +461,15 @@ class AuthService extends ChangeNotifier {
     availableModules = const [];
     requiresOrganizationSelection = false;
     requiresLocationSelection = false;
-
     await _secureStorage.delete(key: 'access_token');
     await _secureStorage.delete(key: 'refresh_token');
     await _secureStorage.delete(key: 'expires_at');
     await _secureStorage.delete(key: 'tenant_id');
     await _secureStorage.delete(key: 'organization_id');
     await _secureStorage.delete(key: 'location_id');
-
     try {
       authzService.clear();
-    } catch (_) {
-      // ignore
-    }
-
+    } catch (_) {}
     notifyListeners();
   }
 
@@ -571,10 +505,9 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
         return true;
       }
-    } catch (_) {
-      // ignore
-    }
+    } catch (_) {}
     return false;
   }
 
   String _determineBaseUrl() => const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
+}
