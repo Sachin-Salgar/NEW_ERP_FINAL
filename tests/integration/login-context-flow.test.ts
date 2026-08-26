@@ -29,11 +29,12 @@ describe('Authentication context sequencing', () => {
     await platformBootstrapService.seedReferenceData();
 
     const suffix = `${Date.now()}-${uuidV7()}`;
+    const tenantHost = `context-${suffix}`;
     const bootstrap = await tenantBootstrapService.bootstrapTenant({
       tenant: {
         name: `Context Tenant ${suffix}`,
         displayName: `Context Tenant ${suffix}`,
-        subdomain: `context-${suffix}`,
+        subdomain: tenantHost,
         slug: `context-${suffix}`,
         timezone: 'UTC',
         currency: 'USD',
@@ -80,7 +81,6 @@ describe('Authentication context sequencing', () => {
     });
 
     app = await createApplication(config, pool);
-    const tenantHost = bootstrap.tenantId;
 
     const organizationTwo = await repository.createOrganization(bootstrap.tenantId, {
       code: `CTX2${suffix}`.slice(0, 18),
