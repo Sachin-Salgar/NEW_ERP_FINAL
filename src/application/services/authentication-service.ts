@@ -3,6 +3,10 @@ import { v7 as uuidV7 } from 'uuid';
 import type { AuthenticatedUser, AuthenticationResult, SessionRecord } from '../../domain/contracts/authentication.js';
 import type { AuthenticationRepository, PasswordHasher, TokenService } from '../contracts/security.js';
 
+type MembershipResolver = {
+  findUserOrganizationMemberships?: (tenantId: string, userId: string) => Promise<Array<{ id: string }>>;
+};
+
 export class AuthenticationService {
   constructor(
     private readonly authenticationRepository: AuthenticationRepository,
@@ -26,6 +30,17 @@ export class AuthenticationService {
       return { success: false, reason: 'INVALID_CREDENTIALS' };
     }
 
+    let sessionOrganizationId = user.organizationId ?? null;
+    const membershipResolver = this.authenticationRepository as AuthenticationRepository & MembershipResolver;
+    if (typeof membershipResolver.findUserOrganizationMemberships === 'function') {
+      const memberships = await membershipResolver.findUserOrganizationMemberships(tenantId, user.id);
+      if (memberships.length > 1) {
+        sessionOrganizationId = null;
+      } else if (memberships.length === 1) {
+        sessionOrganizationId = memberships[0].id;
+      }
+    }
+
     const sessionId = uuidV7();
     const sessionExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 8);
     const refreshToken = this.tokenService ? this.tokenService.createRefreshToken({
@@ -39,7 +54,7 @@ export class AuthenticationService {
       id: sessionId,
       tenantId,
       userId: user.id,
-      organizationId: user.organizationId ?? null,
+      organizationId: sessionOrganizationId,
       locationId: null,
       branchId: user.defaultBranchId ?? null,
       accessTokenId: null,
@@ -62,7 +77,7 @@ export class AuthenticationService {
       user: {
         id: user.id,
         tenantId: user.tenantId,
-        organizationId: user.organizationId,
+        organizationId: sessionOrganizationId,
         defaultBranchId: user.defaultBranchId,
         username: user.username,
         email: user.email,
@@ -75,9 +90,6 @@ export class AuthenticationService {
   }
 
   async createSessionForUser(tenantId: string, userId: string, organizationId?: string | null, locationId?: string | null): Promise<AuthenticationResult> {
-    // Create a new session for an already authenticated user. This is used when the
-    // user selects an active organization or an authorized location and the backend
-    // issues a server-authoritative effective session.
     const user = await this.authenticationRepository.findById(tenantId, userId);
     if (!user) {
       return { success: false, reason: 'USER_NOT_FOUND' };
@@ -100,7 +112,7 @@ export class AuthenticationService {
       id: sessionId,
       tenantId,
       userId: user.id,
-      organizationId: organizationId ?? user.organizationId ?? null,
+      organizationId: organizationId ?? null,
       locationId: locationId ?? null,
       branchId: user.defaultBranchId ?? null,
       accessTokenId: null,
@@ -123,7 +135,7 @@ export class AuthenticationService {
       user: {
         id: user.id,
         tenantId: user.tenantId,
-        organizationId: organizationId ?? user.organizationId,
+        organizationId: organizationId ?? null,
         activeLocationId: locationId ?? session.locationId ?? null,
         defaultBranchId: user.defaultBranchId,
         username: user.username,
@@ -162,7 +174,7 @@ export class AuthenticationService {
     return {
       id: user.id,
       tenantId: user.tenantId,
-      organizationId: user.organizationId,
+      organizationId: session.organizationId ?? null,
       activeLocationId: session.locationId ?? null,
       defaultBranchId: user.defaultBranchId,
       username: user.username,
