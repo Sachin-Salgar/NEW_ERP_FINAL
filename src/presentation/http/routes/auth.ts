@@ -319,3 +319,5 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     sessionId: request.sessionId,
   }));
 };
+
+export default authRoutes;
