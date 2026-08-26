@@ -25,67 +25,50 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+
       - name: Install dependencies (pnpm)
         run: |
           corepack enable
           corepack prepare pnpm@9.15.9 --activate
           pnpm install --frozen-lockfile
+
       - name: Start Postgres container (docker)
         env:
           POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
         run: |
           set -euo pipefail
-          echo "Starting Postgres 17.10 container on host port ${CI_POSTGRES_PORT}..."
-          : > postgres-startup-diagnostics.txt
-          echo "=== docker run ===" | tee -a postgres-startup-diagnostics.txt
           docker rm -f newerp_test_container >/dev/null 2>&1 || true
           docker run --name newerp_test_container --env POSTGRES_PASSWORD --env POSTGRES_DB=postgres --env POSTGRES_USER=postgres -d -p "${CI_POSTGRES_PORT}:5432" postgres:17.10
-          echo "=== container existence check ===" | tee -a postgres-startup-diagnostics.txt
-          docker ps -a --filter "name=newerp_test_container" | tee -a postgres-startup-diagnostics.txt
-          echo "=== container inspect ===" | tee -a postgres-startup-diagnostics.txt
-          docker inspect newerp_test_container --format 'status={{.State.Status}} running={{.State.Running}} exitcode={{.State.ExitCode}} error={{.State.Error}}' | tee -a postgres-startup-diagnostics.txt
-          echo "=== container logs (startup) ===" | tee -a postgres-startup-diagnostics.txt
-          docker logs newerp_test_container 2>&1 | tee -a postgres-startup-diagnostics.txt || true
+
       - name: Install Postgres client for readiness checks
         run: |
           sudo apt-get update -y
           sudo apt-get install -y postgresql-client
-      - name: Wait for Postgres service (pg_isready loop)
+
+      - name: Wait for Postgres service
         env:
           PGPASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
         run: |
           set -euo pipefail
-          echo "Waiting for Postgres to become available on port ${CI_POSTGRES_PORT}..." | tee -a postgres-startup-diagnostics.txt
-          retries=0
-          until pg_isready -h localhost -p "${CI_POSTGRES_PORT}" -U postgres -d postgres >/dev/null 2>&1; do
-            retries=$((retries+1))
-            echo "--- readiness attempt ${retries} ---" | tee -a postgres-startup-diagnostics.txt
-            docker ps -a --filter "name=newerp_test_container" 2>&1 | tee -a postgres-startup-diagnostics.txt || true
-            docker inspect newerp_test_container --format 'status={{.State.Status}} running={{.State.Running}} exitcode={{.State.ExitCode}} error={{.State.Error}}' 2>&1 | tee -a postgres-startup-diagnostics.txt || true
-            if docker inspect newerp_test_container --format '{{.State.Running}}' 2>/dev/null | grep -q '^false$'; then
-              echo "Postgres container has exited or is not running; printing recent logs" | tee -a postgres-startup-diagnostics.txt >&2
-              docker logs --tail 200 newerp_test_container 2>&1 | tee -a postgres-startup-diagnostics.txt >&2 || true
-              exit 1
+          for i in $(seq 1 60); do
+            if pg_isready -h localhost -p "${CI_POSTGRES_PORT}" -U postgres -d postgres >/dev/null 2>&1; then
+              echo "Postgres is ready"
+              exit 0
             fi
-            if [ "$retries" -ge 60 ]; then
-              echo "Postgres did not become available in time" | tee -a postgres-startup-diagnostics.txt >&2
-              docker logs --tail 200 newerp_test_container 2>&1 | tee -a postgres-startup-diagnostics.txt >&2 || true
+            if ! docker inspect newerp_test_container --format '{{.State.Running}}' 2>/dev/null | grep -q '^true$'; then
+              docker logs --tail 200 newerp_test_container || true
               exit 1
             fi
             sleep 2
           done
-          echo "Postgres is ready" | tee -a postgres-startup-diagnostics.txt
-      - name: Upload Postgres diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: postgres-startup-diagnostics
-          path: postgres-startup-diagnostics.txt
-          if-no-files-found: warn
+          docker logs --tail 200 newerp_test_container || true
+          exit 1
+
       - name: Create test role and database (non-superuser)
         env:
           PGPASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
@@ -105,6 +88,7 @@ jobs:
           ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO :"role_name";
           ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO :"role_name";
           SQL
+
       - name: Export TEST_DATABASE_URL
         run: |
           set -euo pipefail
@@ -117,45 +101,19 @@ jobs:
           port = os.environ['CI_POSTGRES_PORT']
           encoded_password = urllib.parse.quote(password, safe='')
           postgres_url = f'postgres://{role}:{encoded_password}@localhost:{port}/{db}'
-          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as env_file:
-              env_file.write(f'TEST_DATABASE_URL={postgres_url}\n')
-          PY
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as f:
+              f.write(f'TEST_DATABASE_URL={postgres_url}\n')
+
       - name: Run migrations
         env:
           DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
-        run: |
-          echo "Running migrations against TEST_DATABASE_URL (hidden)..."
-          npm run db:migrate
-      - name: "Debug: list public tables (post-migrations)"
-        env:
-          PGPASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
-          PGHOST: localhost
-          PGPORT: ${{ env.CI_POSTGRES_PORT }}
-          PGUSER: ${{ env.CI_TEST_ROLE }}
-          PGDATABASE: ${{ env.CI_TEST_DB }}
-        run: |
-          set -euo pipefail
-          psql -h localhost -p "${CI_POSTGRES_PORT}" -U "${CI_TEST_ROLE}" -d "${CI_TEST_DB}" -c "\dt public.*" > db-tables.txt || true
-      - name: Upload DB table list (debug)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: db-tables
-          path: db-tables.txt
-          if-no-files-found: warn
+        run: npm run db:migrate
+
       - name: Seed deterministic E2E fixtures
         env:
           TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
-        run: |
-          set -euo pipefail
-          node --trace-warnings --trace-uncaught scripts/ci/seed-e2e.js > seed-output.log 2>&1 || (cat seed-output.log >&2; exit 1)
-      - name: Upload seed logs (debug)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: seed-output
-          path: seed-output.log
-          if-no-files-found: warn
+        run: node --trace-warnings --trace-uncaught scripts/ci/seed-e2e.js
+
       - name: Start backend API for E2E validation
         env:
           DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
@@ -181,114 +139,72 @@ jobs:
           done
           tail -n 200 backend-e2e.log >&2 || true
           exit 1
+
+      - name: Set up Java for Selenium Grid compatibility bridge
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - name: Set up Flutter web SDK
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.1'
+
       - name: Enable Flutter web support
         run: flutter config --enable-web
+
       - name: Install Flutter dependencies
         working-directory: frontend
         run: flutter pub get
-      - name: Install & Start standalone ChromeDriver (non-snap) — diagnostic
+
+      - name: Install ChromeDriver matching installed Chrome
         run: |
           set -euo pipefail
-
-          GOOGLE_CHROME_BIN=/usr/bin/google-chrome
-          echo "Google Chrome path: $(which "$GOOGLE_CHROME_BIN" 2>/dev/null || true)"
-          echo "Google Chrome version:"
-          "$GOOGLE_CHROME_BIN" --version || true
-
-          CHROME_VERSION=$("$GOOGLE_CHROME_BIN" --version 2>/dev/null | awk '{print $3}')
-          if [ -z "$CHROME_VERSION" ]; then
-            echo "ERROR: Could not determine installed Chrome version"
-            exit 1
-          fi
-          echo "Detected Chrome version: $CHROME_VERSION"
-
-          echo "Installing official standalone ChromeDriver via Puppeteer Browsers"
+          CHROME=/usr/bin/google-chrome
+          CHROME_VERSION=$("$CHROME" --version | awk '{print $3}')
+          echo "Chrome: $CHROME_VERSION"
           npx --yes @puppeteer/browsers install "chromedriver@$CHROME_VERSION" --path /tmp/chrome-for-testing
-
           CHROMEDRIVER_BIN=$(find /tmp/chrome-for-testing -type f -name chromedriver | head -n 1)
-          if [ -z "$CHROMEDRIVER_BIN" ]; then
-            echo "ERROR: standalone chromedriver not found under /tmp/chrome-for-testing"
-            find /tmp/chrome-for-testing -maxdepth 5 -type f 2>/dev/null | head -n 200 || true
-            exit 1
-          fi
+          test -n "$CHROMEDRIVER_BIN"
+          "$CHROMEDRIVER_BIN" --version
+          echo "CHROMEDRIVER_BIN=$CHROMEDRIVER_BIN" >> "$GITHUB_ENV"
 
-          echo "Standalone ChromeDriver path: $CHROMEDRIVER_BIN"
-          "$CHROMEDRIVER_BIN" --version || { echo "ERROR: installed chromedriver is not executable"; exit 1; }
-
-          CHROMEDRIVER_VERSION=$("$CHROMEDRIVER_BIN" --version 2>/dev/null | awk '{print $2}' || true)
-          echo "ChromeDriver version: ${CHROMEDRIVER_VERSION:-<unknown>}"
-
-          if [ -n "$CHROME_VERSION" ] && [ -n "$CHROMEDRIVER_VERSION" ]; then
-            CHROME_MAJOR=$(echo "$CHROME_VERSION" | cut -d. -f1)
-            CHROMEDRIVER_MAJOR=$(echo "$CHROMEDRIVER_VERSION" | cut -d. -f1)
-            echo "Chrome major: ${CHROME_MAJOR}"
-            echo "ChromeDriver major: ${CHROMEDRIVER_MAJOR}"
-            if [ "$CHROME_MAJOR" != "$CHROMEDRIVER_MAJOR" ]; then
-              echo "ERROR: Chrome/ChromeDriver major-version mismatch"
-              echo "Chrome version: $CHROME_VERSION"
-              echo "ChromeDriver version: $CHROMEDRIVER_VERSION"
-              exit 1
-            fi
-          fi
-
-          echo "Verified standalone ChromeDriver is executable and compatible"
-
-          rm -f /tmp/chromedriver.log || true
-          nohup "$CHROMEDRIVER_BIN" \
-            --port=4444 \
-            --url-base=/wd/hub \
-            >/tmp/chromedriver.log 2>&1 &
-          echo $! > chromedriver.pid
-
+      - name: Start Selenium 4.8.3 compatibility bridge
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/selenium-server-4.8.3.jar https://github.com/SeleniumHQ/selenium/releases/download/selenium-4.8.0/selenium-server-4.8.3.jar
+          nohup java -jar /tmp/selenium-server-4.8.3.jar standalone \
+            --port 4444 \
+            --host 127.0.0.1 \
+            >/tmp/selenium-server.log 2>&1 &
+          echo $! > selenium-server.pid
           for i in $(seq 1 30); do
-            if nc -z localhost 4444; then
-              echo "standalone chromedriver ready"
-              break
+            if curl -fsS http://127.0.0.1:4444/status >/tmp/selenium-status.json; then
+              cat /tmp/selenium-status.json
+              exit 0
             fi
             sleep 1
           done
+          cat /tmp/selenium-server.log || true
+          exit 1
 
-          echo "=== CHROMEDRIVER STARTUP LOG (tail) ==="
-          tail -n 200 /tmp/chromedriver.log || true
-
-          echo "=== CHROMEDRIVER PROCESS INFO ==="
-          if [ -f chromedriver.pid ]; then
-            ps -fp "$(cat chromedriver.pid)" || true
-          else
-            ps aux | grep chromedriver | grep -v grep || true
-          fi
-
-          echo "=== DIAGNOSTIC: running chrome/chromium/chromedriver processes ==="
-          ps aux | grep -E 'chrome|chromium|chromedriver' | grep -v grep || true
-
-      - name: ChromeDriver WebDriver-level diagnostic
+      - name: Register matching ChromeDriver with Selenium bridge
         run: |
           set -euo pipefail
-          echo "Checking chromedriver /status endpoint"
-          curl -sS http://localhost:4444/wd/hub/status || true
-
-          echo "Attempting a lightweight WebDriver new session (diagnostic only, will delete if created)"
-          session_response=$(curl -s -X POST http://localhost:4444/wd/hub/session -H "Content-Type: application/json" -d '{"capabilities":{"alwaysMatch":{"browserName":"chrome","goog:chromeOptions":{"args":["--headless=new","--disable-gpu"]}}}}' || true)
-          echo "Session response: $session_response"
-
-          sess=$(echo "$session_response" | sed -n 's/.*"sessionId"\s*:\s*"\([^"]*\)".*/\1/p' || true)
-          if [ -z "$sess" ]; then
-            sess=$(echo "$session_response" | sed -n 's/.*"value"\s*:\s*{\s*"sessionId"\s*:\s*"\([^"]*\)".*/\1/p' || true)
-          fi
-          if [ -n "$sess" ]; then
-            echo "Created WebDriver session: $sess"
-            curl -s -X DELETE http://localhost:4444/wd/hub/session/$sess || true
-            echo "Deleted session $sess"
-          else
-            echo "No WebDriver session created (session_response may contain error details)"
-          fi
-
-          echo "Current chromedriver processes after session check:"
-          ps aux | grep chromedriver | grep -v grep || true
+          echo "Using ChromeDriver: $CHROMEDRIVER_BIN"
+          rm -f /tmp/chromedriver.log
+          nohup "$CHROMEDRIVER_BIN" --port=5555 --url-base=/wd/hub >/tmp/chromedriver.log 2>&1 &
+          echo $! > chromedriver.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:5555/status >/tmp/chromedriver-status.json; then
+              cat /tmp/chromedriver-status.json
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/chromedriver.log || true
+          exit 1
 
       - name: Run Flutter login and tenant auth E2E test (drive)
         timeout-minutes: 10
@@ -314,6 +230,7 @@ jobs:
             --web-browser-flag=--no-sandbox \
             --dart-define=API_BASE_URL=http://localhost:3000 \
             --dart-define=TENANT_ID=11111111-1111-4111-8111-111111111111
+
       - name: Upload backend E2E log
         if: always()
         uses: actions/upload-artifact@v4
@@ -321,32 +238,27 @@ jobs:
           name: backend-e2e-log
           path: backend-e2e.log
           if-no-files-found: warn
-      - name: Post-E2E ChromeDriver & Chrome diagnostics
+
+      - name: Upload browser diagnostics
         if: always()
-        run: |
-          set -euo pipefail
-          echo "=== ChromeDriver log ==="
-          cat /tmp/chromedriver.log || true
-          echo ""
-          echo "=== ChromeDriver process ==="
-          ps aux | grep chromedriver | grep -v grep || true
-          echo ""
-          echo "=== Chrome/Chromium processes ==="
-          ps aux | grep -E 'chrome|chromium' | grep -v grep || true
-          echo ""
-          echo "=== Listening ports ==="
-          ss -lntp || true
-          echo ""
-          echo "=== dmesg tail (kernel logs may show crashes) ==="
-          sudo dmesg | tail -n 200 || true
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-e2e-diagnostics
+          path: |
+            /tmp/selenium-server.log
+            /tmp/chromedriver.log
+          if-no-files-found: warn
 
       - name: Run integration tests (DB-backed)
         env:
           TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
         run: npm run test:integration
+
       - name: Run unit tests
         run: npm run test:unit
+
       - name: Typecheck
         run: npm run typecheck
+
       - name: Git diff check
         run: git --no-pager diff --check
