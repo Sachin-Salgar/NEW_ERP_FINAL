@@ -105,9 +105,18 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Identifier and password are required.');
     }
 
-    const result = await request.server.authService.authenticate(tenant.id, identifier, password);
+    let result = await request.server.authService.authenticate(tenant.id, identifier, password);
     if (!result.success || !result.user || !result.session || !result.accessToken || !result.refreshToken) {
       throw new UnauthorizedError('Invalid credentials.');
+    }
+
+    const memberships = await request.server.tenantResolver.resolveUserMemberships(tenant.id, result.user.id);
+    if (memberships.requiresOrganizationSelection) {
+      await request.server.authService.invalidateSession(result.session.id, tenant.id);
+      result = await request.server.authService.createSessionForUser(tenant.id, result.user.id, null);
+      if (!result.success || !result.user || !result.session || !result.accessToken || !result.refreshToken) {
+        throw new UnauthorizedError('Unable to establish the pre-organization login session.');
+      }
     }
 
     reply.code(200);
