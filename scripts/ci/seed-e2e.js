@@ -29,6 +29,8 @@ const CORE_MODULES = [
   ['tenant-configuration', 'Tenant Configuration', 'Administration', true, 6],
 ];
 
+const E2E_MODULE = ['e2e-rbac', 'E2E RBAC Access', 'Administration', false, 100];
+
 async function main() {
   try {
     console.log('--- E2E seed starting ---');
@@ -68,7 +70,7 @@ async function main() {
     await client.query('BEGIN');
     await client.query("SELECT set_config('app.current_tenant_id', $1, true)", [TENANT_ID]);
 
-    for (const [code, name, moduleGroup, isCore, sortOrder] of CORE_MODULES) {
+    for (const [code, name, moduleGroup, isCore, sortOrder] of [...CORE_MODULES, E2E_MODULE]) {
       await client.query(
         `INSERT INTO modules (id, code, name, module_group, is_core, sort_order)
          VALUES ($1, $2, $3, $4, $5, $6)
@@ -108,10 +110,10 @@ async function main() {
       `INSERT INTO tenant_modules (tenant_id, module_id, enabled, enabled_at)
        SELECT $1, m.id, true, NOW()
        FROM modules m
-       WHERE m.is_core = true
+       WHERE m.code = ANY($2)
        ON CONFLICT (tenant_id, module_id) DO UPDATE
        SET enabled = true, disabled_at = NULL`,
-      [TENANT_ID],
+      [TENANT_ID, [...CORE_MODULES.map(([code]) => code), E2E_MODULE[0]]],
     );
 
     await client.query(
@@ -119,10 +121,10 @@ async function main() {
        SELECT $1, o.id, m.id, true, NOW()
        FROM organizations o
        CROSS JOIN modules m
-       WHERE o.tenant_id = $1 AND m.is_core = true
+       WHERE o.tenant_id = $1 AND m.code = ANY($2)
        ON CONFLICT (organization_id, module_id) DO UPDATE
        SET enabled = true, disabled_at = NULL`,
-      [TENANT_ID],
+      [TENANT_ID, [...CORE_MODULES.map(([code]) => code), E2E_MODULE[0]]],
     );
 
     await client.query(
@@ -192,7 +194,7 @@ async function main() {
       const [moduleCode, action] = permissionKey.split('.');
       const resolvedModuleCode = moduleCode === 'tenant' ? 'tenant-configuration' :
         moduleCode === 'user' ? 'user-management' :
-        ['role', 'permission', 'session'].includes(moduleCode) ? 'security' : moduleCode;
+        ['role', 'permission', 'session'].includes(moduleCode) ? E2E_MODULE[0] : moduleCode;
       await client.query(
         `INSERT INTO permissions (id, module_code, resource, action, scope, permission_key, display_name, description, is_system)
          VALUES ($1, $2, $3, $4, 'tenant', $5, $6, $7, false)
