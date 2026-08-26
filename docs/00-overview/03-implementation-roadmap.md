@@ -32,17 +32,17 @@ CURRENT IMPLEMENTATION CHECKPOINT
 
 This checkpoint is updated after every meaningful implementation step and is the single source of truth for "what to work on next".
 
-Current phase: Implementation / AUTH-02 validation and roadmap reconciliation
-Current slice: AUTH-02 — frontend authorization & RBAC UX
-Current step: AUTH-02.10 — Implement user-role assignment UI — COMPLETED / VALIDATED
-Current status: VALIDATED (authorization foundation implemented, tested, and documented; remaining work is incremental UX completion)
+Current phase: Implementation / CORE-01 E2E validation gate and bounded test-harness issue triage
+Current slice: CORE-01 — core enterprise validation and final E2E gate
+Current step: CORE-01.20 — Frontend → backend E2E validation — BLOCKED (known Flutter web test-runner issue, not a proven app/security defect)
+Current status: VALIDATED for backend/auth foundation and RBAC UX; E2E gate remains blocked by an opaque Flutter web test harness issue that reports aggregate exceptions without exposing the first underlying error.
 Last completed step: AUTH-02.10 — user-role assignment UI — Commit: 737106e (roadmap reconciliation and final validation)
-Current objective: Validate the completed RBAC frontend foundation and confirm the user-role assignment UI remains aligned with backend authorization, tenant isolation, and the existing roadmap evidence.
-Remaining work (top-level): permission-aware navigation/route guards (AUTH-02.11/12) and final end-to-end validation.
-Blockers: no blocking issues for the completed authorization foundation; remaining items are incremental UX work rather than security gaps.
+Current objective: Preserve the proven auth/RBAC foundation, keep the E2E issue bounded as a known infrastructure/test-runner concern, and complete the first real frontend→backend E2E validation scenario once the harness exposes the underlying exception clearly.
+Remaining work (top-level): complete CORE-01.20, then proceed to the final CORE-01 audit/security gate before any business-module intake.
+Blockers: the Flutter Web E2E driver still reports aggregate `Multiple exceptions (...)` output without an authoritative first exception in the current harness; no production auth, tenant, or authorization defect has been proven.
 Architectural decisions pending: none for the implemented authorization foundation; tenant isolation remains governed by the existing PostgreSQL RLS ADR and backend authorization remains authoritative.
-Immediate next action: AUTH-02.11 — permission-aware navigation and route guards after the completed user-role assignment UI is validated.
-Do-not-start-yet modules: SALES-01, PROCUREMENT-01, INVENTORY-01, FINANCE-01, CRM-01, MANUFACTURING-01 (the Business Module Gate is closed until CORE-01 final audit passes)
+Immediate next action: CORE-01.20 — complete the first real E2E scenario (login → organization selection → permission-aware navigation) using the existing Postgres-backed integration job, while keeping all production logic untouched and recording the current runner issue as a bounded known blocker.
+Do-not-start-yet modules: SALES-01, PROCUREMENT-01, INVENTORY-01, FINANCE-01, CRM-01, MANUFACTURING-01 (the Business Module Gate remains closed until the CORE-01 final audit passes and the E2E gate is cleared or explicitly bounded as an infrastructure issue)
 
 ---
 
@@ -143,8 +143,9 @@ ns UI and permission-driven visibility.
     - Typecheck — PASS
   - Notes: The DB bootstrap, role creation, and RLS-sensitive integration tests were executed under the non-superuser test role (newerp_test_runner) as part of the CI job. Uploaded diagnostics are available as job artifacts for audit.
 
-- CORE-01.20 Frontend → backend E2E validation — [NOT STARTED]
-  - E2E scenarios simulating real host-based tenant resolution and RBAC enforcement. This is the IMMEDIATE NEXT STEP and requires defining a small first E2E scenario (login → organization select → permission-gated navigation) and CI infra to run a headless frontend against the test backend.
+- CORE-01.20 Frontend → backend E2E validation — [BLOCKED — KNOWN HARNESS ISSUE]
+  - E2E scenarios simulating real host-based tenant resolution and RBAC enforcement. This remains the IMMEDIATE NEXT STEP, but the current Flutter web runner is reporting aggregate `Multiple exceptions (...)` output without exposing the first underlying error. The repo currently preserves a test-only diagnostic layer and treats the issue as a known harness limitation rather than a proven app/security defect.
+  - Scope: define and run the first E2E scenario (login → organization select → permission-gated navigation) against the Postgres-backed integration job while keeping all production logic unchanged.
 
 - CORE-01.21 Security audit — [NOT STARTED]
   - Validate secure storage, no secrets in logs, RLS policies, and audit trails meet security docs.

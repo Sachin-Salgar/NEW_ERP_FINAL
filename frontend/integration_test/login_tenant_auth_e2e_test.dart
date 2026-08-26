@@ -16,6 +16,35 @@ const _adminPassword = 'Password123!';
 const _limitedEmail = 'e2e-limited@example.com';
 const _moduleCode = 'e2e-rbac';
 
+String _currentStage = 'INIT';
+Object? _firstFlutterException;
+StackTrace? _firstFlutterExceptionStack;
+String? _firstFlutterExceptionStage;
+
+void _markStage(String stage) {
+  _currentStage = stage;
+  print('E2E_STAGE: $stage');
+}
+
+void _captureFlutterError(FlutterErrorDetails details) {
+  if (_firstFlutterException != null) {
+    return;
+  }
+
+  final exception = details.exception;
+  final stackTrace = details.stack ?? StackTrace.current;
+
+  _firstFlutterException = exception;
+  _firstFlutterExceptionStack = stackTrace;
+  _firstFlutterExceptionStage = _currentStage;
+
+  print('E2E FIRST EXCEPTION TYPE: ${exception.runtimeType}');
+  print('E2E FIRST EXCEPTION MESSAGE: ${details.exceptionAsString()}');
+  print('E2E FIRST EXCEPTION STACK:');
+  print((_firstFlutterExceptionStack ?? stackTrace).toString());
+  print('E2E FIRST EXCEPTION STAGE: $_currentStage');
+}
+
 void _dumpPendingExceptions(WidgetTester tester, String stage) {
   // Collect all pending exceptions but surface a single, detailed root cause.
   final exceptions = <Object>[];
@@ -39,23 +68,27 @@ void _dumpPendingExceptions(WidgetTester tester, String stage) {
     firstStack = StackTrace.current;
   }
 
-  debugPrint('E2E EXCEPTIONS [$stage]: total=${exceptions.length}');
-  debugPrint('E2E FIRST EXCEPTION TYPE [$stage]: ${first.runtimeType}');
-  debugPrint('E2E FIRST EXCEPTION MESSAGE [$stage]: ${first.toString()}');
+  print('E2E EXCEPTIONS [$stage]: total=${exceptions.length}');
+  print('E2E FIRST EXCEPTION TYPE [$stage]: ${first.runtimeType}');
+  print('E2E FIRST EXCEPTION MESSAGE [$stage]: ${first.toString()}');
 
   if (firstStack != null) {
-    debugPrint('E2E FIRST EXCEPTION STACK [$stage]:');
-    debugPrintStack(stackTrace: firstStack, label: 'E2E_STACK');
+    print('E2E FIRST EXCEPTION STACK [$stage]:');
+    print(firstStack.toString());
   } else {
-    debugPrint('E2E FIRST EXCEPTION STACK [$stage]: <none available>');
+    print('E2E FIRST EXCEPTION STACK [$stage]: <none available>');
   }
 
   // Print a few samples to detect repetition patterns.
   for (var i = 0; i < exceptions.length && i < 5; i++) {
-    debugPrint('E2E EXC SAMPLE [$stage #${i + 1}]: ${exceptions[i]}');
+    print('E2E EXC SAMPLE [$stage #${i + 1}]: ${exceptions[i]}');
   }
   if (exceptions.length > 5) {
-    debugPrint('E2E EXC SAMPLE: ... ${exceptions.length - 5} more');
+    print('E2E EXC SAMPLE: ... ${exceptions.length - 5} more');
+  }
+
+  if (_firstFlutterException == null) {
+    print('E2E FIRST EXCEPTION STAGE [$stage]: ${_firstFlutterExceptionStage ?? _currentStage}');
   }
 }
 
@@ -71,12 +104,24 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('E2E login and authorization flow', () {
+    void Function(FlutterErrorDetails)? originalFlutterErrorHandler;
+
     setUp(() async {
+      _firstFlutterException = null;
+      _firstFlutterExceptionStack = null;
+      _firstFlutterExceptionStage = null;
+      originalFlutterErrorHandler = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        _captureFlutterError(details);
+        originalFlutterErrorHandler?.call(details);
+      };
+
       await GetIt.instance.reset();
       await App.init();
     });
 
     tearDown(() async {
+      FlutterError.onError = originalFlutterErrorHandler;
       await GetIt.instance.reset();
     });
 
@@ -86,23 +131,27 @@ void main() {
         defaultValue: 'http://localhost:3000',
       );
 
+      _markStage('APP_STARTED');
       await tester.pumpWidget(const App());
       _dumpPendingExceptions(tester, 'after pumpWidget');
       await _settle(tester);
       _dumpPendingExceptions(tester, 'after initial pumpAndSettle');
 
+      _markStage('LOGIN_SCREEN_READY');
       expect(
         find.byKey(const ValueKey('login_identifier_field')),
         findsOneWidget,
         reason: 'The tenant bootstrap should leave an unauthenticated user on the login screen.',
       );
 
+      _markStage('LOGIN_SUBMITTED');
       await tester.enterText(find.byKey(const ValueKey('login_identifier_field')), _adminEmail);
       await tester.enterText(find.byKey(const ValueKey('login_password_field')), _adminPassword);
       await tester.tap(find.byKey(const ValueKey('login_submit_button')));
       await _settle(tester);
       _dumpPendingExceptions(tester, 'after login pumpAndSettle');
 
+      _markStage('AUTHENTICATION_COMPLETE');
       expect(find.text('Select organization'), findsOneWidget);
 
       final authBeforeOrganization = GetIt.instance.get<AuthService>();
@@ -111,6 +160,7 @@ void main() {
       expect(authBeforeOrganization.currentOrganizationId, isNull);
       expect(authBeforeOrganization.requiresOrganizationSelection, isTrue);
 
+      _markStage('ORGANIZATION_SELECTION');
       await tester.tap(find.text('E2E Organization').first);
       await _settle(tester);
       _dumpPendingExceptions(tester, 'after organization selection');
@@ -123,10 +173,12 @@ void main() {
       expect(authBeforeLocation.requiresLocationSelection, isTrue);
       expect(authBeforeLocation.availableLocations.length, equals(2));
 
+      _markStage('LOCATION_SELECTION');
       await tester.tap(find.text('E2E Main Location').first);
       await _settle(tester);
       _dumpPendingExceptions(tester, 'after location selection');
 
+      _markStage('DASHBOARD_REACHED');
       expect(find.text('Dashboard'), findsOneWidget);
 
       final auth = GetIt.instance.get<AuthService>();
@@ -276,6 +328,7 @@ void main() {
         reason: 'A user without role.read permission must not access the protected RBAC listing.',
       );
 
+      _markStage('ASSERTIONS_COMPLETE');
       _dumpPendingExceptions(tester, 'after limited-user authorization checks');
     });
   });
