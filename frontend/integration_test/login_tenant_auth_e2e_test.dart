@@ -244,6 +244,8 @@ void main() {
         403,
         reason: 'A user without role.read permission must not access the protected RBAC listing.',
       );
+
+      _dumpPendingExceptions(tester, 'after limited-user authorization checks');
     });
   });
 }
