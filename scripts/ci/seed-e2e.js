@@ -17,6 +17,15 @@ const ADMIN_EMAIL = 'e2e@example.com';
 const LIMITED_EMAIL = 'e2e-limited@example.com';
 const PASSWORD = 'Password123!';
 
+const CORE_MODULES = [
+  ['core', 'Core Platform', 'Administration', true, 1],
+  ['security', 'Security', 'Administration', true, 2],
+  ['organization', 'Organizations', 'Administration', true, 3],
+  ['branch', 'Branches', 'Administration', true, 4],
+  ['user-management', 'User Management', 'Administration', true, 5],
+  ['tenant-configuration', 'Tenant Configuration', 'Administration', true, 6],
+];
+
 async function main() {
   try {
     console.log('--- E2E seed starting ---');
@@ -26,7 +35,6 @@ async function main() {
       console.error('TEST_DATABASE_URL or DATABASE_URL is required');
       process.exit(2);
     }
-    // Mask password in printed URL
     const maskedDbUrl = databaseUrl.replace(/:\/\/([^:]+):([^@]+)@/, '://$1:***@');
     console.log('Using TEST_DATABASE_URL (masked): ' + maskedDbUrl);
   } catch (preError) {
@@ -55,8 +63,20 @@ async function main() {
     console.log('tenants table existence:', tenantsTable.rows[0].tenants_tbl);
 
     await client.query('BEGIN');
-    // Set session tenant context so RLS policies that depend on app.current_tenant_id allow inserts
     await client.query("SELECT set_config('app.current_tenant_id', $1, true)", [TENANT_ID]);
+
+    for (const [code, name, moduleGroup, isCore, sortOrder] of CORE_MODULES) {
+      await client.query(
+        `INSERT INTO modules (id, code, name, module_group, is_core, sort_order)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (code) DO UPDATE SET
+           name = EXCLUDED.name,
+           module_group = EXCLUDED.module_group,
+           is_core = EXCLUDED.is_core,
+           sort_order = EXCLUDED.sort_order`,
+        [randomUUID(), code, name, moduleGroup, isCore, sortOrder],
+      );
+    }
 
     await client.query(
       `INSERT INTO tenants (id, name, display_name, subdomain, slug, timezone, currency, locale, status, created_at)
@@ -70,6 +90,26 @@ async function main() {
        VALUES ($1, $2, $3, $4, $4, 'active', true, NOW())
        ON CONFLICT (id) DO NOTHING`,
       [ORGANIZATION_ID, TENANT_ID, 'E2E_ORG', 'E2E Organization'],
+    );
+
+    await client.query(
+      `INSERT INTO tenant_modules (tenant_id, module_id, enabled, enabled_at)
+       SELECT $1, m.id, true, NOW()
+       FROM modules m
+       WHERE m.is_core = true
+       ON CONFLICT (tenant_id, module_id) DO UPDATE
+       SET enabled = true, disabled_at = NULL`,
+      [TENANT_ID],
+    );
+
+    await client.query(
+      `INSERT INTO organization_modules (tenant_id, organization_id, module_id, enabled, enabled_at)
+       SELECT $1, $2, m.id, true, NOW()
+       FROM modules m
+       WHERE m.is_core = true
+       ON CONFLICT (organization_id, module_id) DO UPDATE
+       SET enabled = true, disabled_at = NULL`,
+      [TENANT_ID, ORGANIZATION_ID],
     );
 
     const adminPasswordHash = await bcrypt.hash(PASSWORD, 10);
@@ -113,6 +153,7 @@ async function main() {
     );
 
     const adminPermissions = [
+      'tenant.manage',
       'organization.read',
       'organization.manage',
       'user.read',
@@ -128,13 +169,16 @@ async function main() {
 
     for (const permissionKey of allPermissionKeys) {
       const [moduleCode, action] = permissionKey.split('.');
+      const resolvedModuleCode = moduleCode === 'tenant' ? 'tenant-configuration' :
+        moduleCode === 'user' ? 'user-management' :
+        ['role', 'permission', 'session'].includes(moduleCode) ? 'security' : moduleCode;
       await client.query(
         `INSERT INTO permissions (id, module_code, resource, action, scope, permission_key, display_name, description, is_system)
          VALUES ($1, $2, $3, $4, 'tenant', $5, $6, $7, false)
-         ON CONFLICT (permission_key) DO NOTHING`,
+         ON CONFLICT (permission_key) DO UPDATE SET module_code = EXCLUDED.module_code`,
         [
           randomUUID(),
-          moduleCode,
+          resolvedModuleCode,
           moduleCode,
           action ?? 'read',
           permissionKey,
