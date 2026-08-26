@@ -96,11 +96,12 @@ export class AuthenticationService {
       expiresInSeconds: 60 * 60 * 24 * 14,
     }) : 'internal-session-token';
 
+    const effectiveOrganizationId = organizationId === undefined ? user.organizationId ?? null : organizationId;
     const session = await this.authenticationRepository.createSession({
       id: sessionId,
       tenantId,
       userId: user.id,
-      organizationId: organizationId ?? user.organizationId ?? null,
+      organizationId: effectiveOrganizationId,
       locationId: locationId ?? null,
       branchId: user.defaultBranchId ?? null,
       accessTokenId: null,
@@ -123,7 +124,7 @@ export class AuthenticationService {
       user: {
         id: user.id,
         tenantId: user.tenantId,
-        organizationId: organizationId ?? user.organizationId,
+        organizationId: effectiveOrganizationId,
         activeLocationId: locationId ?? session.locationId ?? null,
         defaultBranchId: user.defaultBranchId,
         username: user.username,
@@ -162,7 +163,7 @@ export class AuthenticationService {
     return {
       id: user.id,
       tenantId: user.tenantId,
-      organizationId: user.organizationId,
+      organizationId: session.organizationId ?? null,
       activeLocationId: session.locationId ?? null,
       defaultBranchId: user.defaultBranchId,
       username: user.username,
