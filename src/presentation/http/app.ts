@@ -39,11 +39,11 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
 
   const pool = providedPool ?? createDatabasePool(config);
   const repository = new PostgresPlatformRepository(pool);
+  const moduleAccessService = new ModuleAccessService(pool, config.TENANT_CONTEXT_KEY);
   const passwordHasher = new BcryptPasswordHasher();
   const jwtTokenService = new JwtTokenService(config);
   const authService = new AuthenticationService(repository, passwordHasher, jwtTokenService);
-  const authorizationService = new AuthorizationService(repository);
-  const moduleAccessService = new ModuleAccessService(pool, config.TENANT_CONTEXT_KEY);
+  const authorizationService = new AuthorizationService(repository, moduleAccessService);
   const coreEnterpriseService = new CoreEnterpriseService(repository);
   const locationService = new LocationService(repository);
   const registrationService = new UserRegistrationService(repository, passwordHasher);
