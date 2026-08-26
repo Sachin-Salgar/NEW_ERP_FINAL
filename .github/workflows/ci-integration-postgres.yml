@@ -282,6 +282,7 @@ jobs:
           set +e
           flutter drive \
             --verbose \
+            --profile \
             --driver=test_driver/integration_test.dart \
             --target=integration_test/login_tenant_auth_e2e_test.dart \
             -d web-server \
