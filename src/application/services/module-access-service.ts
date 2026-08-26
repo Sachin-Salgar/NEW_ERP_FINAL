@@ -24,9 +24,8 @@ export class ModuleAccessService {
       `SELECT 1
        FROM permissions p
        INNER JOIN modules m ON m.code = p.module_code
-       LEFT JOIN tenant_modules tm ON tm.tenant_id = $1 AND tm.module_id = m.id
+       INNER JOIN tenant_modules tm ON tm.tenant_id = $1 AND tm.module_id = m.id AND tm.enabled = true
        WHERE p.permission_key = $2
-         AND (m.is_core = true OR tm.enabled = true)
          AND (
            EXISTS (
              SELECT 1
@@ -54,9 +53,8 @@ export class ModuleAccessService {
       `SELECT DISTINCT p.permission_key
        FROM permissions p
        INNER JOIN modules m ON m.code = p.module_code
-       LEFT JOIN tenant_modules tm ON tm.tenant_id = $1 AND tm.module_id = m.id
-       WHERE (m.is_core = true OR tm.enabled = true)
-         AND (
+       INNER JOIN tenant_modules tm ON tm.tenant_id = $1 AND tm.module_id = m.id AND tm.enabled = true
+       WHERE (
            EXISTS (
              SELECT 1
              FROM role_permissions rp
@@ -90,7 +88,7 @@ export class ModuleAccessService {
          m.route,
          m.is_core as "isCore",
          m.sort_order as "sortOrder",
-         (m.is_core = true OR tm.enabled = true) as enabled,
+         tm.enabled as enabled,
          EXISTS (
            SELECT 1
            FROM permissions p
@@ -112,8 +110,7 @@ export class ModuleAccessService {
              )
          ) as authorized
        FROM modules m
-       LEFT JOIN tenant_modules tm ON tm.tenant_id = $1 AND tm.module_id = m.id
-       WHERE (m.is_core = true OR tm.enabled = true)
+       INNER JOIN tenant_modules tm ON tm.tenant_id = $1 AND tm.module_id = m.id AND tm.enabled = true
        ORDER BY m.sort_order, m.name`,
       [tenantId, userId],
     ));
