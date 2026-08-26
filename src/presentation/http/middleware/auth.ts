@@ -6,6 +6,7 @@ import type { AuthenticationService } from '../../../application/services/authen
 import type { AuthorizationService } from '../../../application/services/authorization-service.js';
 import type { CoreEnterpriseService } from '../../../application/services/core-enterprise-service.js';
 import type { LocationService } from '../../../application/services/location-service.js';
+import type { ModuleAccessService } from '../../../application/services/module-access-service.js';
 import type { UserRegistrationService } from '../../../application/services/user-registration-service.js';
 import type { JwtTokenService } from '../../../infrastructure/security/jwt-token-service.js';
 import type { AppConfig } from '../../../config/schema.js';
@@ -18,6 +19,7 @@ declare module 'fastify' {
     authorizationService: AuthorizationService;
     coreEnterpriseService: CoreEnterpriseService;
     locationService: LocationService;
+    moduleAccessService: ModuleAccessService;
     registrationService: UserRegistrationService;
     jwtTokenService: JwtTokenService;
     tenantResolver: TenantResolutionService;
@@ -65,6 +67,26 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply):
   request.user = session;
   request.tenantId = session.tenantId;
   request.sessionId = claims.sessionId;
+}
+
+export function requireModule(moduleCode: string) {
+  return async function requireModuleHandler(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    if (!request.user || !request.tenantId) {
+      throw new UnauthorizedError('Authentication is required to access a module.');
+    }
+    if (!request.user.organizationId) {
+      throw new ForbiddenError('An active organization is required to access modules.');
+    }
+
+    const enabled = await request.server.moduleAccessService.isModuleEnabled(
+      request.tenantId,
+      request.user.organizationId,
+      moduleCode,
+    );
+    if (!enabled) {
+      throw new ForbiddenError('Module access denied.');
+    }
+  };
 }
 
 export function requirePermission(permissionKey: string) {
