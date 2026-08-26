@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -13,6 +13,18 @@ const _tenantId = '11111111-1111-4111-8111-111111111111';
 const _adminEmail = 'e2e@example.com';
 const _adminPassword = 'Password123!';
 const _limitedEmail = 'e2e-limited@example.com';
+
+void _dumpPendingExceptions(WidgetTester tester, String stage) {
+  var index = 0;
+  while (true) {
+    final exception = tester.takeException();
+    if (exception == null) {
+      break;
+    }
+    index += 1;
+    debugPrint('E2E PENDING EXCEPTION [$stage #$index]: $exception');
+  }
+}
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -34,7 +46,9 @@ void main() {
       );
 
       await tester.pumpWidget(const App());
+      _dumpPendingExceptions(tester, 'after pumpWidget');
       await tester.pumpAndSettle(const Duration(seconds: 10));
+      _dumpPendingExceptions(tester, 'after initial pumpAndSettle');
 
       expect(find.text('Welcome back'), findsOneWidget);
 
@@ -42,6 +56,7 @@ void main() {
       await tester.enterText(find.byKey(const ValueKey('login_password_field')), _adminPassword);
       await tester.tap(find.byKey(const ValueKey('login_submit_button')));
       await tester.pumpAndSettle(const Duration(seconds: 15));
+      _dumpPendingExceptions(tester, 'after login pumpAndSettle');
 
       expect(find.text('Dashboard'), findsOneWidget);
 
@@ -52,7 +67,6 @@ void main() {
       final String? uiToken = auth.accessToken;
       expect(uiToken, isNotNull, reason: 'UI must have access token after login');
 
-      // Admin: use the real UI token for protected call (string-concat to avoid $ in file)
       final protectedRolesResponse = await http.get(
         Uri.parse(baseUrl + '/api/v1/rbac/roles'),
         headers: {
@@ -66,7 +80,6 @@ void main() {
         reason: 'The authenticated admin should be able to read roles in the tenant.',
       );
 
-      // Tenant mismatch: same token but wrong tenant header
       final mismatchedTenantResponse = await http.get(
         Uri.parse(baseUrl + '/api/v1/rbac/roles'),
         headers: {
