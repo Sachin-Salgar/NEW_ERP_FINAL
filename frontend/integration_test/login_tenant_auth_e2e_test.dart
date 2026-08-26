@@ -145,7 +145,7 @@ void main() {
       final disableModuleResponse = await http.post(
         Uri.parse(baseUrl + '/api/v1/auth/modules/' + _moduleCode + '/disable'),
         headers: {
-          'Authorization': 'Bearer ' + uiToken!,
+          'Authorization': 'Bearer ' + uiToken,
           'x-tenant-id': _tenantId,
         },
       );
@@ -162,7 +162,7 @@ void main() {
       final deniedRoleAccess = await http.get(
         Uri.parse(baseUrl + '/api/v1/rbac/roles'),
         headers: {
-          'Authorization': 'Bearer ' + uiToken!,
+          'Authorization': 'Bearer ' + uiToken,
           'x-tenant-id': _tenantId,
         },
       );
@@ -175,7 +175,7 @@ void main() {
       final enableModuleResponse = await http.post(
         Uri.parse(baseUrl + '/api/v1/auth/modules/' + _moduleCode + '/enable'),
         headers: {
-          'Authorization': 'Bearer ' + uiToken!,
+          'Authorization': 'Bearer ' + uiToken,
           'x-tenant-id': _tenantId,
         },
       );
@@ -192,7 +192,7 @@ void main() {
       final restoredRoleAccess = await http.get(
         Uri.parse(baseUrl + '/api/v1/rbac/roles'),
         headers: {
-          'Authorization': 'Bearer ' + uiToken!,
+          'Authorization': 'Bearer ' + uiToken,
           'x-tenant-id': _tenantId,
         },
       );

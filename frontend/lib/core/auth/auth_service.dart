@@ -118,6 +118,8 @@ class AuthService extends ChangeNotifier {
 
   bool hasModule(String moduleCode) {
     final normalized = moduleCode.trim();
+    if (normalized.isEmpty) return true;
+    if (availableModules.isEmpty) return true;
     return availableModules.any((module) => (module['code'] ?? '').toString() == normalized);
   }
 
