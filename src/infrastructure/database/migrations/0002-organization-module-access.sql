@@ -46,6 +46,30 @@ CREATE INDEX IF NOT EXISTS "idx_organization_modules_tenant_module"
   ON "organization_modules" ("tenant_id", "module_id");
 --> statement-breakpoint
 
+-- Existing organizations receive all currently-defined core modules.
+-- This backfill intentionally runs before RLS is enabled on organization_modules,
+-- because migration execution has no single tenant/organization context.
+INSERT INTO "organization_modules" (
+  "tenant_id", "organization_id", "module_id", "enabled", "enabled_at"
+)
+SELECT o.tenant_id, o.id, m.id, true, NOW()
+FROM "organizations" o
+CROSS JOIN "modules" m
+WHERE m.is_core = true
+ON CONFLICT (organization_id, module_id) DO NOTHING;
+--> statement-breakpoint
+
+-- Existing tenants receive all currently-defined core modules as platform entitlements.
+INSERT INTO "tenant_modules" (
+  "tenant_id", "module_id", "enabled", "enabled_at"
+)
+SELECT t.id, m.id, true, NOW()
+FROM "tenants" t
+CROSS JOIN "modules" m
+WHERE m.is_core = true
+ON CONFLICT (tenant_id, module_id) DO NOTHING;
+--> statement-breakpoint
+
 ALTER TABLE IF EXISTS "organization_modules" ENABLE ROW LEVEL SECURITY;
 --> statement-breakpoint
 ALTER TABLE IF EXISTS "organization_modules" FORCE ROW LEVEL SECURITY;
@@ -70,28 +94,6 @@ WITH CHECK (
     OR "organization_id" = current_setting('app.current_organization_id', true)::uuid
   )
 );
---> statement-breakpoint
-
--- Existing organizations receive all currently-defined core modules.
-INSERT INTO "organization_modules" (
-  "tenant_id", "organization_id", "module_id", "enabled", "enabled_at"
-)
-SELECT o.tenant_id, o.id, m.id, true, NOW()
-FROM "organizations" o
-CROSS JOIN "modules" m
-WHERE m.is_core = true
-ON CONFLICT (organization_id, module_id) DO NOTHING;
---> statement-breakpoint
-
--- Existing tenants receive all currently-defined core modules as platform entitlements.
-INSERT INTO "tenant_modules" (
-  "tenant_id", "module_id", "enabled", "enabled_at"
-)
-SELECT t.id, m.id, true, NOW()
-FROM "tenants" t
-CROSS JOIN "modules" m
-WHERE m.is_core = true
-ON CONFLICT (tenant_id, module_id) DO NOTHING;
 --> statement-breakpoint
 
 -- New organizations automatically receive core modules.
