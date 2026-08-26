@@ -8,6 +8,9 @@ const { Client } = pg;
 
 const TENANT_ID = '11111111-1111-4111-8111-111111111111';
 const ORGANIZATION_ID = '22222222-2222-4222-8222-222222222222';
+const ORGANIZATION_TWO_ID = '77777777-7777-4777-8777-777777777777';
+const LOCATION_ONE_ID = '88888888-8888-4888-8888-888888888888';
+const LOCATION_TWO_ID = '99999999-9999-4999-8999-999999999999';
 const ADMIN_ROLE_ID = '33333333-3333-4333-8333-333333333333';
 const LIMITED_ROLE_ID = '44444444-4444-4444-8444-444444444444';
 const ADMIN_USER_ID = '55555555-5555-4555-8555-555555555555';
@@ -16,6 +19,17 @@ const LIMITED_USER_ID = '66666666-6666-4666-8666-666666666666';
 const ADMIN_EMAIL = 'e2e@example.com';
 const LIMITED_EMAIL = 'e2e-limited@example.com';
 const PASSWORD = 'Password123!';
+
+const CORE_MODULES = [
+  ['core', 'Core Platform', 'Administration', true, 1],
+  ['security', 'Security', 'Administration', true, 2],
+  ['organization', 'Organizations', 'Administration', true, 3],
+  ['branch', 'Branches', 'Administration', true, 4],
+  ['user-management', 'User Management', 'Administration', true, 5],
+  ['tenant-configuration', 'Tenant Configuration', 'Administration', true, 6],
+];
+
+const E2E_MODULE = ['e2e-rbac', 'E2E RBAC Access', 'Administration', false, 100];
 
 async function main() {
   try {
@@ -26,7 +40,6 @@ async function main() {
       console.error('TEST_DATABASE_URL or DATABASE_URL is required');
       process.exit(2);
     }
-    // Mask password in printed URL
     const maskedDbUrl = databaseUrl.replace(/:\/\/([^:]+):([^@]+)@/, '://$1:***@');
     console.log('Using TEST_DATABASE_URL (masked): ' + maskedDbUrl);
   } catch (preError) {
@@ -55,8 +68,20 @@ async function main() {
     console.log('tenants table existence:', tenantsTable.rows[0].tenants_tbl);
 
     await client.query('BEGIN');
-    // Set session tenant context so RLS policies that depend on app.current_tenant_id allow inserts
     await client.query("SELECT set_config('app.current_tenant_id', $1, true)", [TENANT_ID]);
+
+    for (const [code, name, moduleGroup, isCore, sortOrder] of [...CORE_MODULES, E2E_MODULE]) {
+      await client.query(
+        `INSERT INTO modules (id, code, name, module_group, is_core, sort_order)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (code) DO UPDATE SET
+           name = EXCLUDED.name,
+           module_group = EXCLUDED.module_group,
+           is_core = EXCLUDED.is_core,
+           sort_order = EXCLUDED.sort_order`,
+        [randomUUID(), code, name, moduleGroup, isCore, sortOrder],
+      );
+    }
 
     await client.query(
       `INSERT INTO tenants (id, name, display_name, subdomain, slug, timezone, currency, locale, status, created_at)
@@ -67,9 +92,47 @@ async function main() {
 
     await client.query(
       `INSERT INTO organizations (id, tenant_id, code, name, legal_name, status, is_default, created_at)
-       VALUES ($1, $2, $3, $4, $4, 'active', true, NOW())
+       VALUES ($1, $2, $3, $4, $4, 'active', true, NOW()),
+              ($5, $2, $6, $7, $7, 'active', false, NOW())
        ON CONFLICT (id) DO NOTHING`,
-      [ORGANIZATION_ID, TENANT_ID, 'E2E_ORG', 'E2E Organization'],
+      [
+        ORGANIZATION_ID,
+        TENANT_ID,
+        'E2E_ORG',
+        'E2E Organization',
+        ORGANIZATION_TWO_ID,
+        'E2E_ORG_2',
+        'E2E Secondary Organization',
+      ],
+    );
+
+    await client.query(
+      `INSERT INTO tenant_modules (tenant_id, module_id, enabled, enabled_at)
+       SELECT $1, m.id, true, NOW()
+       FROM modules m
+       WHERE m.code = ANY($2)
+       ON CONFLICT (tenant_id, module_id) DO UPDATE
+       SET enabled = true, disabled_at = NULL`,
+      [TENANT_ID, [...CORE_MODULES.map(([code]) => code), E2E_MODULE[0]]],
+    );
+
+    await client.query(
+      `INSERT INTO organization_modules (tenant_id, organization_id, module_id, enabled, enabled_at)
+       SELECT $1, o.id, m.id, true, NOW()
+       FROM organizations o
+       CROSS JOIN modules m
+       WHERE o.tenant_id = $1 AND m.code = ANY($2)
+       ON CONFLICT (organization_id, module_id) DO UPDATE
+       SET enabled = true, disabled_at = NULL`,
+      [TENANT_ID, [...CORE_MODULES.map(([code]) => code), E2E_MODULE[0]]],
+    );
+
+    await client.query(
+      `INSERT INTO locations (id, tenant_id, organization_id, code, name, status, is_default, timezone, created_at)
+       VALUES ($1, $2, $3, 'E2E_LOC_1', 'E2E Main Location', 'active', true, 'UTC', NOW()),
+              ($4, $2, $3, 'E2E_LOC_2', 'E2E Secondary Location', 'active', false, 'UTC', NOW())
+       ON CONFLICT (id) DO NOTHING`,
+      [LOCATION_ONE_ID, TENANT_ID, ORGANIZATION_ID, LOCATION_TWO_ID],
     );
 
     const adminPasswordHash = await bcrypt.hash(PASSWORD, 10);
@@ -113,6 +176,7 @@ async function main() {
     );
 
     const adminPermissions = [
+      'tenant.manage',
       'organization.read',
       'organization.manage',
       'user.read',
@@ -128,13 +192,16 @@ async function main() {
 
     for (const permissionKey of allPermissionKeys) {
       const [moduleCode, action] = permissionKey.split('.');
+      const resolvedModuleCode = moduleCode === 'tenant' ? 'tenant-configuration' :
+        moduleCode === 'user' ? 'user-management' :
+        ['role', 'permission', 'session'].includes(moduleCode) ? E2E_MODULE[0] : moduleCode;
       await client.query(
         `INSERT INTO permissions (id, module_code, resource, action, scope, permission_key, display_name, description, is_system)
          VALUES ($1, $2, $3, $4, 'tenant', $5, $6, $7, false)
-         ON CONFLICT (permission_key) DO NOTHING`,
+         ON CONFLICT (permission_key) DO UPDATE SET module_code = EXCLUDED.module_code`,
         [
           randomUUID(),
-          moduleCode,
+          resolvedModuleCode,
           moduleCode,
           action ?? 'read',
           permissionKey,
@@ -171,9 +238,17 @@ async function main() {
 
     await client.query(
       `INSERT INTO user_organization_access (tenant_id, user_id, organization_id)
-       VALUES ($1, $2, $3), ($1, $4, $3)
+       VALUES ($1, $2, $3), ($1, $2, $4), ($1, $5, $3)
        ON CONFLICT (user_id, organization_id, tenant_id) DO NOTHING`,
-      [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, LIMITED_USER_ID],
+      [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, ORGANIZATION_TWO_ID, LIMITED_USER_ID],
+    );
+
+    await client.query(
+      `INSERT INTO user_location_access (tenant_id, user_id, organization_id, location_id, is_active)
+       VALUES ($1, $2, $3, $4, true),
+              ($1, $2, $3, $5, true)
+       ON CONFLICT (user_id, location_id, tenant_id) DO UPDATE SET is_active = true`,
+      [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, LOCATION_ONE_ID, LOCATION_TWO_ID],
     );
 
     await client.query('COMMIT');

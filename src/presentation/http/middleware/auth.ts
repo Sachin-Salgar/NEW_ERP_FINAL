@@ -6,6 +6,7 @@ import type { AuthenticationService } from '../../../application/services/authen
 import type { AuthorizationService } from '../../../application/services/authorization-service.js';
 import type { CoreEnterpriseService } from '../../../application/services/core-enterprise-service.js';
 import type { LocationService } from '../../../application/services/location-service.js';
+import type { ModuleAccessService } from '../../../application/services/module-access-service.js';
 import type { UserRegistrationService } from '../../../application/services/user-registration-service.js';
 import type { JwtTokenService } from '../../../infrastructure/security/jwt-token-service.js';
 import type { AppConfig } from '../../../config/schema.js';
@@ -18,6 +19,7 @@ declare module 'fastify' {
     authorizationService: AuthorizationService;
     coreEnterpriseService: CoreEnterpriseService;
     locationService: LocationService;
+    moduleAccessService: ModuleAccessService;
     registrationService: UserRegistrationService;
     jwtTokenService: JwtTokenService;
     tenantResolver: TenantResolutionService;
@@ -67,10 +69,58 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply):
   request.sessionId = claims.sessionId;
 }
 
+export function requireModule(moduleCode: string) {
+  return async function requireModuleHandler(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    if (!request.user || !request.tenantId) {
+      throw new UnauthorizedError('Authentication is required to access a module.');
+    }
+    if (!request.user.organizationId) {
+      throw new ForbiddenError('An active organization is required to access modules.');
+    }
+
+    const enabled = await request.server.moduleAccessService.isModuleEnabled(
+      request.tenantId,
+      request.user.organizationId,
+      moduleCode,
+    );
+    if (!enabled) {
+      throw new ForbiddenError('Module access denied.');
+    }
+  };
+}
+
+function moduleCodeForPermission(permissionKey: string): string {
+  const prefix = permissionKey.split('.')[0]?.trim() ?? '';
+  switch (prefix) {
+    case 'tenant':
+      return 'tenant-configuration';
+    case 'user':
+      return 'user-management';
+    case 'role':
+    case 'permission':
+    case 'session':
+      return 'e2e-rbac';
+    default:
+      return prefix;
+  }
+}
+
 export function requirePermission(permissionKey: string) {
   return async function requirePermissionHandler(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     if (!request.user || !request.tenantId) {
       throw new UnauthorizedError('Authentication is required to perform this action.');
+    }
+    if (!request.user.organizationId) {
+      throw new ForbiddenError('An active organization is required to perform this action.');
+    }
+
+    const moduleEnabled = await request.server.moduleAccessService.isModuleEnabled(
+      request.tenantId,
+      request.user.organizationId,
+      moduleCodeForPermission(permissionKey),
+    );
+    if (!moduleEnabled) {
+      throw new ForbiddenError('Module access denied.');
     }
 
     const allowed = await request.server.authorizationService.hasPermission(request.tenantId, request.user.id, permissionKey);
@@ -89,6 +139,19 @@ export function requirePermissionOrSelf(permissionKey: string, selfIdGetter?: (r
     const resolvedSelfId = selfIdGetter ? selfIdGetter(request) : null;
     if (resolvedSelfId && request.user.id === resolvedSelfId) {
       return;
+    }
+
+    if (!request.user.organizationId) {
+      throw new ForbiddenError('An active organization is required to perform this action.');
+    }
+
+    const moduleEnabled = await request.server.moduleAccessService.isModuleEnabled(
+      request.tenantId,
+      request.user.organizationId,
+      moduleCodeForPermission(permissionKey),
+    );
+    if (!moduleEnabled) {
+      throw new ForbiddenError('Module access denied.');
     }
 
     const allowed = await request.server.authorizationService.hasPermission(request.tenantId, request.user.id, permissionKey);

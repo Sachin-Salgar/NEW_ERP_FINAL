@@ -30,6 +30,10 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const organizationId = request.user.organizationId ?? null;
+    if (!organizationId) {
+      throw new ValidationError('An active organization is required before resolving locations.');
+    }
+
     const locations = await request.server.locationService.listAccessibleLocationsForUser(tenantId, request.user.id, organizationId);
     return { success: true, locations };
   });
@@ -44,8 +48,13 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Authentication context is required.');
     }
 
+    const organizationId = request.user.organizationId ?? null;
+    if (!organizationId) {
+      throw new ValidationError('An active organization is required before resolving locations.');
+    }
+
     const locationId = asString((request.params as { id?: string }).id) ?? '';
-    const location = await request.server.locationService.getAccessibleLocationByIdForUser(tenantId, request.user.id, locationId, request.user.organizationId ?? null);
+    const location = await request.server.locationService.getAccessibleLocationByIdForUser(tenantId, request.user.id, locationId, organizationId);
     if (!location) {
       throw new NotFoundError('Location not found or access denied.');
     }
@@ -63,12 +72,17 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Authentication context is required.');
     }
 
+    const organizationId = request.user.organizationId ?? null;
+    if (!organizationId) {
+      return { success: true, activeLocationId: null, location: null };
+    }
+
     const activeLocationId = request.user.activeLocationId ?? null;
     if (!activeLocationId) {
       return { success: true, activeLocationId: null, location: null };
     }
 
-    const location = await request.server.locationService.getAccessibleLocationByIdForUser(tenantId, request.user.id, activeLocationId, request.user.organizationId ?? null);
+    const location = await request.server.locationService.getAccessibleLocationByIdForUser(tenantId, request.user.id, activeLocationId, organizationId);
     if (!location) {
       return { success: true, activeLocationId: null, location: null };
     }
@@ -86,8 +100,13 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Authentication context is required.');
     }
 
+    const organizationId = request.user.organizationId ?? null;
+    if (!organizationId) {
+      throw new ValidationError('An active organization is required before selecting a location.');
+    }
+
     const locationId = asString((request.params as { id?: string }).id) ?? '';
-    const location = await request.server.locationService.getAccessibleLocationByIdForUser(tenantId, request.user.id, locationId, request.user.organizationId ?? null);
+    const location = await request.server.locationService.getAccessibleLocationByIdForUser(tenantId, request.user.id, locationId, organizationId);
     if (!location) {
       throw new NotFoundError('Location not found or access denied.');
     }
@@ -95,7 +114,7 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
     const result = await request.server.authService.createSessionForUser(
       tenantId,
       request.user.id,
-      request.user.organizationId ?? location.organizationId,
+      organizationId,
       location.id,
     );
 
@@ -109,7 +128,7 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
       user: {
         id: result.user.id,
         tenantId: result.user.tenantId,
-        organizationId: result.user.organizationId ?? null,
+        organizationId: result.user.organizationId ?? organizationId,
         activeLocationId: result.user.activeLocationId ?? location.id,
         defaultBranchId: result.user.defaultBranchId ?? null,
         username: result.user.username,
@@ -120,7 +139,7 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
         id: result.session.id,
         tenantId: result.session.tenantId,
         userId: result.session.userId,
-        organizationId: result.session.organizationId ?? null,
+        organizationId: result.session.organizationId ?? organizationId,
         locationId: result.session.locationId ?? location.id,
         branchId: result.session.branchId ?? null,
         isActive: result.session.isActive,

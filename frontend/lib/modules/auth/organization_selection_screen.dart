@@ -49,13 +49,26 @@ class OrganizationSelectionScreen extends StatelessWidget {
                 subtitle: code.isEmpty ? null : Text(code),
                 trailing: isActive ? const Icon(Icons.check) : const Icon(Icons.chevron_right),
                 onTap: () async {
+                  debugPrint('E2E AUTH: selecting organization $id ($name)');
                   final ok = await auth.selectOrganization(id);
+                  debugPrint(
+                    'E2E AUTH: organization selection result ok=$ok '
+                    'tenant=${auth.currentTenantId} '
+                    'organization=${auth.currentOrganizationId} '
+                    'requiresOrganization=${auth.requiresOrganizationSelection} '
+                    'requiresLocation=${auth.requiresLocationSelection} '
+                    'locations=${auth.availableLocations.length} '
+                    'modules=${auth.availableModules.length}',
+                  );
                   if (!context.mounted) return;
                   if (ok) {
                     final nextRoute = auth.requiresLocationSelection
                         ? '/location-selection'
                         : '/dashboard';
+                    debugPrint('E2E AUTH: navigating to $nextRoute');
                     Navigator.of(context).pushNamedAndRemoveUntil(nextRoute, (_) => false);
+                  } else {
+                    debugPrint('E2E AUTH: organization selection failed; staying on organization screen');
                   }
                 },
               ),

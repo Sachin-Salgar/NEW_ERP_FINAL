@@ -105,9 +105,18 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Identifier and password are required.');
     }
 
-    const result = await request.server.authService.authenticate(tenant.id, identifier, password);
+    let result = await request.server.authService.authenticate(tenant.id, identifier, password);
     if (!result.success || !result.user || !result.session || !result.accessToken || !result.refreshToken) {
       throw new UnauthorizedError('Invalid credentials.');
+    }
+
+    const memberships = await request.server.tenantResolver.resolveUserMemberships(tenant.id, result.user.id);
+    if (memberships.requiresOrganizationSelection) {
+      await request.server.authService.invalidateSession(result.session.id, tenant.id);
+      result = await request.server.authService.createSessionForUser(tenant.id, result.user.id, null);
+      if (!result.success || !result.user || !result.session || !result.accessToken || !result.refreshToken) {
+        throw new UnauthorizedError('Unable to establish the pre-organization login session.');
+      }
     }
 
     reply.code(200);
@@ -193,9 +202,6 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     };
   });
 
-  // Allows an authenticated user to request an active organization. Backend validates
-  // that the requested organization is available for the user and issues a new
-  // effective session for that organization.
   fastify.post('/auth/organizations/select', { preHandler: requireAuth }, async (request, reply) => {
     if (!request.user || !request.tenantId) {
       throw new UnauthorizedError('Authentication required.');
@@ -207,10 +213,8 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ success: false, message: 'organizationId is required' });
     }
 
-    // Validate membership in tenantResolver - it will throw ForbiddenError when invalid
     await request.server.tenantResolver.resolveUserMemberships(request.tenantId, request.user.id, requestedOrg);
 
-    // Create a new session for the user scoped to the requested organization
     const result = await request.server.authService.createSessionForUser(request.tenantId, request.user.id, requestedOrg);
     if (!result.success || !result.user || !result.session) {
       throw new UnauthorizedError('Failed to create organization session.');
@@ -236,6 +240,64 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       expiresAt: result.session.expiresAt,
       tokenType: 'bearer',
     };
+  });
+
+  fastify.get('/auth/modules', { preHandler: requireAuth }, async (request) => {
+    if (!request.user || !request.tenantId) {
+      throw new UnauthorizedError('Authentication required.');
+    }
+    if (!request.user.organizationId) {
+      throw new ValidationError('An active organization is required.');
+    }
+
+    const modules = await request.server.moduleAccessService.listAccessibleModules(
+      request.tenantId,
+      request.user.organizationId,
+    );
+
+    return {
+      success: true,
+      organizationId: request.user.organizationId,
+      modules,
+    };
+  });
+
+  fastify.post('/auth/modules/:code/enable', {
+    preHandler: [requireAuth, requirePermission('tenant.manage')],
+  }, async (request) => {
+    if (!request.user || !request.tenantId || !request.user.organizationId) {
+      throw new UnauthorizedError('Authentication and organization context are required.');
+    }
+
+    const moduleCode = ((request.params as { code?: string }).code ?? '').trim();
+    const module = await request.server.moduleAccessService.setOrganizationModule(
+      request.tenantId,
+      request.user.organizationId,
+      moduleCode,
+      true,
+      request.user.id,
+    );
+
+    return { success: true, enabled: true, module };
+  });
+
+  fastify.post('/auth/modules/:code/disable', {
+    preHandler: [requireAuth, requirePermission('tenant.manage')],
+  }, async (request) => {
+    if (!request.user || !request.tenantId || !request.user.organizationId) {
+      throw new UnauthorizedError('Authentication and organization context are required.');
+    }
+
+    const moduleCode = ((request.params as { code?: string }).code ?? '').trim();
+    await request.server.moduleAccessService.setOrganizationModule(
+      request.tenantId,
+      request.user.organizationId,
+      moduleCode,
+      false,
+      request.user.id,
+    );
+
+    return { success: true, enabled: false, moduleCode };
   });
 
   fastify.post('/auth/logout', { preHandler: requireAuth }, async (request) => {
