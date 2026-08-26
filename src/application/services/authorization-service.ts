@@ -1,8 +1,12 @@
 import type { PermissionDescriptor, PermissionCheckResult, RoleDescriptor } from '../../domain/contracts/authorization.js';
 import type { AuthorizationRepository } from '../contracts/security.js';
+import type { ModuleAccessService } from './module-access-service.js';
 
 export class AuthorizationService {
-  constructor(private readonly authorizationRepository: AuthorizationRepository) {}
+  constructor(
+    private readonly authorizationRepository: AuthorizationRepository,
+    private readonly moduleAccessService?: ModuleAccessService,
+  ) {}
 
   async createRole(tenantId: string, input: { code: string; name: string; description?: string | null; isSystem?: boolean; sortOrder?: number }): Promise<RoleDescriptor> {
     return this.authorizationRepository.createRole(tenantId, input);
@@ -45,10 +49,20 @@ export class AuthorizationService {
   }
 
   async getEffectivePermissions(tenantId: string, userId: string): Promise<PermissionDescriptor[]> {
-    return this.authorizationRepository.getUserEffectivePermissions(tenantId, userId);
+    const permissions = await this.authorizationRepository.getUserEffectivePermissions(tenantId, userId);
+    if (!this.moduleAccessService) {
+      return permissions;
+    }
+
+    const enabledKeys = new Set(await this.moduleAccessService.listEffectivePermissions(tenantId, userId));
+    return permissions.filter((permission) => enabledKeys.has(permission.permissionKey));
   }
 
   async hasPermission(tenantId: string, userId: string, permissionKey: string): Promise<boolean> {
+    if (this.moduleAccessService) {
+      return this.moduleAccessService.hasPermission(tenantId, userId, permissionKey);
+    }
+
     const permissions = await this.authorizationRepository.getPermissionKeysForUser(tenantId, userId);
     return permissions.some((entry) => entry.permissionKey === permissionKey);
   }
@@ -60,7 +74,7 @@ export class AuthorizationService {
     return permissionKeys.map((permissionKey) => ({
       permissionKey,
       allowed: permissionSet.has(permissionKey),
-      source: permissions.find((entry) => entry.permissionKey === permissionKey)?.source ?? 'none',
+      source: permissionSet.has(permissionKey) ? permissions.find((entry) => entry.permissionKey === permissionKey)?.source ?? 'role' : 'none',
     }));
   }
 
