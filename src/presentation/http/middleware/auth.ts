@@ -6,6 +6,7 @@ import type { AuthenticationService } from '../../../application/services/authen
 import type { AuthorizationService } from '../../../application/services/authorization-service.js';
 import type { CoreEnterpriseService } from '../../../application/services/core-enterprise-service.js';
 import type { LocationService } from '../../../application/services/location-service.js';
+import type { ModuleAccessService } from '../../../application/services/module-access-service.js';
 import type { UserRegistrationService } from '../../../application/services/user-registration-service.js';
 import type { JwtTokenService } from '../../../infrastructure/security/jwt-token-service.js';
 import type { AppConfig } from '../../../config/schema.js';
@@ -16,6 +17,7 @@ declare module 'fastify' {
     appConfig: AppConfig;
     authService: AuthenticationService;
     authorizationService: AuthorizationService;
+    moduleAccessService: ModuleAccessService;
     coreEnterpriseService: CoreEnterpriseService;
     locationService: LocationService;
     registrationService: UserRegistrationService;
@@ -73,9 +75,9 @@ export function requirePermission(permissionKey: string) {
       throw new UnauthorizedError('Authentication is required to perform this action.');
     }
 
-    const allowed = await request.server.authorizationService.hasPermission(request.tenantId, request.user.id, permissionKey);
+    const allowed = await request.server.moduleAccessService.hasPermission(request.tenantId, request.user.id, permissionKey);
     if (!allowed) {
-      throw new ForbiddenError('Permission denied.');
+      throw new ForbiddenError('Permission denied or module is not enabled for the organization.');
     }
   };
 }
@@ -91,9 +93,9 @@ export function requirePermissionOrSelf(permissionKey: string, selfIdGetter?: (r
       return;
     }
 
-    const allowed = await request.server.authorizationService.hasPermission(request.tenantId, request.user.id, permissionKey);
+    const allowed = await request.server.moduleAccessService.hasPermission(request.tenantId, request.user.id, permissionKey);
     if (!allowed) {
-      throw new ForbiddenError('Permission denied.');
+      throw new ForbiddenError('Permission denied or module is not enabled for the organization.');
     }
   };
 }
