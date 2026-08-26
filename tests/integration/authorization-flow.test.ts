@@ -25,7 +25,7 @@ describe('Authorization RBAC vertical slice', () => {
     }
   });
 
-  runIfDatabase('enforces tenant-scoped role-based access control', async () => {
+  runIfDatabase('enforces tenant-scoped role-based access control and module enablement', async () => {
     pool = new Pool({ connectionString: databaseUrl! });
     const repository = new PostgresPlatformRepository(pool);
     const passwordHasher = new BcryptPasswordHasher();
@@ -231,6 +231,46 @@ describe('Authorization RBAC vertical slice', () => {
     });
     expect(protectedRoute.statusCode).toBe(200);
     expect(protectedRoute.json().message).toBe('branch.read granted');
+
+    const branchModule = await pool.query('SELECT id FROM modules WHERE code = $1 LIMIT 1', ['branch']);
+    expect(branchModule.rows.length).toBe(1);
+    const branchModuleId = branchModule.rows[0].id as string;
+
+    await pool.query(
+      `UPDATE tenant_modules
+       SET enabled = false, disabled_at = NOW()
+       WHERE tenant_id = $1 AND module_id = $2`,
+      [tenantAResult.tenantId, branchModuleId],
+    );
+
+    const deniedByModule = await app.inject({
+      method: 'GET',
+      url: '/api/v1/rbac/test/branch-read-check',
+      headers: { authorization: `Bearer ${regularUserToken}`, 'x-tenant-id': tenantAResult.tenantId },
+    });
+    expect(deniedByModule.statusCode).toBe(403);
+
+    const permissionsAfterModuleDisable = await app.inject({
+      method: 'GET',
+      url: `/api/v1/auth/effective-permissions`,
+      headers: { authorization: `Bearer ${regularUserToken}`, 'x-tenant-id': tenantAResult.tenantId },
+    });
+    expect(permissionsAfterModuleDisable.statusCode).toBe(200);
+    expect(permissionsAfterModuleDisable.json().permissions).not.toContain('branch.read');
+
+    await pool.query(
+      `UPDATE tenant_modules
+       SET enabled = true, disabled_at = NULL
+       WHERE tenant_id = $1 AND module_id = $2`,
+      [tenantAResult.tenantId, branchModuleId],
+    );
+
+    const protectedRouteAfterModuleRestore = await app.inject({
+      method: 'GET',
+      url: '/api/v1/rbac/test/branch-read-check',
+      headers: { authorization: `Bearer ${regularUserToken}`, 'x-tenant-id': tenantAResult.tenantId },
+    });
+    expect(protectedRouteAfterModuleRestore.statusCode).toBe(200);
 
     const revokePermission = await app.inject({
       method: 'DELETE',
