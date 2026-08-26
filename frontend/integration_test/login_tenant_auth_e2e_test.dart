@@ -34,6 +34,16 @@ Future<void> _waitForFinder(
   );
 }
 
+Future<void> _drainTestExceptions(WidgetTester tester, String checkpoint) async {
+  for (var i = 0; i < 50; i++) {
+    final exception = tester.takeException();
+    if (exception == null) {
+      return;
+    }
+    debugPrint('E2E TEST EXCEPTION [$checkpoint] #${i + 1}: $exception');
+  }
+}
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -48,6 +58,19 @@ void main() {
     });
 
     testWidgets('admin login establishes tenant context and backend authorization is enforced', (tester) async {
+      final previousFlutterErrorHandler = FlutterError.onError;
+      FlutterError.onError = (details) {
+        debugPrint('E2E FLUTTER ERROR: ${details.exception}');
+        if (details.stack != null) {
+          debugPrintStack(stackTrace: details.stack);
+        }
+        previousFlutterErrorHandler?.call(details);
+      };
+
+      addTearDown(() {
+        FlutterError.onError = previousFlutterErrorHandler;
+      });
+
       final baseUrl = const String.fromEnvironment(
         'API_BASE_URL',
         defaultValue: 'http://localhost:3000',
@@ -55,6 +78,7 @@ void main() {
 
       await tester.pumpWidget(const App());
       await tester.pump(const Duration(milliseconds: 100));
+      await _drainTestExceptions(tester, 'initial-render');
 
       final loginIdentifierField = find.byKey(const ValueKey('login_identifier_field'));
       final loginPasswordField = find.byKey(const ValueKey('login_password_field'));
@@ -68,8 +92,10 @@ void main() {
       await tester.enterText(loginIdentifierField, _adminEmail);
       await tester.enterText(loginPasswordField, _adminPassword);
       await tester.tap(loginSubmitButton);
+      await _drainTestExceptions(tester, 'after-login-tap');
 
       await _waitForFinder(tester, find.text('Dashboard'));
+      await _drainTestExceptions(tester, 'dashboard-visible');
 
       final auth = GetIt.instance.get<AuthService>();
       expect(auth.isAuthenticated, isTrue);
@@ -78,7 +104,6 @@ void main() {
       final String? uiToken = auth.accessToken;
       expect(uiToken, isNotNull, reason: 'UI must have access token after login');
 
-      // Admin: use the real UI token for protected call (string-concat to avoid $ in file)
       final protectedRolesResponse = await http.get(
         Uri.parse(baseUrl + '/api/v1/rbac/roles'),
         headers: {
@@ -92,7 +117,6 @@ void main() {
         reason: 'The authenticated admin should be able to read roles in the tenant.',
       );
 
-      // Tenant mismatch: same token but wrong tenant header
       final mismatchedTenantResponse = await http.get(
         Uri.parse(baseUrl + '/api/v1/rbac/roles'),
         headers: {
