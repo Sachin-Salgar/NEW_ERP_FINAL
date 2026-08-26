@@ -39,7 +39,7 @@ void main() {
       await GetIt.instance.reset();
     });
 
-    testWidgets('admin login establishes tenant context and backend authorization is enforced', (tester) async {
+    testWidgets('admin login establishes tenant context, effective module access and backend authorization is enforced', (tester) async {
       final baseUrl = const String.fromEnvironment(
         'API_BASE_URL',
         defaultValue: 'http://localhost:3000',
@@ -71,10 +71,26 @@ void main() {
       final String? uiToken = auth.accessToken;
       expect(uiToken, isNotNull, reason: 'UI must have access token after login');
 
+      final effectiveAccessResponse = await http.get(
+        Uri.parse(baseUrl + '/api/v1/auth/effective-permissions'),
+        headers: {
+          'Authorization': 'Bearer ' + uiToken!,
+          'x-tenant-id': _tenantId,
+        },
+      );
+      expect(effectiveAccessResponse.statusCode, 200);
+      final effectiveAccessBody = jsonDecode(effectiveAccessResponse.body) as Map<String, dynamic>;
+      final effectiveModules = (effectiveAccessBody['modules'] as List<dynamic>? ?? const [])
+          .map((module) => (module as Map<String, dynamic>)['code']?.toString())
+          .whereType<String>()
+          .toSet();
+      expect(effectiveModules, contains('organization'));
+      expect(effectiveAccessBody['permissions'], contains('organization.read'));
+
       final protectedRolesResponse = await http.get(
         Uri.parse(baseUrl + '/api/v1/rbac/roles'),
         headers: {
-          'Authorization': 'Bearer ' + uiToken!,
+          'Authorization': 'Bearer ' + uiToken,
           'x-tenant-id': _tenantId,
         },
       );
@@ -87,7 +103,7 @@ void main() {
       final mismatchedTenantResponse = await http.get(
         Uri.parse(baseUrl + '/api/v1/rbac/roles'),
         headers: {
-          'Authorization': 'Bearer ' + uiToken!,
+          'Authorization': 'Bearer ' + uiToken,
           'x-tenant-id': '11111111-1111-4111-8111-111111111112',
         },
       );
@@ -118,10 +134,21 @@ void main() {
       final limitedToken = limitedBody['accessToken'] as String?;
       expect(limitedToken, isNotNull, reason: 'Limited-user login must return an access token');
 
+      final limitedEffectiveAccess = await http.get(
+        Uri.parse(baseUrl + '/api/v1/auth/effective-permissions'),
+        headers: {
+          'Authorization': 'Bearer ' + limitedToken!,
+          'x-tenant-id': _tenantId,
+        },
+      );
+      expect(limitedEffectiveAccess.statusCode, 200);
+      final limitedEffectiveBody = jsonDecode(limitedEffectiveAccess.body) as Map<String, dynamic>;
+      expect(limitedEffectiveBody['permissions'], isNot(contains('role.read')));
+
       final deniedRoleAccess = await http.get(
         Uri.parse(baseUrl + '/api/v1/rbac/roles'),
         headers: {
-          'Authorization': 'Bearer ' + limitedToken!,
+          'Authorization': 'Bearer ' + limitedToken,
           'x-tenant-id': _tenantId,
         },
       );
