@@ -31,7 +31,7 @@ void _dumpPendingExceptions(WidgetTester tester, String stage) {
 Future<void> _settle(WidgetTester tester) async {
   await tester.pumpAndSettle(
     const Duration(milliseconds: 100),
-    timeout: const Duration(seconds: 30),
+    const Duration(seconds: 30),
   );
 }
 
