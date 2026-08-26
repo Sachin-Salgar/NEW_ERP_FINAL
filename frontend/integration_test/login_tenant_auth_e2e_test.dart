@@ -87,7 +87,7 @@ void main() {
       final mismatchedTenantResponse = await http.get(
         Uri.parse(baseUrl + '/api/v1/rbac/roles'),
         headers: {
-          'Authorization': 'Bearer ' + uiToken!,
+          'Authorization': 'Bearer ' + uiToken,
           'x-tenant-id': '11111111-1111-4111-8111-111111111112',
         },
       );
