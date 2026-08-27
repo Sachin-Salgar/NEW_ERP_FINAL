@@ -10,41 +10,48 @@ The `tenant_id` (UUID) is the primary tenant isolation key. Every tenant-owned t
 
 Tenant identity is a data and authorization concept. It is not derived from deployment hostname, frontend URL, installation location, or client-supplied fields.
 
-## 11.3 Tenant Membership
-
-Users obtain access to tenants through explicit tenant memberships.
-
-Conceptually:
+The current ERP user model is tenant-scoped:
 
 ```text
-User
-  ↓
-Tenant Membership
-  ↓
-Tenant
+users.tenant_id → tenants.id
 ```
 
-A user may have one or multiple active tenant memberships. Membership status and authorization are server-authoritative.
+## 11.3 Identity-Based Tenant Discovery
+
+Because the tenant is unknown before authentication, the backend uses a deployment-independent login lookup index:
+
+```text
+Login identifier
+      ↓
+auth_login_identifiers
+      ↓
+Candidate user_id + tenant_id
+      ↓
+Tenant-scoped users row
+      ↓
+Password verification
+      ↓
+Tenant-scoped session
+```
+
+The lookup index contains no password and does not grant authorization. It only identifies candidate tenant user accounts. The authoritative user record is read through the tenant-scoped repository after the candidate tenant is known.
+
+A separate global tenant-membership model is not required for the current ERP architecture. Introducing one later requires a separate approved architectural decision.
 
 ## 11.4 Request Lifecycle and Tenant Context
-
-The canonical lifecycle is:
 
 ```text
 Client connects to ERP backend endpoint
   ↓
-Login / session authentication
+Login identifier + password
   ↓
-Authenticated Identity
+Deployment-independent login lookup
   ↓
-ERP User
+Candidate tenant user account
   ↓
-Load active Tenant Memberships
+Tenant-scoped user authentication
   ↓
-One tenant → auto-select
-Multiple tenants → user selects tenant
-  ↓
-Validate membership
+Exactly one active credential match
   ↓
 Tenant-scoped Session
   ↓
@@ -61,41 +68,41 @@ PostgreSQL RLS
 Business operation
 ```
 
-The backend is authoritative for tenant selection and context. A tenant-scoped database transaction must not begin until a valid authenticated tenant context exists.
+The backend is authoritative for tenant selection and context. Tenant-scoped business operations cannot begin without a valid tenant-scoped session.
 
 ## 11.5 Deployment Independence
 
-Deployment answers **where the ERP backend is located**. Tenant identity answers **which organization the authenticated user is operating in**. These concerns are independent.
+Deployment answers **where the ERP backend is located**. Tenant identity answers **which tenant the authenticated user account belongs to**. These concerns are independent.
 
 ### SaaS
 
-Web and mobile clients connect to the centrally hosted ERP backend. Authentication loads the user's tenant memberships and establishes the active tenant session.
+Web and mobile clients connect to the centrally hosted ERP backend. Login discovers the tenant from the authenticated user account.
 
 ### On-premises
 
-The customer installation provides the ERP backend endpoint. The web frontend and mobile application are configured to connect to that endpoint directly, through the company LAN, through an approved VPN, or through a secured public HTTPS endpoint as permitted by the deployment. Authentication and tenant membership handling are identical to SaaS.
+The customer installation provides the ERP backend endpoint. The web frontend and mobile application are configured to connect to that endpoint through the company LAN, approved VPN, or secured public HTTPS deployment path. Authentication and tenant handling are identical to SaaS.
 
 ### Mobile
 
-Mobile clients never connect directly to PostgreSQL. They communicate only with the ERP backend API. The backend determines and enforces tenant context.
+Mobile clients never connect directly to PostgreSQL. They communicate only with the ERP backend API.
 
 ## 11.6 Client Tenant Responsibilities
 
-Clients may retain the active tenant information needed for UI state, display, and session handling, but client state is never authoritative.
+Clients may retain active tenant information for UI state and display, but client state is never authoritative.
 
 The client must not:
 
 - invent a tenant ID;
-- select a tenant without backend membership validation;
-- use hostname or URL as proof of tenant authorization;
-- bypass tenant authorization with headers, query parameters, or local storage;
+- use a URL or hostname as proof of tenant authorization;
+- override the tenant in a request header or body;
+- bypass backend authentication;
 - connect directly to PostgreSQL.
 
 ## 11.7 Database Isolation (RLS)
 
 PostgreSQL RLS is mandatory for tenant-owned tables.
 
-The application must establish the trusted tenant context inside the same transaction that performs tenant-owned work:
+The application must establish trusted tenant context inside the same transaction that performs tenant-owned work:
 
 ```sql
 BEGIN;
@@ -104,7 +111,7 @@ SET LOCAL app.current_tenant_id = '<trusted tenant UUID>';
 COMMIT;
 ```
 
-The tenant UUID must originate from the server-authoritative `TenantContext`, which originates from the authenticated tenant-scoped session and validated membership.
+The tenant UUID must originate from the server-authoritative `TenantContext` created from the authenticated tenant-scoped session.
 
 Example policy:
 
@@ -112,16 +119,15 @@ Example policy:
 ALTER TABLE customer ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY tenant_isolation_policy ON customer
-USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
+WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 ```
-
-Policies must be designed for the required SELECT, INSERT, UPDATE, and DELETE behavior.
 
 ## 11.8 Transaction and Connection-Pool Safety
 
 Tenant context must never leak between requests or jobs through a pooled connection. `SET LOCAL` is preferred because its lifetime is limited to the transaction.
 
-All tenant-scoped repositories must use the common tenant-scoped transaction abstraction rather than manually setting persistent session state.
+All tenant-scoped repositories must use the common tenant-scoped transaction abstraction rather than persistent session state.
 
 ## 11.9 Cross-Tenant Safety
 
@@ -130,19 +136,16 @@ The implementation must fail closed when tenant context is absent, invalid, expi
 Automated tests must prove:
 
 - a tenant cannot read another tenant's records;
-- a tenant cannot insert records for another tenant through normal application paths;
-- updates and deletes cannot cross tenant boundaries;
-- transaction rollback does not leak context;
-- concurrent requests cannot leak tenant context through connection pooling;
+- tenant-owned inserts/updates/deletes cannot cross tenant boundaries;
+- rollback does not leak context;
+- concurrent requests cannot leak context through connection pooling;
 - background jobs establish tenant context explicitly.
-
-Platform administrative operations that legitimately cross tenant boundaries require explicit privileged authorization and must not be used as normal application execution paths.
 
 ## 11.10 Architecture Boundary
 
-Business modules must consume the platform TenantContext and must not implement their own tenant discovery or tenant isolation mechanism.
+Business modules consume the platform TenantContext and must not implement their own tenant discovery or tenant isolation mechanism.
 
-Tenant isolation is a platform/database concern. Organization, branch, location, plant, role, and permission constraints are additional authorization dimensions within the active tenant and must never replace tenant isolation.
+Organization, branch, location, plant, role, and permission constraints are additional authorization dimensions within the active tenant and never replace tenant isolation.
 
 ## Cross References
 
