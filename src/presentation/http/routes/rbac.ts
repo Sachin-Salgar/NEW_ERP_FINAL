@@ -3,18 +3,7 @@ import { type FastifyPluginAsync, type FastifyRequest } from 'fastify';
 import { NotFoundError, ValidationError } from '../../../domain/errors.js';
 import { requireAuth, requirePermission, requirePermissionOrSelf } from '../middleware/auth.js';
 
-const getTenantIdFromRequest = (request: FastifyRequest): string | null => {
-  const config = request.server.appConfig;
-  const headerName = config.TENANT_HEADER.toLowerCase();
-  const headerValue = request.headers[headerName];
-  if (typeof headerValue === 'string' && headerValue.trim()) {
-    return headerValue.trim();
-  }
-
-  const body = request.body as Record<string, unknown> | undefined;
-  const bodyTenantId = typeof body?.tenantId === 'string' ? body.tenantId.trim() : null;
-  return bodyTenantId || null;
-};
+const getTenantIdFromRequest = (request: FastifyRequest): string | null => request.tenantId ?? null;
 
 const normalizePermissionKeys = (input: unknown): string[] => {
   if (Array.isArray(input)) {
@@ -143,7 +132,6 @@ const rbacRoutes: FastifyPluginAsync = async (fastify) => {
     return { success: true, removed: count };
   });
 
-  // New endpoint: list permissions assigned to a role
   fastify.get('/rbac/roles/:roleId/permissions', { preHandler: [requireAuth, requirePermission('role.manage')] }, async (request) => {
     const tenantId = request.tenantId ?? getTenantIdFromRequest(request);
     if (!tenantId) {
