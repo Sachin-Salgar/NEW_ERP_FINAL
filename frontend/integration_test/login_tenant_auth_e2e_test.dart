@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -17,7 +16,9 @@ const _adminPassword = 'Password123!';
 const _limitedEmail = 'e2e-limited@example.com';
 const _moduleCode = 'e2e-rbac';
 
-Future<void> _pump(WidgetTester tester) async => tester.pump(const Duration(milliseconds: 100));
+Future<void> _pump(WidgetTester tester) async {
+  await tester.pump(const Duration(milliseconds: 100));
+}
 
 Future<void> _waitFor(WidgetTester tester, Finder finder, {Duration timeout = const Duration(seconds: 15)}) async {
   final deadline = DateTime.now().add(timeout);
@@ -28,7 +29,8 @@ Future<void> _waitFor(WidgetTester tester, Finder finder, {Duration timeout = co
   fail('Timed out waiting for finder: $finder');
 }
 
-Future<http.Response> _getWithTimeout(Uri uri) => http.get(uri).timeout(const Duration(seconds: 10));
+Future<http.Response> _getWithTimeout(Uri uri) =>
+    http.get(uri).timeout(const Duration(seconds: 10));
 
 Future<void> _login(WidgetTester tester, String email) async {
   await _waitFor(tester, find.byKey(const ValueKey('login_identifier_field')));
@@ -45,8 +47,6 @@ void main() {
       await GetIt.instance.reset();
       await App.init();
     });
-
-    tearDown(() async => GetIt.instance.reset());
 
     testWidgets(
       'admin login goes directly to dashboard with tenant and default working context',
