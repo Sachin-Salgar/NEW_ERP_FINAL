@@ -1,4 +1,4 @@
-import { ForbiddenError, ValidationError } from '../../domain/errors.js';
+import { ForbiddenError } from '../../domain/errors.js';
 
 export interface TenantMembershipRepository {
   findUserOrganizationMemberships(tenantId: string, userId: string): Promise<Array<{
@@ -15,7 +15,13 @@ export class TenantMembershipService {
   constructor(private readonly repository: TenantMembershipRepository) {}
 
   async resolveOrganizationMemberships(tenantId: string, userId: string, requestedOrganizationId?: string | null) {
-    const organizations = await this.repository.findUserOrganizationMemberships(tenantId.trim(), userId.trim());
+    const normalizedTenantId = tenantId.trim();
+    const normalizedUserId = userId.trim();
+    if (!normalizedTenantId || !normalizedUserId) {
+      throw new ForbiddenError('Authenticated tenant and user context are required.');
+    }
+
+    const organizations = await this.repository.findUserOrganizationMemberships(normalizedTenantId, normalizedUserId);
     if (organizations.length === 0) {
       throw new ForbiddenError('User does not have any organization membership in the active tenant.');
     }
