@@ -54,6 +54,23 @@ Do NOT read the entire repository indiscriminately. Repository awareness means d
 
 The detailed lifecycle is defined in `.ai/workflows/feature-development.md` and the reusable ERP feature skill is `.github/skills/erp-feature-development/SKILL.md`.
 
+## 2A. Canonical authentication and working-context UX
+
+For tenancy/authentication work, follow ADR-0006 and the roadmap's current tenant baseline:
+
+- The configured API URL identifies the ERP backend only; it is never tenant authority.
+- Successful authentication establishes the tenant from the authenticated tenant-scoped user account/session.
+- Login MUST go directly to Dashboard after successful authentication.
+- Organisation and Location are post-login working context, not authentication gates.
+- A user's configured default organisation and default location are applied when available; missing defaults must not block login or create a selection-screen gate.
+- Organisation and Location are changed from the authenticated Profile / Working Context menu.
+- There must be no standalone organisation-selection or location-selection screen in the login flow.
+- Organisation switching must reload valid locations and effective permissions for the newly active organisation.
+- A location must be authorized for the active organisation.
+- Switching organisation or location must never change the authenticated tenant.
+- Mobile and on-premises web clients connect to the configured ERP backend endpoint; they never connect directly to PostgreSQL.
+- PostgreSQL RLS remains the final tenant-isolation boundary.
+
 ## 3. No invention rule
 
 Never invent:
