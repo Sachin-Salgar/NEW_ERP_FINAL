@@ -165,12 +165,10 @@ jobs:
           PORT: 3000
           API_PREFIX: /api/v1
           JWT_SECRET: e2e-test-jwt-secret-should-be-long-enough
-          TENANT_HEADER: x-tenant-id
-          TENANT_HOST_MAP: '{"localhost":"11111111-1111-4111-8111-111111111111"}'
           CORS_ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000,http://localhost:7358,http://127.0.0.1:7358
         run: |
           set -euo pipefail
-          nohup env DATABASE_URL="$DATABASE_URL" TEST_DATABASE_URL="$TEST_DATABASE_URL" NODE_ENV="$NODE_ENV" HOST="$HOST" PORT="$PORT" API_PREFIX="$API_PREFIX" JWT_SECRET="$JWT_SECRET" TENANT_HEADER="$TENANT_HEADER" TENANT_HOST_MAP="$TENANT_HOST_MAP" CORS_ALLOWED_ORIGINS="$CORS_ALLOWED_ORIGINS" npm run dev > backend-e2e.log 2>&1 &
+          nohup env DATABASE_URL="$DATABASE_URL" TEST_DATABASE_URL="$TEST_DATABASE_URL" NODE_ENV="$NODE_ENV" HOST="$HOST" PORT="$PORT" API_PREFIX="$API_PREFIX" JWT_SECRET="$JWT_SECRET" CORS_ALLOWED_ORIGINS="$CORS_ALLOWED_ORIGINS" npm run dev > backend-e2e.log 2>&1 &
           echo $! > backend-e2e.pid
           for i in $(seq 1 60); do
             if curl -fsS http://localhost:3000/api/v1/bootstrap > /tmp/backend-bootstrap.json; then
@@ -274,7 +272,6 @@ jobs:
         timeout-minutes: 10
         env:
           API_BASE_URL: http://localhost:3000
-          TENANT_ID: 11111111-1111-4111-8111-111111111111
           CHROME_EXECUTABLE: /usr/bin/google-chrome
           CHROME_BIN: /usr/bin/google-chrome
         working-directory: frontend
@@ -291,8 +288,7 @@ jobs:
             --headless \
             --web-run-headless \
             --web-browser-flag="--no-sandbox" \
-            --dart-define=API_BASE_URL=http://localhost:3000 \
-            --dart-define=TENANT_ID=11111111-1111-4111-8111-111111111111 2>&1 | tee flutter-drive.log
+            --dart-define=API_BASE_URL=http://localhost:3000 2>&1 | tee flutter-drive.log
           status=${PIPESTATUS[0]}
           echo "Flutter drive exit code: $status"
           echo "=== Flutter drive exception/error summary ==="
