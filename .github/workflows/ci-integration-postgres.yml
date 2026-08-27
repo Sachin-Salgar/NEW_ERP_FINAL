@@ -17,7 +17,7 @@ permissions:
 jobs:
   integration:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       CI_TEST_DB: newerp_test
       CI_TEST_ROLE: newerp_test_runner
@@ -43,11 +43,7 @@ jobs:
           POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
         run: |
           set -euo pipefail
-          docker run --name newerp_test_container \
-            --env POSTGRES_PASSWORD \
-            --env POSTGRES_DB=postgres \
-            --env POSTGRES_USER=postgres \
-            -d -p "${CI_POSTGRES_PORT}:5432" postgres:17.10
+          docker run --name newerp_test_container --env POSTGRES_PASSWORD --env POSTGRES_DB=postgres --env POSTGRES_USER=postgres -d -p "${CI_POSTGRES_PORT}:5432" postgres:17.10
 
       - name: Install Postgres client
         run: |
@@ -60,9 +56,7 @@ jobs:
         run: |
           set -euo pipefail
           for i in $(seq 1 60); do
-            if pg_isready -h localhost -p "${CI_POSTGRES_PORT}" -U postgres -d postgres >/dev/null 2>&1; then
-              exit 0
-            fi
+            if pg_isready -h localhost -p "${CI_POSTGRES_PORT}" -U postgres -d postgres >/dev/null 2>&1; then exit 0; fi
             sleep 2
           done
           docker logs newerp_test_container
@@ -73,8 +67,7 @@ jobs:
           PGPASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
         run: |
           set -euo pipefail
-          psql -h localhost -p "${CI_POSTGRES_PORT}" -U postgres -d postgres -v ON_ERROR_STOP=1 \
-            -v db_name="${CI_TEST_DB}" -v role_name="${CI_TEST_ROLE}" -v role_password="${CI_TEST_ROLE_PASSWORD}" <<'SQL'
+          psql -h localhost -p "${CI_POSTGRES_PORT}" -U postgres -d postgres -v ON_ERROR_STOP=1 -v db_name="${CI_TEST_DB}" -v role_name="${CI_TEST_ROLE}" -v role_password="${CI_TEST_ROLE_PASSWORD}" <<'SQL'
           SELECT format('CREATE DATABASE %I', :'db_name') \gexec
           SELECT format('CREATE ROLE %I WITH LOGIN PASSWORD %L NOSUPERUSER NOBYPASSRLS', :'role_name', :'role_password') \gexec
           SQL
@@ -126,10 +119,7 @@ jobs:
           set -euo pipefail
           nohup env DATABASE_URL="$DATABASE_URL" TEST_DATABASE_URL="$TEST_DATABASE_URL" NODE_ENV="$NODE_ENV" HOST="$HOST" PORT="$PORT" API_PREFIX="$API_PREFIX" JWT_SECRET="$JWT_SECRET" CORS_ALLOWED_ORIGINS="$CORS_ALLOWED_ORIGINS" npm run dev > backend-e2e.log 2>&1 &
           for i in $(seq 1 60); do
-            if curl -fsS http://localhost:3000/api/v1/bootstrap >/tmp/backend-bootstrap.json; then
-              cat /tmp/backend-bootstrap.json
-              exit 0
-            fi
+            if curl -fsS http://localhost:3000/api/v1/bootstrap >/tmp/backend-bootstrap.json; then cat /tmp/backend-bootstrap.json; exit 0; fi
             sleep 2
           done
           cat backend-e2e.log
@@ -164,37 +154,34 @@ jobs:
           set -euo pipefail
           nohup chromedriver --port=4444 --host=127.0.0.1 > chromedriver.log 2>&1 &
           for i in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:4444/status >/tmp/chromedriver-status.json; then
-              cat /tmp/chromedriver-status.json
-              exit 0
-            fi
+            if curl -fsS http://127.0.0.1:4444/status >/tmp/chromedriver-status.json; then cat /tmp/chromedriver-status.json; exit 0; fi
             sleep 1
           done
           cat chromedriver.log
           exit 1
 
-      - name: Run Flutter integration test through supported web driver
+      - name: Run admin E2E test
         working-directory: frontend
         env:
-          API_BASE_URL: http://localhost:3000
           CHROME_EXECUTABLE: /usr/bin/google-chrome
         run: |
           set -o pipefail
-          flutter drive \
-            --driver=test_driver/integration_test.dart \
-            --target=integration_test/login_tenant_auth_e2e_test.dart \
-            -d web-server \
-            --browser-name=chrome \
-            --driver-port=4444 \
-            --web-port=8080 \
-            --dart-define=API_BASE_URL=http://localhost:3000 2>&1 | tee flutter-test.log
+          flutter drive --driver=test_driver/integration_test.dart --target=integration_test/admin_login_e2e_test.dart -d web-server --browser-name=chrome --driver-port=4444 --web-port=8080 --dart-define=API_BASE_URL=http://localhost:3000 2>&1 | tee admin-e2e-test.log
+
+      - name: Run limited-user E2E test
+        working-directory: frontend
+        env:
+          CHROME_EXECUTABLE: /usr/bin/google-chrome
+        run: |
+          set -o pipefail
+          flutter drive --driver=test_driver/integration_test.dart --target=integration_test/limited_user_login_e2e_test.dart -d web-server --browser-name=chrome --driver-port=4444 --web-port=8081 --dart-define=API_BASE_URL=http://localhost:3000 2>&1 | tee limited-user-e2e-test.log
 
       - name: Upload E2E logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: flutter-test-log
-          path: frontend/flutter-test.log
+          name: flutter-e2e-logs
+          path: frontend/*-e2e-test.log
 
       - name: Upload backend log
         if: always()
