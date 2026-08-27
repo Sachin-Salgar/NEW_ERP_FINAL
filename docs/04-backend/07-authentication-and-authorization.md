@@ -1,309 +1,302 @@
 # Authentication & Authorization Flow
 
-**Document Purpose:** Define backend authentication and authorization implementation patterns for the Enterprise ERP Platform.
-
----
-
-<!-- Canonical Ownership (automated reconciliation) -->
-**Canonical Ownership (DECISION):**
-- Canonical file (implementation patterns): `docs/04-backend/07-authentication-and-authorization.md`
-- Policy canonical: `docs/06-security/04-enterprise-security-architecture.md`
-- Disposition: KEEP — backend implementation patterns are canonical here; modules should reference the backend implementation for authentication/authorization API and token strategy.
+**Document Purpose:** Define backend authentication, tenant-context, authorization, and session implementation patterns for the Enterprise ERP Platform.
 
 ---
 
 ## 7.1 Introduction
 
-Protecting business information is a fundamental responsibility of the ERP backend.
-Every request must verify:
+Protecting business information is a fundamental responsibility of the ERP backend. Every protected request must establish:
+
 1. Who is making the request? (Authentication)
-2. What are they allowed to do? (Authorization)
+2. Which tenant may the user operate in? (Tenant membership and active tenant)
+3. What are they allowed to do? (Authorization)
 
-The Enterprise ERP Platform separates these responsibilities to improve security, maintainability, and flexibility.
+Authentication, tenant membership, tenant context, and authorization are distinct responsibilities but form one server-authoritative security lifecycle.
 
-### 7.2 Objectives
+## 7.2 Objectives
 
 The authentication framework aims to:
+
 - Verify user identity.
 - Protect business data.
 - Support secure sessions.
 - Enable multi-device access.
-- Prevent unauthorized operations.
+- Support users belonging to one or multiple tenants.
+- Prevent unauthorized tenant and business operations.
 - Support enterprise-grade security.
 
-### 7.3 Authentication Overview
+## 7.3 Authentication Overview
 
-Authentication confirms the identity of the user.
-The ERP shall support:
+The ERP shall support, where implemented:
+
 - Username & Password.
 - Email & Password.
 - Multi-Factor Authentication (future).
 - Single Sign-On (future).
 - OAuth Integrations (future).
 
-Successful authentication results in the issuance of secure access credentials.
+Successful authentication establishes a trusted user identity. Tenant access is then determined from active tenant memberships.
 
-### 7.4 Token Strategy
+## 7.4 Token Strategy
 
 The backend adopts:
+
 - Short-lived Access Tokens.
 - Long-lived Refresh Tokens.
 
-Example:
+The exact lifetime and rotation policy is governed by the token/session implementation and approved security decisions.
 
-User Login
+## 7.5 Canonical Authentication and Tenant Flow
 
-↓
-
-Access Token
-
-+
-
-Refresh Token
-
-This strategy balances security and usability.
-
-### 7.5 Authentication Flow
-
-User Login
-
-↓
-
-Credential Validation
-
-↓
-
-User Verification
-
-↓
-
-Permission Loading
-
-↓
-
-Access Token Generation
-
-↓
-
-Refresh Token Generation
-
-↓
-
-Secure Response
-
-Only verified users receive access credentials.
-
-### 7.5.1 Authentication vs. Tenant Resolution
-
-Authentication and tenant resolution are separate responsibilities. Authentication answers: "Who is this user?" Tenant resolution answers: "Which organization/tenant context is this request operating in?"
-
-The request lifecycle is:
+The canonical lifecycle is:
 
 ```text
-ERP URL / Deployment Host
-  ↓
-Tenant Resolver (SaaS host or on-prem installation config)
-  ↓
-Bootstrap / deployment metadata
+Client connects to configured ERP backend endpoint
   ↓
 Login
   ↓
-Authentication
+Credential Validation
   ↓
 Authenticated Identity
   ↓
 ERP User
   ↓
-Organization Membership Resolution
+Load active Tenant Memberships
   ↓
-Active Organization Resolution
+One tenant → auto-select
+Multiple tenants → require tenant selection
   ↓
-Tenant Resolution
+Validate membership
+  ↓
+Create tenant-scoped session
   ↓
 TenantContext
   ↓
-Tenant-scoped Transaction
+Authorization
+  ↓
+Tenant-scoped transaction
   ↓
 SET LOCAL app.current_tenant_id
   ↓
 PostgreSQL RLS
   ↓
-Authorization
-  ↓
-Location / Plant Context
-  ↓
-Application / Domain Operation
+Business operation
 ```
 
-Tenant resolution must occur before a tenant-scoped database transaction begins. The application must never start a tenant-scoped transaction and then discover the tenant after the fact. The backend is responsible for canonical identity, authorization, and tenant-context establishment; the frontend consumes the resulting session/identity/context rather than inventing tenant identity.
+The backend is authoritative throughout this lifecycle. A deployment URL identifies where the backend is located; it does not identify the tenant.
 
-The ERP distinguishes:
+## 7.5.1 Authentication vs Tenant Access
 
-- **Authentication Identity** — the verified caller of the request.
-- **Application User** — the ERP user record associated with the identity.
-- **Tenant** — the security/data-isolation boundary that owns tenant-scoped data.
-- **Organization** — the business/legal unit within a tenant.
-- **Organization Membership** — the relationship that grants a user access to one or more organizations within the tenant.
-- **Location / Plant / Branch** — operational context under an organization; not a tenant boundary.
-- **Role** — the organizationally scoped role assigned to the user.
-- **Permission** — grant for a specific action or capability within an organization/tenant scope.
-- **TenantContext** — the already-resolved tenant and organization scope for the current request.
+Authentication answers: **Who is this user?**
 
-A user may belong to one or multiple organizations, with different roles and permissions in each. The resolved active organization must be validated against the user's eligible memberships before the request enters a tenant-scoped database transaction. Location access is evaluated separately as an operational authorization layer and must not replace tenant isolation.
+Tenant membership answers: **Which tenants may this user access?**
 
-### 7.5.2 Canonical Identity, Tenant, and Organization Model
+Active tenant selection answers: **Which authorized tenant is the user operating in now?**
 
-The ERP implementation contract requires the following first-class concepts to remain distinct and server-authoritative:
+Authorization answers: **What may the user do within that tenant and its organizations/locations?**
 
-| Concern | Definition | Authoritative source | Notes |
-|---------|------------|---------------------|-------|
-| Identity | Authenticated caller identity proven by the chosen identity mechanism | Authentication service | Answers: who is the caller? |
-| User | ERP user record associated with the authenticated identity | ERP user domain | Answers: which application account belongs to the caller? |
-| OrganizationMembership | Relationship granting access to an organization | Membership domain | One user may have zero, one, or many memberships |
-| Tenant | Primary security/data-isolation boundary | Platform security domain | Drives PostgreSQL RLS and tenant-scoped DB access |
-| Organization | Business/legal entity inside a tenant | Organization domain | Not equivalent to tenant |
-| Location / Plant / Branch | Operational unit inside an organization | Location domain | Not equivalent to tenant or organization |
-| Role | Organization/tenant-scoped assignment | Authorization domain | Grants permission bundles |
-| Permission | Allowed action or capability | Authorization domain | Enforced at the backend |
-| ActiveOrganizationContext | Authorized organization selected or resolved for the current request/session | Effective context | Must be validated against memberships |
-| ActiveLocationContext | Authorized operational location for current request/session | Effective context | Additional context, not a tenant boundary |
-| Session / EffectiveContext | Server-authoritative context used to process the request | Auth/session domain | Contains identity, user, tenant, organization, permissions, and location context |
-| TenantContext | Resolved backend security context used to open a tenant-scoped transaction | Security/database domain | Must be created before tenant-owned database work |
+A user with exactly one active tenant membership may have that tenant selected automatically. A user with multiple active memberships must select an authorized tenant. The backend must validate the membership before creating the tenant-scoped session.
 
-The backend is authoritative for this model. The frontend may display the user's resolved context, but it cannot create or override tenant, organization, membership, or permission state. A client may request an organization switch or attach a deployment hint, but the backend must validate the result and establish the effective context.
+## 7.5.2 Canonical Identity, Tenant, Organization, and Location Model
 
-### 7.5.3 Deployment-Specific Tenant Resolution
-The project architecture requires a shared authentication and authorization pipeline across SaaS and on-premises deployments.
+| Concern | Definition | Authoritative source |
+|---|---|---|
+| Identity | Verified caller identity | Authentication service |
+| User | ERP application user associated with identity | User domain |
+| Tenant Membership | Relationship granting access to a tenant | Membership domain |
+| Tenant | Primary security/data-isolation boundary | Tenant/security domain |
+| Organization | Business/legal unit inside tenant | Organization domain |
+| Location / Branch / Plant | Operational unit inside organization | Location domain |
+| Role | Authorization assignment | Authorization domain |
+| Permission | Allowed capability | Authorization domain |
+| Active Tenant | Tenant selected from validated memberships for the session | Session/security context |
+| TenantContext | Trusted backend context used for tenant-scoped work | Security/database layer |
 
-- **SaaS**: resolve tenant from verified host, custom domain, or subdomain before authentication.
-- **On-premises**: resolve tenant from trusted installation/server configuration before authentication.
-- **Bootstrap**: a non-sensitive bootstrap endpoint provides deployment metadata and branding before the login flow continues.
-- **Frontend**: stores the backend endpoint and bootstrap state, but does not edit or assert tenant identity as an independent authority.
+The backend is authoritative for all of these concepts. Frontend state may display them but cannot create or override them.
 
-This preserves the project’s tenant-before-login foundation while separating deployment-specific tenant resolution from the authentication process itself.
+## 7.5.3 Tenant Membership and Selection
 
-### 7.6 Authorization (RBAC)
+The tenant access model is membership-based:
 
-After authentication, every request undergoes authorization.
-The ERP implements Role-Based Access Control (RBAC).
+```text
+User
+  ↓
+Tenant Memberships
+  ↓
+Eligible Tenants
+```
+
+The backend must load active memberships after successful identity authentication.
+
+If there is no active membership, tenant-scoped access is denied.
+
+If there is one active membership, the backend may auto-select it.
+
+If there are multiple active memberships, the backend must provide the eligible choices and require an explicit selection before tenant-scoped business operations. Tenant selection must perform a server-side membership check.
+
+A user must never gain tenant access by supplying an arbitrary tenant identifier in a request, URL, local storage value, or header.
+
+## 7.5.4 Deployment Endpoint vs Tenant Identity
+
+Deployment and tenancy are independent.
+
+- **SaaS**: clients connect to the centrally hosted backend. Tenant context is derived from authenticated identity and membership.
+- **On-premises**: the installation exposes the ERP backend through its configured endpoint. Web and mobile clients are configured with that endpoint. Tenant context is still derived from authenticated identity and membership.
+- **Mobile**: the app connects only to the ERP backend and never directly to PostgreSQL.
+
+No host/domain resolver or deployment-specific tenant binding is part of the canonical tenant-security lifecycle.
+
+## 7.5.5 Session and Tenant Context
+
+A tenant-scoped session must contain or reference sufficient trusted state to establish the active tenant for the authenticated user.
+
+The backend must validate:
+
+- session validity;
+- user status;
+- tenant status;
+- tenant membership status;
+- applicable organization/location access;
+- roles and permissions.
+
+`TenantContext` is created from the trusted authenticated session context. Client-provided tenant identifiers are hints at most and must never override the session's authoritative tenant.
+
+Changing tenants requires a server-side membership check and creation or renewal of the tenant-scoped session/context.
+
+## 7.6 Authorization (RBAC)
+
+After authentication and active tenant establishment, every protected request undergoes authorization.
+
+The ERP implements Role-Based Access Control (RBAC), with additional organization, location, module, and business constraints where applicable.
 
 Illustrative hierarchy:
 
+```text
+Tenant
+  ↓
 Organization
-
-↓
-
+  ↓
 Role
-
-↓
-
+  ↓
 Permission
-
-↓
-
+  ↓
 User
+```
 
 Permissions determine which operations a user may perform.
 
-### 7.7 Permission Evaluation
+## 7.7 Permission Evaluation
 
-Before executing any business operation, the backend verifies:
-- Organization Membership.
-- Active Status.
-- Assigned Role.
-- Module Access.
+Before executing a business operation, the backend verifies applicable:
+
+- Tenant membership.
+- Membership status.
+- Organization membership/access.
+- Assigned role.
+- Module access.
 - Permission.
-- Branch Restrictions (where applicable).
+- Branch/location restrictions.
+- Business authorization rules.
 
-Access is denied if any required condition fails.
+Access is denied if a required condition fails.
 
-### 7.8 Module-Level Security
+## 7.8 Module-Level Security
 
-Since the ERP is modular, authorization operates at the module level.
+Users shall only access modules that are both enabled/licensed for their tenant/organization and authorized for the user.
 
-Users shall only access modules that are both **enabled/licensed for their organization** and **authorized for the user**.
+Module activation and user authorization are separate controls.
 
-Module activation and user authorization are separate controls:
+## 7.8.1 Tenant and Organization Context
 
-Organization Module Configuration
+Business modules must consume the platform-provided active tenant and authorization context. They must not discover tenant scope independently.
 
-↓
-
-Is the module enabled for the organization?
-
-↓ yes
-
-User Organization Membership
-
-↓
-
-Role / Permission Evaluation
-
-↓
-
-Allow or Deny
-
-Example:
-
-| User | Finance | HR | Inventory |
-|---|---:|---:|---:|
-| Accountant | ✓ | ✗ | ✓ |
-| HR Manager | ✗ | ✓ | ✗ |
-| Administrator | ✓ | ✓ | ✓ |
-
-A user cannot access a module that is not enabled for the organization, even if the user's role otherwise grants permission.
-
-### 7.8.1 Tenant and Organization Context
-
-Authorization must evaluate access within the authenticated user's organization/tenant context. This context is resolved centrally before any tenant-scoped transaction begins. Database-level tenant isolation remains enforced independently through PostgreSQL Row-Level Security as defined by the database architecture.
-
-The tenant-resolution step is a platform/security responsibility, not a business-module concern. Business modules must not independently query or infer tenant scope as part of routine domain logic. The canonical architecture is:
+The canonical sequence is:
 
 ```text
 Authenticated Identity
-  → determine eligible organization memberships
-  → determine active organization/tenant context
-  → validate membership / access
-  → resolve active location access if relevant
+  → load eligible tenant memberships
+  → select active tenant
+  → validate tenant membership
+  → resolve organization access
+  → resolve location access if relevant
   → produce TenantContext
+  → authorize operation
   → begin tenant-scoped transaction
 ```
 
-Tenant resolution is not equivalent to authentication. During normal login, the client does not supply a tenant ID for authorization decisions. The backend resolves it from deployment state and validates the user’s membership before generating the effective session context. A request without a valid tenant context must fail closed rather than defaulting to another tenant or a hardcoded tenant identifier.
+Tenant isolation is enforced independently by PostgreSQL RLS.
 
-### 7.9 Audit Requirements
+## 7.9 Audit Requirements
 
-Security-related events shall be audited.
-Examples:
+Security-related events shall be audited, including where applicable:
+
 - Successful Login.
 - Failed Login.
+- Tenant Selection/Switch.
 - Password Change.
 - Permission Update.
 - Session Revocation.
 - Token Refresh.
+- Authorization Failure.
 
-These events support compliance and security investigations.
-
-### 7.10 Session Management
+## 7.10 Session Management
 
 The backend shall support:
+
 - Secure Logout.
 - Token Revocation.
 - Session Expiration.
 - Concurrent Session Management.
+- Tenant-scoped session switching.
 - Device Tracking (future).
 
-Inactive sessions shall expire automatically.
+Inactive or invalid sessions shall expire or be rejected automatically.
 
-### 7.11 Summary
+## 7.11 Database Tenant Context
 
-Authentication confirms identity while authorization controls access.
-Together they provide the security foundation upon which every ERP module operates.
+Tenant-owned database operations must execute inside an explicit tenant-scoped transaction.
+
+Immediately after transaction start and before tenant-owned access:
+
+```sql
+SET LOCAL app.current_tenant_id = '<trusted tenant UUID>';
+```
+
+The value must originate from `TenantContext` and therefore from authenticated identity plus validated tenant membership/session state.
+
+PostgreSQL RLS remains mandatory as the database isolation boundary.
+
+## 7.12 Summary
+
+The ERP security lifecycle is:
+
+```text
+Identity
+  ↓
+Authentication
+  ↓
+Tenant Membership
+  ↓
+Active Tenant
+  ↓
+Tenant-scoped Session
+  ↓
+Authorization
+  ↓
+TenantContext
+  ↓
+Tenant-scoped Transaction + RLS
+  ↓
+Business Operation
+```
+
+Deployment location is a connectivity concern, not a tenant-authorization mechanism.
 
 ---
 
 ## Cross References
 
-- `docs/06-security/01-backend-security.md`
+- `docs/03-database/11-multi-tenancy.md`
 - `docs/06-security/04-enterprise-security-architecture.md`
-- `docs/04-backend/01-backend-overview.md`
+- `docs/04-backend/06-api-design-standards.md`
