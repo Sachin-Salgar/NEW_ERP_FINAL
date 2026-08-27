@@ -25,10 +25,10 @@ class _LoginScreenState extends State<LoginScreen> {
     final ok = await auth.login(baseUrl, _identifierController.text.trim(), _passwordController.text);
     if (!mounted) return;
     if (ok) {
-      await auth.loadMe(baseUrl);
-      if (!mounted) return;
-      // Organization and location are working-context choices, never login gates.
-      // A successful login always lands on the dashboard.
+      // AuthService.login already stores the authenticated identity and resolves
+      // the user's tenant/default working context. Do not issue a second /auth/me
+      // request here; it can race the context initialization completed by login().
+      // Organization/location remain working-context controls, never login gates.
       Navigator.of(context).pushNamedAndRemoveUntil('/dashboard', (route) => false);
       return;
     }
