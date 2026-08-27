@@ -17,6 +17,8 @@ if [[ ! -x "${FLUTTER_HOME}/bin/flutter" ]]; then
   mv "${HOME}/flutter" "${FLUTTER_HOME}"
 fi
 
+git config --global --add safe.directory "${FLUTTER_HOME}"
+
 export PATH="${FLUTTER_HOME}/bin:${PATH}"
 
 flutter --version
