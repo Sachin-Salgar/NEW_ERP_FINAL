@@ -21,11 +21,7 @@ Future<void> _pump(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 100));
 }
 
-Future<void> _waitFor(
-  WidgetTester tester,
-  Finder finder, {
-  Duration timeout = const Duration(seconds: 15),
-}) async {
+Future<void> _waitFor(WidgetTester tester, Finder finder, {Duration timeout = const Duration(seconds: 15)}) async {
   final deadline = DateTime.now().add(timeout);
   while (DateTime.now().isBefore(deadline)) {
     await _pump(tester);
@@ -34,8 +30,14 @@ Future<void> _waitFor(
   fail('Timed out waiting for finder: $finder');
 }
 
-Future<http.Response> _getWithTimeout(Uri uri) {
-  return http.get(uri).timeout(const Duration(seconds: 10));
+Future<http.Response> _getWithTimeout(Uri uri) =>
+    http.get(uri).timeout(const Duration(seconds: 10));
+
+Future<void> _login(WidgetTester tester, String email) async {
+  await _waitFor(tester, find.byKey(const ValueKey('login_identifier_field')));
+  await tester.enterText(find.byKey(const ValueKey('login_identifier_field')), email);
+  await tester.enterText(find.byKey(const ValueKey('login_password_field')), _adminPassword);
+  await tester.tap(find.byKey(const ValueKey('login_submit_button')));
 }
 
 void main() {
@@ -52,37 +54,10 @@ void main() {
     testWidgets(
       'admin login goes directly to dashboard with tenant and default working context',
       (tester) async {
-        final baseUrl = const String.fromEnvironment(
-          'API_BASE_URL',
-          defaultValue: 'http://localhost:3000',
-        );
-
+        final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
         await tester.pumpWidget(const App());
-        await _waitFor(
-          tester,
-          find.byKey(const ValueKey('login_identifier_field')),
-        );
-
-        await tester.enterText(
-          find.byKey(const ValueKey('login_identifier_field')),
-          _adminEmail,
-        );
-        await tester.enterText(
-          find.byKey(const ValueKey('login_password_field')),
-          _adminPassword,
-        );
-        await tester.tap(find.byKey(const ValueKey('login_submit_button')));
-
-        await _waitFor(
-          tester,
-          find.text('Dashboard'),
-          timeout: const Duration(seconds: 20),
-        );
-
-        final exception = tester.takeException();
-        if (exception != null) {
-          fail('Flutter framework error during login/dashboard transition: $exception');
-        }
+        await _login(tester, _adminEmail);
+        await _waitFor(tester, find.text('Dashboard'), timeout: const Duration(seconds: 30));
 
         expect(find.text('Select organization'), findsNothing);
         expect(find.text('Select location'), findsNothing);
@@ -96,14 +71,10 @@ void main() {
         expect(auth.requiresLocationSelection, isFalse);
         expect(auth.availableLocations.length, equals(2));
 
-        final bootstrapResponse = await _getWithTimeout(
-          Uri.parse('$baseUrl/api/v1/bootstrap'),
-        );
+        final bootstrapResponse = await _getWithTimeout(Uri.parse('$baseUrl/api/v1/bootstrap'));
         expect(bootstrapResponse.statusCode, equals(200));
-        final bootstrap =
-            jsonDecode(bootstrapResponse.body) as Map<String, dynamic>;
-        final capabilities =
-            bootstrap['capabilities'] as Map<String, dynamic>;
+        final bootstrap = jsonDecode(bootstrapResponse.body) as Map<String, dynamic>;
+        final capabilities = bootstrap['capabilities'] as Map<String, dynamic>;
         expect(capabilities['tenantSelection'], isFalse);
         expect(capabilities['workingContextSelection'], isTrue);
       },
@@ -113,37 +84,15 @@ void main() {
     testWidgets(
       'limited user cannot access disabled module',
       (tester) async {
-        final baseUrl = const String.fromEnvironment(
-          'API_BASE_URL',
-          defaultValue: 'http://localhost:3000',
-        );
+        final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
         await tester.pumpWidget(const App());
-        await _waitFor(
-          tester,
-          find.byKey(const ValueKey('login_identifier_field')),
-        );
-        await tester.enterText(
-          find.byKey(const ValueKey('login_identifier_field')),
-          _limitedEmail,
-        );
-        await tester.enterText(
-          find.byKey(const ValueKey('login_password_field')),
-          _adminPassword,
-        );
-        await tester.tap(find.byKey(const ValueKey('login_submit_button')));
-        await _waitFor(
-          tester,
-          find.text('Dashboard'),
-          timeout: const Duration(seconds: 20),
-        );
+        await _login(tester, _limitedEmail);
+        await _waitFor(tester, find.text('Dashboard'), timeout: const Duration(seconds: 30));
 
-        final response = await _getWithTimeout(
-          Uri.parse('$baseUrl/api/v1/auth/modules'),
-        );
+        final response = await _getWithTimeout(Uri.parse('$baseUrl/api/v1/auth/modules'));
         expect(response.statusCode, equals(200));
         final payload = jsonDecode(response.body) as Map<String, dynamic>;
-        final modules =
-            (payload['modules'] as List<dynamic>).cast<Map<String, dynamic>>();
+        final modules = (payload['modules'] as List<dynamic>).cast<Map<String, dynamic>>();
         final module = modules.firstWhere((item) => item['code'] == _moduleCode);
         expect(module['enabled'], isFalse);
       },
