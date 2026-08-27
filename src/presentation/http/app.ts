@@ -8,10 +8,10 @@ import { AuthorizationService } from '../../application/services/authorization-s
 import { CoreEnterpriseService } from '../../application/services/core-enterprise-service.js';
 import { LocationService } from '../../application/services/location-service.js';
 import { ModuleAccessService } from '../../application/services/module-access-service.js';
-import { createTenantResolver } from '../../application/services/tenant-resolver-factory.js';
+import { TenantMembershipService } from '../../application/services/tenant-membership-service.js';
 import { UserRegistrationService } from '../../application/services/user-registration-service.js';
 import { createDatabasePool } from '../../infrastructure/database/connection.js';
-import { PostgresPlatformRepository } from '../../infrastructure/database/repositories/postgres-platform-repository.js';
+import { IdentityAwarePostgresPlatformRepository } from '../../infrastructure/database/repositories/identity-aware-postgres-platform-repository.js';
 import { buildErrorHandler } from '../../infrastructure/http/error-handler.js';
 import { BcryptPasswordHasher } from '../../infrastructure/security/bcrypt-password-hasher.js';
 import { JwtTokenService } from '../../infrastructure/security/jwt-token-service.js';
@@ -38,7 +38,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   });
 
   const pool = providedPool ?? createDatabasePool(config);
-  const repository = new PostgresPlatformRepository(pool);
+  const repository = new IdentityAwarePostgresPlatformRepository(pool);
   const passwordHasher = new BcryptPasswordHasher();
   const jwtTokenService = new JwtTokenService(config);
   const authService = new AuthenticationService(repository, passwordHasher, jwtTokenService);
@@ -47,11 +47,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   const locationService = new LocationService(repository);
   const moduleAccessService = new ModuleAccessService(pool);
   const registrationService = new UserRegistrationService(repository, passwordHasher);
-  const tenantResolver = createTenantResolver(repository, {
-    TENANT_HOST_MAP: config.TENANT_HOST_MAP,
-    DEPLOYMENT_TENANT_ID: config.DEPLOYMENT_TENANT_ID,
-    NODE_ENV: config.NODE_ENV,
-  });
+  const tenantMembershipService = new TenantMembershipService(repository);
 
   app.decorate('appConfig', config);
   app.decorate('authService', authService);
@@ -61,12 +57,12 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('moduleAccessService', moduleAccessService);
   app.decorate('registrationService', registrationService);
   app.decorate('jwtTokenService', jwtTokenService);
-  app.decorate('tenantResolver', tenantResolver);
+  app.decorate('tenantMembershipService', tenantMembershipService);
 
   await app.register(cors, {
     origin: config.CORS_ALLOWED_ORIGINS,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
     optionsSuccessStatus: 204,
   });
