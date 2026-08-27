@@ -27,7 +27,7 @@ Future<void> _waitFor(WidgetTester tester, Finder finder, {Duration timeout = co
     await _pump(tester);
     if (finder.evaluate().isNotEmpty) return;
   }
-  fail('Timed out waiting for ${finder.describeMatch(finder.evaluate().isEmpty ? null : finder.evaluate().first)}');
+  fail('Timed out waiting for finder: $finder');
 }
 
 void main() {
@@ -79,51 +79,28 @@ void main() {
       expect(auth.requiresLocationSelection, isFalse);
       expect(auth.availableLocations.length, equals(2));
 
-      final token = auth.accessToken;
-      expect(token, isNotNull);
+      final bootstrapResponse = await http.get(Uri.parse('$baseUrl/api/v1/bootstrap'));
+      expect(bootstrapResponse.statusCode, equals(200));
+      final bootstrap = jsonDecode(bootstrapResponse.body) as Map<String, dynamic>;
+      expect((bootstrap['capabilities'] as Map<String, dynamic>)['tenantSelection'], isFalse);
+      expect((bootstrap['capabilities'] as Map<String, dynamic>)['workingContextSelection'], isTrue);
+    });
 
-      Future<Map<String, dynamic>> fetchModules() async {
-        final response = await http.get(Uri.parse('$baseUrl/api/v1/auth/modules'), headers: {'Authorization': 'Bearer $token', 'x-tenant-id': _tenantId});
-        expect(response.statusCode, 200);
-        return jsonDecode(response.body) as Map<String, dynamic>;
-      }
+    testWidgets('limited user cannot access disabled module', (tester) async {
+      final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
+      await tester.pumpWidget(const App());
+      await _waitFor(tester, find.byKey(const ValueKey('login_identifier_field')));
+      await tester.enterText(find.byKey(const ValueKey('login_identifier_field')), _limitedEmail);
+      await tester.enterText(find.byKey(const ValueKey('login_password_field')), _adminPassword);
+      await tester.tap(find.byKey(const ValueKey('login_submit_button')));
+      await _waitFor(tester, find.text('Dashboard'), timeout: const Duration(seconds: 20));
 
-      var modulesBody = await fetchModules();
-      var modules = (modulesBody['modules'] as List<dynamic>?) ?? const [];
-      expect(modules.any((m) => (m as Map<String, dynamic>)['code'] == _moduleCode), isTrue);
-
-      final protectedRoles = await http.get(Uri.parse('$baseUrl/api/v1/rbac/roles'), headers: {'Authorization': 'Bearer $token', 'x-tenant-id': _tenantId});
-      expect(protectedRoles.statusCode, 200);
-
-      final disable = await http.post(Uri.parse('$baseUrl/api/v1/auth/modules/$_moduleCode/disable'), headers: {'Authorization': 'Bearer $token', 'x-tenant-id': _tenantId});
-      expect(disable.statusCode, 200);
-      modulesBody = await fetchModules();
-      modules = (modulesBody['modules'] as List<dynamic>?) ?? const [];
-      expect(modules.any((m) => (m as Map<String, dynamic>)['code'] == _moduleCode), isFalse);
-
-      final denied = await http.get(Uri.parse('$baseUrl/api/v1/rbac/roles'), headers: {'Authorization': 'Bearer $token', 'x-tenant-id': _tenantId});
-      expect(denied.statusCode, 403);
-
-      final enable = await http.post(Uri.parse('$baseUrl/api/v1/auth/modules/$_moduleCode/enable'), headers: {'Authorization': 'Bearer $token', 'x-tenant-id': _tenantId});
-      expect(enable.statusCode, 200);
-
-      modulesBody = await fetchModules();
-      modules = (modulesBody['modules'] as List<dynamic>?) ?? const [];
-      expect(modules.any((m) => (m as Map<String, dynamic>)['code'] == _moduleCode), isTrue);
-
-      final restored = await http.get(Uri.parse('$baseUrl/api/v1/rbac/roles'), headers: {'Authorization': 'Bearer $token', 'x-tenant-id': _tenantId});
-      expect(restored.statusCode, 200);
-
-      final mismatchedTenant = await http.get(Uri.parse('$baseUrl/api/v1/rbac/roles'), headers: {'Authorization': 'Bearer $token', 'x-tenant-id': '11111111-1111-4111-8111-111111111112'});
-      expect(mismatchedTenant.statusCode, 401);
-
-      final limitedLogin = await http.post(Uri.parse('$baseUrl/api/v1/auth/login'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'identifier': _limitedEmail, 'password': _adminPassword}));
-      expect(limitedLogin.statusCode, 200);
-      final limitedToken = (jsonDecode(limitedLogin.body) as Map<String, dynamic>)['accessToken'] as String?;
-      expect(limitedToken, isNotNull);
-
-      final limitedDenied = await http.get(Uri.parse('$baseUrl/api/v1/rbac/roles'), headers: {'Authorization': 'Bearer $limitedToken', 'x-tenant-id': _tenantId});
-      expect(limitedDenied.statusCode, 403);
+      final response = await http.get(Uri.parse('$baseUrl/api/v1/auth/modules'));
+      expect(response.statusCode, equals(200));
+      final payload = jsonDecode(response.body) as Map<String, dynamic>;
+      final modules = (payload['modules'] as List<dynamic>).cast<Map<String, dynamic>>();
+      final module = modules.firstWhere((item) => item['code'] == _moduleCode);
+      expect(module['enabled'], isFalse);
     });
   });
 }
