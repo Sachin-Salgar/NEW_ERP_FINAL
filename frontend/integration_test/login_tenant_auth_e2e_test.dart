@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
@@ -37,6 +36,7 @@ Future<void> _login(WidgetTester tester, String email) async {
   await tester.enterText(find.byKey(const ValueKey('login_identifier_field')), email);
   await tester.enterText(find.byKey(const ValueKey('login_password_field')), _adminPassword);
   await tester.tap(find.byKey(const ValueKey('login_submit_button')));
+  await tester.pump();
 }
 
 void main() {
@@ -55,7 +55,6 @@ void main() {
         await tester.pumpWidget(const App());
         await _login(tester, _adminEmail);
         await _waitFor(tester, find.text('Dashboard'), timeout: const Duration(seconds: 30));
-        await tester.pump(const Duration(milliseconds: 250));
 
         expect(find.text('Select organization'), findsNothing);
         expect(find.text('Select location'), findsNothing);
@@ -86,7 +85,6 @@ void main() {
         await tester.pumpWidget(const App());
         await _login(tester, _limitedEmail);
         await _waitFor(tester, find.text('Dashboard'), timeout: const Duration(seconds: 30));
-        await tester.pump(const Duration(milliseconds: 250));
 
         final response = await _getWithTimeout(Uri.parse('$baseUrl/api/v1/auth/modules'));
         expect(response.statusCode, equals(200));
