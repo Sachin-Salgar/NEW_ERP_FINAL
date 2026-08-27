@@ -34,6 +34,7 @@ class ErpStatCard extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 176),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -99,15 +100,13 @@ class ErpStatCard extends StatelessWidget {
                 ),
               )
             else
-              Flexible(
-                child: Text(
-                  value,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: theme.colorScheme.onSurface,
-                  ),
+              Text(
+                value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
             if (subtitle != null) ...[
