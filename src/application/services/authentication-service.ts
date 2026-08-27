@@ -10,22 +10,47 @@ export class AuthenticationService {
     private readonly tokenService?: TokenService,
   ) {}
 
-  async authenticate(tenantId: string, identifier: string, password: string): Promise<AuthenticationResult> {
-    const user = await this.authenticationRepository.findByTenantAndIdentifier(tenantId, identifier);
-
-    if (!user) {
+  /**
+   * Authenticate without deployment/host tenant resolution.
+   * The identity lookup returns candidate tenant accounts; password verification then occurs
+   * against each candidate through the tenant-scoped repository/RLS path.
+   */
+  async authenticate(identifier: string, password: string): Promise<AuthenticationResult> {
+    const candidates = await this.authenticationRepository.findLoginCandidates(identifier);
+    if (candidates.length === 0) {
       return { success: false, reason: 'INVALID_CREDENTIALS' };
     }
 
-    if (user.status !== 'active') {
-      return { success: false, reason: 'USER_INACTIVE' };
+    let matchedUser: Awaited<ReturnType<AuthenticationRepository['findById']>> = null;
+    let matchedTenantId: string | null = null;
+
+    for (const candidate of candidates) {
+      const user = await this.authenticationRepository.findById(candidate.tenantId, candidate.userId);
+      if (!user || user.status !== 'active') {
+        continue;
+      }
+
+      const validPassword = await this.passwordHasher.verify(password, user.passwordHash);
+      if (!validPassword) {
+        continue;
+      }
+
+      if (matchedUser) {
+        // The same credentials identify multiple active tenant accounts. Do not guess the tenant.
+        // The caller must use a disambiguated identity in a future identity-selection flow.
+        return { success: false, reason: 'INVALID_CREDENTIALS' };
+      }
+
+      matchedUser = user;
+      matchedTenantId = candidate.tenantId;
     }
 
-    const validPassword = await this.passwordHasher.verify(password, user.passwordHash);
-    if (!validPassword) {
+    if (!matchedUser || !matchedTenantId) {
       return { success: false, reason: 'INVALID_CREDENTIALS' };
     }
 
+    const tenantId = matchedTenantId;
+    const user = matchedUser;
     const sessionId = uuidV7();
     const sessionExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 8);
     const refreshToken = this.tokenService ? this.tokenService.createRefreshToken({
@@ -44,9 +69,9 @@ export class AuthenticationService {
       branchId: user.defaultBranchId ?? null,
       accessTokenId: null,
       expiresAt: sessionExpiresAt,
-      userAgent: 'platform-bootstrap',
+      userAgent: 'erp-client',
       ipAddress: null,
-      device: 'web',
+      device: 'unknown',
       refreshTokenHash: this.tokenService ? this.tokenService.hashTokenValue(refreshToken) : 'internal-session-token',
     });
 
@@ -75,9 +100,6 @@ export class AuthenticationService {
   }
 
   async createSessionForUser(tenantId: string, userId: string, organizationId?: string | null, locationId?: string | null): Promise<AuthenticationResult> {
-    // Create a new session for an already authenticated user. This is used when the
-    // user selects an active organization or an authorized location and the backend
-    // issues a server-authoritative effective session.
     const user = await this.authenticationRepository.findById(tenantId, userId);
     if (!user) {
       return { success: false, reason: 'USER_NOT_FOUND' };
@@ -106,9 +128,9 @@ export class AuthenticationService {
       branchId: user.defaultBranchId ?? null,
       accessTokenId: null,
       expiresAt: sessionExpiresAt,
-      userAgent: 'platform-bootstrap',
+      userAgent: 'erp-client',
       ipAddress: null,
-      device: 'web',
+      device: 'unknown',
       refreshTokenHash: this.tokenService ? this.tokenService.hashTokenValue(refreshToken) : 'internal-session-token',
     });
 
@@ -152,11 +174,7 @@ export class AuthenticationService {
     }
 
     const user = await this.authenticationRepository.findById(tenantId, session.userId);
-    if (!user) {
-      return null;
-    }
-
-    if (user.status !== 'active') {
+    if (!user || user.status !== 'active') {
       return null;
     }
 
