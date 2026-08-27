@@ -1,4 +1,4 @@
-import { FastifyPluginAsync, type FastifyRequest } from 'fastify';
+import { FastifyPluginAsync } from 'fastify';
 
 import { ValidationError, UnauthorizedError } from '../../../domain/errors.js';
 import { requireAuth, requirePermission } from '../middleware/auth.js';
@@ -14,63 +14,49 @@ const sanitizeUser = (user: { id: string; tenantId: string; organizationId?: str
   status: user.status,
 });
 
-const getRequestHost = (request: FastifyRequest): string => {
-  const hostHeader = request.headers.host;
-  if (typeof hostHeader === 'string' && hostHeader.trim()) {
-    return hostHeader.trim().split(':')[0].toLowerCase();
-  }
-
-  return request.server.appConfig.HOST.toLowerCase();
-};
-
-const getTenantIdFromRequest = (request: FastifyRequest): string | null => {
-  const config = request.server.appConfig;
-  const headerName = config.TENANT_HEADER.toLowerCase();
-  const headerValue = request.headers[headerName];
-  if (typeof headerValue === 'string' && headerValue.trim()) {
-    return headerValue.trim();
-  }
-
-  const body = request.body as Record<string, unknown> | undefined;
-  const bodyTenantId = typeof body?.tenantId === 'string' ? body.tenantId.trim() : null;
-  return bodyTenantId || null;
-};
+const sanitizeSession = (session: {
+  id: string;
+  tenantId: string;
+  userId: string;
+  organizationId?: string | null;
+  locationId?: string | null;
+  branchId?: string | null;
+  isActive: boolean;
+  expiresAt: Date;
+  loginAt: Date;
+}) => ({
+  id: session.id,
+  tenantId: session.tenantId,
+  userId: session.userId,
+  organizationId: session.organizationId ?? null,
+  locationId: session.locationId ?? null,
+  branchId: session.branchId ?? null,
+  isActive: session.isActive,
+  expiresAt: session.expiresAt,
+  loginAt: session.loginAt,
+});
 
 const authRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.get('/bootstrap', async (request) => {
-    const host = getRequestHost(request);
-    const tenant = await request.server.tenantResolver.resolveTenantFromHost(host);
-
-    return {
-      success: true,
-      deployment: {
-        mode: tenant.mode,
-        host,
-        tenantId: tenant.id,
-        tenantName: tenant.name,
-        tenantDisplayName: tenant.displayName ?? tenant.name,
-        subdomain: tenant.subdomain,
-        slug: tenant.slug,
-      },
-      branding: {
-        name: tenant.name,
-        displayName: tenant.displayName ?? tenant.name,
-      },
-      login: {
-        enabled: true,
-      },
-      capabilities: {
-        apiVersion: 'v1',
-        multiOrganization: true,
-      },
-    };
-  });
+  // Bootstrap is deployment/connectivity metadata only. It must not resolve or authorize a tenant.
+  fastify.get('/bootstrap', async (request) => ({
+    success: true,
+    deployment: {
+      apiVersion: 'v1',
+      environment: request.server.appConfig.NODE_ENV,
+    },
+    login: { enabled: true },
+    capabilities: {
+      apiVersion: 'v1',
+      tenantSelection: true,
+      multiOrganization: true,
+    },
+  }));
 
   fastify.post('/auth/register', {
     preHandler: [requireAuth, requirePermission('user.manage')],
   }, async (request, reply) => {
     const body = request.body as Record<string, unknown> | undefined;
-    const tenantId = request.tenantId ?? getTenantIdFromRequest(request);
+    const tenantId = request.tenantId;
     if (!tenantId) {
       throw new ValidationError('Tenant context is required for registration.');
     }
@@ -85,59 +71,63 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     reply.code(201);
-    return {
-      success: true,
-      user: sanitizeUser(newUser),
-    };
+    return { success: true, user: sanitizeUser(newUser) };
   });
 
   fastify.post('/auth/login', async (request, reply) => {
     const body = request.body as Record<string, unknown> | undefined;
     const identifier = typeof body?.identifier === 'string' ? body.identifier.trim() : '';
     const password = typeof body?.password === 'string' ? body.password : '';
-    const headerTenantId = getTenantIdFromRequest(request);
-    const tenant = await request.server.tenantResolver.resolveTenantFromHost(getRequestHost(request));
-    if (headerTenantId && headerTenantId !== tenant.id) {
-      throw new UnauthorizedError('Tenant mismatch detected.');
-    }
 
     if (!identifier || !password) {
       throw new ValidationError('Identifier and password are required.');
     }
 
-    let result = await request.server.authService.authenticate(tenant.id, identifier, password);
+    const result = await request.server.authService.authenticate(identifier, password);
     if (!result.success || !result.user || !result.session || !result.accessToken || !result.refreshToken) {
       throw new UnauthorizedError('Invalid credentials.');
     }
 
-    const memberships = await request.server.tenantResolver.resolveUserMemberships(tenant.id, result.user.id);
+    // Organization membership is resolved only after authentication has established the tenant.
+    const memberships = await request.server.tenantMembershipService.resolveOrganizationMemberships(
+      result.user.tenantId,
+      result.user.id,
+    );
+
+    let finalResult = result;
     if (memberships.requiresOrganizationSelection) {
-      await request.server.authService.invalidateSession(result.session.id, tenant.id);
-      result = await request.server.authService.createSessionForUser(tenant.id, result.user.id, null);
-      if (!result.success || !result.user || !result.session || !result.accessToken || !result.refreshToken) {
-        throw new UnauthorizedError('Unable to establish the pre-organization login session.');
+      await request.server.authService.invalidateSession(result.session.id, result.user.tenantId);
+      finalResult = await request.server.authService.createSessionForUser(result.user.tenantId, result.user.id, null);
+      if (!finalResult.success || !finalResult.user || !finalResult.session || !finalResult.accessToken || !finalResult.refreshToken) {
+        throw new UnauthorizedError('Unable to establish the tenant-scoped login session.');
+      }
+    } else if (memberships.activeOrganizationId && !result.user.organizationId) {
+      await request.server.authService.invalidateSession(result.session.id, result.user.tenantId);
+      finalResult = await request.server.authService.createSessionForUser(
+        result.user.tenantId,
+        result.user.id,
+        memberships.activeOrganizationId,
+      );
+      if (!finalResult.success || !finalResult.user || !finalResult.session || !finalResult.accessToken || !finalResult.refreshToken) {
+        throw new UnauthorizedError('Unable to establish the active organization session.');
       }
     }
 
     reply.code(200);
     return {
       success: true,
-      user: sanitizeUser(result.user),
-      session: {
-        id: result.session.id,
-        tenantId: result.session.tenantId,
-        userId: result.session.userId,
-        organizationId: result.session.organizationId ?? null,
-        locationId: result.session.locationId ?? null,
-        branchId: result.session.branchId ?? null,
-        isActive: result.session.isActive,
-        expiresAt: result.session.expiresAt,
-        loginAt: result.session.loginAt,
-      },
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-      expiresAt: result.session.expiresAt,
+      user: sanitizeUser(finalResult.user!),
+      session: sanitizeSession(finalResult.session!),
+      accessToken: finalResult.accessToken,
+      refreshToken: finalResult.refreshToken,
+      expiresAt: finalResult.session!.expiresAt,
       tokenType: 'bearer',
+      tenant: {
+        id: finalResult.user!.tenantId,
+      },
+      organizations: memberships.organizations,
+      activeOrganizationId: memberships.activeOrganizationId,
+      requiresOrganizationSelection: memberships.requiresOrganizationSelection,
     };
   });
 
@@ -181,11 +171,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     if (!request.user) {
       throw new UnauthorizedError('Authentication required.');
     }
-
-    return {
-      success: true,
-      user: sanitizeUser(request.user),
-    };
+    return { success: true, user: sanitizeUser(request.user) };
   });
 
   fastify.get('/auth/organizations', { preHandler: requireAuth }, async (request) => {
@@ -193,7 +179,10 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       throw new UnauthorizedError('Authentication required.');
     }
 
-    const memberships = await request.server.tenantResolver.resolveUserMemberships(request.tenantId, request.user.id);
+    const memberships = await request.server.tenantMembershipService.resolveOrganizationMemberships(
+      request.tenantId,
+      request.user.id,
+    );
     return {
       success: true,
       organizations: memberships.organizations,
@@ -213,7 +202,11 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ success: false, message: 'organizationId is required' });
     }
 
-    await request.server.tenantResolver.resolveUserMemberships(request.tenantId, request.user.id, requestedOrg);
+    await request.server.tenantMembershipService.resolveOrganizationMemberships(
+      request.tenantId,
+      request.user.id,
+      requestedOrg,
+    );
 
     const result = await request.server.authService.createSessionForUser(request.tenantId, request.user.id, requestedOrg);
     if (!result.success || !result.user || !result.session) {
@@ -224,17 +217,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     return {
       success: true,
       user: sanitizeUser(result.user),
-      session: {
-        id: result.session.id,
-        tenantId: result.session.tenantId,
-        userId: result.session.userId,
-        organizationId: result.session.organizationId ?? null,
-        locationId: result.session.locationId ?? null,
-        branchId: result.session.branchId ?? null,
-        isActive: result.session.isActive,
-        expiresAt: result.session.expiresAt,
-        loginAt: result.session.loginAt,
-      },
+      session: sanitizeSession(result.session),
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       expiresAt: result.session.expiresAt,
@@ -255,11 +238,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       request.user.organizationId,
     );
 
-    return {
-      success: true,
-      organizationId: request.user.organizationId,
-      modules,
-    };
+    return { success: true, organizationId: request.user.organizationId, modules };
   });
 
   fastify.post('/auth/modules/:code/enable', {
@@ -268,7 +247,6 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     if (!request.user || !request.tenantId || !request.user.organizationId) {
       throw new UnauthorizedError('Authentication and organization context are required.');
     }
-
     const moduleCode = ((request.params as { code?: string }).code ?? '').trim();
     const module = await request.server.moduleAccessService.setOrganizationModule(
       request.tenantId,
@@ -277,7 +255,6 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       true,
       request.user.id,
     );
-
     return { success: true, enabled: true, module };
   });
 
@@ -287,7 +264,6 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     if (!request.user || !request.tenantId || !request.user.organizationId) {
       throw new UnauthorizedError('Authentication and organization context are required.');
     }
-
     const moduleCode = ((request.params as { code?: string }).code ?? '').trim();
     await request.server.moduleAccessService.setOrganizationModule(
       request.tenantId,
@@ -296,7 +272,6 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       false,
       request.user.id,
     );
-
     return { success: true, enabled: false, moduleCode };
   });
 
@@ -304,12 +279,8 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     if (!request.user || !request.sessionId || !request.tenantId) {
       throw new UnauthorizedError('Authentication required.');
     }
-
     await request.server.authService.invalidateSession(request.sessionId, request.tenantId);
-    return {
-      success: true,
-      message: 'Session invalidated.',
-    };
+    return { success: true, message: 'Session invalidated.' };
   });
 
   fastify.get('/auth/protected', { preHandler: requireAuth }, async (request) => ({
