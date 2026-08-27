@@ -31,6 +31,40 @@ export type AppConfig = z.infer<typeof appConfigSchema> & {
 
 export type LogLevel = z.infer<typeof appConfigSchema>['LOG_LEVEL'];
 
+/**
+ * Determines whether a browser Origin may use the API.
+ *
+ * Development/test intentionally accept any HTTP localhost/loopback port because
+ * Flutter Web and other local dev servers choose ephemeral ports. Production
+ * remains restricted to the explicit CORS_ALLOWED_ORIGINS allowlist.
+ */
+export function isCorsOriginAllowed(config: AppConfig, origin?: string): boolean {
+  if (!origin) {
+    return true;
+  }
+
+  if (config.CORS_ALLOWED_ORIGINS.includes(origin)) {
+    return true;
+  }
+
+  if (!config.isDevelopment && !config.isTest) {
+    return false;
+  }
+
+  try {
+    const url = new URL(origin);
+    const isLoopbackHost =
+      url.hostname === 'localhost' ||
+      url.hostname === '127.0.0.1' ||
+      url.hostname === '[::1]' ||
+      url.hostname === '::1';
+
+    return url.protocol === 'http:' && isLoopbackHost;
+  } catch {
+    return false;
+  }
+}
+
 export function resolveDatabaseUrl(
   env: NodeJS.ProcessEnv = process.env,
   options: { forTest?: boolean } = {},
