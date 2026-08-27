@@ -3,18 +3,7 @@ import { type FastifyPluginAsync, type FastifyRequest } from 'fastify';
 import { NotFoundError, ValidationError } from '../../../domain/errors.js';
 import { requireAuth, requirePermission } from '../middleware/auth.js';
 
-const getTenantIdFromRequest = (request: FastifyRequest): string | null => {
-  const config = request.server.appConfig;
-  const headerName = config.TENANT_HEADER.toLowerCase();
-  const headerValue = request.headers[headerName];
-  if (typeof headerValue === 'string' && headerValue.trim()) {
-    return headerValue.trim();
-  }
-
-  const body = request.body as Record<string, unknown> | undefined;
-  const bodyTenantId = typeof body?.tenantId === 'string' ? body.tenantId.trim() : null;
-  return bodyTenantId || null;
-};
+const getTenantIdFromRequest = (request: FastifyRequest): string | null => request.tenantId ?? null;
 
 const asString = (value: unknown): string | null => (typeof value === 'string' ? value.trim() : null);
 
