@@ -21,8 +21,6 @@ import '../modules/role/create_screen.dart';
 import '../modules/role/edit_screen.dart';
 import '../modules/permission/permission_list_screen.dart';
 import '../modules/auth/login_screen.dart';
-import '../modules/auth/location_selection_screen.dart';
-import '../modules/auth/organization_selection_screen.dart';
 
 class AppRouter {
   static const Map<String, String?> routePermissions = {
@@ -36,9 +34,6 @@ class AppRouter {
   static Route<dynamic>? generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case '/login': return MaterialPageRoute(builder: (_) => const LoginScreen());
-      // These are retained only as optional working-context pages; they are never login gates.
-      case '/organization-selection': return MaterialPageRoute(builder: (_) => const OrganizationSelectionScreen());
-      case '/location-selection': return MaterialPageRoute(builder: (_) => const LocationSelectionScreen());
       case '/dashboard': return MaterialPageRoute(builder: (context) => _authGuard(context, (_) => const DashboardScreen(), routeName: '/dashboard'));
       case '/organizations': return MaterialPageRoute(builder: (context) => _authGuard(context, (_) => const OrganizationListScreen(), routeName: '/organizations'));
       case '/organizations/create': return MaterialPageRoute(builder: (context) => _authGuard(context, (_) => const CreateOrganizationScreen(), routeName: '/organizations/create'));
@@ -63,11 +58,9 @@ class AppRouter {
   }
 
   static Widget _permissionDeniedScreen(String routeName, String permissionKey) => Scaffold(appBar: AppBar(title: const Text('Access denied')), body: Center(child: Padding(padding: const EdgeInsets.all(24), child: Text('Access denied for $routeName. Required permission: $permissionKey.', textAlign: TextAlign.center))));
-
   static Widget _authGuard(BuildContext context, WidgetBuilder builder, {required String routeName}) {
     final auth=GetIt.instance.get<AuthService>();
     if (!auth.isAuthenticated) return const LoginScreen();
-    // Organization/location are optional working context. Never redirect authenticated users to selection pages.
     final requiredPermission=routePermissions[routeName];
     if (requiredPermission != null && !auth.hasPermission(requiredPermission)) return _permissionDeniedScreen(routeName, requiredPermission);
     return builder(context);
