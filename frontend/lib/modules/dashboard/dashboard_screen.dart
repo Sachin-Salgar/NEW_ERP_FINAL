@@ -14,29 +14,40 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final OrganizationService _organizationService = GetIt.instance.get<OrganizationService>();
-  final UserService _userService = GetIt.instance.get<UserService>();
-  final AuthService _authService = GetIt.instance.get<AuthService>();
+  late final AuthService _authService;
+  late final OrganizationService _organizationService;
+  late final UserService _userService;
   bool _isLoading = false;
   String? _error;
 
-  @override void initState() { super.initState(); _refreshDashboard(); }
+  @override
+  void initState() {
+    super.initState();
+    _authService = GetIt.instance.get<AuthService>();
+    _organizationService = GetIt.instance.get<OrganizationService>();
+    _userService = GetIt.instance.get<UserService>();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshDashboard());
+  }
 
   Future<void> _refreshDashboard() async {
     if (!mounted) return;
     setState(() { _isLoading = true; _error = null; });
     try {
-      await Future.wait([_organizationService.fetchOrganizations(), _userService.fetchUsers()]);
+      await Future.wait([
+        _organizationService.fetchOrganizations(),
+        _userService.fetchUsers(),
+      ]);
     } catch (e) {
       if (!mounted) return;
-      setState(() { _error = e.toString(); });
+      setState(() => _error = e.toString());
     } finally {
       if (!mounted) return;
-      setState(() { _isLoading = false; });
+      setState(() => _isLoading = false);
     }
   }
 
-  @override Widget build(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final user = _authService.currentUser;
     final tenant = _authService.currentTenantId;
