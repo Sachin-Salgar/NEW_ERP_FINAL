@@ -55,30 +55,55 @@ void main() {
     testWidgets(
       'admin login goes directly to dashboard with tenant and default working context',
       (tester) async {
-        final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
-        await tester.pumpWidget(const App());
-        await _pump(tester);
-        await _login(tester, _adminEmail);
-        await _waitFor(tester, find.text('Dashboard'), timeout: const Duration(seconds: 30));
+        final originalOnError = FlutterError.onError;
+        var capturedFirstError = false;
 
-        expect(find.text('Select organization'), findsNothing);
-        expect(find.text('Select location'), findsNothing);
-        expect(find.text('Dashboard'), findsOneWidget);
+        FlutterError.onError = (FlutterErrorDetails details) {
+          if (!capturedFirstError) {
+            capturedFirstError = true;
+            print('\n🚨 ==================== CRITICAL: FIRST RAW FLUTTER EXCEPTION ====================');
+            print('Exception: ${details.exceptionAsString()}');
+            print('\nStack Trace:\n${details.stack}');
+            print('================================================================================\n');
+          } else {
+            print('ℹ️ Subsequent Flutter Exception: ${details.exceptionAsString()}');
+          }
 
-        final auth = GetIt.instance.get<AuthService>();
-        expect(auth.isAuthenticated, isTrue);
-        expect(auth.currentTenantId, equals(_tenantId));
-        expect(auth.currentOrganizationId, equals(_organizationId));
-        expect(auth.requiresOrganizationSelection, isFalse);
-        expect(auth.requiresLocationSelection, isFalse);
-        expect(auth.availableLocations.length, equals(2));
+          if (originalOnError != null) {
+            originalOnError(details);
+          } else {
+            FlutterError.presentError(details);
+          }
+        };
 
-        final bootstrapResponse = await _getWithTimeout(Uri.parse('$baseUrl/api/v1/bootstrap'));
-        expect(bootstrapResponse.statusCode, equals(200));
-        final bootstrap = jsonDecode(bootstrapResponse.body) as Map<String, dynamic>;
-        final capabilities = bootstrap['capabilities'] as Map<String, dynamic>;
-        expect(capabilities['tenantSelection'], isFalse);
-        expect(capabilities['workingContextSelection'], isTrue);
+        try {
+          final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
+          await tester.pumpWidget(const App());
+          await _pump(tester);
+          await _login(tester, _adminEmail);
+          await _waitFor(tester, find.text('Dashboard'), timeout: const Duration(seconds: 30));
+
+          expect(find.text('Select organization'), findsNothing);
+          expect(find.text('Select location'), findsNothing);
+          expect(find.text('Dashboard'), findsOneWidget);
+
+          final auth = GetIt.instance.get<AuthService>();
+          expect(auth.isAuthenticated, isTrue);
+          expect(auth.currentTenantId, equals(_tenantId));
+          expect(auth.currentOrganizationId, equals(_organizationId));
+          expect(auth.requiresOrganizationSelection, isFalse);
+          expect(auth.requiresLocationSelection, isFalse);
+          expect(auth.availableLocations.length, equals(2));
+
+          final bootstrapResponse = await _getWithTimeout(Uri.parse('$baseUrl/api/v1/bootstrap'));
+          expect(bootstrapResponse.statusCode, equals(200));
+          final bootstrap = jsonDecode(bootstrapResponse.body) as Map<String, dynamic>;
+          final capabilities = bootstrap['capabilities'] as Map<String, dynamic>;
+          expect(capabilities['tenantSelection'], isFalse);
+          expect(capabilities['workingContextSelection'], isTrue);
+        } finally {
+          FlutterError.onError = originalOnError;
+        }
       },
       timeout: const Timeout(Duration(seconds: 90)),
     );
@@ -86,22 +111,47 @@ void main() {
     testWidgets(
       'limited user reaches dashboard with its restricted working context',
       (tester) async {
-        await tester.pumpWidget(const App());
-        await _pump(tester);
-        await _login(tester, _limitedEmail);
-        await _waitFor(tester, find.text('Dashboard'), timeout: const Duration(seconds: 30));
+        final originalOnError = FlutterError.onError;
+        var capturedFirstError = false;
 
-        expect(find.text('Select organization'), findsNothing);
-        expect(find.text('Select location'), findsNothing);
-        expect(find.text('Dashboard'), findsOneWidget);
+        FlutterError.onError = (FlutterErrorDetails details) {
+          if (!capturedFirstError) {
+            capturedFirstError = true;
+            print('\n🚨 ==================== CRITICAL: FIRST RAW FLUTTER EXCEPTION ====================');
+            print('Exception: ${details.exceptionAsString()}');
+            print('\nStack Trace:\n${details.stack}');
+            print('================================================================================\n');
+          } else {
+            print('ℹ️ Subsequent Flutter Exception: ${details.exceptionAsString()}');
+          }
 
-        final auth = GetIt.instance.get<AuthService>();
-        expect(auth.isAuthenticated, isTrue);
-        expect(auth.currentTenantId, equals(_tenantId));
-        expect(auth.currentOrganizationId, equals(_organizationId));
-        expect(auth.requiresOrganizationSelection, isFalse);
-        expect(auth.requiresLocationSelection, isFalse);
-        expect(auth.availableLocations.length, equals(1));
+          if (originalOnError != null) {
+            originalOnError(details);
+          } else {
+            FlutterError.presentError(details);
+          }
+        };
+
+        try {
+          await tester.pumpWidget(const App());
+          await _pump(tester);
+          await _login(tester, _limitedEmail);
+          await _waitFor(tester, find.text('Dashboard'), timeout: const Duration(seconds: 30));
+
+          expect(find.text('Select organization'), findsNothing);
+          expect(find.text('Select location'), findsNothing);
+          expect(find.text('Dashboard'), findsOneWidget);
+
+          final auth = GetIt.instance.get<AuthService>();
+          expect(auth.isAuthenticated, isTrue);
+          expect(auth.currentTenantId, equals(_tenantId));
+          expect(auth.currentOrganizationId, equals(_organizationId));
+          expect(auth.requiresOrganizationSelection, isFalse);
+          expect(auth.requiresLocationSelection, isFalse);
+          expect(auth.availableLocations.length, equals(1));
+        } finally {
+          FlutterError.onError = originalOnError;
+        }
       },
       timeout: const Timeout(Duration(seconds: 90)),
     );
