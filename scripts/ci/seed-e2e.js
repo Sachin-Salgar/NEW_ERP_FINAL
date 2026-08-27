@@ -29,246 +29,108 @@ const CORE_MODULES = [
   ['tenant-configuration', 'Tenant Configuration', 'Administration', true, 6],
 ];
 
-const E2E_MODULE = ['e2e-rbac', 'E2E RBAC Access', 'Administration', false, 100];
-
 async function main() {
-  try {
-    console.log('--- E2E seed starting ---');
-    console.log('Node version: ' + process.version);
-    const databaseUrl = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL;
-    if (!databaseUrl) {
-      console.error('TEST_DATABASE_URL or DATABASE_URL is required');
-      process.exit(2);
-    }
-    const maskedDbUrl = databaseUrl.replace(/:\/\/([^:]+):([^@]+)@/, '://$1:***@');
-    console.log('Using TEST_DATABASE_URL (masked): ' + maskedDbUrl);
-  } catch (preError) {
-    console.error('Pre-seed diagnostics failed', preError && preError.stack ? preError.stack : preError);
-  }
-
   const databaseUrl = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    console.error('TEST_DATABASE_URL or DATABASE_URL is required');
-    process.exit(2);
-  }
-
+  if (!databaseUrl) process.exit(2);
   const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
   try {
-    await client.connect();
-  } catch (connErr) {
-    console.error('Failed to connect to database:', connErr && connErr.stack ? connErr.stack : connErr);
-    process.exit(4);
-  }
-
-  try {
-    console.log('DB connection successful, performing basic checks...');
-    const v = await client.query('SELECT version() AS v');
-    console.log('Postgres version:', v.rows && v.rows[0] && v.rows[0].v ? v.rows[0].v : '<unknown>');
-    const tenantsTable = await client.query("SELECT to_regclass('public.tenants') as tenants_tbl");
-    console.log('tenants table existence:', tenantsTable.rows[0].tenants_tbl);
-
     await client.query('BEGIN');
     await client.query("SELECT set_config('app.current_tenant_id', $1, true)", [TENANT_ID]);
 
-    for (const [code, name, moduleGroup, isCore, sortOrder] of [...CORE_MODULES, E2E_MODULE]) {
+    for (const [code, name, moduleGroup, isCore, sortOrder] of CORE_MODULES) {
       await client.query(
         `INSERT INTO modules (id, code, name, module_group, is_core, sort_order)
          VALUES ($1, $2, $3, $4, $5, $6)
-         ON CONFLICT (code) DO UPDATE SET
-           name = EXCLUDED.name,
-           module_group = EXCLUDED.module_group,
-           is_core = EXCLUDED.is_core,
-           sort_order = EXCLUDED.sort_order`,
+         ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, module_group = EXCLUDED.module_group,
+           is_core = EXCLUDED.is_core, sort_order = EXCLUDED.sort_order`,
         [randomUUID(), code, name, moduleGroup, isCore, sortOrder],
       );
     }
 
     await client.query(
       `INSERT INTO tenants (id, name, display_name, subdomain, slug, timezone, currency, locale, status, created_at)
-       VALUES ($1, $2, $3, $4, $5, 'UTC', 'USD', 'en_US', 'active', NOW())
-       ON CONFLICT (id) DO NOTHING`,
-      [TENANT_ID, 'E2E Tenant', 'E2E Tenant', 'localhost', 'e2e'],
-    );
+       VALUES ($1, 'E2E Tenant', 'E2E Tenant', 'localhost', 'e2e', 'UTC', 'USD', 'en_US', 'active', NOW())
+       ON CONFLICT (id) DO NOTHING`, [TENANT_ID]);
 
     await client.query(
       `INSERT INTO organizations (id, tenant_id, code, name, legal_name, status, is_default, created_at)
-       VALUES ($1, $2, $3, $4, $4, 'active', true, NOW()),
-              ($5, $2, $6, $7, $7, 'active', false, NOW())
-       ON CONFLICT (id) DO NOTHING`,
-      [
-        ORGANIZATION_ID,
-        TENANT_ID,
-        'E2E_ORG',
-        'E2E Organization',
-        ORGANIZATION_TWO_ID,
-        'E2E_ORG_2',
-        'E2E Secondary Organization',
-      ],
-    );
+       VALUES ($1, $2, 'E2E_ORG', 'E2E Organization', 'E2E Organization', 'active', true, NOW()),
+              ($3, $2, 'E2E_ORG_2', 'E2E Secondary Organization', 'E2E Secondary Organization', 'active', false, NOW())
+       ON CONFLICT (id) DO NOTHING`, [ORGANIZATION_ID, TENANT_ID, ORGANIZATION_TWO_ID]);
 
     await client.query(
       `INSERT INTO tenant_modules (tenant_id, module_id, enabled, enabled_at)
-       SELECT $1, m.id, true, NOW()
-       FROM modules m
-       WHERE m.code = ANY($2)
-       ON CONFLICT (tenant_id, module_id) DO UPDATE
-       SET enabled = true, disabled_at = NULL`,
-      [TENANT_ID, [...CORE_MODULES.map(([code]) => code), E2E_MODULE[0]]],
-    );
+       SELECT $1, m.id, true, NOW() FROM modules m WHERE m.code = ANY($2)
+       ON CONFLICT (tenant_id, module_id) DO UPDATE SET enabled = true, disabled_at = NULL`,
+      [TENANT_ID, CORE_MODULES.map(([code]) => code)]);
 
     await client.query(
       `INSERT INTO organization_modules (tenant_id, organization_id, module_id, enabled, enabled_at)
-       SELECT $1, o.id, m.id, true, NOW()
-       FROM organizations o
-       CROSS JOIN modules m
+       SELECT $1, o.id, m.id, true, NOW() FROM organizations o CROSS JOIN modules m
        WHERE o.tenant_id = $1 AND m.code = ANY($2)
-       ON CONFLICT (organization_id, module_id) DO UPDATE
-       SET enabled = true, disabled_at = NULL`,
-      [TENANT_ID, [...CORE_MODULES.map(([code]) => code), E2E_MODULE[0]]],
-    );
+       ON CONFLICT (organization_id, module_id) DO UPDATE SET enabled = true, disabled_at = NULL`,
+      [TENANT_ID, CORE_MODULES.map(([code]) => code)]);
 
     await client.query(
       `INSERT INTO locations (id, tenant_id, organization_id, code, name, status, is_default, timezone, created_at)
        VALUES ($1, $2, $3, 'E2E_LOC_1', 'E2E Main Location', 'active', true, 'UTC', NOW()),
               ($4, $2, $3, 'E2E_LOC_2', 'E2E Secondary Location', 'active', false, 'UTC', NOW())
-       ON CONFLICT (id) DO NOTHING`,
-      [LOCATION_ONE_ID, TENANT_ID, ORGANIZATION_ID, LOCATION_TWO_ID],
-    );
+       ON CONFLICT (id) DO NOTHING`, [LOCATION_ONE_ID, TENANT_ID, ORGANIZATION_ID, LOCATION_TWO_ID]);
 
-    const adminPasswordHash = await bcrypt.hash(PASSWORD, 10);
-    const limitedPasswordHash = await bcrypt.hash(PASSWORD, 10);
-
+    const passwordHash = await bcrypt.hash(PASSWORD, 10);
     await client.query(
       `INSERT INTO roles (id, tenant_id, code, name, description, is_system, sort_order, created_at)
-       VALUES ($1, $2, $3, $4, $5, false, 100, NOW()),
-              ($6, $2, $7, $8, $9, false, 200, NOW())
-       ON CONFLICT (id) DO NOTHING`,
-      [
-        ADMIN_ROLE_ID,
-        TENANT_ID,
-        'e2e_admin',
-        'E2E Admin',
-        'Administrative role used by the E2E suite.',
-        LIMITED_ROLE_ID,
-        'e2e_limited',
-        'E2E Limited',
-        'Restricted role used by the E2E suite.',
-      ],
-    );
+       VALUES ($1, $2, 'e2e_admin', 'E2E Admin', 'Administrative role used by the E2E suite.', false, 100, NOW()),
+              ($3, $2, 'e2e_limited', 'E2E Limited', 'Restricted role used by the E2E suite.', false, 200, NOW())
+       ON CONFLICT (id) DO NOTHING`, [ADMIN_ROLE_ID, TENANT_ID, LIMITED_ROLE_ID]);
 
     await client.query(
       `INSERT INTO users (id, tenant_id, organization_id, username, email, password_hash, status, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, 'active', NOW()),
-              ($7, $2, $3, $8, $9, $10, 'active', NOW())
-       ON CONFLICT (id) DO NOTHING`,
-      [
-        ADMIN_USER_ID,
-        TENANT_ID,
-        ORGANIZATION_ID,
-        'e2e@example.com',
-        ADMIN_EMAIL,
-        adminPasswordHash,
-        LIMITED_USER_ID,
-        'e2e-limited',
-        LIMITED_EMAIL,
-        limitedPasswordHash,
-      ],
-    );
+       VALUES ($1, $2, $3, 'e2e@example.com', $4, $5, 'active', NOW()),
+              ($6, $2, $3, 'e2e-limited', $7, $5, 'active', NOW())
+       ON CONFLICT (id) DO NOTHING`, [ADMIN_USER_ID, TENANT_ID, ORGANIZATION_ID, ADMIN_EMAIL, passwordHash, LIMITED_USER_ID, LIMITED_EMAIL]);
 
-    // Identity-based login requires deterministic E2E fixtures to seed the
-    // deployment-independent login lookup explicitly. Production migrations
-    // backfill this table for existing users; CI creates users after that
-    // migration has already run, so the fixture must create the identities too.
     await client.query(
       `INSERT INTO auth_login_identifiers (identifier_type, identifier, tenant_id, user_id)
-       VALUES ('email', $1, $2, $3),
-              ('username', $4, $2, $3),
-              ('email', $5, $2, $6),
-              ('username', $7, $2, $6)
-       ON CONFLICT (identifier_type, identifier, tenant_id) DO UPDATE
-       SET user_id = EXCLUDED.user_id, is_active = true`,
-      [ADMIN_EMAIL, TENANT_ID, ADMIN_USER_ID, 'e2e@example.com', LIMITED_EMAIL, LIMITED_USER_ID, 'e2e-limited'],
-    );
+       VALUES ('email', $1, $2, $3), ('username', 'e2e@example.com', $2, $3),
+              ('email', $4, $2, $5), ('username', 'e2e-limited', $2, $5)
+       ON CONFLICT (identifier_type, identifier, tenant_id) DO UPDATE SET user_id = EXCLUDED.user_id, is_active = true`,
+      [ADMIN_EMAIL, TENANT_ID, ADMIN_USER_ID, LIMITED_EMAIL, LIMITED_USER_ID]);
 
-    const adminPermissions = [
-      'tenant.manage',
-      'organization.read',
-      'organization.manage',
-      'user.read',
-      'user.manage',
-      'role.read',
-      'role.manage',
-      'permission.read',
-      'permission.manage',
-    ];
-
+    const adminPermissions = ['tenant.manage', 'organization.read', 'organization.manage', 'user.read', 'user.manage', 'role.read', 'role.manage', 'permission.read', 'permission.manage'];
     const limitedPermissions = ['organization.read', 'user.read'];
-    const allPermissionKeys = [...new Set([...adminPermissions, ...limitedPermissions])];
-
-    for (const permissionKey of allPermissionKeys) {
-      const [moduleCode, action] = permissionKey.split('.');
-      const resolvedModuleCode = moduleCode === 'tenant' ? 'tenant-configuration' :
-        moduleCode === 'user' ? 'user-management' :
-        ['role', 'permission', 'session'].includes(moduleCode) ? E2E_MODULE[0] : moduleCode;
+    for (const permissionKey of [...new Set([...adminPermissions, ...limitedPermissions])]) {
+      const [resource, action] = permissionKey.split('.');
+      const moduleCode = resource === 'tenant' ? 'tenant-configuration' : resource === 'user' ? 'user-management' : 'security';
       await client.query(
         `INSERT INTO permissions (id, module_code, resource, action, scope, permission_key, display_name, description, is_system)
-         VALUES ($1, $2, $3, $4, 'tenant', $5, $6, $7, false)
+         VALUES ($1, $2, $3, $4, 'tenant', $5, $5, $6, false)
          ON CONFLICT (permission_key) DO UPDATE SET module_code = EXCLUDED.module_code`,
-        [
-          randomUUID(),
-          resolvedModuleCode,
-          moduleCode,
-          action ?? 'read',
-          permissionKey,
-          permissionKey,
-          `${permissionKey} permission`,
-        ],
-      );
+        [randomUUID(), moduleCode, resource, action, permissionKey, `${permissionKey} permission`]);
+    }
+
+    for (const [roleId, permissions] of [[ADMIN_ROLE_ID, adminPermissions], [LIMITED_ROLE_ID, limitedPermissions]]) {
+      await client.query(
+        `INSERT INTO role_permissions (tenant_id, role_id, permission_id)
+         SELECT $1, $2, p.id FROM permissions p WHERE p.permission_key = ANY($3)
+         ON CONFLICT (role_id, permission_id, tenant_id) DO NOTHING`, [TENANT_ID, roleId, permissions]);
     }
 
     await client.query(
-      `INSERT INTO role_permissions (tenant_id, role_id, permission_id)
-       SELECT $1, $2, p.id
-       FROM permissions p
-       WHERE p.permission_key = ANY($3)
-       ON CONFLICT (role_id, permission_id, tenant_id) DO NOTHING`,
-      [TENANT_ID, ADMIN_ROLE_ID, adminPermissions],
-    );
-
-    await client.query(
-      `INSERT INTO role_permissions (tenant_id, role_id, permission_id)
-       SELECT $1, $2, p.id
-       FROM permissions p
-       WHERE p.permission_key = ANY($3)
-       ON CONFLICT (role_id, permission_id, tenant_id) DO NOTHING`,
-      [TENANT_ID, LIMITED_ROLE_ID, limitedPermissions],
-    );
-
-    await client.query(
-      `INSERT INTO user_roles (tenant_id, user_id, role_id)
-       VALUES ($1, $2, $3), ($1, $4, $5)
-       ON CONFLICT (user_id, role_id, tenant_id) DO NOTHING`,
-      [TENANT_ID, ADMIN_USER_ID, ADMIN_ROLE_ID, LIMITED_USER_ID, LIMITED_ROLE_ID],
-    );
+      `INSERT INTO user_roles (tenant_id, user_id, role_id) VALUES ($1, $2, $3), ($1, $4, $5)
+       ON CONFLICT (user_id, role_id, tenant_id) DO NOTHING`, [TENANT_ID, ADMIN_USER_ID, ADMIN_ROLE_ID, LIMITED_USER_ID, LIMITED_ROLE_ID]);
 
     await client.query(
       `INSERT INTO user_organization_access (tenant_id, user_id, organization_id)
        VALUES ($1, $2, $3), ($1, $2, $4), ($1, $5, $3)
-       ON CONFLICT (user_id, organization_id, tenant_id) DO NOTHING`,
-      [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, ORGANIZATION_TWO_ID, LIMITED_USER_ID],
-    );
+       ON CONFLICT (user_id, organization_id, tenant_id) DO NOTHING`, [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, ORGANIZATION_TWO_ID, LIMITED_USER_ID]);
 
-    // Both users need an authorized location for the login flow to resolve a
-    // usable working context. The limited user is intentionally restricted to
-    // the primary organization and its default location.
     await client.query(
       `INSERT INTO user_location_access (tenant_id, user_id, organization_id, location_id, is_active)
-       VALUES ($1, $2, $3, $4, true),
-              ($1, $2, $3, $5, true),
-              ($1, $6, $3, $4, true)
+       VALUES ($1, $2, $3, $4, true), ($1, $2, $3, $5, true), ($1, $6, $3, $4, true)
        ON CONFLICT (user_id, location_id, tenant_id) DO UPDATE SET is_active = true`,
-      [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, LOCATION_ONE_ID, LOCATION_TWO_ID, LIMITED_USER_ID],
-    );
+      [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, LOCATION_ONE_ID, LOCATION_TWO_ID, LIMITED_USER_ID]);
 
     await client.query('COMMIT');
     console.log('E2E seed completed successfully.');
@@ -276,8 +138,7 @@ async function main() {
     console.log(`Seeded limited user: ${LIMITED_EMAIL}`);
   } catch (error) {
     await client.query('ROLLBACK').catch(() => undefined);
-    console.error('E2E seed failed. Error:');
-    console.error(error && error.stack ? error.stack : error);
+    console.error('E2E seed failed:', error?.stack ?? error);
     process.exit(3);
   } finally {
     await client.end().catch(() => undefined);
