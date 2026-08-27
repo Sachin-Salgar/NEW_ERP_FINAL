@@ -10,7 +10,9 @@
 **Current step:** TENANT-REFactor-07 — CI validation and stale-architecture audit  
 **Status:** IN PROGRESS
 
-The repository is being reconciled to one canonical tenant model: deployment endpoint identifies the ERP backend; authenticated identity establishes the tenant; the tenant-scoped session establishes `TenantContext`; PostgreSQL RLS enforces database isolation.
+The repository is being reconciled to one canonical tenant model: the configured deployment endpoint identifies the ERP backend; authenticated identity establishes the tenant; the tenant-scoped session establishes `TenantContext`; PostgreSQL RLS enforces database isolation.
+
+**UX rule:** organisation and location are working context, not authentication gates. After successful login the user goes directly to Dashboard. Configured defaults are applied when available. Organisation and location are changed from the authenticated Profile / Working Context menu. There are no standalone organisation/location selection screens in the login flow.
 
 ## Architecture Baseline
 
@@ -34,17 +36,22 @@ Tenant-scoped session
        ▼
 TenantContext
        │
-       ▼
-Authorization
+       ├── fixed tenant authority
        │
-       ▼
-Tenant-scoped DB transaction
-       │
-       ▼
-SET LOCAL app.current_tenant_id
-       │
-       ▼
-PostgreSQL RLS
+       └── working context
+              └── organisation → location
+                         │
+                         ▼
+                    Authorization
+                         │
+                         ▼
+                Tenant-scoped DB transaction
+                         │
+                         ▼
+                SET LOCAL app.current_tenant_id
+                         │
+                         ▼
+                    PostgreSQL RLS
 ```
 
 Deployment URL, hostname, Vercel URL, on-premises URL, and client-supplied tenant identifiers are **not** tenant authority.
@@ -82,7 +89,8 @@ Deployment URL, hostname, Vercel URL, on-premises URL, and client-supplied tenan
 
 - Authentication establishes the tenant from the authenticated tenant-scoped user account.
 - `requireAuth` derives request tenant from the validated session.
-- Organization selection validates access within the established tenant and cannot change tenant identity.
+- Organisation selection is a post-login working-context operation within the established tenant and cannot change tenant identity.
+- Location selection is subordinate to the active organisation and cannot change tenant identity.
 - Client-supplied tenant headers are not authoritative.
 
 ### TENANT-REFactor-06 — Frontend deployment model
@@ -105,7 +113,10 @@ Required evidence:
 - RLS isolation, rollback, and connection-pool safety are verified.
 - Repository-wide search finds no active host/deployment tenant resolver.
 - Repository-wide search finds no client-authoritative tenant selection path.
-- Frontend integration test no longer assumes host-based tenant discovery.
+- Frontend login goes directly to Dashboard after authentication.
+- No standalone organisation/location selection screen or route remains.
+- Organisation change reloads valid locations and effective permissions for the new organisation.
+- Location selection is restricted to the active organisation.
 
 ### TENANT-REFactor-08 — SaaS deployment validation
 **Status: PENDING**
@@ -115,12 +126,12 @@ Validate the deployed frontend → deployed backend → PostgreSQL path using id
 ### TENANT-REFactor-09 — On-premises deployment validation
 **Status: PENDING**
 
-Validate a customer installation where frontend and backend are hosted on the customer's network. Confirm that web and mobile clients only need the backend API endpoint and that authentication discovers tenant identity from the account.
+Validate a customer installation where frontend and backend are hosted on the customer's network. Confirm that web and mobile clients only need the configured backend API endpoint and that authentication discovers tenant identity from the account.
 
 ### TENANT-REFactor-10 — Final stale architecture removal
 **Status: PENDING**
 
-After validation, remove any remaining stale implementation, fixtures, documentation, generated AI context, or configuration that describes host/domain/deployment tenant resolution.
+After validation, remove any remaining stale implementation, fixtures, documentation, generated AI context, or configuration that describes host/domain/deployment tenant resolution or standalone organisation/location login selection.
 
 ### TENANT-REFactor-11 — Final architecture completion audit
 **Status: PENDING**
@@ -137,7 +148,7 @@ The following are retained and treated as completed foundations unless a validat
 - tenant-scoped sessions.
 - authentication and refresh-token lifecycle.
 - RBAC and permission enforcement.
-- organization/branch/location authorization within the active tenant.
+- organisation/branch/location authorization within the active tenant.
 - frontend permission-aware UX.
 - repository-aware `.ai` workflow.
 
@@ -166,3 +177,4 @@ At every implementation session:
 4. Implement only the current step unless explicitly redirected by the project owner.
 5. Update this roadmap with evidence after each meaningful step.
 6. Never reintroduce host/domain/deployment tenant resolution as an alternative path.
+7. Never introduce organisation/location selection as a login prerequisite; these are post-login working-context controls in the Profile / Working Context menu.
