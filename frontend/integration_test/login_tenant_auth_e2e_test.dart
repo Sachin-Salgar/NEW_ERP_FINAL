@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -20,13 +21,21 @@ Future<void> _pump(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 100));
 }
 
-Future<void> _waitFor(WidgetTester tester, Finder finder, {Duration timeout = const Duration(seconds: 15)}) async {
+Future<void> _waitFor(
+  WidgetTester tester,
+  Finder finder, {
+  Duration timeout = const Duration(seconds: 15),
+}) async {
   final deadline = DateTime.now().add(timeout);
   while (DateTime.now().isBefore(deadline)) {
     await _pump(tester);
     if (finder.evaluate().isNotEmpty) return;
   }
   fail('Timed out waiting for finder: $finder');
+}
+
+Future<http.Response> _getWithTimeout(Uri uri) {
+  return http.get(uri).timeout(const Duration(seconds: 10));
 }
 
 void main() {
@@ -40,66 +49,105 @@ void main() {
 
     tearDown(() async => GetIt.instance.reset());
 
-    testWidgets('admin login goes directly to dashboard with tenant and default working context', (tester) async {
-      final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
-      final frameworkErrors = <FlutterErrorDetails>[];
-      final previousOnError = FlutterError.onError;
-      FlutterError.onError = (details) {
-        frameworkErrors.add(details);
-        // Do not forward the same exception into Flutter's test framework. Forwarding
-        // makes the framework aggregate every transient error and masks the first
-        // application failure behind "Multiple exceptions".
-      };
-      addTearDown(() => FlutterError.onError = previousOnError);
+    testWidgets(
+      'admin login goes directly to dashboard with tenant and default working context',
+      (tester) async {
+        final baseUrl = const String.fromEnvironment(
+          'API_BASE_URL',
+          defaultValue: 'http://localhost:3000',
+        );
 
-      await tester.pumpWidget(const App());
-      await _waitFor(tester, find.byKey(const ValueKey('login_identifier_field')));
+        await tester.pumpWidget(const App());
+        await _waitFor(
+          tester,
+          find.byKey(const ValueKey('login_identifier_field')),
+        );
 
-      await tester.enterText(find.byKey(const ValueKey('login_identifier_field')), _adminEmail);
-      await tester.enterText(find.byKey(const ValueKey('login_password_field')), _adminPassword);
-      await tester.tap(find.byKey(const ValueKey('login_submit_button')));
+        await tester.enterText(
+          find.byKey(const ValueKey('login_identifier_field')),
+          _adminEmail,
+        );
+        await tester.enterText(
+          find.byKey(const ValueKey('login_password_field')),
+          _adminPassword,
+        );
+        await tester.tap(find.byKey(const ValueKey('login_submit_button')));
 
-      await _waitFor(tester, find.text('Dashboard'), timeout: const Duration(seconds: 20));
+        await _waitFor(
+          tester,
+          find.text('Dashboard'),
+          timeout: const Duration(seconds: 20),
+        );
 
-      if (frameworkErrors.isNotEmpty) {
-        final first = frameworkErrors.first;
-        fail('Flutter framework error during login/dashboard transition: ${first.exception}\n${first.stack}');
-      }
+        final exception = tester.takeException();
+        if (exception != null) {
+          fail('Flutter framework error during login/dashboard transition: $exception');
+        }
 
-      expect(find.text('Select organization'), findsNothing);
-      expect(find.text('Select location'), findsNothing);
-      expect(find.text('Dashboard'), findsOneWidget);
+        expect(find.text('Select organization'), findsNothing);
+        expect(find.text('Select location'), findsNothing);
+        expect(find.text('Dashboard'), findsOneWidget);
 
-      final auth = GetIt.instance.get<AuthService>();
-      expect(auth.isAuthenticated, isTrue);
-      expect(auth.currentTenantId, equals(_tenantId));
-      expect(auth.currentOrganizationId, equals(_organizationId));
-      expect(auth.requiresOrganizationSelection, isFalse);
-      expect(auth.requiresLocationSelection, isFalse);
-      expect(auth.availableLocations.length, equals(2));
+        final auth = GetIt.instance.get<AuthService>();
+        expect(auth.isAuthenticated, isTrue);
+        expect(auth.currentTenantId, equals(_tenantId));
+        expect(auth.currentOrganizationId, equals(_organizationId));
+        expect(auth.requiresOrganizationSelection, isFalse);
+        expect(auth.requiresLocationSelection, isFalse);
+        expect(auth.availableLocations.length, equals(2));
 
-      final bootstrapResponse = await http.get(Uri.parse('$baseUrl/api/v1/bootstrap'));
-      expect(bootstrapResponse.statusCode, equals(200));
-      final bootstrap = jsonDecode(bootstrapResponse.body) as Map<String, dynamic>;
-      expect((bootstrap['capabilities'] as Map<String, dynamic>)['tenantSelection'], isFalse);
-      expect((bootstrap['capabilities'] as Map<String, dynamic>)['workingContextSelection'], isTrue);
-    });
+        final bootstrapResponse = await _getWithTimeout(
+          Uri.parse('$baseUrl/api/v1/bootstrap'),
+        );
+        expect(bootstrapResponse.statusCode, equals(200));
+        final bootstrap =
+            jsonDecode(bootstrapResponse.body) as Map<String, dynamic>;
+        final capabilities =
+            bootstrap['capabilities'] as Map<String, dynamic>;
+        expect(capabilities['tenantSelection'], isFalse);
+        expect(capabilities['workingContextSelection'], isTrue);
+      },
+      timeout: const Timeout(Duration(seconds: 90)),
+    );
 
-    testWidgets('limited user cannot access disabled module', (tester) async {
-      final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
-      await tester.pumpWidget(const App());
-      await _waitFor(tester, find.byKey(const ValueKey('login_identifier_field')));
-      await tester.enterText(find.byKey(const ValueKey('login_identifier_field')), _limitedEmail);
-      await tester.enterText(find.byKey(const ValueKey('login_password_field')), _adminPassword);
-      await tester.tap(find.byKey(const ValueKey('login_submit_button')));
-      await _waitFor(tester, find.text('Dashboard'), timeout: const Duration(seconds: 20));
+    testWidgets(
+      'limited user cannot access disabled module',
+      (tester) async {
+        final baseUrl = const String.fromEnvironment(
+          'API_BASE_URL',
+          defaultValue: 'http://localhost:3000',
+        );
+        await tester.pumpWidget(const App());
+        await _waitFor(
+          tester,
+          find.byKey(const ValueKey('login_identifier_field')),
+        );
+        await tester.enterText(
+          find.byKey(const ValueKey('login_identifier_field')),
+          _limitedEmail,
+        );
+        await tester.enterText(
+          find.byKey(const ValueKey('login_password_field')),
+          _adminPassword,
+        );
+        await tester.tap(find.byKey(const ValueKey('login_submit_button')));
+        await _waitFor(
+          tester,
+          find.text('Dashboard'),
+          timeout: const Duration(seconds: 20),
+        );
 
-      final response = await http.get(Uri.parse('$baseUrl/api/v1/auth/modules'));
-      expect(response.statusCode, equals(200));
-      final payload = jsonDecode(response.body) as Map<String, dynamic>;
-      final modules = (payload['modules'] as List<dynamic>).cast<Map<String, dynamic>>();
-      final module = modules.firstWhere((item) => item['code'] == _moduleCode);
-      expect(module['enabled'], isFalse);
-    });
+        final response = await _getWithTimeout(
+          Uri.parse('$baseUrl/api/v1/auth/modules'),
+        );
+        expect(response.statusCode, equals(200));
+        final payload = jsonDecode(response.body) as Map<String, dynamic>;
+        final modules =
+            (payload['modules'] as List<dynamic>).cast<Map<String, dynamic>>();
+        final module = modules.firstWhere((item) => item['code'] == _moduleCode);
+        expect(module['enabled'], isFalse);
+      },
+      timeout: const Timeout(Duration(seconds: 90)),
+    );
   });
 }
