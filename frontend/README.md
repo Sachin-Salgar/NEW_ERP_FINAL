@@ -1,6 +1,6 @@
 Frontend scaffold for NEW_ERP_FINAL
 
-This folder contains the Flutter frontend scaffold for CORE-01 foundation. It includes:
+This folder contains the Flutter frontend scaffold for the ERP platform. It includes:
 
 - main.dart entrypoint
 - app initialization and DI
@@ -9,7 +9,7 @@ This folder contains the Flutter frontend scaffold for CORE-01 foundation. It in
 - App shell and dashboard placeholder
 
 Notes:
-- Flutter SDK is NOT available in the current environment, so no formatting/analyzer/tests were run here.
+- Flutter SDK may not be available in every repository validation environment; frontend validation must run in a Flutter-enabled environment.
 - To run the frontend locally:
   1. Install Flutter SDK (https://flutter.dev/docs/get-started/install)
   2. From this directory: flutter pub get
@@ -17,5 +17,7 @@ Notes:
   4. Run tests: flutter test
 
 Configuration:
-- API base URL: set via --dart-define=API_BASE_URL or update AuthService._determineBaseUrl
-- Tenant header: frontend sends x-tenant-id header per backend requirements
+- API base URL: set via `--dart-define=API_BASE_URL`.
+- The API endpoint identifies where the ERP backend is deployed. It is not tenant configuration.
+- Tenant context is established after authentication from the backend-issued tenant-scoped session.
+- The frontend does not send a client-authoritative tenant header.

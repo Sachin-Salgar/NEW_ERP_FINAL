@@ -7,10 +7,10 @@ import type { AuthorizationService } from '../../../application/services/authori
 import type { CoreEnterpriseService } from '../../../application/services/core-enterprise-service.js';
 import type { LocationService } from '../../../application/services/location-service.js';
 import type { ModuleAccessService } from '../../../application/services/module-access-service.js';
+import type { TenantMembershipService } from '../../../application/services/tenant-membership-service.js';
 import type { UserRegistrationService } from '../../../application/services/user-registration-service.js';
 import type { JwtTokenService } from '../../../infrastructure/security/jwt-token-service.js';
 import type { AppConfig } from '../../../config/schema.js';
-import type { TenantResolutionService } from '../../../application/services/tenant-resolution-service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -22,7 +22,7 @@ declare module 'fastify' {
     moduleAccessService: ModuleAccessService;
     registrationService: UserRegistrationService;
     jwtTokenService: JwtTokenService;
-    tenantResolver: TenantResolutionService;
+    tenantMembershipService: TenantMembershipService;
   }
 
   interface FastifyRequest {
@@ -56,12 +56,6 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply):
   const session = await request.server.authService.validateSession(claims.sessionId, claims.tenantId);
   if (!session) {
     throw new UnauthorizedError('Session is invalid or expired.');
-  }
-
-  const tenantHeader = request.server.appConfig.TENANT_HEADER.toLowerCase();
-  const requestTenant = request.headers[tenantHeader];
-  if (requestTenant && typeof requestTenant === 'string' && requestTenant !== claims.tenantId) {
-    throw new UnauthorizedError('Tenant mismatch detected.');
   }
 
   request.user = session;

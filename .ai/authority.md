@@ -15,13 +15,58 @@ Use the repository's governance hierarchy exactly as defined by `docs/00-overvie
 5. **Source code and tests** — evidence of current implementation, not architectural authority.
 6. **AI inference** — lowest authority and never sufficient to override repository evidence.
 
+## Current Tenancy Authority
+
+`docs/10-adr/0006-identity-based-tenant-context.md` is the approved architectural authority for authentication, tenant context, tenant isolation, SaaS/on-premises deployment behavior, and web/mobile tenancy flow.
+
+For tenancy-related work, the canonical security lifecycle is:
+
+```text
+Authenticated Identity
+  ↓
+Tenant Membership
+  ↓
+Active Tenant
+  ↓
+Tenant-scoped Session
+  ↓
+TenantContext
+  ↓
+Working Context: Organisation → Location
+  ↓
+Authorization
+  ↓
+Tenant Transaction
+  ↓
+SET LOCAL app.current_tenant_id
+  ↓
+PostgreSQL RLS
+```
+
+The tenant is established by authenticated identity and remains fixed for the session. Organisation and location are post-login working context within that tenant.
+
+### Authentication / working-context UX contract
+
+- The configured API URL is connectivity configuration only and is never tenant authority.
+- Successful login goes directly to Dashboard.
+- The user's configured default organisation and default location are applied when available.
+- Missing defaults do not block login and do not cause a selection-screen gate.
+- Organisation and location are switched from the authenticated Profile / Working Context menu.
+- No standalone organisation-selection or location-selection screen is part of the login flow.
+- Switching organisation reloads authorized locations and effective permissions for the new organisation.
+- A selected location must belong to / be authorized within the active organisation.
+- Working-context changes can never change the authenticated tenant.
+- Web and mobile clients connect to the configured ERP backend endpoint and never directly to PostgreSQL.
+
+Deployment URL/API endpoint is connectivity configuration only. Hostname, custom domain, deployment configuration, or client-supplied tenant identifiers must not be treated as authoritative tenant identity.
+
 ## Document status
 
 - `Approved` ADR: authoritative for its stated scope.
 - `Proposed` ADR: not an implementation authority.
 - `Superseded` ADR: not authoritative; follow its replacement.
 - `Deprecated` ADR: not authoritative for new implementation.
-- `docs/archive/`: historical/reference material; do not treat as current authority unless a current authoritative document explicitly directs its use.
+- `docs/archive/`: historical/reference material; do not treat its contents as current authority unless a current authoritative document explicitly directs its use.
 
 ## Conflict rules
 
@@ -45,7 +90,6 @@ If a feature requires a decision that the authoritative documentation does not e
 
 If two apparently authoritative documents conflict and the conflict cannot be resolved from an approved ADR or governance rule, stop and report the conflict. Do not select one by preference.
 
-
 ## Database infrastructure rule
 
 Database infrastructure is developer-owned. AI agents must never create, modify, delete, replace, or provision PostgreSQL databases, PostgreSQL users, or PostgreSQL roles. AI agents must never invent database credentials or connection strings. AI agents must use the project's documented environment configuration and must fail clearly when the configured database is unavailable.
@@ -65,12 +109,12 @@ For every non-trivial implementation task, the AI should be able to state:
 
 ## Implementation-progress authority (roadmap)
 
-- The living implementation roadmap `docs/00-overview/03-implementation-roadmap.md` is the authoritative source of the project's implementation state and the IMMEDIATE NEXT STEP for AI sessions.
+- The living implementation roadmap `docs/00-overview/03-implementation-roadmap.md` is the authoritative source of project implementation state and the IMMEDIATE NEXT STEP for AI sessions.
 - AI must consult the roadmap at session start and obey the IMMEDIATE NEXT STEP unless the user explicitly overrides it.
-- Do not mark a roadmap step COMPLETE based solely on code presence. A roadmap step is COMPLETE only when its implementation and validation requirements (as recorded in the roadmap) have actually been executed and recorded in the roadmap.
+- Do not mark a roadmap step complete based solely on code presence. A step is complete only when the roadmap marks it COMPLETE and records validation evidence.
 
 ## Roadmap update requirement
 
-- After every meaningful implementation step the AI MUST update `docs/00-overview/03-implementation-roadmap.md` to record: step status, implementation summary, files changed, tests run, validation commands and results, evidence references, remaining risks, and the IMMEDIATE NEXT STEP.
-- The AI must not declare a step COMPLETE until the roadmap is updated with the evidence of validation and the roadmap shows the step as COMPLETE — the roadmap is the canonical checkpoint for handoffs between sessions.
+After every meaningful implementation step the AI MUST update `docs/00-overview/03-implementation-roadmap.md` with status, implementation summary, files changed, tests run, validation results, evidence references, remaining risks, and the IMMEDIATE NEXT STEP.
 
+The AI must not declare a step COMPLETE until the roadmap is updated with validation evidence and the roadmap shows the step as COMPLETE.

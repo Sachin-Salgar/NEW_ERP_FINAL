@@ -1,515 +1,79 @@
 import 'dart:convert';
-
-import 'authz_service.dart';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
+import 'authz_service.dart';
 import '../network/api_client.dart';
 
-abstract class SecureStorageLike {
-  Future<String?> read({required String key});
-  Future<void> write({required String key, required String value});
-  Future<void> delete({required String key});
-}
-
+abstract class SecureStorageLike { Future<String?> read({required String key}); Future<void> write({required String key, required String value}); Future<void> delete({required String key}); }
 class FlutterSecureStorageAdapter implements SecureStorageLike {
   final FlutterSecureStorage _inner = FlutterSecureStorage();
-
-  @override
-  Future<String?> read({required String key}) => _inner.read(key: key);
-
-  @override
-  Future<void> write({required String key, required String value}) => _inner.write(key: key, value: value);
-
-  @override
-  Future<void> delete({required String key}) => _inner.delete(key: key);
+  @override Future<String?> read({required String key}) => _inner.read(key: key);
+  @override Future<void> write({required String key, required String value}) => _inner.write(key: key, value: value);
+  @override Future<void> delete({required String key}) => _inner.delete(key: key);
 }
 
 class AuthService extends ChangeNotifier {
   final AuthZService authzService;
   final SecureStorageLike _secureStorage;
-  final ApiClient Function(String baseUrl)? _apiClientFactory;
+  final ApiClient Function(String baseUrl) _apiClientFactory;
   late ApiClient _apiClient;
+  AuthService({SecureStorageLike? secureStorage, ApiClient Function(String baseUrl)? apiClientFactory, AuthZService? authzService})
+      : _secureStorage = secureStorage ?? FlutterSecureStorageAdapter(), _apiClientFactory = apiClientFactory ?? ((baseUrl) => ApiClient(baseUrl: baseUrl)), authzService = authzService ?? AuthZService();
 
-  AuthService({
-    SecureStorageLike? secureStorage,
-    ApiClient Function(String baseUrl)? apiClientFactory,
-    AuthZService? authzService,
-  })  : _secureStorage = secureStorage ?? FlutterSecureStorageAdapter(),
-        _apiClientFactory = apiClientFactory ?? ((baseUrl) => ApiClient(baseUrl: baseUrl)),
-        authzService = authzService ?? AuthZService();
-
-  String? _accessToken;
-  String? _refreshToken;
+  String? _accessToken, _refreshToken;
   DateTime? _expiresAt;
-  String? currentTenantId;
-  String? currentOrganizationId;
-  String? currentLocationId;
-  String? selectedOrganizationId;
-  String? selectedLocationId;
-  Map<String, dynamic>? currentUser;
-  Map<String, dynamic>? deploymentInfo;
-  List<Map<String, dynamic>> availableOrganizations = const [];
-  List<Map<String, dynamic>> availableLocations = const [];
-  List<Map<String, dynamic>> availableModules = const [];
-  bool requiresOrganizationSelection = false;
-  bool requiresLocationSelection = false;
-
-  String get nextPostAuthRoute {
-    if (!isAuthenticated) return '/login';
-    if (requiresOrganizationSelection) return '/organization-selection';
-    if (requiresLocationSelection) return '/location-selection';
-    return '/dashboard';
-  }
-
-  String get configuredTenantId => const String.fromEnvironment('TENANT_ID', defaultValue: '');
-
-  bool get isAuthenticated =>
-      _accessToken != null && _expiresAt != null && DateTime.now().isBefore(_expiresAt!);
-
+  String? currentTenantId, currentOrganizationId, currentLocationId;
+  String? selectedOrganizationId, selectedLocationId;
+  Map<String, dynamic>? currentUser, deploymentInfo;
+  List<Map<String, dynamic>> availableOrganizations = const [], availableLocations = const [], availableModules = const [];
+  bool requiresOrganizationSelection = false, requiresLocationSelection = false;
+  bool get isAuthenticated => _accessToken != null && _expiresAt != null && DateTime.now().isBefore(_expiresAt!);
   String? get accessToken => _accessToken;
-
-  void _ensureApiClient(String baseUrl) {
-    _apiClient = _apiClientFactory!(baseUrl);
-  }
-
-  Future<Map<String, dynamic>?> bootstrap(String baseUrl) async {
-    _ensureApiClient(baseUrl);
-    try {
-      final resp = await _apiClient.get('/api/v1/bootstrap');
-      if (resp.statusCode != 200) {
-        deploymentInfo = null;
-        currentTenantId = null;
-        await _secureStorage.delete(key: 'tenant_id');
-        notifyListeners();
-        return null;
-      }
-      final body = jsonDecode(resp.body) as Map<String, dynamic>;
-      final deployment = (body['deployment'] as Map<String, dynamic>?) ?? {};
-      final tenantId = (deployment['tenantId'] ?? '').toString().trim();
-      deploymentInfo = deployment;
-      currentTenantId = tenantId.isEmpty ? null : tenantId;
-      if (currentTenantId != null && currentTenantId!.isNotEmpty) {
-        await _secureStorage.write(key: 'tenant_id', value: currentTenantId!);
-      } else {
-        await _secureStorage.delete(key: 'tenant_id');
-      }
-      notifyListeners();
-      return body;
-    } catch (_) {
-      deploymentInfo = null;
-      currentTenantId = null;
-      await _secureStorage.delete(key: 'tenant_id');
-      notifyListeners();
-      return null;
-    }
-  }
-
-  Future<List<String>> fetchEffectivePermissions(String baseUrl) async {
-    _ensureApiClient(baseUrl);
-    if (_accessToken == null || currentUser == null) return [];
-    final userId = currentUser!['id'] as String?;
-    if (userId == null) return [];
-    return authzService.loadPermissions(_apiClient, userId);
-  }
-
-  bool hasPermission(String key) => authzService.hasPermission(key);
-
-  bool hasModule(String moduleCode) {
-    final normalized = moduleCode.trim();
-    if (normalized.isEmpty) return true;
-    if (availableModules.isEmpty) return true;
-    return availableModules.any((module) => (module['code'] ?? '').toString() == normalized);
-  }
+  String get nextPostAuthRoute => isAuthenticated ? '/dashboard' : '/login';
+  void _ensureApiClient(String baseUrl) => _apiClient = _apiClientFactory(baseUrl);
 
   Future<void> init() async {
-    _accessToken = await _secureStorage.read(key: 'access_token');
-    _refreshToken = await _secureStorage.read(key: 'refresh_token');
-    final exp = await _secureStorage.read(key: 'expires_at');
-    currentTenantId = await _secureStorage.read(key: 'tenant_id');
-    currentOrganizationId = await _secureStorage.read(key: 'organization_id');
-    currentLocationId = await _secureStorage.read(key: 'location_id');
-    selectedOrganizationId = currentOrganizationId;
-    selectedLocationId = currentLocationId;
-    if (exp != null) _expiresAt = DateTime.tryParse(exp);
-    if (_accessToken != null && _refreshToken != null && _expiresAt != null) notifyListeners();
+    _accessToken = await _secureStorage.read(key: 'access_token'); _refreshToken = await _secureStorage.read(key: 'refresh_token');
+    final exp = await _secureStorage.read(key: 'expires_at'); if (exp != null) _expiresAt = DateTime.tryParse(exp);
+    currentTenantId = await _secureStorage.read(key: 'tenant_id'); currentOrganizationId = await _secureStorage.read(key: 'organization_id'); currentLocationId = await _secureStorage.read(key: 'location_id');
+    selectedOrganizationId = currentOrganizationId; selectedLocationId = currentLocationId; if (_accessToken != null) notifyListeners();
   }
 
-  Future<bool> restoreSession(String baseUrl) async {
-    if (_accessToken == null || _refreshToken == null) return false;
-    if (_expiresAt != null && DateTime.now().isAfter(_expiresAt!)) {
-      await logout();
-      return false;
-    }
-    bool loaded = await loadMe(baseUrl);
-    if (!loaded) {
-      final refreshed = await tryRefresh();
-      if (!refreshed) {
-        await logout();
-        return false;
-      }
-      loaded = await loadMe(baseUrl);
-      if (!loaded) {
-        await logout();
-        return false;
-      }
-    }
-    final organizationsLoaded = await loadAuthorizedOrganizations(baseUrl);
-    if (requiresOrganizationSelection || currentOrganizationId == null) {
-      availableLocations = const [];
-      availableModules = const [];
-      requiresLocationSelection = false;
-      notifyListeners();
-      return organizationsLoaded || loaded;
-    }
-    final locationsLoaded = await loadAuthorizedLocations(baseUrl);
-    await loadAccessibleModules(baseUrl);
-    notifyListeners();
-    return organizationsLoaded || locationsLoaded || loaded;
-  }
+  Future<Map<String, dynamic>?> bootstrap(String baseUrl) async { _ensureApiClient(baseUrl); try { final r = await _apiClient.get('/api/v1/bootstrap'); if (r.statusCode != 200) return null; final b = jsonDecode(r.body) as Map<String,dynamic>; deploymentInfo = (b['deployment'] as Map<String,dynamic>?) ?? {}; notifyListeners(); return b; } catch (_) { return null; } }
 
   Future<bool> login(String baseUrl, String identifier, String password) async {
     _ensureApiClient(baseUrl);
-    final bootstrapResponse = await bootstrap(baseUrl);
-    if (bootstrapResponse == null || (currentTenantId ?? '').trim().isEmpty) return false;
     try {
-      final resp = await _apiClient.post('/api/v1/auth/login', body: {
-        'identifier': identifier,
-        'password': password,
-      });
-      if (resp.statusCode != 200) return false;
-      final body = jsonDecode(resp.body) as Map<String, dynamic>;
-      _accessToken = body['accessToken'] as String?;
-      _refreshToken = body['refreshToken'] as String?;
-      _expiresAt = DateTime.tryParse(body['expiresAt'] as String? ?? '');
-      currentUser = body['user'] as Map<String, dynamic>?;
-      final session = (body['session'] as Map<String, dynamic>?) ?? {};
-      final resolvedTenantId = (session['tenantId'] ?? currentUser?['tenantId'] ?? currentTenantId ?? '').toString().trim();
-      currentTenantId = resolvedTenantId.isEmpty ? null : resolvedTenantId;
-      currentOrganizationId = (session['organizationId'] ?? '').toString().trim().isEmpty ? null : session['organizationId'].toString();
-      currentLocationId = (session['locationId'] ?? '').toString().trim().isEmpty ? null : session['locationId'].toString();
-      if (currentTenantId != null && currentTenantId!.isNotEmpty) await _secureStorage.write(key: 'tenant_id', value: currentTenantId!);
-      if (_accessToken != null && _accessToken!.trim().isNotEmpty) await _secureStorage.write(key: 'access_token', value: _accessToken!);
-      if (_refreshToken != null && _refreshToken!.trim().isNotEmpty) await _secureStorage.write(key: 'refresh_token', value: _refreshToken!);
-      if (_expiresAt != null) await _secureStorage.write(key: 'expires_at', value: _expiresAt!.toIso8601String());
-      final orgsLoaded = await loadAuthorizedOrganizations(baseUrl);
-      if (!orgsLoaded) {
-        notifyListeners();
-        return false;
-      }
-      if (requiresOrganizationSelection || currentOrganizationId == null) {
-        availableLocations = const [];
-        availableModules = const [];
-        requiresLocationSelection = false;
-        authzService.clear();
-        notifyListeners();
-        return true;
-      }
-      await loadAuthorizedLocations(baseUrl);
-      await loadAccessibleModules(baseUrl);
-      await _loadPermissionsIfContextReady(baseUrl);
-      notifyListeners();
-      return true;
-    } catch (_) {
-      return false;
-    }
+      final r = await _apiClient.post('/api/v1/auth/login', body: {'identifier': identifier, 'password': password});
+      if (r.statusCode != 200) return false; await _storeSession(jsonDecode(r.body) as Map<String,dynamic>);
+      // Context is initialized from the user's configured defaults when available. Missing defaults do not block login.
+      await loadAuthorizedOrganizations(baseUrl);
+      if (currentOrganizationId != null) { await loadAuthorizedLocations(baseUrl); await loadAccessibleModules(baseUrl); await _loadPermissionsIfContextReady(baseUrl); }
+      notifyListeners(); return true;
+    } catch (_) { return false; }
   }
 
-  Future<void> _loadPermissionsIfContextReady(String baseUrl) async {
-    if (_accessToken == null || currentUser == null || currentOrganizationId == null) return;
-    final userId = currentUser!['id'] as String?;
-    if (userId == null) return;
-    await authzService.loadPermissions(_apiClientFactory!(baseUrl), userId);
+  Future<void> _storeSession(Map<String,dynamic> body) async {
+    _accessToken = body['accessToken'] as String?; _refreshToken = body['refreshToken'] as String?; _expiresAt = DateTime.tryParse(body['expiresAt']?.toString() ?? ''); currentUser = body['user'] as Map<String,dynamic>?;
+    final s = (body['session'] as Map<String,dynamic>?) ?? {}; final tenant = (s['tenantId'] ?? currentUser?['tenantId'] ?? '').toString().trim(); currentTenantId = tenant.isEmpty ? null : tenant;
+    final org = (s['organizationId'] ?? currentUser?['organizationId'] ?? '').toString().trim(); currentOrganizationId = org.isEmpty ? null : org;
+    final loc = (s['locationId'] ?? currentUser?['activeLocationId'] ?? '').toString().trim(); currentLocationId = loc.isEmpty ? null : loc; selectedOrganizationId = currentOrganizationId; selectedLocationId = currentLocationId;
+    if (_accessToken != null) await _secureStorage.write(key:'access_token',value:_accessToken!); if (_refreshToken != null) await _secureStorage.write(key:'refresh_token',value:_refreshToken!); if (_expiresAt != null) await _secureStorage.write(key:'expires_at',value:_expiresAt!.toIso8601String());
+    if (currentTenantId != null) await _secureStorage.write(key:'tenant_id',value:currentTenantId!); if (currentOrganizationId != null) await _secureStorage.write(key:'organization_id',value:currentOrganizationId!); if (currentLocationId != null) await _secureStorage.write(key:'location_id',value:currentLocationId!);
   }
 
-  Future<bool> loadAuthorizedOrganizations(String baseUrl) async {
-    if (_accessToken == null || _accessToken!.trim().isEmpty) return false;
-    try {
-      _ensureApiClient(baseUrl);
-      final resp = await _apiClient.get('/api/v1/auth/organizations');
-      if (resp.statusCode != 200) {
-        availableOrganizations = const [];
-        requiresOrganizationSelection = false;
-        currentOrganizationId = null;
-        selectedOrganizationId = null;
-        await _secureStorage.delete(key: 'organization_id');
-        notifyListeners();
-        return false;
-      }
-      final body = jsonDecode(resp.body) as Map<String, dynamic>;
-      final list = (body['organizations'] as List<dynamic>?) ?? const [];
-      availableOrganizations = list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
-      final activeOrganizationId = (body['activeOrganizationId'] ?? '').toString().trim();
-      requiresOrganizationSelection = body['requiresOrganizationSelection'] == true;
-      if (availableOrganizations.isEmpty) {
-        currentOrganizationId = null;
-        selectedOrganizationId = null;
-        await _secureStorage.delete(key: 'organization_id');
-      } else if (activeOrganizationId.isNotEmpty) {
-        currentOrganizationId = activeOrganizationId;
-        selectedOrganizationId = activeOrganizationId;
-        await _secureStorage.write(key: 'organization_id', value: activeOrganizationId);
-      } else if (requiresOrganizationSelection) {
-        currentOrganizationId = null;
-        selectedOrganizationId = null;
-        await _secureStorage.delete(key: 'organization_id');
-      } else {
-        currentOrganizationId = null;
-        selectedOrganizationId = null;
-        await _secureStorage.delete(key: 'organization_id');
-        notifyListeners();
-        return false;
-      }
-      notifyListeners();
-      return true;
-    } catch (_) {
-      availableOrganizations = const [];
-      requiresOrganizationSelection = false;
-      currentOrganizationId = null;
-      selectedOrganizationId = null;
-      await _secureStorage.delete(key: 'organization_id');
-      notifyListeners();
-      return false;
-    }
-  }
+  Future<bool> loadMe(String baseUrl) async { if (_accessToken == null) return false; _ensureApiClient(baseUrl); try { final r=await _apiClient.get('/api/v1/auth/me'); if(r.statusCode!=200)return false; final b=jsonDecode(r.body) as Map<String,dynamic>; currentUser=b['user'] as Map<String,dynamic>?; currentTenantId=(currentUser?['tenantId'] ?? currentTenantId)?.toString(); currentOrganizationId=(currentUser?['organizationId'] ?? currentOrganizationId)?.toString(); currentLocationId=(currentUser?['activeLocationId'] ?? currentLocationId)?.toString(); notifyListeners(); return true; } catch(_){return false;} }
+  Future<bool> tryRefresh() async { if(_refreshToken==null||_refreshToken!.isEmpty)return false; try{final r=await _apiClient.post('/api/v1/auth/refresh',body:{'refreshToken':_refreshToken}); if(r.statusCode!=200)return false; final b=jsonDecode(r.body) as Map<String,dynamic>; _accessToken=b['accessToken'] as String?; _expiresAt=DateTime.tryParse(b['expiresAt']?.toString()??'')??_expiresAt; if(_accessToken!=null)await _secureStorage.write(key:'access_token',value:_accessToken!); notifyListeners(); return _accessToken!=null;}catch(_){return false;} }
+  String _currentBaseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue:'http://localhost:3000');
+  Future<bool> restoreSession(String baseUrl) async { _currentBaseUrl=baseUrl; if(_accessToken==null||_refreshToken==null)return false; if(_expiresAt!=null&&DateTime.now().isAfter(_expiresAt!)){if(!await tryRefresh()){await logout();return false;}} if(!await loadMe(baseUrl)){if(!await tryRefresh()||!await loadMe(baseUrl)){await logout();return false;}} await loadAuthorizedOrganizations(baseUrl); if(currentOrganizationId!=null){await loadAuthorizedLocations(baseUrl);await loadAccessibleModules(baseUrl);await _loadPermissionsIfContextReady(baseUrl);} return true; }
 
-  Future<bool> loadAuthorizedLocations(String baseUrl) async {
-    if (_accessToken == null || _accessToken!.trim().isEmpty || currentOrganizationId == null) return false;
-    try {
-      _ensureApiClient(baseUrl);
-      final resp = await _apiClient.get('/api/v1/locations');
-      if (resp.statusCode != 200) {
-        availableLocations = const [];
-        requiresLocationSelection = false;
-        currentLocationId = null;
-        selectedLocationId = null;
-        await _secureStorage.delete(key: 'location_id');
-        notifyListeners();
-        return false;
-      }
-      final body = jsonDecode(resp.body) as Map<String, dynamic>;
-      final list = (body['locations'] as List<dynamic>?) ?? const [];
-      availableLocations = list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
-      final activeLocationId = (body['activeLocationId'] ?? currentLocationId ?? '').toString().trim();
-      if (availableLocations.isEmpty) {
-        currentLocationId = null;
-        selectedLocationId = null;
-        requiresLocationSelection = false;
-        await _secureStorage.delete(key: 'location_id');
-      } else if (activeLocationId.isNotEmpty) {
-        currentLocationId = activeLocationId;
-        selectedLocationId = activeLocationId;
-        requiresLocationSelection = false;
-        await _secureStorage.write(key: 'location_id', value: activeLocationId);
-      } else if (availableLocations.length == 1) {
-        final fallbackId = (availableLocations.first['id'] ?? '').toString().trim();
-        currentLocationId = fallbackId.isEmpty ? null : fallbackId;
-        selectedLocationId = currentLocationId;
-        requiresLocationSelection = currentLocationId == null;
-        if (currentLocationId != null) await _secureStorage.write(key: 'location_id', value: currentLocationId!);
-      } else {
-        currentLocationId = null;
-        selectedLocationId = null;
-        requiresLocationSelection = true;
-        await _secureStorage.delete(key: 'location_id');
-      }
-      notifyListeners();
-      return true;
-    } catch (_) {
-      availableLocations = const [];
-      requiresLocationSelection = false;
-      currentLocationId = null;
-      selectedLocationId = null;
-      await _secureStorage.delete(key: 'location_id');
-      notifyListeners();
-      return false;
-    }
-  }
-
-  Future<bool> loadAccessibleModules(String baseUrl) async {
-    if (_accessToken == null || _accessToken!.trim().isEmpty || currentOrganizationId == null) return false;
-    try {
-      _ensureApiClient(baseUrl);
-      final resp = await _apiClient.get('/api/v1/auth/modules');
-      if (resp.statusCode != 200) {
-        availableModules = const [];
-        notifyListeners();
-        return false;
-      }
-      final body = jsonDecode(resp.body) as Map<String, dynamic>;
-      final list = (body['modules'] as List<dynamic>?) ?? const [];
-      availableModules = list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
-      notifyListeners();
-      return true;
-    } catch (_) {
-      availableModules = const [];
-      notifyListeners();
-      return false;
-    }
-  }
-
-  Future<bool> selectOrganization(String organizationId) async {
-    final normalizedId = organizationId.trim();
-    if (normalizedId.isEmpty) return false;
-    final match = availableOrganizations.any((org) => (org['id'] ?? '').toString() == normalizedId);
-    if (!match) return false;
-    try {
-      final baseUrl = _determineBaseUrl();
-      _ensureApiClient(baseUrl);
-      final resp = await _apiClient.post('/api/v1/auth/organizations/select', body: {'organizationId': normalizedId});
-      if (resp.statusCode != 200) return false;
-      final body = jsonDecode(resp.body) as Map<String, dynamic>;
-      _accessToken = body['accessToken'] as String? ?? _accessToken;
-      _refreshToken = body['refreshToken'] as String? ?? _refreshToken;
-      _expiresAt = DateTime.tryParse(body['expiresAt']?.toString() ?? '') ?? _expiresAt;
-      currentUser = body['user'] as Map<String, dynamic>? ?? currentUser;
-      final session = (body['session'] as Map<String, dynamic>?) ?? {};
-      final resolvedTenantId = (session['tenantId'] ?? currentTenantId ?? '').toString().trim();
-      currentTenantId = resolvedTenantId.isEmpty ? currentTenantId : resolvedTenantId;
-      currentOrganizationId = (session['organizationId'] ?? normalizedId).toString();
-      selectedOrganizationId = currentOrganizationId;
-      currentLocationId = null;
-      selectedLocationId = null;
-      requiresOrganizationSelection = false;
-      if (_accessToken != null && _accessToken!.trim().isNotEmpty) await _secureStorage.write(key: 'access_token', value: _accessToken!);
-      if (_refreshToken != null && _refreshToken!.trim().isNotEmpty) await _secureStorage.write(key: 'refresh_token', value: _refreshToken!);
-      if (_expiresAt != null) await _secureStorage.write(key: 'expires_at', value: _expiresAt!.toIso8601String());
-      await _secureStorage.write(key: 'organization_id', value: currentOrganizationId!);
-      await _secureStorage.delete(key: 'location_id');
-      await loadAuthorizedLocations(baseUrl);
-      await loadAccessibleModules(baseUrl);
-      await _loadPermissionsIfContextReady(baseUrl);
-      notifyListeners();
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<bool> selectLocation(String locationId) async {
-    final normalizedId = locationId.trim();
-    if (normalizedId.isEmpty || currentOrganizationId == null) return false;
-    final match = availableLocations.any((location) => (location['id'] ?? '').toString() == normalizedId);
-    if (!match) return false;
-    try {
-      final baseUrl = _determineBaseUrl();
-      _ensureApiClient(baseUrl);
-      final resp = await _apiClient.post('/api/v1/locations/$normalizedId/select');
-      if (resp.statusCode != 200) return false;
-      final body = jsonDecode(resp.body) as Map<String, dynamic>;
-      _accessToken = body['accessToken'] as String? ?? _accessToken;
-      _refreshToken = body['refreshToken'] as String? ?? _refreshToken;
-      _expiresAt = DateTime.tryParse(body['expiresAt']?.toString() ?? '') ?? _expiresAt;
-      currentUser = body['user'] as Map<String, dynamic>? ?? currentUser;
-      final session = (body['session'] as Map<String, dynamic>?) ?? {};
-      currentOrganizationId = (session['organizationId'] ?? currentOrganizationId).toString();
-      currentLocationId = (session['locationId'] ?? normalizedId).toString();
-      selectedLocationId = currentLocationId;
-      requiresLocationSelection = false;
-      if (_accessToken != null && _accessToken!.trim().isNotEmpty) await _secureStorage.write(key: 'access_token', value: _accessToken!);
-      if (_refreshToken != null && _refreshToken!.trim().isNotEmpty) await _secureStorage.write(key: 'refresh_token', value: _refreshToken!);
-      if (_expiresAt != null) await _secureStorage.write(key: 'expires_at', value: _expiresAt!.toIso8601String());
-      if (currentLocationId != null) await _secureStorage.write(key: 'location_id', value: currentLocationId!);
-      await _secureStorage.write(key: 'organization_id', value: currentOrganizationId!);
-      await loadAuthorizedLocations(baseUrl);
-      await loadAccessibleModules(baseUrl);
-      await _loadPermissionsIfContextReady(baseUrl);
-      notifyListeners();
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<bool> tryRefresh() async {
-    if (_refreshToken == null) return false;
-    try {
-      final baseUrl = _determineBaseUrl();
-      _ensureApiClient(baseUrl);
-      final resp = await _apiClient.post('/api/v1/auth/refresh', body: {'refreshToken': _refreshToken});
-      if (resp.statusCode == 200) {
-        final body = jsonDecode(resp.body) as Map<String, dynamic>;
-        _accessToken = body['accessToken'] as String?;
-        _expiresAt = DateTime.tryParse(body['expiresAt'] as String? ?? '');
-        if (_accessToken != null) await _secureStorage.write(key: 'access_token', value: _accessToken!);
-        if (_expiresAt != null) await _secureStorage.write(key: 'expires_at', value: _expiresAt!.toIso8601String());
-        notifyListeners();
-        return true;
-      }
-    } catch (_) {}
-    return false;
-  }
-
-  Future<void> logout() async {
-    try {
-      if (_accessToken != null) {
-        final baseUrl = _determineBaseUrl();
-        _ensureApiClient(baseUrl);
-        await _apiClient.post('/api/v1/auth/logout');
-      }
-    } catch (_) {}
-    _accessToken = null;
-    _refreshToken = null;
-    _expiresAt = null;
-    currentUser = null;
-    currentTenantId = null;
-    currentOrganizationId = null;
-    currentLocationId = null;
-    selectedOrganizationId = null;
-    selectedLocationId = null;
-    availableOrganizations = const [];
-    availableLocations = const [];
-    availableModules = const [];
-    requiresOrganizationSelection = false;
-    requiresLocationSelection = false;
-    await _secureStorage.delete(key: 'access_token');
-    await _secureStorage.delete(key: 'refresh_token');
-    await _secureStorage.delete(key: 'expires_at');
-    await _secureStorage.delete(key: 'tenant_id');
-    await _secureStorage.delete(key: 'organization_id');
-    await _secureStorage.delete(key: 'location_id');
-    try {
-      authzService.clear();
-    } catch (_) {}
-    notifyListeners();
-  }
-
-  Future<bool> loadMe(String baseUrl) async {
-    if (_accessToken == null) return false;
-    try {
-      _ensureApiClient(baseUrl);
-      final resp = await _apiClient.get('/api/v1/auth/me');
-      if (resp.statusCode == 200) {
-        final body = jsonDecode(resp.body) as Map<String, dynamic>;
-        currentUser = body['user'] as Map<String, dynamic>?;
-        final userTenantId = (currentUser?['tenantId'] ?? '').toString().trim();
-        if (userTenantId.isNotEmpty) {
-          currentTenantId = userTenantId;
-          await _secureStorage.write(key: 'tenant_id', value: userTenantId);
-        }
-        final userOrganizationId = (currentUser?['organizationId'] ?? '').toString().trim();
-        if (userOrganizationId.isNotEmpty) {
-          currentOrganizationId = userOrganizationId;
-          selectedOrganizationId = userOrganizationId;
-          await _secureStorage.write(key: 'organization_id', value: userOrganizationId);
-        } else {
-          currentOrganizationId = null;
-          selectedOrganizationId = null;
-          await _secureStorage.delete(key: 'organization_id');
-        }
-        final userLocationId = (currentUser?['activeLocationId'] ?? '').toString().trim();
-        if (userLocationId.isNotEmpty) {
-          currentLocationId = userLocationId;
-          selectedLocationId = userLocationId;
-          await _secureStorage.write(key: 'location_id', value: userLocationId);
-        }
-        notifyListeners();
-        return true;
-      }
-    } catch (_) {}
-    return false;
-  }
-
-  String _determineBaseUrl() => const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
+  Future<bool> loadAuthorizedOrganizations(String baseUrl) async { if(_accessToken==null)return false; _currentBaseUrl=baseUrl; _ensureApiClient(baseUrl); try{final r=await _apiClient.get('/api/v1/auth/organizations'); if(r.statusCode!=200)return false; final b=jsonDecode(r.body) as Map<String,dynamic>; final l=(b['organizations'] as List<dynamic>?)??const[]; availableOrganizations=l.map((x)=>Map<String,dynamic>.from(x as Map)).toList(); final active=(b['activeOrganizationId']??currentOrganizationId??'').toString().trim(); requiresOrganizationSelection=false; if(active.isNotEmpty&&availableOrganizations.any((o)=>(o['id']??'').toString()==active)){currentOrganizationId=active;selectedOrganizationId=active;await _secureStorage.write(key:'organization_id',value:active);} notifyListeners(); return true;}catch(_){return false;} }
+  Future<bool> selectOrganization(String organizationId) async { final id=organizationId.trim(); if(id.isEmpty||!availableOrganizations.any((o)=>(o['id']??'').toString()==id))return false; try{final base=_currentBaseUrl;_ensureApiClient(base);final r=await _apiClient.post('/api/v1/auth/organizations/select',body:{'organizationId':id});if(r.statusCode!=200)return false;await _storeSession(jsonDecode(r.body) as Map<String,dynamic>);requiresOrganizationSelection=false;await loadAuthorizedLocations(base);await loadAccessibleModules(base);await _loadPermissionsIfContextReady(base);notifyListeners();return true;}catch(_){return false;} }
+  Future<bool> loadAuthorizedLocations(String baseUrl) async { if(_accessToken==null||currentOrganizationId==null)return false; _currentBaseUrl=baseUrl;_ensureApiClient(baseUrl);try{final r=await _apiClient.get('/api/v1/locations');if(r.statusCode!=200)return false;final b=jsonDecode(r.body) as Map<String,dynamic>;final l=(b['locations'] as List<dynamic>?)??const[];availableLocations=l.map((x)=>Map<String,dynamic>.from(x as Map)).toList();final active=(b['activeLocationId']??currentLocationId??'').toString().trim();requiresLocationSelection=false;if(active.isNotEmpty&&availableLocations.any((x)=>(x['id']??'').toString()==active)){currentLocationId=active;selectedLocationId=active;await _secureStorage.write(key:'location_id',value:active);}notifyListeners();return true;}catch(_){return false;} }
+  Future<bool> selectLocation(String locationId) async {final id=locationId.trim();if(id.isEmpty||!availableLocations.any((x)=>(x['id']??'').toString()==id))return false;try{final base=_currentBaseUrl;_ensureApiClient(base);final r=await _apiClient.post('/api/v1/locations/$id/select');if(r.statusCode!=200)return false;await _storeSession(jsonDecode(r.body) as Map<String,dynamic>);currentLocationId=id;selectedLocationId=id;requiresLocationSelection=false;await _loadPermissionsIfContextReady(base);notifyListeners();return true;}catch(_){return false;} }
+  Future<bool> loadAccessibleModules(String baseUrl) async {if(_accessToken==null||currentOrganizationId==null)return false;_currentBaseUrl=baseUrl;_ensureApiClient(baseUrl);try{final r=await _apiClient.get('/api/v1/auth/modules');if(r.statusCode!=200)return false;final b=jsonDecode(r.body) as Map<String,dynamic>;availableModules=((b['modules'] as List<dynamic>?)??const[]).map((x)=>Map<String,dynamic>.from(x as Map)).toList();notifyListeners();return true;}catch(_){return false;}}
+  Future<List<String>> fetchEffectivePermissions(String baseUrl) async {if(_accessToken==null||currentUser==null)return[];_currentBaseUrl=baseUrl;_ensureApiClient(baseUrl);final id=currentUser?['id'] as String?;if(id==null)return[];return authzService.loadPermissions(_apiClient,id);}
+  Future<void> _loadPermissionsIfContextReady(String baseUrl) async {if(_accessToken==null||currentUser==null||currentOrganizationId==null)return;await fetchEffectivePermissions(baseUrl);}
+  bool hasPermission(String key)=>authzService.hasPermission(key); bool hasModule(String code)=>code.trim().isEmpty||availableModules.isEmpty||availableModules.any((m)=>(m['code']??'').toString()==code.trim());
+  Future<void> logout() async {try{if(_accessToken!=null){_ensureApiClient(_currentBaseUrl);await _apiClient.post('/api/v1/auth/logout');}}catch(_){} _accessToken=null;_refreshToken=null;_expiresAt=null;currentTenantId=null;currentOrganizationId=null;currentLocationId=null;selectedOrganizationId=null;selectedLocationId=null;currentUser=null;availableOrganizations=const[];availableLocations=const[];availableModules=const[];requiresOrganizationSelection=false;requiresLocationSelection=false;authzService.clear();for(final k in ['access_token','refresh_token','expires_at','tenant_id','organization_id','location_id'])await _secureStorage.delete(key:k);notifyListeners();}
 }

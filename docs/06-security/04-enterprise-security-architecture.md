@@ -4,28 +4,25 @@
 
 ## 1. Purpose and Scope
 
-Enterprise Security Architecture establishes the security foundation for the ERP platform by protecting business data, users, infrastructure, services, integrations, and operational processes against unauthorized access, misuse, data breaches, and cyber threats.
+Enterprise Security Architecture establishes the security foundation for protecting ERP users, business data, APIs, infrastructure, integrations, and operational processes.
 
-Security is a cross-cutting platform capability rather than a business module. ERP modules consume the established security capabilities and must not create conflicting authentication, authorization, audit, cryptographic, or privacy mechanisms.
-
-This document defines policy and architectural principles. Concrete implementation and runtime enforcement belong to the appropriate backend, platform-service, infrastructure, and deployment components.
+Security is a cross-cutting platform capability. Business modules consume the established security services and must not create conflicting authentication, authorization, tenant-isolation, audit, or secret-management mechanisms.
 
 ## 2. Security Objectives
 
 The architecture aims to:
 
-- Protect confidentiality.
-- Preserve data integrity.
-- Ensure availability and resilience.
-- Maintain accountability and traceability.
-- Support applicable organizational and regulatory requirements.
-- Enable secure collaboration and integration.
-- Minimize operational risk.
-- Provide auditable security controls.
+- protect confidentiality;
+- preserve data integrity;
+- ensure availability and resilience;
+- maintain accountability and traceability;
+- support applicable organizational and regulatory requirements;
+- minimize operational risk;
+- provide auditable security controls.
 
 ## 3. Security Principles
 
-The ERP shall follow:
+The ERP follows:
 
 - Least Privilege.
 - Defense in Depth.
@@ -35,40 +32,16 @@ The ERP shall follow:
 - Explicit Verification.
 - Separation of Duties.
 - Continuous Monitoring.
-- Immutable or tamper-evident auditability where required.
 - Appropriate Zero Trust principles at trust boundaries.
 
-These principles apply across modules, APIs, services, integrations, background processing, and administrative interfaces.
-
-## 4. Security Domains
-
-Enterprise security spans:
-
-- Identity and Access Management.
-- Authentication and Session Management.
-- Authorization.
-- Data Security.
-- Application Security.
-- Network and Transport Security.
-- Infrastructure Security.
-- Integration Security.
-- Cryptography and Secrets Management.
-- Audit, Compliance, and Governance.
-- Security Monitoring and Incident Management.
-- Privacy and Data Protection.
-- AI Security where AI capabilities are deployed.
-- Third-Party Security where external services are used.
-
-Physical security is an organizational/deployment concern where applicable.
-
-## 5. Security Layers
-
-An illustrative layered model is:
+## 4. Security Layers
 
 ```text
 Users / Systems
       ↓
 Identity & Authentication
+      ↓
+Tenant Membership / Active Tenant
       ↓
 Authorization
       ↓
@@ -76,419 +49,265 @@ Application / API Security
       ↓
 Business Services
       ↓
-Data Protection
+Tenant-scoped Database Transaction
       ↓
-Infrastructure / Transport Security
+PostgreSQL RLS
       ↓
-Audit & Security Monitoring
+Infrastructure / Audit / Monitoring
 ```
 
 Compromise of one layer must not automatically imply unrestricted access to lower layers.
 
-## 6. Trust Boundaries
+## 5. Trust Boundaries
 
-The architecture shall explicitly consider boundaries between:
+The architecture explicitly considers boundaries between:
 
-- Internet and ERP services.
-- Frontend clients and backend APIs.
-- Internal services.
-- External partner systems.
-- APIs and databases.
-- Administrative interfaces.
-- Third-party services.
-- AI services and enterprise data where applicable.
+- Internet and ERP services;
+- frontend/mobile clients and backend APIs;
+- APIs and databases;
+- internal services;
+- external partner systems;
+- administrative interfaces;
+- third-party services.
 
-Each applicable trust boundary requires appropriate authentication, authorization, transport protection, validation, and monitoring. The exact controls depend on the boundary and deployment architecture.
+Each applicable boundary requires appropriate authentication, authorization, transport protection, validation, and monitoring.
 
-## 7. Shared Security Services
+## 6. Identity and Access Management
 
-Shared security capabilities include:
-
-- Identity Management.
-- Authentication.
-- Authorization.
-- Session Management.
-- Encryption.
-- Digital Signatures.
-- Key Management.
-- Secrets Management.
-- Certificate Management.
-- Audit Logging.
-- Security Monitoring.
-- Threat Detection.
-- Privacy Controls.
-- Compliance and Governance.
-
-These capabilities should be reusable across ERP modules rather than independently reimplemented by each module.
-
-## 8. Security Events
-
-Security-relevant events may include:
-
-- Successful authentication.
-- Failed authentication.
-- Authorization failure.
-- Role or permission changes.
-- Password or credential changes.
-- Session revocation.
-- Administrative actions.
-- Configuration changes.
-- Data-access violations.
-- Security alerts.
-- Suspicious activity.
-
-Event retention, immutability, and monitoring shall follow the applicable security and operational policies.
-
-## 9. Identity and Access Management
-
-IAM provides centralized management of digital identities and controlled access to ERP resources.
-
-The identity model may cover employees, contractors, customers, suppliers, partners, auditors, service accounts, API clients, and other identities required by the deployment.
-
-The identity lifecycle includes:
-
-- Registration or provisioning.
-- Verification.
-- Activation.
-- Role assignment.
-- Access review.
-- Modification.
-- Suspension.
-- Deactivation.
-- Archival where applicable.
-
-Lifecycle events shall be auditable.
-
-### Identity Attributes
-
-An identity may contain:
-
-- Identity identifier.
-- Organization context.
-- Department or business-unit information.
-- Contact information.
-- Authentication methods.
-- Assigned roles.
-- Security status.
-- Lifecycle status.
-
-Organizations may extend identity metadata without changing the security principles in this document.
-
-### Identity Federation
-
-The architecture may integrate with enterprise directories, cloud identity providers, partner identity services, or other approved identity providers.
+IAM establishes and manages digital identities. Supported identity mechanisms may include local credentials, enterprise directories, SSO, federation, and future approved identity providers.
 
 Federated authentication establishes identity; ERP authorization remains authoritative for ERP resources.
 
-## 10. Authentication and Session Management
+Identity lifecycle includes provisioning, verification, activation, role/access assignment, review, suspension, deactivation, and archival where applicable.
 
-Authentication establishes identity before access to protected ERP resources. Authorization determines what the authenticated identity may do.
+## 7. Authentication and Session Management
 
-The current backend authentication baseline is documented in the backend authentication and authorization architecture. This security document establishes the security principles and does not replace that implementation-specific contract.
+Authentication establishes user identity. A successful authentication must not by itself grant unrestricted tenant access.
 
-Supported authentication capabilities may include, where implemented and approved:
-
-- Username and password.
-- Multi-factor authentication.
-- Single sign-on.
-- Federated authentication.
-- Certificate-based authentication.
-- Service-account authentication.
-- API credentials/tokens.
-
-Specific mechanisms shall not be assumed to exist unless established by the implementation architecture.
-
-### Password and MFA Policies
-
-Password and MFA requirements shall remain policy-driven and configurable where the selected identity implementation supports them. Fixed values must not be inferred from this document.
-
-### Session Controls
-
-Session management may include:
-
-- Session validation.
-- Expiration.
-- Renewal.
-- Forced logout.
-- Session revocation.
-- Reauthentication for sensitive operations.
-- Concurrent-session controls where required.
-
-Exact timeout values and token lifetimes belong to the current authentication implementation/configuration rather than this policy document.
-
-## 11. Authorization Framework
-
-Authorization determines whether an authenticated identity may perform an operation or access a resource.
-
-The backend is the authoritative security boundary for authorization. Frontend navigation or visibility controls improve usability but do not provide security.
-
-The architecture supports centralized policy definitions and backend enforcement. Authorization may consider:
-
-- Identity.
-- Roles.
-- Organization/tenant context.
-- Business attributes.
-- Resource ownership.
-- Action being requested.
-- Applicable business rules.
-
-Possible authorization models include RBAC, ABAC, policy-based, contextual, and resource-based controls where justified by the implemented requirements.
-
-### Fine-Grained Authorization
-
-Authorization may apply at:
-
-- Organization level.
-- Module/capability level.
-- Business function.
-- Resource/record.
-- API operation.
-- Workflow action.
-- Field/attribute where required.
-
-### Delegation and SoD
-
-Where supported, delegated access shall be bounded and auditable. Segregation-of-duties rules shall be enforced according to applicable business and governance requirements.
-
-Authorization changes and significant authorization failures shall be auditable.
-
-## 12. Tenant and Organization Isolation
-
-Multi-tenant and organization-aware deployments shall enforce isolation at the backend and data layers.
-
-Application authorization alone is not sufficient to establish tenant isolation. Where applicable, database-level controls such as PostgreSQL Row-Level Security shall provide defense in depth.
-
-The project architecture requires a single shared tenant-aware pipeline for both SaaS and on-premises deployments. Deployment-specific resolution differs, but the security order remains constant.
-
-The architecture defines the following lifecycle invariant:
+The canonical security sequence is:
 
 ```text
-ERP URL / Deployment Host
+Authenticate Identity
   ↓
-Tenant Resolver (hostname/custom domain or installation config)
+Load Tenant Memberships
   ↓
-Bootstrap / deployment metadata
+One eligible tenant → auto-select
+Multiple eligible tenants → explicit selection
   ↓
-Login
+Validate membership
   ↓
-Authentication
-  ↓
-Authenticated Identity
-  ↓
-ERP User
-  ↓
-Organization Membership Resolution
-  ↓
-Active Organization Resolution
-  ↓
-Tenant Resolution
-  ↓
-TenantContext
-  ↓
-Tenant-scoped Transaction
-  ↓
-SET LOCAL app.current_tenant_id
-  ↓
-PostgreSQL RLS
-  ↓
-Authorization
-  ↓
-Location / Plant Context
-  ↓
-Business operation
+Create tenant-scoped session
 ```
 
-This ordering is mandatory. Tenant resolution must happen before a tenant-scoped database transaction begins. A request without a valid tenant context must fail closed and must not execute tenant-scoped database operations.
+Session controls include validation, expiration, renewal, forced logout, revocation, and reauthentication for sensitive operations where required.
 
-### Security Invariants
-1. Authentication establishes identity; it does not by itself establish unrestricted tenant access.
-2. Tenant access requires a valid organization membership and authorization within the resolved tenant context.
-3. Deployment-specific tenant resolution occurs before login, using a trusted host/domain or installation configuration, not a user-editable field.
-4. `TenantContext` is resolved before the database transaction and is treated as a platform/security concern.
-5. `SET LOCAL app.current_tenant_id` occurs inside the tenant-scoped transaction before tenant-owned data is queried or mutated.
-6. PostgreSQL RLS enforces tenant isolation at the database layer.
-7. No fallback or default tenant is permitted for ordinary tenant-scoped operations.
-8. A user cannot select an organization they are not authorized to access.
-9. Roles and permissions are evaluated within the active organization/tenant context.
-10. Location access is an additional authorization dimension, not a replacement for tenant isolation.
-11. Business modules cannot bypass centralized tenant resolution.
-12. Frontend caches, local state, and client-side filtering must never be treated as tenant-isolation mechanisms.
+## 8. Tenant and Organization Isolation
 
-AI agents and implementations must not invent tenant IDs, organization IDs, database credentials, or hidden infrastructure fallback paths.
+Tenant identity is an authorization and data-isolation concern derived from authenticated identity and validated tenant membership.
+
+Deployment and tenant identity are independent:
+
+```text
+Deployment endpoint
+  = where the ERP backend is located
+
+Tenant context
+  = which organization the authenticated user is authorized to operate in
+```
+
+### SaaS
+
+Clients connect to the centrally hosted ERP backend. The backend authenticates the user, loads tenant membership, and establishes the active tenant session.
+
+### On-premises
+
+The customer installation exposes the ERP backend through its configured endpoint. Web and mobile clients are configured to connect to that endpoint through the approved LAN, VPN, or secured HTTPS deployment path. The backend still establishes tenant context from authenticated identity and membership.
+
+### Mobile
+
+Mobile clients communicate only with the ERP backend API. PostgreSQL is never directly exposed to mobile clients.
+
+### Prohibited Tenant Authorities
+
+The following are not authoritative tenant sources:
+
+- request hostname;
+- subdomain/custom domain;
+- deployment configuration;
+- frontend URL/path;
+- local storage;
+- query parameters;
+- arbitrary request headers;
+- client-supplied tenant IDs.
+
+The backend must validate any tenant-selection request against the authenticated user's memberships before establishing the active tenant.
+
+## 9. Authorization Framework
+
+The backend is the authoritative security boundary for authorization. Frontend navigation and visibility controls are UX conveniences only.
+
+Authorization may consider:
+
+- authenticated identity;
+- active tenant;
+- tenant membership;
+- organization access;
+- roles;
+- permissions;
+- module enablement;
+- location/branch restrictions;
+- resource ownership;
+- business rules.
+
+Business modules must consume centralized authorization and must not bypass the tenant security boundary.
+
+## 10. TenantContext and Database Security
+
+The backend creates `TenantContext` only from trusted authenticated session state after tenant membership validation.
+
+Every tenant-owned database operation must execute in a tenant-scoped transaction:
+
+```text
+Authenticated Session
+      ↓
+TenantContext
+      ↓
+BEGIN
+      ↓
+SET LOCAL app.current_tenant_id
+      ↓
+Tenant-owned queries/writes
+      ↓
+COMMIT / ROLLBACK
+```
+
+The application must execute:
+
+```sql
+SET LOCAL app.current_tenant_id = '<trusted tenant UUID>';
+```
+
+inside the same transaction before the first tenant-owned read or write.
+
+The value must come from the server-authoritative `TenantContext`. It must never come from a default, fallback, or arbitrary client value.
+
+## 11. PostgreSQL RLS
+
+PostgreSQL Row Level Security is mandatory for tenant-owned data.
+
+A representative policy is:
+
+```sql
+ALTER TABLE customer ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY tenant_isolation_policy ON customer
+USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
+WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+```
+
+RLS is a final database enforcement barrier. Application authorization remains mandatory.
+
+Connection pools must not retain tenant context between requests. `SET LOCAL` is preferred because the setting is scoped to the current transaction.
+
+Background jobs must establish tenant context explicitly from trusted job context.
+
+Privileged database roles that can bypass RLS are administrative exceptions and must not be used as normal application execution paths. PostgreSQL documents that superusers and roles with `BYPASSRLS` bypass RLS, so such roles require strict operational control. citeturn0search0turn0search2
+
+## 12. Security Invariants
+
+1. Authentication establishes identity.
+2. Tenant membership establishes eligible tenant access.
+3. Active tenant selection is permitted only from validated memberships.
+4. A single eligible tenant may be auto-selected.
+5. Multiple eligible tenants require explicit selection before tenant-scoped operations.
+6. Deployment URL/API endpoint is connectivity configuration, not tenant authorization.
+7. `TenantContext` comes from the trusted tenant-scoped session.
+8. Missing, invalid, expired, or unauthorized tenant context fails closed.
+9. Every tenant-owned DB transaction establishes `SET LOCAL app.current_tenant_id` before tenant-owned access.
+10. RLS remains mandatory for tenant-owned tables.
+11. Frontend state never constitutes tenant isolation.
+12. Mobile and web clients use the same backend security contract.
+13. PostgreSQL is never directly exposed to clients.
+14. Business modules cannot create independent tenant-resolution mechanisms.
 
 ## 13. Secrets, Cryptography, and Certificates
 
-Secrets and cryptographic material shall not be embedded in application source code.
+Secrets and cryptographic material must not be embedded in source code. Protected deployment configuration must provide database credentials, API secrets, certificate keys, encryption keys, and integration credentials as appropriate.
 
-Managed secrets may include:
-
-- Database credentials.
-- API credentials.
-- Integration secrets.
-- Service credentials.
-- Certificate private keys.
-- Encryption keys.
-- Other protected deployment secrets.
-
-The selected deployment architecture shall provide appropriate protected storage and access controls.
-
-### Encryption
-
-The platform shall protect sensitive data appropriately in transit and at rest according to its classification and deployment requirements.
-
-Encryption policies shall use approved algorithms and key-management practices. Exact algorithms, key lengths, and rotation intervals are implementation/security-policy decisions and must not be invented in this document.
-
-### Certificates and Digital Signatures
-
-Certificate lifecycle management may include:
-
-- Issuance/provisioning.
-- Validation.
-- Renewal.
-- Expiration monitoring.
-- Revocation.
-- Trust-chain validation.
-
-Electronic and digital signatures are canonical security concerns. Signing workflows shall protect document integrity, establish signer identity, provide appropriate verification, and retain auditable evidence.
-
-Signing capabilities may integrate with workflow, document management, cryptographic, audit, and notification services. Signing services should remain independent of individual business modules.
+Sensitive data must be protected in transit and at rest according to classification and deployment requirements.
 
 ## 14. Audit, Compliance, and Governance
 
-Audit capabilities provide accountability and evidence for security-sensitive and business-sensitive operations.
+Security-sensitive events should be auditable, including:
 
-Audit scope may include:
+- authentication success/failure;
+- tenant selection/switch;
+- authorization failures;
+- role/permission changes;
+- session revocation;
+- configuration changes;
+- administrative actions;
+- data-access violations.
 
-- Authentication.
-- Authorization decisions.
-- Configuration changes.
-- Financial transactions.
-- Workflow actions.
-- Approval decisions.
-- Master-data changes.
-- Administrative activity.
-- Integration events.
-- Security incidents.
-
-An audit record may contain:
-
-- Audit identifier.
-- Timestamp.
-- Identity.
-- Organization/tenant context.
-- Module or service.
-- Business object.
-- Action.
-- Relevant before/after values where appropriate.
-- Source system.
-- Correlation identifier.
-
-Retention, immutability, legal hold, and archival requirements shall follow applicable organizational and legal policies.
-
-Compliance requirements are deployment-dependent. This document does not declare a specific regulatory framework unless separately adopted by the organization.
+Audit records should include timestamp, identity, tenant context, action, target/resource, source, and correlation information where applicable.
 
 ## 15. Security Monitoring and Incident Management
 
-Security monitoring provides continuous visibility into the security posture of the platform.
+Monitoring may cover applications, authentication, authorization, APIs, databases, infrastructure, network services, and integrations.
 
-Potential event sources include:
-
-- Applications.
-- Authentication services.
-- Authorization services.
-- APIs.
-- Databases.
-- Operating systems.
-- Infrastructure.
-- Network services.
-- Integrations.
-- AI services where deployed.
-
-Monitoring may identify:
-
-- Repeated authentication failures.
-- Privilege misuse.
-- Suspicious API activity.
-- Unauthorized access.
-- Configuration changes.
-- Data-access anomalies.
-- Malware indicators.
-- Availability/security anomalies.
-
-Incident response should follow an organizationally defined lifecycle such as:
+Incident response follows an organizationally defined lifecycle such as:
 
 ```text
-Detection
-   ↓
-Analysis
-   ↓
-Containment
-   ↓
-Eradication
-   ↓
-Recovery
-   ↓
-Post-Incident Review
+Detection → Analysis → Containment → Eradication → Recovery → Review
 ```
-
-Incident records and evidence shall be protected and auditable.
 
 ## 16. Privacy and Data Protection
 
-Privacy shall be incorporated into system design and data lifecycle management.
+Privacy principles include Privacy by Design, Privacy by Default, Data Minimization, Purpose Limitation, Accuracy, Storage Limitation, Accountability, and Transparency.
 
-The architecture supports principles such as:
-
-- Privacy by Design.
-- Privacy by Default.
-- Data Minimization.
-- Purpose Limitation.
-- Accuracy.
-- Storage Limitation.
-- Accountability.
-- Transparency.
-
-Information may be classified according to organizational policy. Controls may include:
-
-- Access restriction.
-- Masking.
-- Redaction.
-- Encryption.
-- Pseudonymization/tokenization where justified.
-- Secure deletion.
-- Access logging.
-
-Consent management, cross-border data handling, residency, retention, and deletion requirements depend on the applicable deployment and regulatory context.
+Retention, residency, consent, deletion, and regulatory requirements remain deployment- and organization-dependent unless separately adopted as architectural requirements.
 
 ## 17. Security Across ERP Modules
 
-Every business module shall consume the established security architecture.
+Every business module must consume the established security architecture.
 
 A module must not independently create:
 
-- A conflicting authentication mechanism.
-- A parallel authorization model that bypasses platform controls.
-- An independent tenant-isolation mechanism.
-- Uncontrolled secret storage.
-- Unaudited security-sensitive operations.
+- conflicting authentication;
+- a parallel authorization model that bypasses platform controls;
+- an independent tenant-isolation mechanism;
+- uncontrolled secret storage;
+- unaudited security-sensitive operations.
 
-Module-specific business authorization rules may exist, but they must execute within the established backend authorization and tenant/security boundaries.
+Module-specific authorization rules may exist, but they execute within the established authenticated tenant and backend security boundary.
 
-## 18. Security Platform Evolution
+## 18. Architecture Summary
 
-The architecture shall remain extensible as requirements evolve.
+The canonical ERP security chain is:
 
-Potential future capabilities may include adaptive trust, behavioral risk analysis, additional identity mechanisms, hardware-backed cryptography, and AI-assisted security operations.
+```text
+Identity
+  ↓
+Authentication
+  ↓
+Tenant Membership
+  ↓
+Active Tenant
+  ↓
+Tenant-scoped Session
+  ↓
+Authorization
+  ↓
+TenantContext
+  ↓
+Tenant Transaction
+  ↓
+PostgreSQL RLS
+  ↓
+Business Operation
+```
 
-Such capabilities are future possibilities, not current implementation commitments.
-
-## 19. Architecture Summary
-
-Enterprise security is a reusable, cross-cutting capability protecting identities, applications, APIs, data, documents, integrations, infrastructure, and operational processes.
-
-The security architecture establishes common principles and boundaries while allowing implementation details to evolve through explicit architectural decisions.
-
-The backend remains authoritative for authentication enforcement, authorization, business validation, and tenant/data isolation. Platform and infrastructure services provide the supporting security capabilities required by the deployment.
+Deployment location determines how clients reach the backend. It does not determine tenant authorization.
 
 ## Cross References
 
@@ -496,14 +315,12 @@ The backend remains authoritative for authentication enforcement, authorization,
 - [Frontend Security](./02-frontend-security.md)
 - [Security Operations](./03-security-operations.md)
 - [Backend Authentication and Authorization](../04-backend/07-authentication-and-authorization.md)
-- [Backend API Design Standards](../04-backend/06-api-design-standards.md)
-- [Backend Testing Strategy](../04-backend/19-testing-strategy.md)
-- [Platform Service Architecture](../09-platform-services/01-platform-service-architecture.md)
+- [Multi-Tenant Architecture](../03-database/11-multi-tenancy.md)
+- [ADR-0006: Identity-Based Tenant Context and PostgreSQL RLS](../10-adr/0006-identity-based-tenant-context.md)
 
 ## Maintenance Rules
 
 - This document is the canonical home for enterprise security policy and cross-cutting security principles.
 - Implementation details belong in the appropriate backend, platform, infrastructure, or deployment documentation.
 - Do not invent security values, compliance obligations, authentication mechanisms, vendors, or infrastructure products here.
-- When an implementation-specific security decision changes, update the authoritative implementation document and reconcile this architecture document if necessary.
-- If a security requirement is ambiguous, resolve the ambiguity before encoding it as an architectural requirement.
+- When an implementation-specific security decision changes, reconcile this document and the applicable implementation architecture.

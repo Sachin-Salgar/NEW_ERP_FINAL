@@ -1,14 +1,12 @@
 # API Communication
 
-**Document Purpose:** Define frontend API communication patterns, error handling, and contract expectations.
+**Document Purpose:** Define frontend API communication patterns, error handling, session integration, and deployment endpoint configuration.
 
 ## 9.1 Introduction
 
-The frontend communicates with the backend through the REST API.
+The frontend communicates with the backend through the REST API. Direct database access from the frontend is prohibited.
 
-Direct database access from the frontend is prohibited.
-
-Authoritative business operations—including authentication, validation, reporting, approvals, and financial transactions—are executed by the backend. The frontend may perform client-side validation and presentation logic but must not become the authoritative business or security boundary.
+Authoritative business operations—including authentication, tenant membership validation, authorization, validation, reporting, approvals, and financial transactions—are executed by the backend.
 
 ## 9.2 Objectives
 
@@ -16,16 +14,15 @@ The API communication layer aims to:
 - Standardize backend communication.
 - Improve maintainability.
 - Simplify testing.
-- Support authentication.
+- Support authentication and tenant-scoped sessions.
 - Handle failures consistently.
-- Enable backend evolution without coupling business modules to HTTP implementation details.
+- Support SaaS and on-premises backend endpoints.
+- Enable web and mobile clients to use the same backend security contract.
 
 ## 9.3 Communication Architecture
 
-A typical flow is:
-
 ```text
-Flutter Screen
+Flutter Screen / Mobile Screen
       ↓
 State Management / Provider
       ↓
@@ -33,17 +30,17 @@ Application Service
       ↓
 API Client
       ↓
-REST API
+ERP Backend API
       ↓
-Backend
+Backend Security + Business Services
 ```
 
-The exact layers may vary by feature, but business modules should not bypass the established API boundary.
+Business modules must not bypass the established API boundary.
 
 ## 9.4 API Client
 
 A shared API client layer shall provide common HTTP concerns such as:
-- HTTP Requests.
+- Backend endpoint/base URL.
 - Authentication/session integration.
 - Headers.
 - Timeouts.
@@ -51,53 +48,56 @@ A shared API client layer shall provide common HTTP concerns such as:
 - Observability/logging where appropriate.
 - Response parsing.
 
-Business modules should not create independent HTTP infrastructure that bypasses the common client conventions.
+The client must not use the API endpoint as evidence of tenant authorization.
 
-## 9.5 Authentication
+## 9.5 Authentication and Tenant Session
 
-The API communication layer shall integrate with the selected authentication mechanism to:
-- Supply valid authentication credentials/tokens as required.
-- Handle authentication/session failures.
-- Coordinate session-expiry behavior with application state.
+The frontend integrates with backend authentication to supply credentials/tokens, handle session failures, restore sessions, request tenant selection when needed, display the active tenant, and send authenticated requests.
 
-Exact token issuance, refresh, storage, and rotation behavior is governed by the backend authentication architecture and its implementation. It shall not be invented by individual frontend modules.
+The frontend is not the authority for tenant identity. Tenant access is established by authenticated identity and server-validated tenant membership.
 
-The frontend is not the authority for tenant identity. It consumes backend-issued identity and organization/tenant context and must not independently infer or hardcode a tenant for API requests. A user may be authenticated but still require a valid organization/tenant context before backend operations can proceed.
+### 9.5.1 Canonical Client Flow
 
-### 9.5.1 Deployment-Specific Bootstrap and Tenant Resolution
-The implemented deployment model supports both SaaS and on-premises installation while keeping one Flutter client architecture.
+```text
+Configured Backend Endpoint
+      ↓
+Login
+      ↓
+Backend Authentication
+      ↓
+Tenant Memberships
+      ↓
+One tenant → continue
+Multiple tenants → show tenant selector
+      ↓
+Backend validates selection
+      ↓
+Tenant-scoped Session
+      ↓
+Authenticated API requests
+```
 
-- **SaaS**: the backend resolves the tenant from the hostname, subdomain, or custom domain before login.
-- **On-premises**: the backend resolves the tenant from trusted installation/server configuration before the login flow proceeds.
-- **Bootstrap**: the client connects to a backend bootstrap endpoint to obtain deployment metadata and branding without treating client configuration as proof of tenant access.
-- **Session**: the backend generates the effective tenant, organization, role, permission, and location context after successful authentication.
+The frontend must not require hostname-based tenant discovery or deployment-specific tenant mapping.
 
-### 9.5.2 Flutter Security Boundaries and Responsibilities
+### 9.5.2 SaaS and On-Premises Endpoint Configuration
 
-Flutter is a client and is not the security authority for tenant identity, organization authorization, role/permission evaluation, database RLS, or request context. The frontend may:
+The client needs to know where the ERP backend is located.
 
-1. resolve the backend endpoint;
-2. call the public bootstrap endpoint;
-3. render deployment branding and login UI;
-4. request authentication and receive backend-authored session state;
-5. display, select, and switch among organizations the backend has authorized for the user;
-6. display permitted location context after backend validation;
-7. send authenticated requests using the backend-issued session/effective context.
+**SaaS:** the application normally uses the centrally hosted cloud API endpoint.
 
-Flutter must not:
+**On-premises:** the customer installation provides its backend endpoint. The web frontend and mobile application may be configured with that endpoint directly or reach it through the company LAN, approved VPN, or secured public HTTPS path according to deployment policy.
 
-- invent or override the tenant ID;
-- treat a local value or URL parameter as authoritative tenant or organization data;
-- store a user-editable `tenant_id` as a security control;
-- bypass backend validation by altering headers, query parameters, local storage, or in-memory state;
-- assume that frontend visibility implies authorization;
-- interpret location choice as a replacement for tenant isolation.
+The endpoint identifies the backend deployment only. It does not identify or authorize a tenant.
 
-The frontend may reflect the effective context it receives from the backend, but the backend remains the single authority for tenant resolution, organization validation, authorization, and database transaction scope.
+### 9.5.3 Flutter Security Responsibilities
+
+Flutter is not the security authority for tenant identity, tenant membership, organization authorization, role/permission evaluation, database RLS, or transaction tenant context.
+
+Flutter may store the backend endpoint, authenticate, display backend-returned tenant memberships, request an authorized tenant selection, display the active tenant, and send authenticated requests.
+
+Flutter must not invent or override tenant identity, treat a URL/local value/header as proof of tenant authorization, bypass backend membership validation, connect directly to PostgreSQL, or assume UI visibility implies authorization.
 
 ## 9.6 Request Processing
-
-An illustrative workflow is:
 
 ```text
 User Action
@@ -108,7 +108,9 @@ Application Service
     ↓
 API Client
     ↓
-Backend
+Authenticated Backend Request
+    ↓
+Backend TenantContext + Authorization
     ↓
 Response
     ↓
@@ -117,60 +119,69 @@ State Update
 UI Refresh
 ```
 
-The implementation shall preserve clear ownership of UI state, application orchestration, transport, and backend business rules.
+The frontend may maintain a local representation of the active tenant for display and navigation, but the backend remains authoritative.
 
-### 9.6.1 Frontend Session and Organization States
-The frontend may represent the following conceptual states:
+## 9.6.1 Frontend Session States
 
-- **Unauthenticated** — no valid session is present.
-- **Deployment context resolved** — the client has a valid backend endpoint and the backend has resolved the tenant context for the current deployment.
-- **Authenticated but tenant context unresolved** — the user is signed in but no active organization/tenant has been established for the request.
-- **Authenticated with a single eligible organization** — the app may continue without an additional selector.
-- **Authenticated with multiple eligible organizations** — a selection step is required before tenant-scoped operations proceed.
-- **Authenticated with active organization** — backend identity and organization context are valid.
-- **Authenticated with active location** — the user has selected a permitted operational location under the active organization.
-- **Unauthorized organization** — the selected organization is not available to the user; access is rejected by the backend.
-- **Session expired** — token/session validation fails and the app must redirect to a re-authentication flow.
+The frontend may represent:
+- Unauthenticated.
+- Authenticating.
+- Authenticated, tenant selection required.
+- Authenticated with active tenant.
+- Authenticated with active location.
+- Unauthorized tenant.
+- Session expired.
 
-These states are UI representations of backend-authoritative security context; the frontend must not infer or override organization/tenant authorization independently.
+These are UI states derived from backend-authoritative session information.
 
 ## 9.7 Error Handling
 
-API failures shall be represented consistently and may include:
-- Network Failure.
-- Authentication Failure.
-- Authorization Failure.
-- Validation Error.
-- Business Error.
-- Server Error.
-
-The frontend shall provide useful user-facing feedback without exposing credentials, internal stack traces, or unnecessary infrastructure details.
+API failures may include network, authentication, tenant access, authorization, validation, business, and server errors. User-facing feedback must not expose credentials, stack traces, or unnecessary infrastructure details.
 
 ## 9.8 Retry Strategy
 
-Retries should be limited to failures that are safe to retry, such as suitable transient network or service failures.
-
-Business transactions shall not be automatically retried unless the operation is explicitly designed to be safely retried, including appropriate backend idempotency semantics where required.
+Retries should be limited to safe transient failures. Business transactions must not be automatically retried unless explicitly designed to be safely retryable.
 
 ## 9.9 Response Caching
 
-The frontend may cache selected responses when their freshness requirements permit it.
-Examples may include:
-- Organization Settings.
-- Lookup Data.
-- User Preferences.
-- Country Lists.
-- Tax Configuration.
+The frontend may cache selected responses when freshness requirements permit it. Cached data must remain scoped to the authenticated tenant/session and must never become an authorization mechanism.
 
-Caching rules shall respect organization/tenant context and authorization. Transactional data requiring current state should be retrieved from the backend rather than treated as authoritative client cache data.
+## 9.10 Mobile Connectivity
 
-## 9.10 Summary
+Mobile clients communicate only with the ERP backend API.
 
-A consistent API communication layer provides reliable interaction between the Flutter application and backend while preserving the backend as the authoritative business and security boundary.
+```text
+Mobile
+   ↓ HTTPS / VPN / LAN
+ERP Backend
+   ↓
+PostgreSQL
+```
+
+PostgreSQL must never be directly exposed to the mobile application. Mobile uses the same authentication, tenant membership, tenant selection, authorization, session, and API contract as web.
+
+## 9.11 Summary
+
+The frontend is responsible for **where to connect**, not **which tenant the user is authorized to access**.
+
+```text
+Backend Endpoint
+      ↓
+Authentication
+      ↓
+Tenant Membership
+      ↓
+Active Tenant Session
+      ↓
+Authenticated Requests
+```
+
+Tenant isolation and authorization remain backend responsibilities, with PostgreSQL RLS providing the database enforcement boundary.
 
 ## Cross References
 
 - [Backend API Design Standards](../04-backend/06-api-design-standards.md)
 - [Backend Authentication and Authorization](../04-backend/07-authentication-and-authorization.md)
+- [Multi-Tenant Architecture](../03-database/11-multi-tenancy.md)
 - [Frontend State Management](./05-state-management.md)
 - [Frontend Dependency Injection](./06-dependency-injection.md)

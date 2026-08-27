@@ -21,7 +21,13 @@ export interface PlatformBootstrapRepository {
   seedPermissions(permissions: Array<{ moduleCode: string; resource: string; action: string; scope?: 'own' | 'branch' | 'organization' | 'tenant' | 'global'; permissionKey: string; displayName: string; description?: string | null; isSystem?: boolean }>): Promise<void>;
 }
 
+export interface LoginCandidate {
+  userId: string;
+  tenantId: string;
+}
+
 export interface UserRepository {
+  findLoginCandidates(identifier: string): Promise<LoginCandidate[]>;
   findByTenantAndIdentifier(tenantId: string, identifier: string): Promise<({
     id: string;
     tenantId: string;
@@ -174,6 +180,7 @@ export interface LocationRecord {
   country?: string | null;
   postalCode?: string | null;
   timezone: string;
+  remarks?: string | null;
   createdAt?: Date | string | null;
   updatedAt?: Date | string | null;
   deletedAt?: Date | string | null;
@@ -231,7 +238,6 @@ export interface AuthorizationRepository {
   listPermissions(tenantId: string): Promise<Array<{ id: string; moduleCode: string; resource: string; action: string; scope: 'own' | 'branch' | 'organization' | 'tenant' | 'global'; permissionKey: string; displayName: string; description?: string | null; isSystem: boolean }>>;
   assignPermissionsToRole(tenantId: string, roleId: string, permissionKeys: string[]): Promise<number>;
   removePermissionsFromRole(tenantId: string, roleId: string, permissionKeys: string[]): Promise<number>;
-  // Retrieve permissions assigned to a role
   getPermissionsForRole(tenantId: string, roleId: string): Promise<PermissionDescriptor[]>;
   assignRoleToUser(tenantId: string, userId: string, roleId: string): Promise<boolean>;
   revokeRoleFromUser(tenantId: string, userId: string, roleId: string): Promise<boolean>;
@@ -258,7 +264,7 @@ export interface TokenSessionService {
 }
 
 export interface AuthService {
-  authenticate(tenantId: string, identifier: string, password: string): Promise<AuthenticationResult>;
+  authenticate(identifier: string, password: string): Promise<AuthenticationResult>;
   validateSession(sessionId: string, tenantId: string): Promise<AuthenticatedUser | null>;
   invalidateSession(sessionId: string, tenantId: string): Promise<void>;
 }

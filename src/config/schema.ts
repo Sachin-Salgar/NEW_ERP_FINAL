@@ -15,10 +15,7 @@ export const appConfigSchema = z.object({
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).default(10),
   JWT_SECRET: z.string().trim().min(32).default('development-jwt-secret-change-me'),
   JWT_ISSUER: z.string().trim().min(1).default('new-erp-final'),
-  TENANT_HEADER: z.string().trim().min(1).default('x-tenant-id'),
   TENANT_CONTEXT_KEY: z.string().trim().min(1).default('app.current_tenant_id'),
-  TENANT_HOST_MAP: z.string().trim().default(''),
-  DEPLOYMENT_TENANT_ID: z.string().trim().default(''),
   CORS_ALLOWED_ORIGINS: z
     .string()
     .transform((value) => value.split(',').map((origin) => origin.trim()).filter(Boolean))
