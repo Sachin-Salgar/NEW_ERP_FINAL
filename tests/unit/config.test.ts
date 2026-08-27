@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { v7 } from 'uuid';
 
-import { parseAppConfig, resolveDatabaseUrl } from '../../src/config/schema.js';
+import { isCorsOriginAllowed, parseAppConfig, resolveDatabaseUrl } from '../../src/config/schema.js';
 
 describe('parseAppConfig', () => {
   it('loads valid development defaults', () => {
@@ -36,6 +35,38 @@ describe('parseAppConfig', () => {
     expect(() => resolveDatabaseUrl({ NODE_ENV: 'test' }, { forTest: true })).toThrow(
       'TEST_DATABASE_URL is not configured. Set TEST_DATABASE_URL in .env.local.',
     );
+  });
+
+  it('allows ephemeral localhost origins in development', () => {
+    const config = parseAppConfig({
+      NODE_ENV: 'development',
+      APP_NAME: 'new-erp-final',
+      HOST: '0.0.0.0',
+      PORT: '3000',
+      DATABASE_URL: 'postgresql://postgres:password@localhost:5432/newerp',
+      JWT_SECRET: 'development-jwt-secret-change-me',
+    });
+
+    expect(isCorsOriginAllowed(config, 'http://localhost:50990')).toBe(true);
+    expect(isCorsOriginAllowed(config, 'http://127.0.0.1:49152')).toBe(true);
+    expect(isCorsOriginAllowed(config, 'https://localhost:50990')).toBe(false);
+    expect(isCorsOriginAllowed(config, 'https://evil.example')).toBe(false);
+  });
+
+  it('keeps production origins restricted to the explicit allowlist', () => {
+    const config = parseAppConfig({
+      NODE_ENV: 'production',
+      APP_NAME: 'new-erp-final',
+      HOST: '0.0.0.0',
+      PORT: '3000',
+      DATABASE_URL: 'postgresql://postgres:password@localhost:5432/newerp',
+      JWT_SECRET: 'a'.repeat(32),
+      CORS_ALLOWED_ORIGINS: 'https://erp.example.com,https://admin.example.com',
+    });
+
+    expect(isCorsOriginAllowed(config, 'https://erp.example.com')).toBe(true);
+    expect(isCorsOriginAllowed(config, 'http://localhost:50990')).toBe(false);
+    expect(isCorsOriginAllowed(config, 'https://evil.example')).toBe(false);
   });
 
   it('rejects production configuration when JWT secret is not configured', () => {
