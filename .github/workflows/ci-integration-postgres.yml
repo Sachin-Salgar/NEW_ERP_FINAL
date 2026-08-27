@@ -78,6 +78,9 @@ jobs:
           SELECT format('CREATE DATABASE %I', :'db_name') \gexec
           SELECT format('CREATE ROLE %I WITH LOGIN PASSWORD %L NOSUPERUSER NOBYPASSRLS', :'role_name', :'role_password') \gexec
           SQL
+          psql -h localhost -p "${CI_POSTGRES_PORT}" -U postgres -d postgres -v ON_ERROR_STOP=1 -v db_name="${CI_TEST_DB}" -v role_name="${CI_TEST_ROLE}" <<'SQL'
+          SELECT format('GRANT CREATE, CONNECT, TEMPORARY ON DATABASE %I TO %I', :'db_name', :'role_name') \gexec
+          SQL
           psql -h localhost -p "${CI_POSTGRES_PORT}" -U postgres -d "${CI_TEST_DB}" -v ON_ERROR_STOP=1 -v role_name="${CI_TEST_ROLE}" <<'SQL'
           GRANT USAGE, CREATE ON SCHEMA public TO :"role_name";
           ALTER SCHEMA public OWNER TO :"role_name";
