@@ -25,13 +25,10 @@ class AuthService extends ChangeNotifier {
   final ApiClient Function(String baseUrl) _apiClientFactory;
   late ApiClient _apiClient;
 
-  AuthService({
-    SecureStorageLike? secureStorage,
-    ApiClient Function(String baseUrl)? apiClientFactory,
-    AuthZService? authzService,
-  }) : _secureStorage = secureStorage ?? FlutterSecureStorageAdapter(),
-       _apiClientFactory = apiClientFactory ?? ((baseUrl) => ApiClient(baseUrl: baseUrl)),
-       authzService = authzService ?? AuthZService();
+  AuthService({SecureStorageLike? secureStorage, ApiClient Function(String baseUrl)? apiClientFactory, AuthZService? authzService})
+      : _secureStorage = secureStorage ?? FlutterSecureStorageAdapter(),
+        _apiClientFactory = apiClientFactory ?? ((baseUrl) => ApiClient(baseUrl: baseUrl)),
+        authzService = authzService ?? AuthZService();
 
   String? _accessToken;
   String? _refreshToken;
@@ -51,7 +48,6 @@ class AuthService extends ChangeNotifier {
 
   bool get isAuthenticated => _accessToken != null && _expiresAt != null && DateTime.now().isBefore(_expiresAt!);
   String? get accessToken => _accessToken;
-
   String get nextPostAuthRoute {
     if (!isAuthenticated) return '/login';
     if (requiresOrganizationSelection) return '/organization-selection';
@@ -74,7 +70,6 @@ class AuthService extends ChangeNotifier {
     if (_accessToken != null) notifyListeners();
   }
 
-  /// Deployment bootstrap contains connectivity metadata only. It never resolves a tenant.
   Future<Map<String, dynamic>?> bootstrap(String baseUrl) async {
     _ensureApiClient(baseUrl);
     try {
@@ -84,11 +79,7 @@ class AuthService extends ChangeNotifier {
       deploymentInfo = (body['deployment'] as Map<String, dynamic>?) ?? {};
       notifyListeners();
       return body;
-    } catch (_) {
-      deploymentInfo = null;
-      notifyListeners();
-      return null;
-    }
+    } catch (_) { deploymentInfo = null; notifyListeners(); return null; }
   }
 
   Future<bool> login(String baseUrl, String identifier, String password) async {
@@ -96,8 +87,7 @@ class AuthService extends ChangeNotifier {
     try {
       final resp = await _apiClient.post('/api/v1/auth/login', body: {'identifier': identifier, 'password': password});
       if (resp.statusCode != 200) return false;
-      final body = jsonDecode(resp.body) as Map<String, dynamic>;
-      await _storeSession(body);
+      await _storeSession(jsonDecode(resp.body) as Map<String, dynamic>);
       final organizationsLoaded = await loadAuthorizedOrganizations(baseUrl);
       if (!organizationsLoaded) return false;
       if (requiresOrganizationSelection || currentOrganizationId == null) {
@@ -113,9 +103,7 @@ class AuthService extends ChangeNotifier {
       await _loadPermissionsIfContextReady(baseUrl);
       notifyListeners();
       return true;
-    } catch (_) {
-      return false;
-    }
+    } catch (_) { return false; }
   }
 
   Future<void> _storeSession(Map<String, dynamic> body) async {
@@ -149,23 +137,19 @@ class AuthService extends ChangeNotifier {
       final body = jsonDecode(resp.body) as Map<String, dynamic>;
       currentUser = body['user'] as Map<String, dynamic>?;
       final tenant = (currentUser?['tenantId'] ?? '').toString().trim();
-      currentTenantId = tenant.isEmpty ? currentTenantId : tenant;
+      if (tenant.isNotEmpty) currentTenantId = tenant;
       currentOrganizationId = (currentUser?['organizationId'] ?? '').toString().trim();
       if (currentOrganizationId?.isEmpty ?? true) currentOrganizationId = null;
       currentLocationId = (currentUser?['activeLocationId'] ?? '').toString().trim();
       if (currentLocationId?.isEmpty ?? true) currentLocationId = null;
       notifyListeners();
       return true;
-    } catch (_) {
-      return false;
-    }
+    } catch (_) { return false; }
   }
 
   Future<bool> tryRefresh() async {
     if (_refreshToken == null || _refreshToken!.isEmpty) return false;
     try {
-      final baseUrl = _currentBaseUrl;
-      _ensureApiClient(baseUrl);
       final resp = await _apiClient.post('/api/v1/auth/refresh', body: {'refreshToken': _refreshToken});
       if (resp.statusCode != 200) return false;
       final body = jsonDecode(resp.body) as Map<String, dynamic>;
@@ -176,9 +160,7 @@ class AuthService extends ChangeNotifier {
       if (_expiresAt != null) await _secureStorage.write(key: 'expires_at', value: _expiresAt!.toIso8601String());
       notifyListeners();
       return _accessToken != null;
-    } catch (_) {
-      return false;
-    }
+    } catch (_) { return false; }
   }
 
   String _currentBaseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
@@ -190,19 +172,11 @@ class AuthService extends ChangeNotifier {
     if (_expiresAt != null && DateTime.now().isAfter(_expiresAt!)) {
       if (!await tryRefresh()) { await logout(); return false; }
     }
-    final loaded = await loadMe(baseUrl);
-    if (!loaded) {
+    if (!await loadMe(baseUrl)) {
       if (!await tryRefresh() || !await loadMe(baseUrl)) { await logout(); return false; }
     }
-    final orgs = await loadAuthorizedOrganizations(baseUrl);
-    if (!orgs) return false;
-    if (requiresOrganizationSelection || currentOrganizationId == null) {
-      requiresLocationSelection = false;
-      availableLocations = const [];
-      availableModules = const [];
-      notifyListeners();
-      return true;
-    }
+    if (!await loadAuthorizedOrganizations(baseUrl)) return false;
+    if (requiresOrganizationSelection || currentOrganizationId == null) { requiresLocationSelection = false; notifyListeners(); return true; }
     await loadAuthorizedLocations(baseUrl);
     await loadAccessibleModules(baseUrl);
     await _loadPermissionsIfContextReady(baseUrl);
@@ -233,9 +207,7 @@ class AuthService extends ChangeNotifier {
       }
       notifyListeners();
       return true;
-    } catch (_) {
-      return false;
-    }
+    } catch (_) { return false; }
   }
 
   Future<bool> selectOrganization(String organizationId) async {
@@ -328,8 +300,6 @@ class AuthService extends ChangeNotifier {
 
   Future<void> _loadPermissionsIfContextReady(String baseUrl) async {
     if (_accessToken == null || currentUser == null || currentOrganizationId == null) return;
-    final userId = currentUser?['id'] as String?;
-    if (userId == null) return;
     await fetchEffectivePermissions(baseUrl);
   }
 
@@ -337,39 +307,11 @@ class AuthService extends ChangeNotifier {
   bool hasModule(String moduleCode) => moduleCode.trim().isEmpty || availableModules.isEmpty || availableModules.any((m) => (m['code'] ?? '').toString() == moduleCode.trim());
 
   Future<void> logout() async {
-    try {
-      if (_accessToken != null) {
-        _ensureApiClient(_currentBaseUrl);
-        await _apiClient.post('/api/v1/auth/logout');
-      }
-    } catch (_) {}
-    _accessToken = null;
-    _refreshToken = null;
-    _expiresAt = null;
-    currentTenantId = null;
-    currentOrganizationId = null;
-    currentLocationId = null;
-    selectedOrganizationId = null;
-    selectedLocationId = null;
-    currentUser = null;
-    availableOrganizations = const [];
-    availableLocations = const [];
-    availableModules = const [];
-    requiresOrganizationSelection = false;
-    requiresLocationSelection = false;
-    authzService.clear();
-    await _secureStorage.delete(key: 'access_token');
-    await _secureStorage.delete(key: 'refresh_token');
-    await _secureStorage.delete(key: 'expires_at');
-    await _secureStorage.delete(key: 'tenant_id');
-    await _secureStorage.delete(key: 'organization_id');
-    await _secureStorage.delete(key: 'location_id');
+    try { if (_accessToken != null) { _ensureApiClient(_currentBaseUrl); await _apiClient.post('/api/v1/auth/logout'); } } catch (_) {}
+    _accessToken = null; _refreshToken = null; _expiresAt = null; currentTenantId = null; currentOrganizationId = null; currentLocationId = null;
+    selectedOrganizationId = null; selectedLocationId = null; currentUser = null; availableOrganizations = const []; availableLocations = const []; availableModules = const [];
+    requiresOrganizationSelection = false; requiresLocationSelection = false; authzService.clear();
+    for (final key in ['access_token', 'refresh_token', 'expires_at', 'tenant_id', 'organization_id', 'location_id']) { await _secureStorage.delete(key: key); }
     notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    _apiClient = ApiClient(baseUrl: _currentBaseUrl, authOverride: this);
-    super.dispose();
   }
 }
