@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -16,8 +17,17 @@ const _adminPassword = 'Password123!';
 const _limitedEmail = 'e2e-limited@example.com';
 const _moduleCode = 'e2e-rbac';
 
-Future<void> _settle(WidgetTester tester) async {
-  await tester.pumpAndSettle(const Duration(milliseconds: 100), EnginePhase.sendSemanticsUpdate, const Duration(seconds: 30));
+Future<void> _pump(WidgetTester tester) async {
+  await tester.pump(const Duration(milliseconds: 100));
+}
+
+Future<void> _waitFor(WidgetTester tester, Finder finder, {Duration timeout = const Duration(seconds: 15)}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    await _pump(tester);
+    if (finder.evaluate().isNotEmpty) return;
+  }
+  fail('Timed out waiting for ${finder.describeMatch(finder.evaluate().isEmpty ? null : finder.evaluate().first)}');
 }
 
 void main() {
@@ -33,17 +43,30 @@ void main() {
 
     testWidgets('admin login goes directly to dashboard with tenant and default working context', (tester) async {
       final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
+      final frameworkErrors = <FlutterErrorDetails>[];
+      final previousOnError = FlutterError.onError;
+      FlutterError.onError = (details) {
+        frameworkErrors.add(details);
+        previousOnError?.call(details);
+      };
+      addTearDown(() => FlutterError.onError = previousOnError);
 
       await tester.pumpWidget(const App());
-      await _settle(tester);
-      expect(find.byKey(const ValueKey('login_identifier_field')), findsOneWidget);
+      await _waitFor(tester, find.byKey(const ValueKey('login_identifier_field')));
 
       await tester.enterText(find.byKey(const ValueKey('login_identifier_field')), _adminEmail);
       await tester.enterText(find.byKey(const ValueKey('login_password_field')), _adminPassword);
       await tester.tap(find.byKey(const ValueKey('login_submit_button')));
-      await _settle(tester);
 
-      // Authentication must never send the user to an organization/location selection screen.
+      // Do not use pumpAndSettle here: the dashboard performs asynchronous API work and
+      // application state changes. Wait for the actual navigation contract instead.
+      await _waitFor(tester, find.text('Dashboard'), timeout: const Duration(seconds: 20));
+
+      if (frameworkErrors.isNotEmpty) {
+        final first = frameworkErrors.first;
+        fail('Flutter framework error during login/dashboard transition: ${first.exception}\n${first.stack}');
+      }
+
       expect(find.text('Select organization'), findsNothing);
       expect(find.text('Select location'), findsNothing);
       expect(find.text('Dashboard'), findsOneWidget);
@@ -54,8 +77,6 @@ void main() {
       expect(auth.currentOrganizationId, equals(_organizationId));
       expect(auth.requiresOrganizationSelection, isFalse);
       expect(auth.requiresLocationSelection, isFalse);
-
-      // Location is optional working context; login must not be blocked if no user default exists.
       expect(auth.availableLocations.length, equals(2));
 
       final token = auth.accessToken;
