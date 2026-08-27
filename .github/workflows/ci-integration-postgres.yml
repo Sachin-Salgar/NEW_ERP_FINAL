@@ -159,6 +159,20 @@ jobs:
           sudo chmod +x /usr/local/bin/chromedriver
           chromedriver --version
 
+      - name: Start ChromeDriver
+        run: |
+          set -euo pipefail
+          nohup chromedriver --port=4444 --host=127.0.0.1 > chromedriver.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4444/status >/tmp/chromedriver-status.json; then
+              cat /tmp/chromedriver-status.json
+              exit 0
+            fi
+            sleep 1
+          done
+          cat chromedriver.log
+          exit 1
+
       - name: Run Flutter integration test through supported web driver
         working-directory: frontend
         env:
@@ -187,3 +201,10 @@ jobs:
         with:
           name: backend-e2e-log
           path: backend-e2e.log
+
+      - name: Upload ChromeDriver log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chromedriver-log
+          path: chromedriver.log
