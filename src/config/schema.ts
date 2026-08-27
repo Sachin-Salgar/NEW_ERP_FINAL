@@ -20,7 +20,7 @@ export const appConfigSchema = z.object({
     .string()
     .transform((value) => value.split(',').map((origin) => origin.trim()).filter(Boolean))
     .pipe(z.array(z.string().min(1)))
-    .default('http://localhost:8090,http://localhost:7358,http://127.0.0.1:8090,http://127.0.0.1:7358'),
+    .default(''),
 });
 
 export type AppConfig = z.infer<typeof appConfigSchema> & {
