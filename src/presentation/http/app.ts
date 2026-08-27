@@ -2,7 +2,7 @@ import { type Pool } from 'pg';
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 
-import type { AppConfig } from '../../config/schema.js';
+import { isCorsOriginAllowed, type AppConfig } from '../../config/schema.js';
 import { AuthenticationService } from '../../application/services/authentication-service.js';
 import { AuthorizationService } from '../../application/services/authorization-service.js';
 import { CoreEnterpriseService } from '../../application/services/core-enterprise-service.js';
@@ -60,7 +60,9 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('tenantMembershipService', tenantMembershipService);
 
   await app.register(cors, {
-    origin: config.CORS_ALLOWED_ORIGINS,
+    origin: (origin, callback) => {
+      callback(null, isCorsOriginAllowed(config, origin));
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
