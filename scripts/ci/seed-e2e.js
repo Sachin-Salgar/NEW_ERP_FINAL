@@ -175,6 +175,21 @@ async function main() {
       ],
     );
 
+    // Identity-based login requires deterministic E2E fixtures to seed the
+    // deployment-independent login lookup explicitly. Production migrations
+    // backfill this table for existing users; CI creates users after that
+    // migration has already run, so the fixture must create the identities too.
+    await client.query(
+      `INSERT INTO auth_login_identifiers (identifier_type, identifier, tenant_id, user_id)
+       VALUES ('email', $1, $2, $3),
+              ('username', $4, $2, $3),
+              ('email', $5, $2, $6),
+              ('username', $7, $2, $6)
+       ON CONFLICT (identifier_type, identifier, tenant_id) DO UPDATE
+       SET user_id = EXCLUDED.user_id, is_active = true`,
+      [ADMIN_EMAIL, TENANT_ID, ADMIN_USER_ID, 'e2e@example.com', LIMITED_EMAIL, LIMITED_USER_ID, 'e2e-limited'],
+    );
+
     const adminPermissions = [
       'tenant.manage',
       'organization.read',
