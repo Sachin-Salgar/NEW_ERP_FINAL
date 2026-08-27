@@ -5,7 +5,7 @@ This implementation roadmap is the canonical, living implementation document for
 This file is authoritative for the immediate development state and must be consulted by every implementation session before coding work begins.
 
 Generated snapshot: 2026-08-22T16:50:04+05:30
-Last evidence-aware update: 2026-08-22 (see Implementation History)
+Last evidence-aware update: 2026-08-27 (identity-based tenant-context architecture reconciliation)
 
 ---
 
@@ -257,7 +257,7 @@ Each step above must be updated with the Evidence Requirement block after it is 
     - frontend/test/authz_service_test2.dart — unit tests validating expected behaviors
   - Validation commands executed and results:
     - flutter analyze (frontend): PASS
-    - flutter test (frontend unit tests): PASS
+    - flutter test (frontend): PASS
     - npm run -s typecheck: PASS
     - npm run -s test:unit: PASS
     - npm run -s test:integration: PASS
@@ -522,7 +522,7 @@ Notes:
     - frontend: flutter analyze: PASS
     - frontend: flutter test: PASS
     - backend: npm run typecheck: PASS
-    - backend: npm run test:unit: PASS
+    - npm run test:unit: PASS
   - Validation commands and results:
     - cd frontend; flutter analyze: PASS
     - cd frontend; flutter test --no-pub: PASS
@@ -549,9 +549,8 @@ Notes:
       - frontend: flutter analyze: PASS
       - frontend: flutter test: PASS (including new role-permission tests)
       - backend: npm run typecheck: PASS
-      - backend: npm run test:unit: PASS
+      - npm run test:unit: PASS
     - Validation commands and results:
-      - cd frontend; flutter analyze: PASS
       - cd frontend; flutter test test/permission/role_permission_screen_test.dart -r expanded: PASS
       - cd frontend; flutter test --no-pub -r expanded: PASS
       - npm run typecheck: PASS
@@ -559,7 +558,7 @@ Notes:
     - Notes:
       - Frontend UI is strictly UX-gated by `auth.hasPermission('role.manage')`. Server-side authorization remains authoritative: GET/POST/DELETE endpoints require `role.manage` and use tenant context from request (no tenant override from client).
       - GET /rbac/roles/:roleId/permissions returns the permission descriptors assigned to the role. POST/DELETE endpoints for assignment/removal accept `permissionKeys` in the request body (no path param); ApiClient DELETE now supports a JSON body.
-      - No tenant-resolver, RLS, or authentication middleware was modified. No AUTH-02.10+ work was introduced.
+      - No tenant-resolver, RLS, or authentication middleware was modified. No AUTH-02.10+ work was introduced in this step.
     - Status: COMPLETED — IMPLEMENTED (pending external review)
 
 - 2026-08-23
@@ -706,3 +705,154 @@ If a governance or product decision is required to proceed, stop and request the
     - Validation performed here: verified migration file exists and the migration runner journal references the new migration tag. On this host the DB-backed migration was not executed because TEST_DATABASE_URL was not configured in the environment used for this change; to run the final validation, set TEST_DATABASE_URL to a test Postgres instance and run `node src/infrastructure/database/migrate.ts` or the repository's migration runner. Commit: a75e31532de0c68374654bdb6f12644deb3cf25c
     - Note: Do NOT modify or commit .env.local; do not rotate or recreate newerp_test_runner here.
 \n<!-- ci-trigger: push to run integration workflow -->
+
+---
+
+CURRENT ARCHITECTURE / IMPLEMENTATION RECONCILIATION — 2026-08-27
+
+This section is added to the same authoritative roadmap. It does not replace, summarize away, or delete the original roadmap or its historical ledger. It reconciles the preserved roadmap against the approved architecture and the implementation actually present on `refactor/auth-tenant-context`.
+
+## Approved architecture
+
+`docs/10-adr/0006-identity-based-tenant-context.md` is **APPROVED** as of 2026-08-27. It establishes identity-based tenant context with PostgreSQL RLS as the canonical tenancy architecture.
+
+The approved lifecycle is:
+
+```text
+Configured ERP API endpoint (connectivity only)
+        ↓
+Login identifier + password
+        ↓
+Deployment-independent auth_login_identifiers lookup
+        ↓
+Candidate tenant user account(s)
+        ↓
+Tenant-scoped user lookup + password verification
+        ↓
+Exactly one active credential match
+        ↓
+Tenant-scoped session
+        ↓
+Trusted TenantContext / request tenant authority
+        ↓
+Organization/location working context
+        ↓
+Tenant-scoped transaction
+        ↓
+SET LOCAL app.current_tenant_id
+        ↓
+PostgreSQL RLS
+```
+
+## Actual implementation verified on the active branch
+
+### Backend authentication and tenant discovery
+
+- `src/application/services/authentication-service.ts` calls `findLoginCandidates(identifier)` and does not perform host/deployment tenant resolution.
+- Candidate identities contain `tenantId` and `userId`; password verification occurs against the candidate tenant-scoped user account.
+- Exactly one active credential match establishes tenant identity. Multiple active credential matches fail closed.
+- Candidates are deduplicated by `tenantId:userId`, so one account matching both email and username is not falsely treated as two tenant accounts.
+
+### Identity lookup
+
+- `src/infrastructure/database/migrations/0003-identity-based-login.sql` creates `auth_login_identifiers`, indexes active identifiers, and backfills active email/username identifiers from existing users.
+- `src/infrastructure/database/repositories/identity-aware-postgres-platform-repository.ts` queries the identity index and returns candidate `userId`/`tenantId` pairs only.
+- The lookup table contains no password and is not an authorization boundary.
+
+### Application composition and request tenant authority
+
+- `src/presentation/http/app.ts` composes the application using `IdentityAwarePostgresPlatformRepository`.
+- The old `TenantResolutionService`, `TenantResolver`, factory and deployment-specific resolver strategy files are removed from this branch's active implementation.
+- `src/presentation/http/routes/auth.ts` treats bootstrap as deployment information only and explicitly reports `tenantSelection: false`.
+- `src/presentation/http/middleware/auth.ts` derives `request.tenantId` from the verified session (`session.tenantId`). Client-supplied tenant identity is not authoritative.
+
+### Frontend working-context behavior
+
+- `frontend/lib/core/auth/auth_service.dart` sends identifier/password to `/api/v1/auth/login`, stores the returned tenant/session context, loads authorized organization/location context when available, and exposes `/dashboard` as the post-authentication destination.
+- `frontend/lib/routing/router.dart` contains permission-aware route guards and no longer registers the removed login-stage organization/location selection screens.
+- Organization and location are subordinate working context inside the established tenant. They cannot change tenant identity.
+- Missing organization/location defaults do not invalidate tenant authentication; backend operations requiring an active organization remain protected.
+
+### Authorization
+
+- Backend authorization remains authoritative through `requireAuth`, `requirePermission`, module checks and `AuthorizationService`.
+- Frontend AuthZ state, menu visibility and route guards are UX enforcement only.
+
+### Database isolation
+
+- PostgreSQL RLS remains mandatory under ADR-0006.
+- Tenant-owned operations must establish trusted tenant context before tenant-owned access; tenant authority originates from the authenticated server-side session.
+- Existing RLS/RBAC validation evidence in the original ledger remains historical validation evidence. CORE-01.20 must add end-to-end evidence for the new identity-based authentication path.
+
+### E2E fixture requirement
+
+The deterministic Postgres E2E fixture creates users after migrations have executed. Therefore it must explicitly create the corresponding `auth_login_identifiers` rows for fixture-created email/username identities. Migration backfill alone is insufficient for users created later by the fixture.
+
+The fixture must also create/provide the authorized organization/location relationships needed to validate post-login working context.
+
+## Superseded architecture — historical only
+
+The following original roadmap items describe the implementation that existed before ADR-0006. They are intentionally preserved for traceability, but must not be used as instructions for new work:
+
+- host/domain/Vercel URL as tenant authority;
+- SaaS-host tenant resolver as tenant authority;
+- on-premises deployment tenant resolver as tenant authority;
+- deployment tenant ID/configuration as tenant authority;
+- tenant-resolution mode as tenant authority selection;
+- bootstrap tenant discovery;
+- client-authoritative `x-tenant-id` usage;
+- mandatory organization selection during login;
+- mandatory location selection during login.
+
+The old entries remain in the roadmap because the roadmap is an implementation ledger; the approved architecture above is the authority for current and future implementation.
+
+## Reconciled CORE-01 status
+
+- **CORE-01.01 Authentication:** backend implementation now uses identity-based tenant discovery; final frontend→backend E2E evidence is pending.
+- **CORE-01.02 Session management:** implemented; authenticated session carries tenant identity.
+- **CORE-01.03 Tenant resolution/context:** **RECONCILED** — host/config/deployment tenant resolution is superseded; identity-based tenant context is current.
+- **CORE-01.04 Organization selection:** **RECONCILED** — not a mandatory login-stage tenant-selection step; it is post-authentication working context.
+- **CORE-01.05 Location selection:** **RECONCILED** — not a mandatory login-stage tenant-selection step; it is post-authentication working context subordinate to organization/tenant.
+- **CORE-01.06 Active location:** implemented in session/context; final E2E authorization validation pending.
+- **CORE-01.10 through CORE-01.18:** RBAC/AuthZ implementation remains valid and backend authorization remains authoritative.
+- **CORE-01.19:** prior DB/RLS/RBAC validation remains valid historical evidence; the identity-based login path needs its dedicated E2E gate.
+- **CORE-01.20:** **CURRENT IMPLEMENTATION STEP** — identity-based frontend→backend E2E validation.
+- **CORE-01.21:** security audit after the new E2E gate.
+- **CORE-01.22:** final CORE-01 completion audit.
+
+## Current CORE-01.20 acceptance criteria
+
+The next E2E implementation must prove:
+
+1. Client connects using only the configured ERP API endpoint.
+2. Login succeeds using identifier/password without tenant hostname or tenant selector.
+3. `auth_login_identifiers` discovers the candidate tenant account.
+4. Exactly one active credential match establishes tenant context.
+5. Ambiguous multiple active tenant matches fail closed.
+6. The resulting session is tenant-scoped and server-authoritative.
+7. Successful login reaches Dashboard without mandatory organization/location selection.
+8. Authorized/default organization and location working context can be applied after authentication.
+9. Organization/location changes cannot change `tenant_id`.
+10. Effective permissions/RBAC are evaluated within the established tenant.
+11. PostgreSQL RLS continues to prevent cross-tenant access.
+12. Fixture-created users have corresponding identity-index rows.
+13. Web and mobile use the same backend tenancy contract; no client connects directly to PostgreSQL.
+
+## Updated current checkpoint
+
+The old checkpoint text above is preserved as historical roadmap evidence, but the current checkpoint for implementation sessions is now:
+
+- Branch: `refactor/auth-tenant-context`
+- Architecture: ADR-0006 identity-based tenant context + PostgreSQL RLS
+- Current slice: identity-based authentication → tenant context → organization/location working context
+- Current step: CORE-01.20 identity-based frontend→backend E2E validation
+- Production architecture transition: implemented
+- Remaining gate: deterministic Postgres-backed E2E, then security audit and final CORE-01 audit
+- Current blocker: E2E fixture/scenario must be reconciled from host-based tenant resolution/login-time selection to identity-based tenant discovery/post-login working context
+- Immediate next action: update `frontend/integration_test/login_tenant_auth_e2e_test.dart` and `scripts/ci/seed-e2e.js` so fixture-created users have `auth_login_identifiers` entries, then execute the identity-based E2E flow and collect evidence.
+
+## Single roadmap rule
+
+`docs/00-overview/03-implementation-roadmap.md` is the **only authoritative roadmap**. The separate `docs/00-overview/04-tenant-context-reconciliation.md` document created during the earlier refactor is not a second roadmap and must be removed. Its current architectural content is incorporated here.
+
+All future roadmap updates, current checkpoints, implementation evidence, architectural reconciliation and next-step changes must be made in this file. Do not create another roadmap or another reconciliation document.
