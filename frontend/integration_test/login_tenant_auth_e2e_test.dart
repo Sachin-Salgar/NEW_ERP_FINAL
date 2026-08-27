@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -47,7 +46,9 @@ void main() {
       final previousOnError = FlutterError.onError;
       FlutterError.onError = (details) {
         frameworkErrors.add(details);
-        previousOnError?.call(details);
+        // Do not forward the same exception into Flutter's test framework. Forwarding
+        // makes the framework aggregate every transient error and masks the first
+        // application failure behind "Multiple exceptions".
       };
       addTearDown(() => FlutterError.onError = previousOnError);
 
@@ -58,8 +59,6 @@ void main() {
       await tester.enterText(find.byKey(const ValueKey('login_password_field')), _adminPassword);
       await tester.tap(find.byKey(const ValueKey('login_submit_button')));
 
-      // Do not use pumpAndSettle here: the dashboard performs asynchronous API work and
-      // application state changes. Wait for the actual navigation contract instead.
       await _waitFor(tester, find.text('Dashboard'), timeout: const Duration(seconds: 20));
 
       if (frameworkErrors.isNotEmpty) {
