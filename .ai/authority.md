@@ -32,6 +32,8 @@ Tenant-scoped Session
   ↓
 TenantContext
   ↓
+Working Context: Organisation → Location
+  ↓
 Authorization
   ↓
 Tenant Transaction
@@ -40,6 +42,21 @@ SET LOCAL app.current_tenant_id
   ↓
 PostgreSQL RLS
 ```
+
+The tenant is established by authenticated identity and remains fixed for the session. Organisation and location are post-login working context within that tenant.
+
+### Authentication / working-context UX contract
+
+- The configured API URL is connectivity configuration only and is never tenant authority.
+- Successful login goes directly to Dashboard.
+- The user's configured default organisation and default location are applied when available.
+- Missing defaults do not block login and do not cause a selection-screen gate.
+- Organisation and location are switched from the authenticated Profile / Working Context menu.
+- No standalone organisation-selection or location-selection screen is part of the login flow.
+- Switching organisation reloads authorized locations and effective permissions for the new organisation.
+- A selected location must belong to / be authorized within the active organisation.
+- Working-context changes can never change the authenticated tenant.
+- Web and mobile clients connect to the configured ERP backend endpoint and never directly to PostgreSQL.
 
 Deployment URL/API endpoint is connectivity configuration only. Hostname, custom domain, deployment configuration, or client-supplied tenant identifiers must not be treated as authoritative tenant identity.
 
@@ -94,7 +111,7 @@ For every non-trivial implementation task, the AI should be able to state:
 
 - The living implementation roadmap `docs/00-overview/03-implementation-roadmap.md` is the authoritative source of project implementation state and the IMMEDIATE NEXT STEP for AI sessions.
 - AI must consult the roadmap at session start and obey the IMMEDIATE NEXT STEP unless the user explicitly overrides it.
-- Do not mark a roadmap step COMPLETE based solely on code presence. A step is COMPLETE only when its implementation and validation requirements have actually been executed and recorded.
+- Do not mark a roadmap step complete based solely on code presence. A step is complete only when the roadmap marks it COMPLETE and records validation evidence.
 
 ## Roadmap update requirement
 
