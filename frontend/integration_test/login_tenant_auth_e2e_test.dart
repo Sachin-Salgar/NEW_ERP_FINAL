@@ -14,7 +14,6 @@ const _organizationId = '22222222-2222-4222-8222-222222222222';
 const _adminEmail = 'e2e@example.com';
 const _adminPassword = 'Password123!';
 const _limitedEmail = 'e2e-limited@example.com';
-const _moduleCode = 'e2e-rbac';
 
 Future<void> _pump(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 100));
@@ -47,7 +46,7 @@ Future<void> _login(WidgetTester tester, String email) async {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  group('E2E login and authorization flow', () {
+  group('E2E authenticated context flow', () {
     setUp(() async {
       await GetIt.instance.reset();
       await App.init();
@@ -85,20 +84,24 @@ void main() {
     );
 
     testWidgets(
-      'limited user cannot access disabled module',
+      'limited user reaches dashboard with its restricted working context',
       (tester) async {
-        final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
         await tester.pumpWidget(const App());
         await _pump(tester);
         await _login(tester, _limitedEmail);
         await _waitFor(tester, find.text('Dashboard'), timeout: const Duration(seconds: 30));
 
-        final response = await _getWithTimeout(Uri.parse('$baseUrl/api/v1/auth/modules'));
-        expect(response.statusCode, equals(200));
-        final payload = jsonDecode(response.body) as Map<String, dynamic>;
-        final modules = (payload['modules'] as List<dynamic>).cast<Map<String, dynamic>>();
-        final module = modules.firstWhere((item) => item['code'] == _moduleCode);
-        expect(module['enabled'], isFalse);
+        expect(find.text('Select organization'), findsNothing);
+        expect(find.text('Select location'), findsNothing);
+        expect(find.text('Dashboard'), findsOneWidget);
+
+        final auth = GetIt.instance.get<AuthService>();
+        expect(auth.isAuthenticated, isTrue);
+        expect(auth.currentTenantId, equals(_tenantId));
+        expect(auth.currentOrganizationId, equals(_organizationId));
+        expect(auth.requiresOrganizationSelection, isFalse);
+        expect(auth.requiresLocationSelection, isFalse);
+        expect(auth.availableLocations.length, equals(1));
       },
       timeout: const Timeout(Duration(seconds: 90)),
     );
