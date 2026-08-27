@@ -21,10 +21,17 @@ export class AuthenticationService {
       return { success: false, reason: 'INVALID_CREDENTIALS' };
     }
 
+    // A single account may legitimately have multiple matching identifiers (for example,
+    // its email and username can be identical). Identity lookup therefore operates at the
+    // identifier level, while authentication must operate at the unique tenant/user level.
+    const uniqueCandidates = [...new Map(
+      candidates.map((candidate) => [`${candidate.tenantId}:${candidate.userId}`, candidate]),
+    ).values()];
+
     let matchedUser: Awaited<ReturnType<AuthenticationRepository['findById']>> = null;
     let matchedTenantId: string | null = null;
 
-    for (const candidate of candidates) {
+    for (const candidate of uniqueCandidates) {
       const user = await this.authenticationRepository.findById(candidate.tenantId, candidate.userId);
       if (!user || user.status !== 'active') {
         continue;
@@ -37,7 +44,6 @@ export class AuthenticationService {
 
       if (matchedUser) {
         // The same credentials identify multiple active tenant accounts. Do not guess the tenant.
-        // The caller must use a disambiguated identity in a future identity-selection flow.
         return { success: false, reason: 'INVALID_CREDENTIALS' };
       }
 
