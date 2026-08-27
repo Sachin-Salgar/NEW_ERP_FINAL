@@ -258,12 +258,16 @@ async function main() {
       [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, ORGANIZATION_TWO_ID, LIMITED_USER_ID],
     );
 
+    // Both users need an authorized location for the login flow to resolve a
+    // usable working context. The limited user is intentionally restricted to
+    // the primary organization and its default location.
     await client.query(
       `INSERT INTO user_location_access (tenant_id, user_id, organization_id, location_id, is_active)
        VALUES ($1, $2, $3, $4, true),
-              ($1, $2, $3, $5, true)
+              ($1, $2, $3, $5, true),
+              ($1, $6, $3, $4, true)
        ON CONFLICT (user_id, location_id, tenant_id) DO UPDATE SET is_active = true`,
-      [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, LOCATION_ONE_ID, LOCATION_TWO_ID],
+      [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, LOCATION_ONE_ID, LOCATION_TWO_ID, LIMITED_USER_ID],
     );
 
     await client.query('COMMIT');
