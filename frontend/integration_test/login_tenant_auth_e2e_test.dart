@@ -18,6 +18,10 @@ const _moduleCode = 'e2e-rbac';
 
 Future<void> _pump(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 100));
+  final exception = tester.takeException();
+  if (exception != null) {
+    fail('Flutter exception during E2E pump: $exception');
+  }
 }
 
 Future<void> _waitFor(WidgetTester tester, Finder finder, {Duration timeout = const Duration(seconds: 15)}) async {
@@ -54,6 +58,7 @@ void main() {
       (tester) async {
         final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
         await tester.pumpWidget(const App());
+        await _pump(tester);
         await _login(tester, _adminEmail);
         await _waitFor(tester, find.text('Dashboard'), timeout: const Duration(seconds: 30));
 
@@ -84,6 +89,7 @@ void main() {
       (tester) async {
         final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
         await tester.pumpWidget(const App());
+        await _pump(tester);
         await _login(tester, _limitedEmail);
         await _waitFor(tester, find.text('Dashboard'), timeout: const Duration(seconds: 30));
 
