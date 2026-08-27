@@ -9,14 +9,12 @@ import '../auth/auth_service.dart';
 class ApiClient {
   final String baseUrl;
   final Duration timeout;
-  final String tenantHeaderName;
   final http.Client _client;
   final AuthService? authOverride;
 
   ApiClient({
     this.baseUrl = '',
     this.timeout = const Duration(seconds: 15),
-    this.tenantHeaderName = 'x-tenant-id',
     this.authOverride,
     http.Client? httpClient,
     http.Client? client,
@@ -44,14 +42,9 @@ class ApiClient {
       'Content-Type': 'application/json',
     };
 
-    final tenantId = auth.currentTenantId;
-    if (tenantId != null) {
-      headers[tenantHeaderName] = tenantId;
-    }
-
     final accessToken = auth.accessToken;
     if (accessToken != null) {
-      headers['Authorization'] = 'Bearer ' + accessToken;
+      headers['Authorization'] = 'Bearer $accessToken';
     }
 
     http.Response resp = await fn(headers).timeout(timeout);
@@ -61,7 +54,7 @@ class ApiClient {
       if (refreshed) {
         final newToken = auth.accessToken;
         if (newToken != null) {
-          headers['Authorization'] = 'Bearer ' + newToken;
+          headers['Authorization'] = 'Bearer $newToken';
           resp = await fn(headers).timeout(timeout);
         }
       }
@@ -85,7 +78,6 @@ class ApiClient {
     return _sendWithAuth((headers) => _client.put(url, headers: headers, body: jsonEncode(body ?? {})));
   }
 
-  /// Send a PATCH request to [path] with optional JSON [body].
   Future<http.Response> patch(String path, {Map<String, dynamic>? body}) async {
     final url = Uri.parse('$baseUrl$path');
     return _sendWithAuth((headers) => _client.patch(url, headers: headers, body: jsonEncode(body ?? {})));
