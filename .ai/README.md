@@ -10,6 +10,8 @@ The authoritative ERP definition remains under `docs/` according to the governan
 - `docs/00-overview/02-governance.md`
 - `docs/10-adr/README.md`
 
+For tenancy, authentication, deployment boundary, and RLS work, the approved decision is `docs/10-adr/0006-identity-based-tenant-context.md`.
+
 AI workflow files in `.ai/` explain **how an AI coding assistant should navigate, reason about, implement, and validate changes in the repository**.
 
 ## Core layers
@@ -44,27 +46,34 @@ AI workflow files in `.ai/` explain **how an AI coding assistant should navigate
 7. AI must not pretend that it has read the entire repository.
 8. When required information is missing or contradictory, AI must stop and ask instead of inventing a decision.
 9. A feature is not complete until applicable validation has actually run and passed.
+10. Deployment URL/API endpoint is connectivity configuration only; it is not authoritative tenant identity.
+11. Tenant context is established from authenticated identity, validated tenant access, and the tenant-scoped session defined by ADR-0006.
+12. PostgreSQL RLS remains mandatory for tenant-owned data.
 
-New: Roadmap as implementation-progress authority
+## Implementation-progress authority
 
-- `docs/00-overview/03-implementation-roadmap.md` is the authoritative project-state document for "what has been implemented, validated, and what must be done next." AI sessions MUST consult the roadmap at session start and obey the IMMEDIATE NEXT STEP it contains unless the user explicitly instructs otherwise.
-- Do not infer completion from code, commits, or prior AI messages. The roadmap checkpoint is the single source of truth for implementation progress and the active work item.
+`docs/00-overview/03-implementation-roadmap.md` is the authoritative project-state document for what has been implemented, what is being refactored, and what must be done next.
 
-Session initialization (MANDATORY)
+AI sessions MUST consult the roadmap at session start and obey its IMMEDIATE NEXT STEP unless the user explicitly instructs otherwise.
 
-At the beginning of every AI implementation session the agent must perform the following read-only sequence before making changes or running commands that modify the workspace:
+During the identity-based tenant migration, the roadmap is intentionally reconciled as a clean implementation plan: retained foundations are marked COMPLETED, affected legacy tenant-resolution work is marked for REFACTOR, and new migration steps become COMPLETED only after implementation and validation evidence exists.
 
-1. Run `git status --short --untracked-files=all` and record the working tree status.
+## Session initialization (MANDATORY)
+
+At the beginning of every AI implementation session the agent must perform the following read-only sequence before making changes:
+
+1. Run `git status --short --untracked-files=all` and record working-tree status.
 2. Identify the current branch and recent commits relevant to the active work.
 3. Read `.ai/workflows/feature-development.md` and `.ai/workflows/ai-system.md` to re-establish local workflow rules.
-4. Read `docs/00-overview/03-implementation-roadmap.md` and extract the CURRENT IMPLEMENTATION CHECKPOINT (CURRENT SLICE, CURRENT STEP, IMMEDIATE NEXT STEP, validation requirements, blockers).
-5. Use `.ai/authority.md` to determine which authoritative documents apply to the IMMEDIATE NEXT STEP and read only those documents.
+4. Read `docs/00-overview/03-implementation-roadmap.md` and extract CURRENT IMPLEMENTATION CHECKPOINT and IMMEDIATE NEXT STEP.
+5. Use `.ai/authority.md` to determine which authoritative documents apply to the active step.
+6. For tenancy/authentication work, read ADR-0006 and the affected database, backend, security, frontend, and deployment documents before implementation.
 
 The agent must not start implementation until it can answer: "What exact roadmap step am I implementing?"
 
-Session checkpoint format
+## Session checkpoint format
 
-Agents should create an ephemeral session-checkpoint that summarizes:
+Agents should create an ephemeral checkpoint containing:
 
 - CURRENT SLICE:
 - CURRENT STEP:
@@ -75,7 +84,7 @@ Agents should create an ephemeral session-checkpoint that summarizes:
 - KNOWN BLOCKERS:
 - IMMEDIATE NEXT STEP:
 
-This checkpoint is ephemeral (in-memory or session files under `.ai/generated/`) and must not duplicate roadmap state — the roadmap remains authoritative.
+This checkpoint is ephemeral and must not duplicate roadmap state.
 
 ## Local validation commands
 
