@@ -55,6 +55,7 @@ void main() {
         await tester.pumpWidget(const App());
         await _login(tester, _adminEmail);
         await _waitFor(tester, find.text('Dashboard'), timeout: const Duration(seconds: 30));
+        await tester.pump(const Duration(milliseconds: 250));
 
         expect(find.text('Select organization'), findsNothing);
         expect(find.text('Select location'), findsNothing);
@@ -85,6 +86,7 @@ void main() {
         await tester.pumpWidget(const App());
         await _login(tester, _limitedEmail);
         await _waitFor(tester, find.text('Dashboard'), timeout: const Duration(seconds: 30));
+        await tester.pump(const Duration(milliseconds: 250));
 
         final response = await _getWithTimeout(Uri.parse('$baseUrl/api/v1/auth/modules'));
         expect(response.statusCode, equals(200));
