@@ -180,17 +180,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     Widget statGrid() {
-      final isDesktop = ErpResponsive.isDesktop(context);
       return LayoutBuilder(
         builder: (context, constraints) {
-          final columns = isDesktop ? 4 : 2;
+          // This follows the upstream template's actual behavior:
+          // four cards until the mobile layout becomes narrow enough for
+          // two columns (<650px).
+          final columns = constraints.maxWidth < 650 ? 2 : 4;
+          final gap = 16.0;
           final cardWidth =
-              (constraints.maxWidth - (columns - 1) * 16) / columns;
+              (constraints.maxWidth - (columns - 1) * gap) / columns;
+
           return Wrap(
-            spacing: 16,
-            runSpacing: 16,
+            spacing: gap,
+            runSpacing: gap,
             children: [
-              for (final card in cards) SizedBox(width: cardWidth, child: card),
+              for (final card in cards)
+                SizedBox(width: cardWidth, child: card),
             ],
           );
         },
@@ -200,56 +205,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return AppShell(
       child: RefreshIndicator(
         onRefresh: _refreshDashboard,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final desktopLayout = ErpResponsive.isDesktop(context);
-
-            if (desktopLayout) {
-              final storageWidth = constraints.maxWidth < 900 ? 300.0 : 390.0;
-              return ListView(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          children: [
+            // Upstream dashboard behavior:
+            //   >= 850px: main content + storage side-by-side.
+            //   <  850px: storage moves below the main content.
+            if (!ErpResponsive.isMobile(context))
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            statGrid(),
-                            if (_error != null || hasNoData) ...[
-                              const SizedBox(height: 16),
-                              statusContent(),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      SizedBox(
-                        width: storageWidth,
-                        child: const StorageDetailsCard(),
-                      ),
-                    ],
+                  Expanded(
+                    flex: 5,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        statGrid(),
+                        if (_error != null || hasNoData) ...[
+                          const SizedBox(height: 16),
+                          statusContent(),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    flex: 2,
+                    child: StorageDetailsCard(),
                   ),
                 ],
-              );
-            }
-
-            // Mobile and tablet use two stat columns. The cards flow onto
-            // subsequent rows, matching the compact responsive layout.
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              children: [
-                statGrid(),
-                if (_error != null || hasNoData) ...[
-                  const SizedBox(height: 16),
-                  statusContent(),
-                ],
+              )
+            else ...[
+              statGrid(),
+              if (_error != null || hasNoData) ...[
                 const SizedBox(height: 16),
-                const StorageDetailsCard(),
+                statusContent(),
               ],
-            );
-          },
+              const SizedBox(height: 16),
+              const StorageDetailsCard(),
+            ],
+          ],
         ),
       ),
     );
