@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+
 import '../core/auth/auth_service.dart';
+import '../themes/theme_controller.dart';
 
 /// Profile menu containing user profile actions and working-context switches.
 /// Tenant is never selectable here; it is fixed by authentication.
@@ -10,8 +12,9 @@ class ProfileContextMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = GetIt.instance.get<AuthService>();
+    final themeController = GetIt.instance.get<ThemeController>();
     return AnimatedBuilder(
-      animation: auth,
+      animation: Listenable.merge([auth, themeController]),
       builder: (context, _) {
         final user = auth.currentUser ?? const <String, dynamic>{};
         final name = (user['displayName'] ?? user['name'] ?? user['username'] ?? user['email'] ?? 'User').toString();
@@ -29,6 +32,8 @@ class ProfileContextMenu extends StatelessWidget {
               await auth.selectOrganization(value.substring(4));
             } else if (value.startsWith('location:')) {
               await auth.selectLocation(value.substring(9));
+            } else if (value == 'theme') {
+              await themeController.toggle();
             } else if (value == 'logout') {
               await auth.logout();
               if (context.mounted) Navigator.of(context).pushReplacementNamed('/login');
@@ -38,6 +43,15 @@ class ProfileContextMenu extends StatelessWidget {
           },
           itemBuilder: (context) => [
             PopupMenuItem<String>(enabled: false, child: ListTile(contentPadding: EdgeInsets.zero, leading: const CircleAvatar(child: Icon(Icons.person_outline)), title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis), subtitle: Text(email, maxLines: 1, overflow: TextOverflow.ellipsis))),
+            const PopupMenuDivider(),
+            PopupMenuItem<String>(
+              value: 'theme',
+              child: Row(children: [
+                Icon(themeController.isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined, size: 20),
+                const SizedBox(width: 10),
+                Text(themeController.isDark ? 'Light mode' : 'Dark mode'),
+              ]),
+            ),
             const PopupMenuDivider(),
             const PopupMenuItem<String>(enabled: false, child: Text('WORKING CONTEXT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700))),
             if (auth.availableOrganizations.isNotEmpty)
