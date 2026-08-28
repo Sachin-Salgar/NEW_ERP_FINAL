@@ -237,12 +237,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               );
             }
 
-            final columns = constraints.maxWidth < 520
-                ? 1
-                : constraints.maxWidth < 850
-                    ? 2
-                    : 3;
-
+            // Mobile and tablet use two stat columns. The fifth card flows
+            // onto the next row, matching the compact responsive layout.
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               children: [
@@ -250,11 +246,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   physics: const NeverScrollableScrollPhysics(),
                   shrinkWrap: true,
                   itemCount: cards.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columns,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
-                    childAspectRatio: constraints.maxWidth < 520 ? 2.1 : 1.48,
+                    childAspectRatio: 1.48,
                   ),
                   itemBuilder: (context, index) => cards[index],
                 ),
