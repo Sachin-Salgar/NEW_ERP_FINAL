@@ -21,10 +21,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
 
     return Container(
       height: preferredSize.height,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(bottom: BorderSide(color: theme.dividerColor)),
-      ),
+      color: theme.colorScheme.surface,
       child: Row(
         children: [
           if (width < 1100)
