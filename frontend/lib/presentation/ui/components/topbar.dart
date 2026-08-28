@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-import '../../../themes/theme_controller.dart';
 import '../../../widgets/theme_mode_button.dart';
 import 'responsive.dart';
-
-enum _ThemeMenuAction { toggle }
 
 class TopBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
@@ -52,43 +48,11 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
             ),
             const SizedBox(width: 12),
           ],
-          if (isMobile)
-            _MobileThemeMenu()
-          else
-            const ThemeModeButton(),
+          // Theme is icon-only on every responsive breakpoint.
+          const ThemeModeButton(),
           if (actions != null) ...actions!,
         ],
       ),
-    );
-  }
-}
-
-class _MobileThemeMenu extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final controller = context.watch<ThemeController>();
-    final dark = controller.isDark;
-
-    return PopupMenuButton<_ThemeMenuAction>(
-      tooltip: 'Theme options',
-      icon: const Icon(Icons.more_vert),
-      onSelected: (action) {
-        if (action == _ThemeMenuAction.toggle) {
-          controller.toggle();
-        }
-      },
-      itemBuilder: (context) => [
-        PopupMenuItem<_ThemeMenuAction>(
-          value: _ThemeMenuAction.toggle,
-          child: Row(
-            children: [
-              Icon(dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
-              const SizedBox(width: 12),
-              Text(dark ? 'Switch to light mode' : 'Switch to dark mode'),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
