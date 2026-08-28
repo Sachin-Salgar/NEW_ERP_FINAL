@@ -114,19 +114,139 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _organizationService.organizations.isEmpty &&
         _userService.users.isEmpty;
 
+    Widget statusContent() {
+      if (_error != null) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.errorContainer,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: theme.colorScheme.error.withValues(alpha: 0.4),
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.error_outline, color: theme.colorScheme.error),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Unable to load dashboard data.\n$_error',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onErrorContainer,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: _refreshDashboard,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        );
+      }
+
+      if (hasNoData) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: theme.dividerColor.withValues(alpha: 0.75),
+            ),
+          ),
+          child: Center(
+            child: Column(
+              children: [
+                Icon(
+                  Icons.inbox_outlined,
+                  size: 32,
+                  color: theme.colorScheme.primary.withValues(alpha: 0.7),
+                ),
+                const SizedBox(height: 10),
+                Text('No data available', style: theme.textTheme.titleMedium),
+                const SizedBox(height: 4),
+                Text(
+                  'There are no organizations or users to summarize yet.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.textTheme.bodySmall?.color,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      return const SizedBox.shrink();
+    }
+
+    Widget statGrid() {
+      return GridView.builder(
+        physics: const NeverScrollableScrollPhysics(),
+        shrinkWrap: true,
+        itemCount: cards.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 4,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 1.48,
+        ),
+        itemBuilder: (context, index) => cards[index],
+      );
+    }
+
     return AppShell(
       child: RefreshIndicator(
         onRefresh: _refreshDashboard,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final width = constraints.maxWidth;
-                final columns = width < 520 ? 1 : width < 850 ? 2 : width < 1200 ? 3 : 4;
-                final ratio = width < 520 ? 2.15 : width < 850 ? 1.65 : width < 1200 ? 1.55 : 1.65;
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final desktopLayout = constraints.maxWidth >= 1200;
 
-                return GridView.builder(
+            if (desktopLayout) {
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            statGrid(),
+                            if (_error != null || hasNoData) ...[
+                              const SizedBox(height: 16),
+                              statusContent(),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      const SizedBox(
+                        width: 390,
+                        child: StorageDetailsCard(),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            }
+
+            final columns = constraints.maxWidth < 520
+                ? 1
+                : constraints.maxWidth < 850
+                    ? 2
+                    : 3;
+
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              children: [
+                GridView.builder(
                   physics: const NeverScrollableScrollPhysics(),
                   shrinkWrap: true,
                   itemCount: cards.length,
@@ -134,78 +254,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisCount: columns,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
-                    childAspectRatio: ratio,
+                    childAspectRatio: constraints.maxWidth < 520 ? 2.1 : 1.48,
                   ),
                   itemBuilder: (context, index) => cards[index],
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-            if (_error != null)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.errorContainer,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: theme.colorScheme.error.withValues(alpha: 0.4),
-                  ),
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.error_outline, color: theme.colorScheme.error),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Unable to load dashboard data.\n$_error',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onErrorContainer,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    TextButton(
-                      onPressed: _refreshDashboard,
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              )
-            else if (hasNoData)
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: theme.dividerColor.withValues(alpha: 0.75),
-                  ),
-                ),
-                child: Center(
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.inbox_outlined,
-                        size: 32,
-                        color: theme.colorScheme.primary.withValues(alpha: 0.7),
-                      ),
-                      const SizedBox(height: 12),
-                      Text('No data available', style: theme.textTheme.titleMedium),
-                      const SizedBox(height: 6),
-                      Text(
-                        'There are no organizations or users to summarize yet.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.textTheme.bodySmall?.color,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            const SizedBox(height: 20),
-            const StorageDetailsCard(),
-          ],
+                if (_error != null || hasNoData) ...[
+                  const SizedBox(height: 16),
+                  statusContent(),
+                ],
+                const SizedBox(height: 16),
+                const StorageDetailsCard(),
+              ],
+            );
+          },
         ),
       ),
     );
