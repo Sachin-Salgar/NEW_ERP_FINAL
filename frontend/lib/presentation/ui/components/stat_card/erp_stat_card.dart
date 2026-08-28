@@ -29,48 +29,72 @@ class ErpStatCard extends StatelessWidget {
     final theme = Theme.of(context);
     final accent = accentColor ?? theme.colorScheme.primary;
     final content = Padding(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: .10),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: accent, size: 21),
-            ),
-            const Spacer(),
-            if (trendLabel != null)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                width: 40,
+                height: 40,
+                padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
                   color: accent.withValues(alpha: .10),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(trendLabel!, style: theme.textTheme.labelSmall?.copyWith(color: accent, fontWeight: FontWeight.w600)),
-              )
-            else if (trailing != null)
-              trailing!
-          ]),
-          const SizedBox(height: 20),
-          Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
-          const SizedBox(height: 7),
+                child: Icon(icon, color: accent, size: 21),
+              ),
+              if (trendLabel != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: .10),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    trendLabel!,
+                    style: theme.textTheme.labelSmall?.copyWith(color: accent, fontWeight: FontWeight.w600),
+                  ),
+                )
+              else if (trailing != null)
+                trailing!
+              else
+                Icon(Icons.more_vert_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 6),
           if (loading)
-            const SizedBox(width: 90, height: 28, child: LinearProgressIndicator())
+            const SizedBox(width: 90, height: 24, child: LinearProgressIndicator())
           else
-            Text(value, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+            Text(
+              value,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
           if (subtitle != null) ...[
-            const SizedBox(height: 7),
-            Text(subtitle!, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
+            const SizedBox(height: 6),
+            Text(
+              subtitle!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall,
+            ),
           ],
         ],
       ),
     );
+
     final card = Card(child: content);
     if (onTap == null) return card;
     return InkWell(borderRadius: BorderRadius.circular(10), onTap: onTap, child: card);
