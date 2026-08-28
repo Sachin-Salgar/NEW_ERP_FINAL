@@ -43,19 +43,24 @@ class AppShell extends StatelessWidget {
     final navItems = _navigationItems(auth);
     final width = MediaQuery.sizeOf(context).width;
 
-    // Match the upstream template's responsive model: desktop keeps the
-    // navigation rail visible; tablet/mobile use the navigation drawer.
+    // The upstream template uses a 1/6 : 5/6 shell split on desktop.
+    // Keeping that proportional split is important: the dashboard's own
+    // 5/7 : 2/7 content split then scales naturally as the window changes.
     if (width >= 1100) {
       return Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Sidebar(
-              selectedRoute: ModalRoute.of(context)?.settings.name ?? '/',
-              onSelect: (route) => _handleNavigate(context, route),
+            Expanded(
+              flex: 1,
+              child: Sidebar(
+                selectedRoute: ModalRoute.of(context)?.settings.name ?? '/',
+                onSelect: (route) => _handleNavigate(context, route),
+              ),
             ),
             Expanded(
+              flex: 5,
               child: Column(
                 children: [
                   TopBar(
@@ -90,16 +95,21 @@ class AppShell extends StatelessWidget {
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  children: navItems.map((item) => ListTile(
-                    leading: Icon(_iconForRoute(item['path'] as String)),
-                    title: Text(item['menuName'] as String),
-                    selected: ModalRoute.of(context)?.settings.name == item['path'],
-                    selectedColor: Theme.of(context).colorScheme.primary,
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      _handleNavigate(context, item['path'] as String);
-                    },
-                  )).toList(),
+                  children: navItems
+                      .map(
+                        (item) => ListTile(
+                          leading: Icon(_iconForRoute(item['path'] as String)),
+                          title: Text(item['menuName'] as String),
+                          selected: ModalRoute.of(context)?.settings.name ==
+                              item['path'],
+                          selectedColor: Theme.of(context).colorScheme.primary,
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            _handleNavigate(context, item['path'] as String);
+                          },
+                        ),
+                      )
+                      .toList(),
                 ),
               ),
               Divider(height: 1, color: Theme.of(context).dividerColor),
@@ -150,7 +160,10 @@ class _BrandHeader extends StatelessWidget {
               color: theme.colorScheme.primary,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(Icons.grid_view_rounded, color: theme.colorScheme.onPrimary),
+            child: Icon(
+              Icons.grid_view_rounded,
+              color: theme.colorScheme.onPrimary,
+            ),
           ),
           const SizedBox(width: 12),
           Text('NEW ERP', style: theme.textTheme.titleLarge),
