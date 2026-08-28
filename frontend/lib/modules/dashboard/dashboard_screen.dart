@@ -103,7 +103,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     ];
 
-    final hasNoData = !_isLoading &&
+    final hasNoData =
+        !_isLoading &&
         _organizationService.organizations.isEmpty &&
         _userService.users.isEmpty;
 
@@ -180,17 +181,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     Widget statGrid() {
       final isDesktop = ErpResponsive.isDesktop(context);
-      return GridView.builder(
-        physics: const NeverScrollableScrollPhysics(),
-        shrinkWrap: true,
-        itemCount: cards.length,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: isDesktop ? 4 : 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: isDesktop ? 1.35 : 1.1,
-        ),
-        itemBuilder: (context, index) => cards[index],
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final columns = isDesktop ? 4 : 2;
+          final cardWidth =
+              (constraints.maxWidth - (columns - 1) * 16) / columns;
+          return Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: [
+              for (final card in cards) SizedBox(width: cardWidth, child: card),
+            ],
+          );
+        },
       );
     }
 
@@ -237,18 +240,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               children: [
-                GridView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  shrinkWrap: true,
-                  itemCount: cards.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 1.1,
-                  ),
-                  itemBuilder: (context, index) => cards[index],
-                ),
+                statGrid(),
                 if (_error != null || hasNoData) ...[
                   const SizedBox(height: 16),
                   statusContent(),
