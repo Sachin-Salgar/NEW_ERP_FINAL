@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../widgets/theme_mode_button.dart';
 import 'responsive.dart';
 
 class TopBar extends StatelessWidget implements PreferredSizeWidget {
@@ -15,69 +14,49 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final width = MediaQuery.sizeOf(context).width;
     final isMobile = ErpResponsive.isMobile(context);
-    final showSearch = width >= 600;
+    final isDesktop = ErpResponsive.isDesktop(context);
 
-    // No outer container: the top bar remains visually open. Search and
-    // profile controls have their own surfaces.
+    // Match the upstream Header composition:
+    // mobile  -> menu + search + profile
+    // tablet  -> menu + title + flexible gap + search + profile
+    // desktop -> title + larger flexible gap + search + profile
     return Row(
       children: [
-        if (width < 1100)
-          Padding(
-            padding: EdgeInsets.only(left: isMobile ? 4 : 8),
-            child: Builder(
-              builder: (context) => IconButton(
-                tooltip: 'Open navigation',
-                icon: const Icon(Icons.menu_rounded),
-                onPressed: () => Scaffold.of(context).openDrawer(),
-              ),
+        if (!isDesktop)
+          Builder(
+            builder: (context) => IconButton(
+              tooltip: 'Open navigation',
+              icon: const Icon(Icons.menu_rounded),
+              onPressed: () => Scaffold.of(context).openDrawer(),
             ),
           ),
         if (!isMobile) ...[
           Padding(
-            padding: const EdgeInsets.only(left: 24),
+            padding: const EdgeInsets.only(left: 8),
             child: Text(
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
-            ),
-          ),
-          const SizedBox(width: 24),
-        ],
-        if (showSearch)
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const _TemplateSearchField(),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
               ),
             ),
-          )
-        else
-          const Spacer(),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: isMobile ? 4 : 8),
-          child: const ThemeModeButton(),
+          ),
+          Spacer(flex: isDesktop ? 2 : 1),
+        ],
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            child: _TemplateSearchField(),
+          ),
         ),
         if (actions != null)
           Padding(
-            padding: EdgeInsets.only(right: isMobile ? 8 : 16, left: 4),
-            child: Container(
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: actions!,
-              ),
+            padding: const EdgeInsets.only(left: 4, right: 12),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: actions!,
             ),
           ),
       ],
@@ -85,41 +64,39 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// Search field follows the upstream template's visual pattern: a soft
-/// filled field with a compact primary search action on the right.
+/// Search follows the upstream Header: it remains visible at every width and
+/// expands into the space left by the title/menu/profile controls.
 class _TemplateSearchField extends StatelessWidget {
   const _TemplateSearchField();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 520),
-      child: TextField(
-        textInputAction: TextInputAction.search,
-        decoration: InputDecoration(
-          hintText: 'Search',
-          prefixIcon: const Icon(Icons.search_rounded, size: 20),
-          suffixIcon: Padding(
-            padding: const EdgeInsets.all(5),
-            child: Material(
-              color: theme.colorScheme.primary,
-              borderRadius: BorderRadius.circular(8),
-              child: IconButton(
-                tooltip: 'Search',
-                icon: const Icon(Icons.search_rounded, size: 18),
-                color: theme.colorScheme.onPrimary,
-                onPressed: () {},
-              ),
+    return TextField(
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        hintText: 'Search',
+        filled: true,
+        fillColor: theme.colorScheme.surfaceContainerHighest,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        suffixIcon: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+          child: Material(
+            color: theme.colorScheme.primary,
+            borderRadius: BorderRadius.circular(10),
+            child: IconButton(
+              tooltip: 'Search',
+              icon: const Icon(Icons.search_rounded, size: 20),
+              color: theme.colorScheme.onPrimary,
+              onPressed: () {},
             ),
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide.none,
           ),
         ),
       ),
