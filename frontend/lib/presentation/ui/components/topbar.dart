@@ -21,7 +21,6 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
 
     return Container(
       height: preferredSize.height,
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         border: Border(bottom: BorderSide(color: theme.dividerColor)),
@@ -29,32 +28,49 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
       child: Row(
         children: [
           if (width < 1100)
-            Builder(
-              builder: (context) => IconButton(
-                tooltip: 'Open navigation',
-                icon: const Icon(Icons.menu_rounded),
-                onPressed: () => Scaffold.of(context).openDrawer(),
+            Padding(
+              padding: EdgeInsets.only(left: isMobile ? 4 : 8),
+              child: Builder(
+                builder: (context) => IconButton(
+                  tooltip: 'Open navigation',
+                  icon: const Icon(Icons.menu_rounded),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
               ),
             ),
           if (!isMobile) ...[
-            Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+            Padding(
+              padding: const EdgeInsets.only(left: 24),
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+              ),
             ),
             const SizedBox(width: 24),
           ],
           if (showSearch)
-            Expanded(child: _TemplateSearchField())
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                child: _TemplateSearchField(),
+              ),
+            )
           else
             const Spacer(),
-          const SizedBox(width: 12),
-          const ThemeModeButton(),
-          if (actions != null) ...[
-            const SizedBox(width: 8),
-            ...actions!,
-          ],
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: isMobile ? 4 : 8),
+            child: const ThemeModeButton(),
+          ),
+          if (actions != null)
+            Padding(
+              padding: EdgeInsets.only(right: isMobile ? 8 : 16, left: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: actions!,
+              ),
+            ),
         ],
       ),
     );
