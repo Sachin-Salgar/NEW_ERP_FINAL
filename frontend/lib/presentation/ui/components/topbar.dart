@@ -5,8 +5,14 @@ import 'responsive.dart';
 class TopBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
   final String title;
+  final VoidCallback? onMenuPressed;
 
-  const TopBar({super.key, this.actions, this.title = ''});
+  const TopBar({
+    super.key,
+    this.actions,
+    this.title = '',
+    this.onMenuPressed,
+  });
 
   @override
   Size get preferredSize => const Size.fromHeight(76);
@@ -17,20 +23,18 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     final isMobile = ErpResponsive.isMobile(context);
     final isDesktop = ErpResponsive.isDesktop(context);
 
-    // Match the upstream Header composition:
-    // mobile  -> menu + search + profile
-    // tablet  -> menu + title + flexible gap + search + profile
-    // desktop -> title + larger flexible gap + search + profile
     return Row(
       children: [
-        if (!isDesktop)
-          Builder(
-            builder: (context) => IconButton(
-              tooltip: 'Open navigation',
-              icon: const Icon(Icons.menu_rounded),
-              onPressed: () => Scaffold.of(context).openDrawer(),
-            ),
+        Builder(
+          builder: (context) => IconButton(
+            tooltip: isDesktop ? 'Collapse navigation' : 'Open navigation',
+            icon: const Icon(Icons.menu_rounded),
+            onPressed: onMenuPressed ??
+                () {
+                  Scaffold.of(context).openDrawer();
+                },
           ),
+        ),
         if (!isMobile) ...[
           Padding(
             padding: const EdgeInsets.only(left: 8),
