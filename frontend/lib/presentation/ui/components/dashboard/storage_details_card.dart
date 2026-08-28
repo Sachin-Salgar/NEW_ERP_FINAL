@@ -54,8 +54,7 @@ class _StorageChart extends StatelessWidget {
         // The upstream chart is 200px tall and takes the available width.
         // Constrain our custom painter to the storage column so it can shrink
         // when the proportional 5/7 : 2/7 dashboard split gets narrow.
-        final width = math.min(230.0, constraints.maxWidth);
-        final size = width.clamp(0.0, 230.0);
+        final size = math.min(230.0, constraints.maxWidth);
         return Center(
           child: SizedBox(
             width: size,
