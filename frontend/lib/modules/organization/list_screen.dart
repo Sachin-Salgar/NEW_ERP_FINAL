@@ -4,41 +4,31 @@ import 'package:provider/provider.dart';
 
 import '../../core/auth/auth_service.dart';
 import '../../core/network/api_client.dart';
-import 'organization_service.dart';
 import '../../presentation/ui/components/page_header.dart';
+import 'organization_service.dart';
 
 class OrganizationListScreen extends StatefulWidget {
-  const OrganizationListScreen({Key? key}) : super(key: key);
+  const OrganizationListScreen({super.key});
 
   @override
   State<OrganizationListScreen> createState() => _OrganizationListScreenState();
 }
 
 class _OrganizationListScreenState extends State<OrganizationListScreen> {
-  late OrganizationService service;
-  late AuthService auth;
+  late final OrganizationService service;
+  late final AuthService auth;
 
   @override
   void initState() {
     super.initState();
-    final api = ApiClient(
-      baseUrl: const String.fromEnvironment(
-        'API_BASE_URL',
-        defaultValue: 'http://localhost:3001',
-      ),
-    );
-    service = OrganizationService(apiClient: api);
+    final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
+    service = OrganizationService(apiClient: ApiClient(baseUrl: baseUrl));
     auth = GetIt.instance.get<AuthService>();
     _init();
   }
 
   Future<void> _init() async {
-    await auth.fetchEffectivePermissions(
-      const String.fromEnvironment(
-        'API_BASE_URL',
-        defaultValue: 'http://localhost:3001',
-      ),
-    );
+    await auth.fetchEffectivePermissions(const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000'));
     await service.fetchOrganizations();
   }
 
@@ -46,78 +36,82 @@ class _OrganizationListScreenState extends State<OrganizationListScreen> {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<OrganizationService>.value(
       value: service,
-      child: Consumer<OrganizationService>(
-        builder: (context, svc, _) {
-          if (svc.isLoading)
-            return const Center(child: CircularProgressIndicator());
-          if (svc.error != null)
-            return Center(child: Text('Error: ${svc.error}'));
+      child: Consumer<OrganizationService>(builder: (context, svc, _) {
+        final theme = Theme.of(context);
+        if (svc.isLoading) return const Center(child: CircularProgressIndicator());
+        if (svc.error != null) return _Message(message: 'Unable to load organizations: ${svc.error}');
+        if (!auth.hasPermission('organization.read')) return const _Message(message: 'You do not have permission to view organizations.');
 
-          final permitted = auth.hasPermission('organization.read');
-
-          if (!permitted)
-            return Center(
-              child: Text('You do not have permission to view organizations.'),
-            );
-
-          final items = svc.organizations;
-          return Scaffold(
-            appBar: AppBar(title: const Text('Organizations')),
-            body: Column(
-              children: [
-                ErpPageHeader(
+        final items = svc.organizations;
+        return Scaffold(
+          body: RefreshIndicator(
+            onRefresh: svc.fetchOrganizations,
+            child: CustomScrollView(slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                sliver: SliverToBoxAdapter(child: ErpPageHeader(
                   title: 'Organizations',
                   subtitle: 'Manage organizations in the ERP',
-                  breadcrumbs: const [
-                    ErpBreadcrumbItem(label: 'Dashboard', route: '/dashboard'),
-                    ErpBreadcrumbItem(label: 'Organizations'),
-                  ],
+                  breadcrumbs: const [ErpBreadcrumbItem(label: 'Dashboard'), ErpBreadcrumbItem(label: 'Organizations')],
+                  actions: auth.hasPermission('organization.manage')
+                      ? [FilledButton.icon(onPressed: () => Navigator.of(context).pushNamed('/organizations/create'), icon: const Icon(Icons.add), label: const Text('Add Organization'))]
+                      : null,
+                )),
+              ),
+              if (items.isEmpty)
+                const SliverFillRemaining(hasScrollBody: false, child: _Message(message: 'No organizations found.'))
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                  sliver: SliverToBoxAdapter(child: Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: LayoutBuilder(builder: (context, constraints) {
+                      final compact = constraints.maxWidth < 650;
+                      return compact
+                          ? Column(children: items.map((org) => _OrganizationTile(org: org, onTap: () => Navigator.of(context).pushNamed('/organizations/details', arguments: org['id']))).toList())
+                          : DataTable(
+                              columnSpacing: 28,
+                              horizontalMargin: 20,
+                              headingRowHeight: 52,
+                              dataRowMinHeight: 62,
+                              dataRowMaxHeight: 72,
+                              columns: const [DataColumn(label: Text('Organization')), DataColumn(label: Text('Legal name')), DataColumn(label: Text('Code')), DataColumn(label: Text(''))],
+                              rows: items.map((org) => DataRow(cells: [
+                                DataCell(Text(org['name'] ?? org['code'] ?? 'Unnamed', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600))),
+                                DataCell(Text(org['legalName'] ?? '')),
+                                DataCell(Text(org['code'] ?? '—')),
+                                DataCell(IconButton(onPressed: () => Navigator.of(context).pushNamed('/organizations/details', arguments: org['id']), icon: const Icon(Icons.chevron_right))),
+                              ])).toList(),
+                            );
+                    }),
+                  )),
                 ),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: () => svc.fetchOrganizations(),
-                    child: items.isEmpty
-                        ? ListView(
-                            children: [
-                              Center(
-                                child: Padding(
-                                  padding: EdgeInsets.all(24),
-                                  child: Text('No organizations found.'),
-                                ),
-                              ),
-                            ],
-                          )
-                        : ListView.builder(
-                            itemCount: items.length,
-                            itemBuilder: (context, index) {
-                              final org = items[index];
-                              return ListTile(
-                                title: Text(
-                                  org['name'] ?? org['code'] ?? 'Unnamed',
-                                ),
-                                subtitle: Text(org['legalName'] ?? ''),
-                                onTap: () => Navigator.of(context).pushNamed(
-                                  '/organizations/details',
-                                  arguments: org['id'],
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ),
-              ],
-            ),
-            floatingActionButton: auth.hasPermission('organization.manage')
-                ? FloatingActionButton(
-                    onPressed: () =>
-                        Navigator.of(context)
-                            .pushNamed('/organizations/create'),
-                    child: Icon(Icons.add),
-                  )
-                : null,
-          );
-        },
-      ),
+            ]),
+          ),
+        );
+      }),
     );
   }
+}
+
+class _OrganizationTile extends StatelessWidget {
+  final dynamic org;
+  final VoidCallback onTap;
+  const _OrganizationTile({required this.org, required this.onTap});
+  @override
+  Widget build(BuildContext context) => ListTile(
+    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+    leading: CircleAvatar(child: Text((org['name'] ?? org['code'] ?? '?').toString().substring(0, 1).toUpperCase())),
+    title: Text(org['name'] ?? org['code'] ?? 'Unnamed', style: const TextStyle(fontWeight: FontWeight.w600)),
+    subtitle: Text(org['legalName'] ?? org['code'] ?? ''),
+    trailing: const Icon(Icons.chevron_right),
+    onTap: onTap,
+  );
+}
+
+class _Message extends StatelessWidget {
+  final String message;
+  const _Message({required this.message});
+  @override
+  Widget build(BuildContext context) => Center(child: Padding(padding: const EdgeInsets.all(32), child: Text(message)));
 }
