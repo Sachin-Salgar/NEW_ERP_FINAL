@@ -4,7 +4,7 @@ import 'package:get_it/get_it.dart';
 import '../../core/auth/auth_service.dart';
 import '../../modules/organization/organization_service.dart';
 import '../../modules/user/user_service.dart';
-import '../../presentation/ui/components/page_header.dart';
+import '../../presentation/ui/components/dashboard/storage_details_card.dart';
 import '../../presentation/ui/components/stat_card/erp_stat_card.dart';
 import '../../widgets/app_shell.dart';
 
@@ -118,33 +118,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: RefreshIndicator(
         onRefresh: _refreshDashboard,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
-            ErpPageHeader(
-              title: 'Dashboard',
-              subtitle: 'Overview of your ERP environment',
-              breadcrumbs: const [ErpBreadcrumbItem(label: 'Dashboard')],
-            ),
-            const SizedBox(height: 16),
             LayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.maxWidth;
-                final int columns;
-                final double aspectRatio;
-
-                // Match the upstream template's grid behaviour:
-                // mobile uses two cards when practical, while tablet and
-                // desktop use a four-column card grid.
-                if (width < 650) {
-                  columns = width < 360 ? 1 : 2;
-                  aspectRatio = width > 350 ? 1.3 : 1.0;
-                } else if (width < 1100) {
-                  columns = 4;
-                  aspectRatio = 1.0;
-                } else {
-                  columns = 4;
-                  aspectRatio = width < 1400 ? 1.1 : 1.4;
-                }
+                final columns = width < 520 ? 1 : width < 850 ? 2 : width < 1200 ? 3 : 4;
+                final ratio = width < 520 ? 2.15 : width < 850 ? 1.65 : width < 1200 ? 1.55 : 1.65;
 
                 return GridView.builder(
                   physics: const NeverScrollableScrollPhysics(),
@@ -154,13 +134,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisCount: columns,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
-                    childAspectRatio: aspectRatio,
+                    childAspectRatio: ratio,
                   ),
                   itemBuilder: (context, index) => cards[index],
                 );
               },
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             if (_error != null)
               Container(
                 padding: const EdgeInsets.all(16),
@@ -185,12 +165,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: _refreshDashboard,
-                        child: const Text('Retry'),
-                      ),
+                    TextButton(
+                      onPressed: _refreshDashboard,
+                      child: const Text('Retry'),
                     ),
                   ],
                 ),
@@ -225,39 +202,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                 ),
-              )
-            else
-              Card(
-                margin: const EdgeInsets.only(top: 24),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('ERP Modules', style: theme.textTheme.titleMedium),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          ActionChip(
-                            label: const Text('Organizations'),
-                            onPressed: () => Navigator.of(context).pushNamed('/organizations'),
-                          ),
-                          ActionChip(
-                            label: const Text('Branches'),
-                            onPressed: () => Navigator.of(context).pushNamed('/organizations'),
-                          ),
-                          ActionChip(
-                            label: const Text('Users'),
-                            onPressed: () => Navigator.of(context).pushNamed('/users'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
               ),
+            const SizedBox(height: 20),
+            const StorageDetailsCard(),
           ],
         ),
       ),
