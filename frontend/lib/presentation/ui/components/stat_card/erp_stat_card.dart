@@ -29,7 +29,7 @@ class ErpStatCard extends StatelessWidget {
     final theme = Theme.of(context);
     final accent = accentColor ?? theme.colorScheme.primary;
     final content = Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,14 +38,14 @@ class ErpStatCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                width: 40,
-                height: 40,
-                padding: const EdgeInsets.all(9),
+                width: 38,
+                height: 38,
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: accent.withValues(alpha: .10),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: accent, size: 21),
+                child: Icon(icon, color: accent, size: 20),
               ),
               if (trendLabel != null)
                 Container(
@@ -65,16 +65,16 @@ class ErpStatCard extends StatelessWidget {
                 Icon(Icons.more_vert_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           Text(
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           if (loading)
-            const SizedBox(width: 90, height: 24, child: LinearProgressIndicator())
+            const SizedBox(width: 90, height: 22, child: LinearProgressIndicator())
           else
             Text(
               value,
@@ -83,7 +83,7 @@ class ErpStatCard extends StatelessWidget {
               style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
             ),
           if (subtitle != null) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               subtitle!,
               maxLines: 2,
