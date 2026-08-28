@@ -7,19 +7,59 @@ import '../presentation/ui/components/topbar.dart';
 import '../routing/router.dart';
 import 'profile_context_menu.dart';
 
-class AppShell extends StatelessWidget {
+class AppShell extends StatefulWidget {
   final Widget child;
+
   const AppShell({super.key, required this.child});
+
+  @override
+  State<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends State<AppShell> {
+  bool _sidebarCollapsed = false;
 
   List<Map<String, dynamic>> _navigationItems(AuthService auth) {
     final items = <Map<String, dynamic>>[
-      {'menuName': 'Dashboard', 'path': '/dashboard', 'permissionKey': null, 'moduleCode': 'core'},
-      {'menuName': 'Organizations', 'path': '/organizations', 'permissionKey': AppRouter.routePermissions['/organizations'], 'moduleCode': 'organization'},
-      {'menuName': 'Branches', 'path': '/organizations/branches', 'permissionKey': AppRouter.routePermissions['/organizations/branches'], 'moduleCode': 'branch'},
-      {'menuName': 'Users', 'path': '/users', 'permissionKey': AppRouter.routePermissions['/users'], 'moduleCode': 'user-management'},
-      {'menuName': 'Roles', 'path': '/roles', 'permissionKey': AppRouter.routePermissions['/roles'], 'moduleCode': 'security'},
-      {'menuName': 'Permissions', 'path': '/permissions', 'permissionKey': AppRouter.routePermissions['/permissions'], 'moduleCode': 'security'},
+      {
+        'menuName': 'Dashboard',
+        'path': '/dashboard',
+        'permissionKey': null,
+        'moduleCode': 'core',
+      },
+      {
+        'menuName': 'Organizations',
+        'path': '/organizations',
+        'permissionKey': AppRouter.routePermissions['/organizations'],
+        'moduleCode': 'organization',
+      },
+      {
+        'menuName': 'Branches',
+        'path': '/organizations/branches',
+        'permissionKey':
+            AppRouter.routePermissions['/organizations/branches'],
+        'moduleCode': 'branch',
+      },
+      {
+        'menuName': 'Users',
+        'path': '/users',
+        'permissionKey': AppRouter.routePermissions['/users'],
+        'moduleCode': 'user-management',
+      },
+      {
+        'menuName': 'Roles',
+        'path': '/roles',
+        'permissionKey': AppRouter.routePermissions['/roles'],
+        'moduleCode': 'security',
+      },
+      {
+        'menuName': 'Permissions',
+        'path': '/permissions',
+        'permissionKey': AppRouter.routePermissions['/permissions'],
+        'moduleCode': 'security',
+      },
     ];
+
     return items.where((item) {
       final permission = item['permissionKey'] as String?;
       final module = item['moduleCode'] as String?;
@@ -34,7 +74,13 @@ class AppShell extends StatelessWidget {
 
   Future<void> _logout(BuildContext context, AuthService auth) async {
     await auth.logout();
-    if (context.mounted) Navigator.of(context).pushReplacementNamed('/login');
+    if (context.mounted) {
+      Navigator.of(context).pushReplacementNamed('/login');
+    }
+  }
+
+  void _toggleSidebar() {
+    setState(() => _sidebarCollapsed = !_sidebarCollapsed);
   }
 
   @override
@@ -42,34 +88,37 @@ class AppShell extends StatelessWidget {
     final auth = GetIt.instance.get<AuthService>();
     final navItems = _navigationItems(auth);
     final width = MediaQuery.sizeOf(context).width;
+    final isDesktop = width >= 1100;
 
-    // The upstream template uses a 1/6 : 5/6 shell split on desktop.
-    // Keeping that proportional split is important: the dashboard's own
-    // 5/7 : 2/7 content split then scales naturally as the window changes.
-    if (width >= 1100) {
+    if (isDesktop) {
       return Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              flex: 1,
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeInOut,
+              width: _sidebarCollapsed ? 76 : width / 6,
               child: Sidebar(
-                selectedRoute: ModalRoute.of(context)?.settings.name ?? '/',
+                collapsed: _sidebarCollapsed,
+                selectedRoute:
+                    ModalRoute.of(context)?.settings.name ?? '/',
                 onSelect: (route) => _handleNavigate(context, route),
               ),
             ),
             Expanded(
-              flex: 5,
               child: Column(
                 children: [
                   TopBar(
                     title: _pageTitle(ModalRoute.of(context)?.settings.name),
+                    onMenuPressed: _toggleSidebar,
                     actions: [
-                      if (auth.currentUser != null) const ProfileContextMenu(),
+                      if (auth.currentUser != null)
+                        const ProfileContextMenu(),
                     ],
                   ),
-                  Expanded(child: child),
+                  Expanded(child: widget.child),
                 ],
               ),
             ),
@@ -98,11 +147,14 @@ class AppShell extends StatelessWidget {
                   children: navItems
                       .map(
                         (item) => ListTile(
-                          leading: Icon(_iconForRoute(item['path'] as String)),
+                          leading:
+                              Icon(_iconForRoute(item['path'] as String)),
                           title: Text(item['menuName'] as String),
-                          selected: ModalRoute.of(context)?.settings.name ==
-                              item['path'],
-                          selectedColor: Theme.of(context).colorScheme.primary,
+                          selected:
+                              ModalRoute.of(context)?.settings.name ==
+                                  item['path'],
+                          selectedColor:
+                              Theme.of(context).colorScheme.primary,
                           onTap: () {
                             Navigator.of(context).pop();
                             _handleNavigate(context, item['path'] as String);
@@ -122,7 +174,7 @@ class AppShell extends StatelessWidget {
           ),
         ),
       ),
-      body: child,
+      body: widget.child,
     );
   }
 
@@ -137,10 +189,16 @@ class AppShell extends StatelessWidget {
 
   static IconData _iconForRoute(String route) {
     if (route == '/dashboard') return Icons.dashboard_outlined;
-    if (route.startsWith('/organizations/branches')) return Icons.store_outlined;
-    if (route.startsWith('/organizations')) return Icons.apartment_outlined;
+    if (route.startsWith('/organizations/branches')) {
+      return Icons.store_outlined;
+    }
+    if (route.startsWith('/organizations')) {
+      return Icons.apartment_outlined;
+    }
     if (route.startsWith('/users')) return Icons.people_outline;
-    if (route.startsWith('/roles')) return Icons.admin_panel_settings_outlined;
+    if (route.startsWith('/roles')) {
+      return Icons.admin_panel_settings_outlined;
+    }
     return Icons.lock_outline;
   }
 }
