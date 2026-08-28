@@ -6,8 +6,14 @@ import '../../../core/auth/auth_service.dart';
 class Sidebar extends StatelessWidget {
   final String selectedRoute;
   final ValueChanged<String>? onSelect;
+  final bool collapsed;
 
-  const Sidebar({super.key, required this.selectedRoute, this.onSelect});
+  const Sidebar({
+    super.key,
+    required this.selectedRoute,
+    this.onSelect,
+    this.collapsed = false,
+  });
 
   List<Map<String, dynamic>> _groups(AuthService auth) {
     final groups = [
@@ -64,6 +70,7 @@ class Sidebar extends StatelessWidget {
         ],
       },
     ];
+
     return groups
         .map((group) {
           final items = (group['items'] as List<Map<String, dynamic>>)
@@ -87,6 +94,7 @@ class Sidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = GetIt.instance.get<AuthService>();
     final theme = Theme.of(context);
+
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
@@ -97,8 +105,16 @@ class Sidebar extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 22, 16, 20),
+              padding: EdgeInsets.fromLTRB(
+                collapsed ? 12 : 16,
+                22,
+                collapsed ? 12 : 16,
+                20,
+              ),
               child: Row(
+                mainAxisAlignment: collapsed
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.start,
                 children: [
                   Container(
                     width: 38,
@@ -113,17 +129,19 @@ class Sidebar extends StatelessWidget {
                       size: 21,
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'NEW ERP',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
+                  if (!collapsed) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'NEW ERP',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -136,21 +154,22 @@ class Sidebar extends StatelessWidget {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                        child: Text(
-                          group['title'] as String,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            letterSpacing: 1.1,
-                            fontWeight: FontWeight.w600,
+                      if (!collapsed)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                          child: Text(
+                            group['title'] as String,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              letterSpacing: 1.1,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                      ),
                       ...items.map((item) {
                         final selected = _selected(item['path'] as String);
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
+                        final tile = Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: collapsed ? 8 : 8,
                             vertical: 2,
                           ),
                           child: Material(
@@ -160,13 +179,17 @@ class Sidebar extends StatelessWidget {
                             borderRadius: BorderRadius.circular(10),
                             child: InkWell(
                               borderRadius: BorderRadius.circular(10),
-                              onTap: () => onSelect?.call(item['path'] as String),
+                              onTap: () =>
+                                  onSelect?.call(item['path'] as String),
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: collapsed ? 0 : 10,
                                   vertical: 11,
                                 ),
                                 child: Row(
+                                  mainAxisAlignment: collapsed
+                                      ? MainAxisAlignment.center
+                                      : MainAxisAlignment.start,
                                   children: [
                                     Icon(
                                       item['icon'] as IconData,
@@ -175,29 +198,38 @@ class Sidebar extends StatelessWidget {
                                           ? theme.colorScheme.primary
                                           : theme.colorScheme.onSurfaceVariant,
                                     ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        item['label'] as String,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: theme.textTheme.bodyMedium
-                                            ?.copyWith(
-                                          fontWeight: selected
-                                              ? FontWeight.w600
-                                              : FontWeight.w400,
-                                          color: selected
-                                              ? theme.colorScheme.primary
-                                              : null,
+                                    if (!collapsed) ...[
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          item['label'] as String,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(
+                                            fontWeight: selected
+                                                ? FontWeight.w600
+                                                : FontWeight.w400,
+                                            color: selected
+                                                ? theme.colorScheme.primary
+                                                : null,
+                                          ),
                                         ),
                                       ),
-                                    ),
+                                    ],
                                   ],
                                 ),
                               ),
                             ),
                           ),
                         );
+
+                        return collapsed
+                            ? Tooltip(
+                                message: item['label'] as String,
+                                child: tile,
+                              )
+                            : tile;
                       }),
                       const SizedBox(height: 10),
                     ],
@@ -205,17 +237,19 @@ class Sidebar extends StatelessWidget {
                 }).toList(),
               ),
             ),
-            Divider(height: 1, color: theme.dividerColor),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Text(
-                'NEW ERP • CORE',
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall,
+            if (!collapsed) ...[
+              Divider(height: 1, color: theme.dividerColor),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  'NEW ERP • CORE',
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall,
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
