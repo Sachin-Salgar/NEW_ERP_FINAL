@@ -21,31 +21,22 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       child: Row(
         children: [
-          Expanded(
-            child: Text(title, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
-          ),
-          SizedBox(
-            width: 280,
-            height: 42,
-            child: TextField(
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: 'Search',
-                prefixIcon: const Icon(Icons.search, size: 20),
-                filled: true,
-                fillColor: theme.scaffoldBackgroundColor,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
+          Expanded(child: Text(title, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600))),
+          if (MediaQuery.sizeOf(context).width >= 1000) ...[
+            SizedBox(
+              width: 280,
+              height: 42,
+              child: TextField(
+                textInputAction: TextInputAction.search,
+                decoration: const InputDecoration(
+                  hintText: 'Search',
+                  prefixIcon: Icon(Icons.search, size: 20),
                 ),
               ),
             ),
-          ),
-          if (actions != null) ...[
             const SizedBox(width: 12),
-            ...actions!,
           ],
+          if (actions != null) ...actions!,
         ],
       ),
     );
