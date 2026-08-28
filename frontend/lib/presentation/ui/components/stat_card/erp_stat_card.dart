@@ -29,15 +29,26 @@ class ErpStatCard extends StatelessWidget {
     final theme = Theme.of(context);
     final accent = accentColor ?? theme.colorScheme.primary;
     final card = Card(
+      margin: EdgeInsets.zero,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final compact = constraints.maxWidth < 220;
-          final padding = constraints.maxWidth < 180
+          final veryCompact = constraints.maxWidth < 170;
+          final padding = veryCompact
               ? 8.0
               : compact
-              ? 10.0
-              : 14.0;
-          final iconSize = compact ? 34.0 : 38.0;
+                  ? 10.0
+                  : 14.0;
+          final iconSize = veryCompact
+              ? 32.0
+              : compact
+                  ? 34.0
+                  : 38.0;
+          final valueStyle = veryCompact
+              ? theme.textTheme.titleLarge
+              : compact
+                  ? theme.textTheme.titleLarge
+                  : theme.textTheme.headlineSmall;
 
           return Padding(
             padding: EdgeInsets.all(padding),
@@ -50,12 +61,16 @@ class ErpStatCard extends StatelessWidget {
                     Container(
                       width: iconSize,
                       height: iconSize,
-                      padding: EdgeInsets.all(compact ? 7 : 8),
+                      padding: EdgeInsets.all(veryCompact ? 6 : 7),
                       decoration: BoxDecoration(
                         color: accent.withValues(alpha: .10),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(icon, color: accent, size: compact ? 18 : 20),
+                      child: Icon(
+                        icon,
+                        color: accent,
+                        size: veryCompact ? 17 : 19,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -66,7 +81,7 @@ class ErpStatCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: compact ? 8 : 12),
+                SizedBox(height: veryCompact ? 7 : compact ? 8 : 12),
                 Text(
                   title,
                   maxLines: 1,
@@ -79,7 +94,7 @@ class ErpStatCard extends StatelessWidget {
                 if (loading)
                   const SizedBox(
                     width: double.infinity,
-                    height: 22,
+                    height: 5,
                     child: LinearProgressIndicator(),
                   )
                 else
@@ -87,15 +102,13 @@ class ErpStatCard extends StatelessWidget {
                     value,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: valueStyle?.copyWith(fontWeight: FontWeight.w700),
                   ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 4),
                   Text(
                     subtitle!,
-                    maxLines: 1,
+                    maxLines: veryCompact ? 2 : 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall,
                   ),
@@ -118,7 +131,7 @@ class ErpStatCard extends StatelessWidget {
     if (trendLabel != null) {
       return Container(
         constraints: const BoxConstraints(maxWidth: 90),
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: accent.withValues(alpha: .10),
           borderRadius: BorderRadius.circular(10),
