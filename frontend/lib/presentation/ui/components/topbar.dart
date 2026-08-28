@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../widgets/theme_mode_button.dart';
+
 class TopBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
   final String title;
@@ -36,6 +38,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
             ),
             const SizedBox(width: 12),
           ],
+          const ThemeModeButton(),
           if (actions != null) ...actions!,
         ],
       ),
