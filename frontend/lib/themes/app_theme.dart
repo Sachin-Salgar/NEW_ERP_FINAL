@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-
-import '../presentation/ui/theme/fui_typography.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  static final _fuiTypo = FUITypographyThemeLight();
+  static final TextTheme _poppins = GoogleFonts.poppinsTextTheme();
 
   static final ThemeData lightTheme = ThemeData(
     useMaterial3: true,
@@ -28,15 +27,15 @@ class AppTheme {
       elevation: 0,
       scrolledUnderElevation: 0,
     ),
-    textTheme: TextTheme(
-      displayLarge: _fuiTypo.h1,
-      displayMedium: _fuiTypo.h2,
-      displaySmall: _fuiTypo.h3,
-      headlineLarge: _fuiTypo.h4,
-      headlineMedium: _fuiTypo.h5,
-      bodyLarge: _fuiTypo.regular,
-      bodyMedium: _fuiTypo.smallText,
-      titleSmall: _fuiTypo.fieldLabel,
+    textTheme: _poppins.copyWith(
+      displayLarge: _poppins.displayLarge?.copyWith(fontWeight: FontWeight.w600),
+      displayMedium: _poppins.displayMedium?.copyWith(fontWeight: FontWeight.w600),
+      displaySmall: _poppins.displaySmall?.copyWith(fontWeight: FontWeight.w600),
+      headlineLarge: _poppins.headlineLarge?.copyWith(fontWeight: FontWeight.w600),
+      headlineMedium: _poppins.headlineMedium?.copyWith(fontWeight: FontWeight.w600),
+      titleLarge: _poppins.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+      titleMedium: _poppins.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+      titleSmall: _poppins.titleSmall?.copyWith(fontWeight: FontWeight.w500),
     ),
     dividerTheme: const DividerThemeData(
       color: Color(0xFFE4E9F2),
