@@ -43,7 +43,9 @@ class AppShell extends StatelessWidget {
     final navItems = _navigationItems(auth);
     final width = MediaQuery.sizeOf(context).width;
 
-    if (width >= 850) {
+    // Match the upstream template's responsive model: desktop keeps the
+    // navigation rail visible; tablet/mobile use the navigation drawer.
+    if (width >= 1100) {
       return Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: Row(
@@ -73,8 +75,8 @@ class AppShell extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text('NEW ERP', style: Theme.of(context).textTheme.titleLarge),
+      appBar: TopBar(
+        title: _pageTitle(ModalRoute.of(context)?.settings.name),
         actions: [
           if (auth.currentUser != null) const ProfileContextMenu(),
         ],
@@ -84,13 +86,15 @@ class AppShell extends StatelessWidget {
           child: Column(
             children: [
               _BrandHeader(),
-              const Divider(height: 1),
+              Divider(height: 1, color: Theme.of(context).dividerColor),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   children: navItems.map((item) => ListTile(
                     leading: Icon(_iconForRoute(item['path'] as String)),
                     title: Text(item['menuName'] as String),
+                    selected: ModalRoute.of(context)?.settings.name == item['path'],
+                    selectedColor: Theme.of(context).colorScheme.primary,
                     onTap: () {
                       Navigator.of(context).pop();
                       _handleNavigate(context, item['path'] as String);
@@ -98,7 +102,7 @@ class AppShell extends StatelessWidget {
                   )).toList(),
                 ),
               ),
-              const Divider(height: 1),
+              Divider(height: 1, color: Theme.of(context).dividerColor),
               ListTile(
                 leading: const Icon(Icons.logout_outlined),
                 title: const Text('Logout'),
@@ -134,6 +138,7 @@ class AppShell extends StatelessWidget {
 class _BrandHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
       child: Row(
@@ -142,13 +147,13 @@ class _BrandHeader extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
+              color: theme.colorScheme.primary,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(Icons.grid_view_rounded, color: Theme.of(context).colorScheme.onPrimary),
+            child: Icon(Icons.grid_view_rounded, color: theme.colorScheme.onPrimary),
           ),
           const SizedBox(width: 12),
-          Text('NEW ERP', style: Theme.of(context).textTheme.titleLarge),
+          Text('NEW ERP', style: theme.textTheme.titleLarge),
         ],
       ),
     );
