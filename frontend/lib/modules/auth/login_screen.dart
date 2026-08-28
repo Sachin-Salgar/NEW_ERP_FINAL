@@ -50,13 +50,44 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 28),
             Text('Welcome back', textAlign: TextAlign.center, style: theme.textTheme.headlineMedium?.copyWith(fontSize: 34, fontWeight: FontWeight.w700, color: const Color(0xFF1B2737))),
             const SizedBox(height: 10),
-            Text('Sign in to continue to your ERP workspace.', textAlign: TextAlign.center, style: theme.textTheme.bodyLarge?.copyWith(fontSize: 18, color: const Color(0xFF667085))),
+            // Keep the supporting copy on one line on phones; FittedBox scales it
+            // down only when the available width requires it.
+            SizedBox(
+              width: double.infinity,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text('Sign in to continue to your ERP workspace.', textAlign: TextAlign.center, style: theme.textTheme.bodyLarge?.copyWith(fontSize: 16, color: const Color(0xFF667085))),
+              ),
+            ),
             const SizedBox(height: 28),
             TextFormField(key: const ValueKey('login_identifier_field'), controller: _identifierController, textInputAction: TextInputAction.next, validator: (v) => (v ?? '').trim().isEmpty ? 'Enter your email or username.' : null, decoration: _inputDecoration('Email or username', 'you@company.com', Icons.person_outline_rounded)),
             const SizedBox(height: 18),
             TextFormField(key: const ValueKey('login_password_field'), controller: _passwordController, obscureText: _obscurePassword, textInputAction: TextInputAction.done, onFieldSubmitted: (_) => _submit(), validator: (v) => (v ?? '').isEmpty ? 'Enter your password.' : null, decoration: _inputDecoration('Password', null, Icons.lock_outline_rounded).copyWith(suffixIcon: IconButton(onPressed: () => setState(() => _obscurePassword = !_obscurePassword), icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined)))),
             const SizedBox(height: 14),
-            Row(children: [Checkbox(value: _rememberMe, onChanged: _isSubmitting ? null : (v) => setState(() => _rememberMe = v ?? false)), const Expanded(child: Text('Remember me', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500))), TextButton(onPressed: _isSubmitting ? null : () {}, child: const Text('Forgot password?'))]),
+            Row(
+              children: [
+                Checkbox(
+                  value: _rememberMe,
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  onChanged: _isSubmitting ? null : (v) => setState(() => _rememberMe = v ?? false),
+                ),
+                const SizedBox(width: 4),
+                const Flexible(
+                  child: Text('Remember me', maxLines: 1, softWrap: false, overflow: TextOverflow.visible, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 40),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: _isSubmitting ? null : () {},
+                  child: const Text('Forgot password?', maxLines: 1, style: TextStyle(fontSize: 14)),
+                ),
+              ],
+            ),
             if (_errorMessage != null) ...[const SizedBox(height: 8), Text(_errorMessage!, style: TextStyle(color: Colors.red))],
             const SizedBox(height: 20),
             SizedBox(width: double.infinity, height: 56, child: FilledButton(key: const ValueKey('login_submit_button'), onPressed: _isSubmitting ? null : _submit, child: _isSubmitting ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white)) : const Text('Sign in', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700)))),
