@@ -55,7 +55,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final user = _authService.currentUser;
-    final tenant = _authService.currentTenantId;
     final currentLocation = _authService.currentLocationId ?? 'Not selected';
     final username = user != null
         ? (user['username'] ?? user['email'] ?? 'User')
@@ -93,13 +92,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onTap: _authService.isAuthenticated
             ? null
             : () => Navigator.of(context).pushReplacementNamed('/login'),
-      ),
-      ErpStatCard(
-        title: 'Tenant',
-        value: tenant ?? 'Unknown',
-        icon: Icons.business_outlined,
-        subtitle: 'Active tenant workspace',
-        accentColor: Colors.orange,
       ),
       ErpStatCard(
         title: 'Location',
@@ -237,8 +229,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               );
             }
 
-            // Mobile and tablet use two stat columns. The fifth card flows
-            // onto the next row, matching the compact responsive layout.
+            // Mobile and tablet use two stat columns. The cards flow onto
+            // subsequent rows, matching the compact responsive layout.
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               children: [
