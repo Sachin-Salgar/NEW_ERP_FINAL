@@ -100,8 +100,11 @@ class _StorageChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
-    final radius = math.max(0, math.min(size.width, size.height) / 2 - 8);
-    final stroke = math.max(18.0, math.min(28.0, radius * .24));
+    final radius = math.max(
+      0.0,
+      math.min(size.width, size.height) / 2 - 8,
+    ).toDouble();
+    final stroke = math.max(18.0, math.min(28.0, radius * .24)).toDouble();
     final background = Paint()
       ..color = scheme.primary.withValues(alpha: .12)
       ..style = PaintingStyle.stroke
