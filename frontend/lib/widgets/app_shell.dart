@@ -9,21 +9,28 @@ import 'profile_context_menu.dart';
 
 class AppShell extends StatelessWidget {
   final Widget child;
-  const AppShell({Key? key, required this.child}) : super(key: key);
+  const AppShell({super.key, required this.child});
 
   List<Map<String, dynamic>> _navigationItems(AuthService auth) {
     final items = <Map<String, dynamic>>[
-      {'menuName': 'Dashboard', 'path': '/dashboard', 'permissionKey': null},
-      {'menuName': 'Organizations', 'path': '/organizations', 'permissionKey': AppRouter.routePermissions['/organizations']},
-      {'menuName': 'Branches', 'path': '/organizations/branches', 'permissionKey': AppRouter.routePermissions['/organizations/branches']},
-      {'menuName': 'Users', 'path': '/users', 'permissionKey': AppRouter.routePermissions['/users']},
-      {'menuName': 'Roles', 'path': '/roles', 'permissionKey': AppRouter.routePermissions['/roles']},
-      {'menuName': 'Permissions', 'path': '/permissions', 'permissionKey': AppRouter.routePermissions['/permissions']},
+      {'menuName': 'Dashboard', 'path': '/dashboard', 'permissionKey': null, 'moduleCode': 'core'},
+      {'menuName': 'Organizations', 'path': '/organizations', 'permissionKey': AppRouter.routePermissions['/organizations'], 'moduleCode': 'organization'},
+      {'menuName': 'Branches', 'path': '/organizations/branches', 'permissionKey': AppRouter.routePermissions['/organizations/branches'], 'moduleCode': 'branch'},
+      {'menuName': 'Users', 'path': '/users', 'permissionKey': AppRouter.routePermissions['/users'], 'moduleCode': 'user-management'},
+      {'menuName': 'Roles', 'path': '/roles', 'permissionKey': AppRouter.routePermissions['/roles'], 'moduleCode': 'security'},
+      {'menuName': 'Permissions', 'path': '/permissions', 'permissionKey': AppRouter.routePermissions['/permissions'], 'moduleCode': 'security'},
     ];
-    return items.where((item) => item['permissionKey'] == null || auth.hasPermission(item['permissionKey'] as String)).toList();
+    return items.where((item) {
+      final permission = item['permissionKey'] as String?;
+      final module = item['moduleCode'] as String?;
+      return (permission == null || auth.hasPermission(permission)) &&
+          (module == null || auth.hasModule(module));
+    }).toList();
   }
 
-  void _handleNavigate(BuildContext context, String route) => Navigator.of(context).pushReplacementNamed(route);
+  void _handleNavigate(BuildContext context, String route) {
+    Navigator.of(context).pushReplacementNamed(route);
+  }
 
   Future<void> _logout(BuildContext context, AuthService auth) async {
     await auth.logout();
@@ -33,44 +40,117 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = GetIt.instance.get<AuthService>();
-    final width = MediaQuery.of(context).size.width;
     final navItems = _navigationItems(auth);
+    final width = MediaQuery.sizeOf(context).width;
 
-    if (width >= 800) {
+    if (width >= 850) {
       return Scaffold(
-        body: Row(children: [
-          Container(
-            decoration: BoxDecoration(border: Border(right: BorderSide(color: Theme.of(context).dividerColor, width: 1))),
-            child: Sidebar(selectedRoute: ModalRoute.of(context)?.settings.name ?? '/', onSelect: (r) => _handleNavigate(context, r)),
-          ),
-          Expanded(child: Column(children: [
-            TopBar(
-              title: 'NEW ERP',
-              actions: [
-                if (auth.currentUser != null) const ProfileContextMenu(),
-              ],
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Sidebar(
+              selectedRoute: ModalRoute.of(context)?.settings.name ?? '/',
+              onSelect: (route) => _handleNavigate(context, route),
             ),
-            Expanded(child: child),
-          ])),
-        ]),
+            Expanded(
+              child: Column(
+                children: [
+                  TopBar(
+                    title: _pageTitle(ModalRoute.of(context)?.settings.name),
+                    actions: [
+                      if (auth.currentUser != null) const ProfileContextMenu(),
+                    ],
+                  ),
+                  Expanded(child: child),
+                ],
+              ),
+            ),
+          ],
+        ),
       );
     }
 
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('NEW ERP'),
+        title: Text('NEW ERP', style: Theme.of(context).textTheme.titleLarge),
         actions: [
           if (auth.currentUser != null) const ProfileContextMenu(),
         ],
       ),
       drawer: Drawer(
-        child: ListView(children: [
-          const DrawerHeader(child: Text('Navigation')),
-          ...navItems.map((item) => ListTile(title: Text(item['menuName'] as String), onTap: () => _handleNavigate(context, item['path'] as String))),
-          ListTile(leading: const Icon(Icons.logout), title: const Text('Logout'), onTap: () => _logout(context, auth)),
-        ]),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _BrandHeader(),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  children: navItems.map((item) => ListTile(
+                    leading: Icon(_iconForRoute(item['path'] as String)),
+                    title: Text(item['menuName'] as String),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      _handleNavigate(context, item['path'] as String);
+                    },
+                  )).toList(),
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.logout_outlined),
+                title: const Text('Logout'),
+                onTap: () => _logout(context, auth),
+              ),
+            ],
+          ),
+        ),
       ),
       body: child,
+    );
+  }
+
+  String _pageTitle(String? route) {
+    if (route == null) return 'Dashboard';
+    if (route.startsWith('/organizations')) return 'Organizations';
+    if (route.startsWith('/users')) return 'Users';
+    if (route.startsWith('/roles')) return 'Roles';
+    if (route.startsWith('/permissions')) return 'Permissions';
+    return 'Dashboard';
+  }
+
+  static IconData _iconForRoute(String route) {
+    if (route == '/dashboard') return Icons.dashboard_outlined;
+    if (route.startsWith('/organizations/branches')) return Icons.store_outlined;
+    if (route.startsWith('/organizations')) return Icons.apartment_outlined;
+    if (route.startsWith('/users')) return Icons.people_outline;
+    if (route.startsWith('/roles')) return Icons.admin_panel_settings_outlined;
+    return Icons.lock_outline;
+  }
+}
+
+class _BrandHeader extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.grid_view_rounded, color: Theme.of(context).colorScheme.onPrimary),
+          ),
+          const SizedBox(width: 12),
+          Text('NEW ERP', style: Theme.of(context).textTheme.titleLarge),
+        ],
+      ),
     );
   }
 }
