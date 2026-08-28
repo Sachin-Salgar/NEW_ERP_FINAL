@@ -17,12 +17,24 @@ class ProfileContextMenu extends StatelessWidget {
       animation: Listenable.merge([auth, themeController]),
       builder: (context, _) {
         final user = auth.currentUser ?? const <String, dynamic>{};
-        final name = (user['displayName'] ?? user['name'] ?? user['username'] ?? user['email'] ?? 'User').toString();
+        final name =
+            (user['displayName'] ??
+                    user['name'] ??
+                    user['username'] ??
+                    user['email'] ??
+                    'User')
+                .toString();
         final email = (user['email'] ?? '').toString();
         final currentOrg = auth.currentOrganizationId;
         final currentLocation = auth.currentLocationId;
-        final orgLabel = auth.availableOrganizations.where((o) => (o['id'] ?? '').toString() == currentOrg).map((o) => (o['name'] ?? o['code'] ?? currentOrg).toString()).firstOrNull;
-        final locationLabel = auth.availableLocations.where((l) => (l['id'] ?? '').toString() == currentLocation).map((l) => (l['name'] ?? l['code'] ?? currentLocation).toString()).firstOrNull;
+        final orgLabel = auth.availableOrganizations
+            .where((o) => (o['id'] ?? '').toString() == currentOrg)
+            .map((o) => (o['name'] ?? o['code'] ?? currentOrg).toString())
+            .firstOrNull;
+        final locationLabel = auth.availableLocations
+            .where((l) => (l['id'] ?? '').toString() == currentLocation)
+            .map((l) => (l['name'] ?? l['code'] ?? currentLocation).toString())
+            .firstOrNull;
 
         return PopupMenuButton<String>(
           tooltip: 'Profile and working context',
@@ -36,44 +48,138 @@ class ProfileContextMenu extends StatelessWidget {
               await themeController.toggle();
             } else if (value == 'logout') {
               await auth.logout();
-              if (context.mounted) Navigator.of(context).pushReplacementNamed('/login');
+              if (context.mounted)
+                Navigator.of(context).pushReplacementNamed('/login');
             } else if (value == 'profile') {
               // Profile page will be wired here when the user-profile module is implemented.
             }
           },
           itemBuilder: (context) => [
-            PopupMenuItem<String>(enabled: false, child: ListTile(contentPadding: EdgeInsets.zero, leading: const CircleAvatar(child: Icon(Icons.person_outline)), title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis), subtitle: Text(email, maxLines: 1, overflow: TextOverflow.ellipsis))),
+            PopupMenuItem<String>(
+              enabled: false,
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+                title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                subtitle: Text(
+                  email,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
             const PopupMenuDivider(),
             PopupMenuItem<String>(
               value: 'theme',
-              child: Row(children: [
-                Icon(themeController.isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined, size: 20),
-                const SizedBox(width: 10),
-                Text(themeController.isDark ? 'Light mode' : 'Dark mode'),
-              ]),
+              child: Row(
+                children: [
+                  Icon(
+                    themeController.isDark
+                        ? Icons.light_mode_outlined
+                        : Icons.dark_mode_outlined,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(themeController.isDark ? 'Light mode' : 'Dark mode'),
+                ],
+              ),
             ),
             const PopupMenuDivider(),
-            const PopupMenuItem<String>(enabled: false, child: Text('WORKING CONTEXT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700))),
+            const PopupMenuItem<String>(
+              enabled: false,
+              child: Text(
+                'WORKING CONTEXT',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+              ),
+            ),
             if (auth.availableOrganizations.isNotEmpty)
-              PopupMenuItem<String>(enabled: false, child: Text('Organisation: ${orgLabel ?? 'Not selected'}')),
+              PopupMenuItem<String>(
+                enabled: false,
+                child: Text('Organisation: ${orgLabel ?? 'Not selected'}'),
+              ),
             ...auth.availableOrganizations.map((org) {
               final id = (org['id'] ?? '').toString();
               final label = (org['name'] ?? org['code'] ?? id).toString();
-              return PopupMenuItem<String>(value: 'org:$id', child: Row(children: [Icon(id == currentOrg ? Icons.check : Icons.business_outlined, size: 19), const SizedBox(width: 10), Expanded(child: Text(label, overflow: TextOverflow.ellipsis))]));
+              return PopupMenuItem<String>(
+                value: 'org:$id',
+                child: Row(
+                  children: [
+                    Icon(
+                      id == currentOrg ? Icons.check : Icons.business_outlined,
+                      size: 19,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(label, overflow: TextOverflow.ellipsis),
+                    ),
+                  ],
+                ),
+              );
             }),
             const PopupMenuDivider(),
             if (auth.availableLocations.isNotEmpty)
-              PopupMenuItem<String>(enabled: false, child: Text('Location: ${locationLabel ?? 'Not selected'}')),
+              PopupMenuItem<String>(
+                enabled: false,
+                child: Text('Location: ${locationLabel ?? 'Not selected'}'),
+              ),
             ...auth.availableLocations.map((location) {
               final id = (location['id'] ?? '').toString();
-              final label = (location['name'] ?? location['code'] ?? id).toString();
-              return PopupMenuItem<String>(value: 'location:$id', child: Row(children: [Icon(id == currentLocation ? Icons.check : Icons.location_on_outlined, size: 19), const SizedBox(width: 10), Expanded(child: Text(label, overflow: TextOverflow.ellipsis))]));
+              final label = (location['name'] ?? location['code'] ?? id)
+                  .toString();
+              return PopupMenuItem<String>(
+                value: 'location:$id',
+                child: Row(
+                  children: [
+                    Icon(
+                      id == currentLocation
+                          ? Icons.check
+                          : Icons.location_on_outlined,
+                      size: 19,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(label, overflow: TextOverflow.ellipsis),
+                    ),
+                  ],
+                ),
+              );
             }),
             const PopupMenuDivider(),
-            const PopupMenuItem<String>(value: 'profile', child: ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.manage_accounts_outlined), title: Text('My Profile'))),
-            const PopupMenuItem<String>(value: 'logout', child: ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.logout), title: Text('Logout'))),
+            const PopupMenuItem<String>(
+              value: 'profile',
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.manage_accounts_outlined),
+                title: Text('My Profile'),
+              ),
+            ),
+            const PopupMenuItem<String>(
+              value: 'logout',
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.logout),
+                title: Text('Logout'),
+              ),
+            ),
           ],
-          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), child: Row(mainAxisSize: MainAxisSize.min, children: [const CircleAvatar(radius: 16, child: Icon(Icons.person_outline, size: 18)), const SizedBox(width: 7), Flexible(child: Text(name, overflow: TextOverflow.ellipsis)), const SizedBox(width: 4), const Icon(Icons.keyboard_arrow_down)])),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircleAvatar(
+                  radius: 16,
+                  child: Icon(Icons.person_outline, size: 18),
+                ),
+                if (MediaQuery.sizeOf(context).width >= 600) ...[
+                  const SizedBox(width: 7),
+                  Flexible(child: Text(name, overflow: TextOverflow.ellipsis)),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.keyboard_arrow_down),
+                ],
+              ],
+            ),
+          ),
         );
       },
     );

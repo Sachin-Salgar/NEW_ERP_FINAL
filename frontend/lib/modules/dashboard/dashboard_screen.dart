@@ -5,6 +5,7 @@ import '../../core/auth/auth_service.dart';
 import '../../modules/organization/organization_service.dart';
 import '../../modules/user/user_service.dart';
 import '../../presentation/ui/components/dashboard/storage_details_card.dart';
+import '../../presentation/ui/components/responsive.dart';
 import '../../presentation/ui/components/stat_card/erp_stat_card.dart';
 import '../../widgets/app_shell.dart';
 
@@ -178,15 +179,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     Widget statGrid() {
+      final isDesktop = ErpResponsive.isDesktop(context);
       return GridView.builder(
         physics: const NeverScrollableScrollPhysics(),
         shrinkWrap: true,
         itemCount: cards.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: isDesktop ? 4 : 2,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
-          childAspectRatio: 1.48,
+          childAspectRatio: isDesktop ? 1.35 : 1.1,
         ),
         itemBuilder: (context, index) => cards[index],
       );
@@ -197,9 +199,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onRefresh: _refreshDashboard,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final desktopLayout = constraints.maxWidth >= 1200;
+            final desktopLayout = ErpResponsive.isDesktop(context);
 
             if (desktopLayout) {
+              final storageWidth = constraints.maxWidth < 900 ? 300.0 : 390.0;
               return ListView(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
                 children: [
@@ -219,9 +222,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      const SizedBox(
-                        width: 390,
-                        child: StorageDetailsCard(),
+                      SizedBox(
+                        width: storageWidth,
+                        child: const StorageDetailsCard(),
                       ),
                     ],
                   ),
@@ -242,7 +245,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisCount: 2,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
-                    childAspectRatio: 1.48,
+                    childAspectRatio: 1.1,
                   ),
                   itemBuilder: (context, index) => cards[index],
                 ),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
 import '../../../core/auth/auth_service.dart';
-import '../../../routing/router.dart';
 
 class Sidebar extends StatelessWidget {
   final String selectedRoute;

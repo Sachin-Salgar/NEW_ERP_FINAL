@@ -28,8 +28,9 @@ class ErpStatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accent = accentColor ?? theme.colorScheme.primary;
+    final compact = MediaQuery.sizeOf(context).width < 1100;
     final content = Padding(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(compact ? 12 : 14),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,55 +39,73 @@ class ErpStatCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                width: 38,
-                height: 38,
-                padding: const EdgeInsets.all(8),
+                width: compact ? 34 : 38,
+                height: compact ? 34 : 38,
+                padding: EdgeInsets.all(compact ? 7 : 8),
                 decoration: BoxDecoration(
                   color: accent.withValues(alpha: .10),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: accent, size: 20),
+                child: Icon(icon, color: accent, size: compact ? 18 : 20),
               ),
               if (trendLabel != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: accent.withValues(alpha: .10),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     trendLabel!,
-                    style: theme.textTheme.labelSmall?.copyWith(color: accent, fontWeight: FontWeight.w600),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: accent,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 )
               else if (trailing != null)
                 trailing!
               else
-                Icon(Icons.more_vert_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.more_vert_rounded,
+                  size: 20,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: compact ? 8 : 12),
           Text(
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(height: 4),
           if (loading)
-            const SizedBox(width: 90, height: 22, child: LinearProgressIndicator())
+            const SizedBox(
+              width: 90,
+              height: 22,
+              child: LinearProgressIndicator(),
+            )
           else
             Text(
               value,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
           if (subtitle != null) ...[
             const SizedBox(height: 4),
             Text(
               subtitle!,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall,
             ),
@@ -97,6 +116,10 @@ class ErpStatCard extends StatelessWidget {
 
     final card = Card(child: content);
     if (onTap == null) return card;
-    return InkWell(borderRadius: BorderRadius.circular(10), onTap: onTap, child: card);
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
+      child: card,
+    );
   }
 }
