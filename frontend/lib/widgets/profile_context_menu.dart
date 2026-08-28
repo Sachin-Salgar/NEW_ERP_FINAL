@@ -48,8 +48,9 @@ class ProfileContextMenu extends StatelessWidget {
               await themeController.toggle();
             } else if (value == 'logout') {
               await auth.logout();
-              if (context.mounted)
+              if (context.mounted) {
                 Navigator.of(context).pushReplacementNamed('/login');
+              }
             } else if (value == 'profile') {
               // Profile page will be wired here when the user-profile module is implemented.
             }
@@ -124,8 +125,8 @@ class ProfileContextMenu extends StatelessWidget {
               ),
             ...auth.availableLocations.map((location) {
               final id = (location['id'] ?? '').toString();
-              final label = (location['name'] ?? location['code'] ?? id)
-                  .toString();
+              final label =
+                  (location['name'] ?? location['code'] ?? id).toString();
               return PopupMenuItem<String>(
                 value: 'location:$id',
                 child: Row(
@@ -162,8 +163,16 @@ class ProfileContextMenu extends StatelessWidget {
               ),
             ),
           ],
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: Theme.of(context).dividerColor.withValues(alpha: .6),
+              ),
+            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -172,11 +181,18 @@ class ProfileContextMenu extends StatelessWidget {
                   child: Icon(Icons.person_outline, size: 18),
                 ),
                 if (MediaQuery.sizeOf(context).width >= 600) ...[
-                  const SizedBox(width: 7),
-                  Flexible(child: Text(name, overflow: TextOverflow.ellipsis)),
+                  const SizedBox(width: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 150),
+                    child: Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.keyboard_arrow_down),
                 ],
+                const Icon(Icons.keyboard_arrow_down),
               ],
             ),
           ),
