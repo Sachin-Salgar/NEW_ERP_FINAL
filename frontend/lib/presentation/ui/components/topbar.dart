@@ -6,12 +6,14 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
   final String title;
   final VoidCallback? onMenuPressed;
+  final bool navigationCollapsed;
 
   const TopBar({
     super.key,
     this.actions,
     this.title = '',
     this.onMenuPressed,
+    this.navigationCollapsed = false,
   });
 
   @override
@@ -27,8 +29,16 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
       children: [
         Builder(
           builder: (context) => IconButton(
-            tooltip: isDesktop ? 'Collapse navigation' : 'Open navigation',
-            icon: const Icon(Icons.menu_rounded),
+            tooltip: isDesktop
+                ? (navigationCollapsed
+                    ? 'Expand navigation'
+                    : 'Collapse navigation')
+                : 'Open navigation',
+            icon: Icon(
+              navigationCollapsed
+                  ? Icons.menu_open_rounded
+                  : Icons.menu_rounded,
+            ),
             onPressed: onMenuPressed ??
                 () {
                   Scaffold.of(context).openDrawer();
