@@ -113,6 +113,7 @@ class _AppShellState extends State<AppShell> {
                   TopBar(
                     title: _pageTitle(ModalRoute.of(context)?.settings.name),
                     onMenuPressed: _toggleSidebar,
+                    navigationCollapsed: _sidebarCollapsed,
                     actions: [
                       if (auth.currentUser != null)
                         const ProfileContextMenu(),
