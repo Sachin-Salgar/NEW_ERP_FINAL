@@ -19,57 +19,68 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     final isMobile = ErpResponsive.isMobile(context);
     final showSearch = width >= 600;
 
-    return Container(
-      height: preferredSize.height,
-      color: theme.colorScheme.surface,
-      child: Row(
-        children: [
-          if (width < 1100)
-            Padding(
-              padding: EdgeInsets.only(left: isMobile ? 4 : 8),
-              child: Builder(
-                builder: (context) => IconButton(
-                  tooltip: 'Open navigation',
-                  icon: const Icon(Icons.menu_rounded),
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                ),
-              ),
-            ),
-          if (!isMobile) ...[
-            Padding(
-              padding: const EdgeInsets.only(left: 24),
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
-              ),
-            ),
-            const SizedBox(width: 24),
-          ],
-          if (showSearch)
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                child: _TemplateSearchField(),
-              ),
-            )
-          else
-            const Spacer(),
+    // No outer container: the top bar remains visually open. Search and
+    // profile controls have their own surfaces.
+    return Row(
+      children: [
+        if (width < 1100)
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: isMobile ? 4 : 8),
-            child: const ThemeModeButton(),
+            padding: EdgeInsets.only(left: isMobile ? 4 : 8),
+            child: Builder(
+              builder: (context) => IconButton(
+                tooltip: 'Open navigation',
+                icon: const Icon(Icons.menu_rounded),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
+            ),
           ),
-          if (actions != null)
-            Padding(
-              padding: EdgeInsets.only(right: isMobile ? 8 : 16, left: 4),
+        if (!isMobile) ...[
+          Padding(
+            padding: const EdgeInsets.only(left: 24),
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(width: 24),
+        ],
+        if (showSearch)
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const _TemplateSearchField(),
+              ),
+            ),
+          )
+        else
+          const Spacer(),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 4 : 8),
+          child: const ThemeModeButton(),
+        ),
+        if (actions != null)
+          Padding(
+            padding: EdgeInsets.only(right: isMobile ? 8 : 16, left: 4),
+            child: Container(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: actions!,
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 }
@@ -77,6 +88,8 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
 /// Search field follows the upstream template's visual pattern: a soft
 /// filled field with a compact primary search action on the right.
 class _TemplateSearchField extends StatelessWidget {
+  const _TemplateSearchField();
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
