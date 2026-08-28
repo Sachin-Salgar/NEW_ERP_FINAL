@@ -3,82 +3,25 @@ import 'package:flutter/material.dart';
 class ErpBreadcrumbItem {
   final String label;
   final String? route;
-
   const ErpBreadcrumbItem({required this.label, this.route});
 }
 
 class ErpBreadcrumbs extends StatelessWidget {
   final List<ErpBreadcrumbItem> items;
-  final EdgeInsetsGeometry padding;
-
-  const ErpBreadcrumbs({
-    Key? key,
-    required this.items,
-    this.padding = const EdgeInsets.symmetric(vertical: 4.0),
-  }) : super(key: key);
+  const ErpBreadcrumbs({super.key, required this.items});
 
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) return const SizedBox.shrink();
-
-    final children = <Widget>[];
-    for (var i = 0; i < items.length; i++) {
-      final it = items[i];
-      final isLast = i == items.length - 1;
-      Widget label = Text(
-        it.label,
-        style: isLast
-            ? Theme.of(context).textTheme.bodyLarge
-                  ?.copyWith(fontWeight: FontWeight.w700)
-            : Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).textTheme.bodySmall?.color
-                    ?.withValues(alpha: 0.8),
-              ),
-        overflow: TextOverflow.ellipsis,
-      );
-
-      if (it.route != null && !isLast) {
-        label = InkWell(
-          onTap: () => Navigator.of(context).pushNamed(it.route!),
-          child: label,
-        );
-      }
-
-      children.add(label);
-
-      if (!isLast) {
-        children.add(
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6.0),
-            child: Icon(
-              Icons.chevron_right,
-              size: 16,
-              color: Theme.of(context).textTheme.bodySmall?.color
-                  ?.withValues(alpha: 0.7),
-            ),
-          ),
-        );
-      }
-    }
-
-    return Padding(
-      padding: padding,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isNarrow = constraints.maxWidth < 360;
-          final row = Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: children,
-          );
-          return isNarrow
-              ? SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: row,
-                )
-              : row;
-        },
-      ),
+    final theme = Theme.of(context);
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(children: [
+        for (var i = 0; i < items.length; i++) ...[
+          if (i > 0) Icon(Icons.chevron_right, size: 16, color: theme.colorScheme.onSurfaceVariant),
+          Text(items[i].label, style: theme.textTheme.bodySmall?.copyWith(fontWeight: i == items.length - 1 ? FontWeight.w600 : FontWeight.w400)),
+        ],
+      ]),
     );
   }
 }
@@ -88,80 +31,40 @@ class ErpPageHeader extends StatelessWidget {
   final String? subtitle;
   final List<ErpBreadcrumbItem>? breadcrumbs;
   final List<Widget>? actions;
-  final EdgeInsetsGeometry padding;
   final bool divider;
 
   const ErpPageHeader({
-    Key? key,
+    super.key,
     required this.title,
     this.subtitle,
     this.breadcrumbs,
     this.actions,
-    this.padding = const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-    this.divider = true,
-  }) : super(key: key);
+    this.divider = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final titleWidget = Text(
-      title,
-      style: Theme.of(context).textTheme.headlineSmall
-          ?.copyWith(fontWeight: FontWeight.w700),
-    );
-    final subtitleWidget = subtitle != null
-        ? Padding(
-            padding: const EdgeInsets.only(top: 6.0),
-            child: Text(
-              subtitle!,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          )
-        : null;
-
-    final actionsWidget = actions != null
-        ? Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            alignment: WrapAlignment.end,
-            children: actions!,
-          )
-        : const SizedBox.shrink();
-
+    final theme = Theme.of(context);
     return Padding(
-      padding: padding,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (breadcrumbs != null && breadcrumbs!.isNotEmpty)
-            ErpBreadcrumbs(items: breadcrumbs!),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    titleWidget,
-                    if (subtitleWidget != null) subtitleWidget,
-                  ],
-                ),
-              ),
-              ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: 420),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: actionsWidget,
-                ),
-              ),
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (breadcrumbs != null) ErpBreadcrumbs(items: breadcrumbs!),
+        const SizedBox(height: 8),
+        LayoutBuilder(builder: (context, constraints) {
+          final compact = constraints.maxWidth < 650;
+          final heading = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+            if (subtitle != null) ...[
+              const SizedBox(height: 4),
+              Text(subtitle!, style: theme.textTheme.bodyMedium),
             ],
-          ),
-          if (divider)
-            const Padding(
-              padding: EdgeInsets.only(top: 12.0),
-              child: Divider(height: 1),
-            ),
-        ],
-      ),
+          ]);
+          if (actions == null || actions!.isEmpty) return heading;
+          final buttons = Wrap(spacing: 8, runSpacing: 8, children: actions!);
+          return compact ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [heading, const SizedBox(height: 12), buttons]) : Row(children: [Expanded(child: heading), buttons]);
+        }),
+        if (divider) const Padding(padding: EdgeInsets.only(top: 14), child: Divider()),
+      ]),
     );
   }
 }
