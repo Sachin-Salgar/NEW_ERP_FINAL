@@ -14,7 +14,7 @@ class AuthZService with ChangeNotifier {
   String? get loadedForUserId => _loadedForUserId;
 
   /// Load effective permissions for [userId] using the provided [apiClient].
-  /// Returns the permission keys on success.
+  /// Returns the normalized permission keys on success.
   Future<List<String>> loadPermissions(ApiClient apiClient, String userId) async {
     _isLoading = true;
     // Clear any stale permission set before a fresh load or refresh so the UI never
@@ -34,7 +34,21 @@ class AuthZService with ChangeNotifier {
 
       final body = jsonDecode(resp.body) as Map<String, dynamic>;
       final perms = (body['permissions'] as List<dynamic>?) ?? [];
-      _permissions = perms.map((e) => e.toString()).toList();
+
+      // The backend returns effective-permission descriptors in the current API
+      // contract, while older clients/tests may provide plain permission strings.
+      // Normalize both forms to the permission key used by hasPermission().
+      final normalized = <String>[];
+      for (final item in perms) {
+        if (item is String) {
+          if (item.isNotEmpty) normalized.add(item);
+        } else if (item is Map<String, dynamic>) {
+          final key = item['permissionKey']?.toString();
+          if (key != null && key.isNotEmpty) normalized.add(key);
+        }
+      }
+
+      _permissions = normalized;
       _loadedForUserId = userId;
       return _permissions!;
     } catch (_) {
