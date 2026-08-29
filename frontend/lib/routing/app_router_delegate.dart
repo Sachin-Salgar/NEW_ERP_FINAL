@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../core/auth/auth_service.dart';
-import '../widgets/app_shell.dart';
 import '../modules/auth/login_screen.dart';
+import '../widgets/app_shell.dart';
 import 'route_state.dart';
 import 'router.dart';
 
@@ -24,6 +24,7 @@ class AppRouterDelegate extends RouterDelegate<String>
   late final NavigatorObserver _contentObserver;
   String _path = '/dashboard';
   bool _disposed = false;
+  bool _syncingBrowserRoute = false;
 
   AppRouterDelegate({required this.auth}) {
     _contentObserver = _ContentRouteObserver(_onContentRouteChanged);
@@ -54,26 +55,22 @@ class AppRouterDelegate extends RouterDelegate<String>
 
     _setPath(target, notify: false);
 
-    // The content navigator is not mounted during the initial router pass.
-    // In that case its initialRoute below will use [_path]. For browser
-    // back/forward after mounting, replace the content stack without touching
-    // the persistent shell.
     final contentNavigator = contentNavigatorKey.currentState;
     if (auth.isAuthenticated && contentNavigator != null) {
+      _syncingBrowserRoute = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_disposed || !mounted) return;
-        contentNavigatorKey.currentState?.pushNamedAndRemoveUntil(
-          target,
-          (_) => false,
-        );
+        if (_disposed) return;
+        final navigator = contentNavigatorKey.currentState;
+        if (navigator == null) return;
+        navigator.pushNamedAndRemoveUntil(target, (_) => false);
+        _syncingBrowserRoute = false;
       });
     }
   }
 
   void navigate(String path) {
     final target = normalizePath(path);
-    if (!auth.isAuthenticated) return;
-    if (target == _path) return;
+    if (!auth.isAuthenticated || target == _path) return;
 
     final navigator = contentNavigatorKey.currentState;
     if (navigator == null) {
@@ -87,7 +84,7 @@ class AppRouterDelegate extends RouterDelegate<String>
   void _onContentRouteChanged(String? routeName) {
     if (routeName == null || routeName.isEmpty) return;
     final target = normalizePath(routeName);
-    if (target == _path) return;
+    if (_syncingBrowserRoute || target == _path) return;
     _setPath(target);
   }
 
@@ -104,8 +101,8 @@ class AppRouterDelegate extends RouterDelegate<String>
   void _setPath(String path, {bool notify = true}) {
     final target = normalizePath(path);
     if (_path == target) {
-      if (notify) notifyListeners();
       _syncRouteState(target);
+      if (notify && !_disposed) notifyListeners();
       return;
     }
     _path = target;
@@ -129,6 +126,7 @@ class AppRouterDelegate extends RouterDelegate<String>
             child: LoginScreen(),
           ),
         ],
+        onPopPage: (route, result) => route.didPop(result),
       );
     }
 
@@ -136,20 +134,11 @@ class AppRouterDelegate extends RouterDelegate<String>
 
     return Navigator(
       key: navigatorKey,
-      pages: const [
+      pages: [
         MaterialPage(
-          key: ValueKey('authenticated-shell'),
+          key: const ValueKey('authenticated-shell'),
           name: '/app-shell',
-          child: _AuthenticatedShellPlaceholder(),
-        ),
-      ],
-      onPopPage: (route, result) => route.didPop(result),
-      onGenerateRoute: (settings) {
-        // The root navigator only owns the shell page. The actual ERP route
-        // stack is supplied by the nested content navigator below.
-        return MaterialPageRoute(
-          settings: settings,
-          builder: (_) => AppShell(
+          child: AppShell(
             navigatorKey: contentNavigatorKey,
             rootNavigatorKey: navigatorKey,
             child: Navigator(
@@ -159,8 +148,9 @@ class AppRouterDelegate extends RouterDelegate<String>
               observers: [_contentObserver],
             ),
           ),
-        );
-      },
+        ),
+      ],
+      onPopPage: (route, result) => route.didPop(result),
     );
   }
 
@@ -170,15 +160,6 @@ class AppRouterDelegate extends RouterDelegate<String>
     auth.removeListener(_onAuthChanged);
     super.dispose();
   }
-}
-
-/// Kept as a stable page child; the actual shell is injected by the root
-/// navigator's route builder so its state remains mounted across route changes.
-class _AuthenticatedShellPlaceholder extends StatelessWidget {
-  const _AuthenticatedShellPlaceholder();
-
-  @override
-  Widget build(BuildContext context) => const SizedBox.shrink();
 }
 
 class _ContentRouteObserver extends NavigatorObserver {
