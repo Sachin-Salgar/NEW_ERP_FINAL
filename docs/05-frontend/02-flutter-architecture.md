@@ -66,6 +66,28 @@ Responsibilities include:
 
 The application layer coordinates frontend behavior; it does not replace backend business logic.
 
+### Web routing and shell ownership
+
+Flutter Web uses a repository-owned Router 2.0 implementation (`MaterialApp.router`) for application navigation.
+
+The routing boundary is split into two levels:
+
+```text
+RouterDelegate root navigator
+        │
+        ├── Login page (unauthenticated)
+        │
+        └── Persistent AppShell (authenticated)
+                │
+                └── Content navigator
+                        │
+                        └── ERP screen
+```
+
+The authenticated shell is mounted once. The content navigator changes screens without recreating the sidebar, top bar, profile controls, or responsive navigation. Browser URL/history is synchronized through the route information parser/delegate.
+
+Navigation metadata and frontend route guards remain client-side coordination concerns; backend authorization remains authoritative.
+
 ## 2.6 State Management
 
 State-management mechanisms are responsible for representing and coordinating frontend state. The selected framework and provider organization are defined by the state-management document.
@@ -101,12 +123,14 @@ Client-side validation may improve UX but must never be relied upon as the secur
 
 ## 2.10 Summary
 
-Flutter provides the presentation foundation of the ERP while the layered frontend architecture maintains clear separation of UI, application coordination, state, API communication, and backend responsibilities.
+Flutter provides the presentation foundation of the ERP while the layered frontend architecture maintains clear separation of UI, application coordination, state, API communication, and backend responsibilities. On Web, Router 2.0 provides the canonical bridge between browser history and the persistent authenticated shell.
 
 ## Related Documents
 
 - [Frontend Overview](./01-frontend-overview.md)
 - [Modular Frontend Architecture](./03-modular-frontend-architecture.md)
+- [Navigation Architecture](./07-navigation-architecture.md)
+- [Navigation and Routing Implementation Plan](./24-navigation-routing-implementation-plan.md)
 - [Project Structure](./04-project-structure.md)
 - [State Management](./05-state-management.md)
 - [Backend Architecture](../04-backend/README.md)
