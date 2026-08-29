@@ -4,7 +4,6 @@ import 'package:get_it/get_it.dart';
 import '../core/auth/auth_service.dart';
 import '../presentation/ui/components/navigation_sidebar.dart';
 import '../presentation/ui/components/topbar.dart';
-import '../routing/router.dart';
 import 'profile_context_menu.dart';
 
 class AppShell extends StatefulWidget {
@@ -30,32 +29,31 @@ class _AppShellState extends State<AppShell> {
       {
         'menuName': 'Organizations',
         'path': '/organizations',
-        'permissionKey': AppRouter.routePermissions['/organizations'],
+        'permissionKey': 'organization.read',
         'moduleCode': 'organization',
       },
       {
         'menuName': 'Branches',
         'path': '/organizations/branches',
-        'permissionKey':
-            AppRouter.routePermissions['/organizations/branches'],
+        'permissionKey': 'branch.read',
         'moduleCode': 'branch',
       },
       {
         'menuName': 'Users',
         'path': '/users',
-        'permissionKey': AppRouter.routePermissions['/users'],
+        'permissionKey': 'user.read',
         'moduleCode': 'user-management',
       },
       {
         'menuName': 'Roles',
         'path': '/roles',
-        'permissionKey': AppRouter.routePermissions['/roles'],
+        'permissionKey': 'role.read',
         'moduleCode': 'security',
       },
       {
         'menuName': 'Permissions',
         'path': '/permissions',
-        'permissionKey': AppRouter.routePermissions['/permissions'],
+        'permissionKey': 'permission.read',
         'moduleCode': 'security',
       },
     ];
@@ -69,13 +67,17 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _handleNavigate(BuildContext context, String route) {
-    Navigator.of(context).pushReplacementNamed(route);
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    if (currentRoute == route || currentRoute?.startsWith('$route/') == true) {
+      return;
+    }
+    Navigator.of(context).pushNamed(route);
   }
 
   Future<void> _logout(BuildContext context, AuthService auth) async {
     await auth.logout();
     if (context.mounted) {
-      Navigator.of(context).pushReplacementNamed('/login');
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
     }
   }
 
@@ -86,9 +88,18 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final auth = GetIt.instance.get<AuthService>();
+
+    return AnimatedBuilder(
+      animation: auth.authzService,
+      builder: (context, _) => _buildShell(context, auth),
+    );
+  }
+
+  Widget _buildShell(BuildContext context, AuthService auth) {
     final navItems = _navigationItems(auth);
     final width = MediaQuery.sizeOf(context).width;
     final isDesktop = width >= 1100;
+    final route = ModalRoute.of(context)?.settings.name;
 
     if (isDesktop) {
       return Scaffold(
@@ -102,16 +113,15 @@ class _AppShellState extends State<AppShell> {
               width: _sidebarCollapsed ? 76 : width / 6,
               child: Sidebar(
                 collapsed: _sidebarCollapsed,
-                selectedRoute:
-                    ModalRoute.of(context)?.settings.name ?? '/',
-                onSelect: (route) => _handleNavigate(context, route),
+                selectedRoute: route ?? '/dashboard',
+                onSelect: (path) => _handleNavigate(context, path),
               ),
             ),
             Expanded(
               child: Column(
                 children: [
                   TopBar(
-                    title: _pageTitle(ModalRoute.of(context)?.settings.name),
+                    title: _pageTitle(route),
                     onMenuPressed: _toggleSidebar,
                     navigationCollapsed: _sidebarCollapsed,
                     actions: [
@@ -131,7 +141,7 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: TopBar(
-        title: _pageTitle(ModalRoute.of(context)?.settings.name),
+        title: _pageTitle(route),
         actions: [
           if (auth.currentUser != null) const ProfileContextMenu(),
         ],
@@ -148,12 +158,9 @@ class _AppShellState extends State<AppShell> {
                   children: navItems
                       .map(
                         (item) => ListTile(
-                          leading:
-                              Icon(_iconForRoute(item['path'] as String)),
+                          leading: Icon(_iconForRoute(item['path'] as String)),
                           title: Text(item['menuName'] as String),
-                          selected:
-                              ModalRoute.of(context)?.settings.name ==
-                                  item['path'],
+                          selected: route == item['path'],
                           selectedColor:
                               Theme.of(context).colorScheme.primary,
                           onTap: () {
