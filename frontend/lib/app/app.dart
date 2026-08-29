@@ -52,6 +52,7 @@ class App extends StatefulWidget {
 
 class _AppState extends State<App> {
   final AppRouteObserver _routeObserver = AppRouteObserver();
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +70,7 @@ class _AppState extends State<App> {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeController.themeMode,
+            navigatorKey: _navigatorKey,
             onGenerateRoute: AppRouter.generateRoute,
             navigatorObservers: [_routeObserver],
             initialRoute: route,
@@ -76,7 +78,10 @@ class _AppState extends State<App> {
               if (!auth.isAuthenticated) {
                 return child ?? const SizedBox.shrink();
               }
-              return AppShell(child: child ?? const SizedBox.shrink());
+              return AppShell(
+                navigatorKey: _navigatorKey,
+                child: child ?? const SizedBox.shrink(),
+              );
             },
           );
         },
