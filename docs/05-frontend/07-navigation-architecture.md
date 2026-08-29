@@ -84,17 +84,43 @@ Display Application
 
 The exact data-loading sequence is an implementation concern. The backend remains responsible for enforcing authorization regardless of what the client displays.
 
-## 7.7 Navigation History
+## 7.7 Web Routing Contract
 
-The application may maintain navigation history to support:
+On Flutter Web, browser URL state and in-app navigation shall represent the same navigation state.
+
+The application shall use Flutter Router APIs (`MaterialApp.router`) with a repository-owned route parser/delegate rather than relying on a route-only `MaterialApp` configuration. This provides a canonical bridge between:
+
+```text
+Browser URL
+    ↕
+Route configuration
+    ↕
+Content navigator
+```
+
+The authenticated application shell is persistent. Route changes replace/change only the content area; sidebar, top bar, profile controls, and responsive navigation remain mounted.
+
+The routing contract shall define:
+
+- `/login` as the unauthenticated entry point.
+- `/` as a deterministic redirect/alias to `/dashboard` after authentication.
+- Protected routes as authentication/permission guarded.
+- Browser back/forward as first-class navigation operations.
+- Unknown paths as controlled not-found states rather than generic unknown-route failures.
+
+Route metadata is the canonical source for display title, navigation membership, module code, and frontend permission requirements. Backend authorization remains authoritative.
+
+## 7.8 Navigation History
+
+The application shall maintain navigation history to support:
 - Back navigation.
 - Forward navigation where supported.
 - Recently visited screens where useful.
 - Deep linking where supported by the target platform.
 
-History behavior shall follow the conventions of each supported platform.
+On Web, browser history and the application router shall remain synchronized. In-app navigation must not require a full page reload.
 
-## 7.8 Favorites
+## 7.9 Favorites
 
 Users may bookmark frequently used screens or capabilities where the feature supports favorites.
 
@@ -106,7 +132,7 @@ Examples include:
 
 Favorites shall be associated with the appropriate user and organization context so that they do not expose or reference inaccessible capabilities.
 
-## 7.9 Breadcrumb Navigation
+## 7.10 Breadcrumb Navigation
 
 Complex workflows may display breadcrumb navigation.
 
@@ -121,13 +147,23 @@ Dashboard
 
 Breadcrumbs improve orientation within deep navigation hierarchies.
 
-## 7.10 Summary
+## 7.11 Navigation Implementation Rules
 
-A structured navigation architecture improves productivity while supporting the modular, permission-aware design of the Enterprise ERP Platform.
+The persistent shell shall own presentation only. It shall not recreate itself for every destination.
+
+Navigation controls shall call the application routing coordinator rather than performing browser-level reloads. The active route shall be derived from canonical router state so sidebar selection and page titles cannot drift from the actual screen.
+
+Permission-aware visibility and route protection shall use the same route metadata. A hidden menu item is not a substitute for route authorization.
+
+## 7.12 Summary
+
+A structured navigation architecture improves productivity while supporting the modular, permission-aware design of the Enterprise ERP Platform. Flutter Web routing additionally requires browser history, deep-link, shell persistence, and in-app navigation to be treated as one coherent navigation contract.
 
 ## Cross References
 
 - [Modular Frontend Architecture](./03-modular-frontend-architecture.md)
+- [Flutter Architecture](./02-flutter-architecture.md)
 - [State Management](./05-state-management.md)
 - [API Communication](./09-api-communication.md)
+- [Frontend Navigation and Routing Implementation Plan](./24-navigation-routing-implementation-plan.md)
 - [Backend Authentication and Authorization](../04-backend/07-authentication-and-authorization.md)
