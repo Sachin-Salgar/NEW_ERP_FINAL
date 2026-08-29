@@ -1,0 +1,1 @@
+Navigation wiring placeholder; generated only to trigger deployment.
