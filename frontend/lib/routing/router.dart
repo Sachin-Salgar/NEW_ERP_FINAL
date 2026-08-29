@@ -22,7 +22,6 @@ import '../modules/user/details_screen.dart';
 import '../modules/user/edit_screen.dart';
 import '../modules/user/list_screen.dart';
 import '../modules/user/user_role_assignment_screen.dart';
-import '../widgets/app_shell.dart';
 
 class AppRouter {
   static const Map<String, String?> routePermissions = {
@@ -276,11 +275,9 @@ class AppRouter {
     final auth = GetIt.instance.get<AuthService>();
     if (!auth.isAuthenticated) return const LoginScreen();
 
-    return AppShell(
-      child: _RouteAuthorizationGate(
-        routeName: routeName,
-        child: child,
-      ),
+    return _RouteAuthorizationGate(
+      routeName: routeName,
+      child: child,
     );
   }
 }
