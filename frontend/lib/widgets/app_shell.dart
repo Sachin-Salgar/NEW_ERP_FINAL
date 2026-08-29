@@ -13,12 +13,7 @@ class AppShell extends StatefulWidget {
   final GlobalKey<NavigatorState> navigatorKey;
   final GlobalKey<NavigatorState> rootNavigatorKey;
 
-  const AppShell({
-    super.key,
-    required this.child,
-    required this.navigatorKey,
-    required this.rootNavigatorKey,
-  });
+  const AppShell({super.key, required this.child, required this.navigatorKey, required this.rootNavigatorKey});
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -37,15 +32,13 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _handleNavigate(String route) {
-    final target = AppRouteConfig.normalize(route);
+    final target = AppRoutes.normalize(route);
     final current = AppRouteState.currentRoute.value;
     if (current == target || current?.startsWith('$target/') == true) return;
     widget.navigatorKey.currentState?.pushNamed(target);
   }
 
-  Future<void> _logout(AuthService auth) async {
-    await auth.logout();
-  }
+  Future<void> _logout(AuthService auth) async => auth.logout();
 
   void _toggleSidebar() => setState(() => _sidebarCollapsed = !_sidebarCollapsed);
 
@@ -62,7 +55,7 @@ class _AppShellState extends State<AppShell> {
     final navItems = _navigationItems(auth);
     final width = MediaQuery.sizeOf(context).width;
     final isDesktop = width >= 1100;
-    final route = AppRouteState.currentRoute.value ?? '/dashboard';
+    final route = AppRoutes.normalize(AppRouteState.currentRoute.value ?? '/dashboard');
     final routeConfig = AppRoutes.forRoute(route);
 
     if (isDesktop) {
@@ -75,11 +68,7 @@ class _AppShellState extends State<AppShell> {
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeInOut,
               width: _sidebarCollapsed ? 76 : width / 6,
-              child: Sidebar(
-                collapsed: _sidebarCollapsed,
-                selectedRoute: route,
-                onSelect: _handleNavigate,
-              ),
+              child: Sidebar(collapsed: _sidebarCollapsed, selectedRoute: route, onSelect: _handleNavigate),
             ),
             Expanded(
               child: Column(
@@ -88,9 +77,7 @@ class _AppShellState extends State<AppShell> {
                     title: routeConfig.title,
                     onMenuPressed: _toggleSidebar,
                     navigationCollapsed: _sidebarCollapsed,
-                    actions: [
-                      if (auth.currentUser != null) const ProfileContextMenu(),
-                    ],
+                    actions: [if (auth.currentUser != null) const ProfileContextMenu()],
                   ),
                   Expanded(child: widget.child),
                 ],
@@ -116,18 +103,16 @@ class _AppShellState extends State<AppShell> {
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  children: navItems.map((item) {
-                    return ListTile(
-                      leading: Icon(item.icon),
-                      title: Text(item.title),
-                      selected: item.matches(route),
-                      selectedColor: Theme.of(context).colorScheme.primary,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        _handleNavigate(item.path);
-                      },
-                    );
-                  }).toList(),
+                  children: navItems.map((item) => ListTile(
+                    leading: Icon(item.icon),
+                    title: Text(item.title),
+                    selected: item.matches(route),
+                    selectedColor: Theme.of(context).colorScheme.primary,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      _handleNavigate(item.path);
+                    },
+                  )).toList(),
                 ),
               ),
               Divider(height: 1, color: Theme.of(context).dividerColor),
@@ -156,14 +141,8 @@ class _BrandHeader extends StatelessWidget {
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              Icons.grid_view_rounded,
-              color: theme.colorScheme.onPrimary,
-            ),
+            decoration: BoxDecoration(color: theme.colorScheme.primary, borderRadius: BorderRadius.circular(10)),
+            child: Icon(Icons.grid_view_rounded, color: theme.colorScheme.onPrimary),
           ),
           const SizedBox(width: 12),
           Text('NEW ERP', style: theme.textTheme.titleLarge),
@@ -171,9 +150,4 @@ class _BrandHeader extends StatelessWidget {
       ),
     );
   }
-}
-
-extension on AppRouteConfig {
-  static String normalize(String path) =>
-      path.isEmpty || path == '/' ? '/dashboard' : path;
 }
