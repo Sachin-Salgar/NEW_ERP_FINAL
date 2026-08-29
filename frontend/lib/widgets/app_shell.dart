@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import '../core/auth/auth_service.dart';
 import '../presentation/ui/components/navigation_sidebar.dart';
 import '../presentation/ui/components/topbar.dart';
+import '../routing/route_state.dart';
 import 'profile_context_menu.dart';
 
 class AppShell extends StatefulWidget {
@@ -67,7 +68,7 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _handleNavigate(BuildContext context, String route) {
-    final currentRoute = ModalRoute.of(context)?.settings.name;
+    final currentRoute = AppRouteState.currentRoute.value;
     if (currentRoute == route || currentRoute?.startsWith('$route/') == true) {
       return;
     }
@@ -90,7 +91,10 @@ class _AppShellState extends State<AppShell> {
     final auth = GetIt.instance.get<AuthService>();
 
     return AnimatedBuilder(
-      animation: auth.authzService,
+      animation: Listenable.merge([
+        auth.authzService,
+        AppRouteState.currentRoute,
+      ]),
       builder: (context, _) => _buildShell(context, auth),
     );
   }
@@ -99,7 +103,7 @@ class _AppShellState extends State<AppShell> {
     final navItems = _navigationItems(auth);
     final width = MediaQuery.sizeOf(context).width;
     final isDesktop = width >= 1100;
-    final route = ModalRoute.of(context)?.settings.name;
+    final route = AppRouteState.currentRoute.value;
 
     if (isDesktop) {
       return Scaffold(
