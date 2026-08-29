@@ -3,14 +3,12 @@ import 'package:flutter/material.dart';
 import '../core/auth/auth_service.dart';
 import '../modules/auth/login_screen.dart';
 import '../widgets/app_shell.dart';
+import 'route_config.dart';
 import 'route_state.dart';
 import 'router.dart';
 
 /// Bridges browser URL/history with the persistent authenticated ERP shell.
-///
-/// The root navigator owns the login/shell boundary. The content navigator
-/// inside [AppShell] owns application screens, so changing a route never
-/// recreates the sidebar or top bar.
+/// The shell owns presentation; the nested navigator owns screen content.
 class AppRouterDelegate extends RouterDelegate<String>
     with ChangeNotifier, PopNavigatorRouterDelegateMixin<String> {
   final AuthService auth;
@@ -35,18 +33,9 @@ class AppRouterDelegate extends RouterDelegate<String>
   @override
   String get currentConfiguration => _path;
 
-  static String normalizePath(String path) {
-    if (path.isEmpty || path == '/') return '/dashboard';
-    if (path.endsWith('/') && path.length > 1) {
-      return path.substring(0, path.length - 1);
-    }
-    return path;
-  }
-
   @override
   Future<void> setNewRoutePath(String configuration) async {
-    var target = normalizePath(configuration);
-
+    var target = AppRoutes.normalize(configuration);
     if (!auth.isAuthenticated) {
       target = '/login';
     } else if (target == '/login') {
@@ -54,36 +43,29 @@ class AppRouterDelegate extends RouterDelegate<String>
     }
 
     _setPath(target, notify: false);
+    final navigator = contentNavigatorKey.currentState;
+    if (!auth.isAuthenticated || navigator == null || target == '/login') return;
 
-    final contentNavigator = contentNavigatorKey.currentState;
-    if (auth.isAuthenticated && contentNavigator != null) {
-      _syncingBrowserRoute = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_disposed) return;
-        final navigator = contentNavigatorKey.currentState;
-        if (navigator == null) return;
-        navigator.pushNamedAndRemoveUntil(target, (_) => false);
-        _syncingBrowserRoute = false;
-      });
-    }
+    _syncingBrowserRoute = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_disposed) return;
+      final currentNavigator = contentNavigatorKey.currentState;
+      if (currentNavigator != null) {
+        currentNavigator.pushNamedAndRemoveUntil(target, (_) => false);
+      }
+      _syncingBrowserRoute = false;
+    });
   }
 
   void navigate(String path) {
-    final target = normalizePath(path);
+    final target = AppRoutes.normalize(path);
     if (!auth.isAuthenticated || target == _path) return;
-
-    final navigator = contentNavigatorKey.currentState;
-    if (navigator == null) {
-      _setPath(target);
-      return;
-    }
-
-    navigator.pushNamed(target);
+    contentNavigatorKey.currentState?.pushNamed(target);
   }
 
   void _onContentRouteChanged(String? routeName) {
     if (routeName == null || routeName.isEmpty) return;
-    final target = normalizePath(routeName);
+    final target = AppRoutes.normalize(routeName);
     if (_syncingBrowserRoute || target == _path) return;
     _setPath(target);
   }
@@ -99,7 +81,7 @@ class AppRouterDelegate extends RouterDelegate<String>
   }
 
   void _setPath(String path, {bool notify = true}) {
-    final target = normalizePath(path);
+    final target = AppRoutes.normalize(path);
     if (_path == target) {
       _syncRouteState(target);
       if (notify && !_disposed) notifyListeners();
@@ -131,7 +113,6 @@ class AppRouterDelegate extends RouterDelegate<String>
     }
 
     final initialRoute = _path == '/login' ? '/dashboard' : _path;
-
     return Navigator(
       key: navigatorKey,
       pages: [
@@ -167,36 +148,26 @@ class _ContentRouteObserver extends NavigatorObserver {
 
   _ContentRouteObserver(this.onChanged);
 
-  void _update(Route<dynamic>? route) {
-    onChanged(route?.settings.name);
-  }
+  void _update(Route<dynamic>? route) => onChanged(route?.settings.name);
 
   @override
-  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    _update(route);
-  }
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) => _update(route);
 
   @override
-  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    _update(previousRoute);
-  }
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) => _update(previousRoute);
 
   @override
-  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
-    _update(newRoute);
-  }
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) => _update(newRoute);
 }
 
 class AppRouteInformationParser extends RouteInformationParser<String> {
   @override
-  Future<String> parseRouteInformation(
-    RouteInformation routeInformation,
-  ) async {
-    return AppRouterDelegate.normalizePath(routeInformation.uri.path);
+  Future<String> parseRouteInformation(RouteInformation routeInformation) async {
+    return AppRoutes.normalize(routeInformation.uri.path);
   }
 
   @override
   RouteInformation restoreRouteInformation(String configuration) {
-    return RouteInformation(uri: Uri.parse(configuration));
+    return RouteInformation(uri: Uri.parse(AppRoutes.normalize(configuration)));
   }
 }
