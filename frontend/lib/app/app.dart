@@ -3,15 +3,13 @@ import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';
 
 import '../core/auth/auth_service.dart';
-import '../modules/organization/organization_service.dart';
 import '../modules/branch/branch_service.dart';
+import '../modules/organization/organization_service.dart';
 import '../modules/user/user_service.dart';
-import '../routing/router.dart';
-import '../routing/route_state.dart';
+import '../routing/app_router_delegate.dart';
 import '../themes/app_theme.dart';
 import '../themes/theme_controller.dart';
 import '../core/network/api_client.dart';
-import '../widgets/app_shell.dart';
 
 final GetIt di = GetIt.instance;
 
@@ -51,8 +49,15 @@ class App extends StatefulWidget {
 }
 
 class _AppState extends State<App> {
-  final AppRouteObserver _routeObserver = AppRouteObserver();
-  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  late final AppRouterDelegate _routerDelegate;
+  final AppRouteInformationParser _routeInformationParser =
+      AppRouteInformationParser();
+
+  @override
+  void initState() {
+    super.initState();
+    _routerDelegate = AppRouterDelegate(auth: di.get<AuthService>());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,29 +68,22 @@ class _AppState extends State<App> {
       ],
       child: Consumer2<AuthService, ThemeController>(
         builder: (context, auth, themeController, _) {
-          final route = auth.nextPostAuthRoute;
-
-          return MaterialApp(
+          return MaterialApp.router(
             title: 'NEW ERP',
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeController.themeMode,
-            navigatorKey: _navigatorKey,
-            onGenerateRoute: AppRouter.generateRoute,
-            navigatorObservers: [_routeObserver],
-            initialRoute: route,
-            builder: (context, child) {
-              if (!auth.isAuthenticated) {
-                return child ?? const SizedBox.shrink();
-              }
-              return AppShell(
-                navigatorKey: _navigatorKey,
-                child: child ?? const SizedBox.shrink(),
-              );
-            },
+            routerDelegate: _routerDelegate,
+            routeInformationParser: _routeInformationParser,
           );
         },
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _routerDelegate.dispose();
+    super.dispose();
   }
 }
