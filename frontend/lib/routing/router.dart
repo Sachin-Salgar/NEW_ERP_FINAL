@@ -59,7 +59,7 @@ class AppRouter {
       case '/users/edit':
         return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/users/edit', child: const UserEditScreen()));
       case '/users/roles':
-        return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/users/roles', child: UserRoleAssignmentScreen(userId: settings.arguments as String? ?? ''));
+        return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/users/roles', child: UserRoleAssignmentScreen(userId: settings.arguments as String? ?? '')));
       case '/users/access':
         return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/users/access', child: const UserAccessScreen()));
       case '/roles':
