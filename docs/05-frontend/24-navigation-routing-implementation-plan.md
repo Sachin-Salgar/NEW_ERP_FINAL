@@ -1,26 +1,18 @@
 # Navigation and Routing Implementation Plan
 
-**Status:** IN PROGRESS  
+**Status:** IMPLEMENTED — VALIDATION PENDING  
 **Scope:** Core Enterprise Flutter Web navigation/routing stabilization  
 **Baseline:** `d82e3dc9f66546e753df4a27af5d70835d34b600`
 
 ## 1. Problem statement
 
-The current Flutter frontend mixes a persistent `AppShell`, a conventional `MaterialApp` navigator, a global route-state notifier, and named-route navigation. This is sufficient for basic in-app navigation, but it does not provide a reliable browser navigation contract.
+The current Flutter frontend mixed a persistent `AppShell`, a conventional `MaterialApp` navigator, a global route-state notifier, and named-route navigation. This was sufficient for basic navigation but did not provide a reliable browser navigation contract.
 
-Observed/identified failure modes include:
-
-- Browser back/forward can leave the application at `/` while the Flutter navigator expects an authenticated application route.
-- Unknown-route rendering is used as a fallback instead of treating the browser URL as application state.
-- Navigation state is duplicated between the navigator stack and `AppRouteState`.
-- The persistent shell and route content have separate ownership boundaries, making it easy for a screen to accidentally recreate or duplicate shell UI.
-- Route transitions and browser history are not one coherent state machine.
-- Permission loading can occur at the route-content level, allowing a route to briefly render an authorization/loading state before the shell/navigation state has settled.
-- Navigation items are coupled to permission/module filtering but do not have a single canonical route model.
+Observed failure modes included browser back/forward desynchronization, unknown-route fallbacks, duplicated route metadata, shell ownership confusion, permission-loading races, and navigation items drifting from route authorization.
 
 ## 2. Target behavior
 
-The ERP shall use one canonical navigation state for authenticated web application navigation:
+The ERP uses one authenticated shell boundary for web application navigation:
 
 ```text
 Browser URL / in-app navigation
@@ -35,112 +27,77 @@ Browser URL / in-app navigation
           Screen
 ```
 
-The shell must be created once for an authenticated session. Changing a route changes only the content area; sidebar, top bar, profile controls, theme controls, and navigation state remain mounted.
+The shell is created once for an authenticated session. Changing a route changes only the content navigator; sidebar, top bar, profile controls, theme controls, and navigation state remain mounted.
 
-Browser back/forward and sidebar/top-bar navigation must operate on the same route history.
+## 3. Implementation status
 
-## 3. Implementation strategy
+### Phase A — Canonical route model — IMPLEMENTED
 
-### Phase A — Canonical route model
-
-Create a single route configuration source containing:
+`frontend/lib/routing/route_config.dart` is the canonical metadata source for top-level navigation. It contains:
 
 - Path.
 - Display title.
 - Permission key.
 - Module code.
-- Screen builder.
-- Whether the route requires authentication.
-- Whether the route is a top-level navigation destination.
+- Icon.
+- Navigation group.
+- Route matching/normalization helpers.
+- Canonical top-level route selection.
+- Route permission metadata for child routes.
 
-Existing route names will be retained wherever practical to avoid breaking deep links and screen-level `Navigator` calls.
+Sidebar visibility, shell titles/selection, and route permission metadata now consume this shared model.
 
-### Phase B — Router 2.0 integration
+### Phase B — Router 2.0 integration — IMPLEMENTED
 
-Replace the current `MaterialApp` route-only approach with Flutter's `MaterialApp.router` and a repository-owned `RouteInformationParser` / `RouterDelegate` implementation.
+`MaterialApp.router` owns `AppRouterDelegate` and `AppRouteInformationParser`.
 
-Requirements:
+Implemented behavior:
 
-- Parse browser paths into the canonical route configuration.
-- Serialize in-app route changes back into browser history.
-- Support browser back/forward.
-- Preserve authenticated session state.
-- Redirect unauthenticated users to `/login`.
-- Redirect `/` to `/dashboard` after authentication.
-- Render a controlled not-found screen for unsupported paths.
+- Browser paths are parsed into normalized application paths.
+- In-app content navigation updates the delegate configuration and browser URL.
+- Browser route changes are applied to the persistent content navigator.
+- `/` normalizes to `/dashboard`.
+- `/login` is the unauthenticated boundary.
+- Protected application paths remain behind the authenticated shell.
+- Unsupported paths render a controlled page-not-found screen instead of the previous generic unknown-route fallback.
 
-No third-party routing package is required for this phase.
+### Phase C — Persistent shell — IMPLEMENTED
 
-### Phase C — Persistent shell
+`AppRouterDelegate` owns the authenticated shell boundary. `AppShell` owns presentation only, while its supplied content navigator owns screen transitions.
 
-Move ownership of the content `Navigator` into the authenticated router while keeping `AppShell` responsible only for presentation of:
+Sidebar and TopBar therefore remain mounted while authenticated content changes.
 
-- Sidebar.
-- TopBar.
-- Profile/action area.
-- Responsive drawer/collapsed navigation.
+### Phase D — Navigation actions — IMPLEMENTED
 
-The content navigator remains mounted while routes change.
+Sidebar navigation now uses canonical route metadata and calls the persistent content navigator. Child/detail routes select their parent top-level item through route-prefix matching.
 
-### Phase D — Navigation actions
+Desktop collapsed navigation remains clickable. Mobile drawer navigation closes before changing the content route. Re-selecting the active route does not push another route.
 
-Sidebar items shall navigate through the canonical router rather than directly owning route-stack semantics.
+### Phase E — Authorization integration — IMPLEMENTED
 
-Requirements:
+Frontend authorization remains UX-only and backend authorization remains authoritative.
 
-- Clicking a menu item changes only content.
-- Current item is selected from canonical route state.
-- Child routes select their parent menu item.
-- Desktop collapsed sidebar remains functional.
-- Mobile drawer closes after navigation.
-- Re-clicking the active route does not create duplicate history entries.
+Protected routes use the existing AuthService/AuthZ state. Permission loading waits for an already-running authorization refresh rather than starting competing requests. Existing authorization state is preserved during refresh/failure so navigation does not temporarily become forbidden merely because a refresh is in flight.
 
-### Phase E — Authorization integration
+Navigation visibility and top-level route selection now consume the same route metadata source.
 
-Frontend authorization remains UX-only; backend authorization remains authoritative.
+### Phase F — Back/forward and refresh behavior — IMPLEMENTED, VALIDATION PENDING
 
-Route guards shall:
-
-1. Confirm authentication.
-2. Ensure effective permissions are loaded when required.
-3. Evaluate the route permission.
-4. Render an application-level access-denied state when authorization is absent.
-
-Navigation visibility and route authorization must use the same route metadata so they cannot drift independently.
-
-### Phase F — Back/forward and refresh behavior
-
-Verify:
-
-- Direct navigation to `/dashboard`.
-- Direct navigation to `/organizations`.
-- Browser back from `/organizations` to `/dashboard`.
-- Browser forward from `/dashboard` to `/organizations`.
-- Refresh on an authenticated route.
-- Refresh after session restoration.
-- Unauthenticated access to protected routes.
-- Unknown path handling.
-- Child/detail route navigation and return.
+The Router 2.0 delegate/parser contract and persistent content navigator are implemented. Browser matrix verification remains a separate release gate and has intentionally not been marked complete from code inspection alone.
 
 ## 4. Compatibility constraints
 
-The implementation must not change:
+The implementation does not change backend APIs, database schema, authentication contract, tenant discovery, RBAC semantics, permission keys, module enablement rules, or business-screen behavior.
 
-- Backend APIs.
-- Database schema.
-- Authentication contract.
-- Tenant discovery.
-- RBAC semantics.
-- Permission keys.
-- Module enablement rules.
-- Existing business-screen behavior.
-- Responsive shell visual design except where required to support navigation.
-
-Route arguments used by existing screens must continue to work. Where a browser URL cannot safely encode a required internal object identifier, the router shall preserve existing in-app navigation behavior and document the limitation rather than inventing a new identifier contract.
+Existing named screen routes remain available through `AppRouter.generateRoute`. Routes that depend on in-app object arguments continue to use the existing argument mechanism; safe browser deep-link identifiers for those internal object routes have not been invented.
 
 ## 5. Test plan
 
 ### Unit/widget
+
+Implemented coverage includes canonical route normalization, child-to-parent route selection, metadata/permission/module consistency, and unknown-route metadata fallback.
+
+Remaining automated verification should include:
 
 - Route parser accepts supported paths.
 - Route serializer emits canonical paths.
@@ -151,7 +108,7 @@ Route arguments used by existing screens must continue to work. Where a browser 
 
 ### Browser/E2E
 
-At minimum test widths:
+The final browser matrix must cover widths:
 
 - 1440
 - 1280
@@ -175,29 +132,33 @@ At representative authenticated widths verify:
 
 ## 6. Rollout sequence
 
-1. Documentation and route contract update.
-2. Introduce router/parser/delegate without changing backend behavior.
-3. Move authenticated content navigation into the persistent shell.
-4. Connect sidebar navigation to canonical routing.
-5. Add route/authorization tests.
-6. Run Flutter analyze/test/build.
-7. Run authenticated browser navigation matrix.
-8. Commit in small, reversible steps.
+1. Documentation and route contract update — COMPLETE.
+2. Introduce router/parser/delegate — COMPLETE.
+3. Move authenticated content navigation into the persistent shell — COMPLETE.
+4. Connect sidebar navigation to canonical routing — COMPLETE.
+5. Add route/authorization tests — IMPLEMENTED; final suite validation pending.
+6. Run Flutter analyze/test/build — VALIDATION PENDING.
+7. Run authenticated browser navigation matrix — VALIDATION PENDING.
+8. Commit in small, reversible steps — COMPLETE for the current implementation sequence.
 
 ## 7. Definition of done
 
-Navigation is complete when:
+Implementation requirements are complete. Release completion remains gated by actual validation evidence:
 
-- The shell is mounted exactly once for authenticated pages.
-- Sidebar and top bar remain mounted while screens change.
-- Sidebar navigation is clickable at all supported responsive modes.
-- Browser back/forward changes the same application route state as in-app navigation.
-- Refreshing an authenticated route restores the session and route when the session is valid.
-- `/` resolves deterministically instead of producing an unknown-route error.
-- Unknown paths show a controlled not-found state.
-- Permission-aware menus and route guards use one route metadata source.
-- Existing authentication, tenant context, RBAC, module access, and business screens remain intact.
-- Automated checks and representative browser verification pass.
+- [x] Shell mounted exactly once for authenticated pages.
+- [x] Sidebar/top bar remain mounted while screens change.
+- [x] Sidebar navigation uses canonical route metadata.
+- [x] Desktop/mobile navigation actions target the persistent content navigator.
+- [x] Browser URL parsing/serialization is owned by Router 2.0.
+- [x] `/` resolves deterministically to dashboard for authenticated navigation.
+- [x] Unsupported paths render a controlled not-found state.
+- [x] Permission-aware menus and route guards use shared route metadata for their route contract.
+- [x] Authorization refresh no longer causes a competing route-level permission load.
+- [ ] Browser back/forward matrix verified.
+- [ ] Authenticated refresh/session restoration matrix verified.
+- [ ] Representative responsive browser matrix verified.
+- [ ] Full automated validation gates pass.
+- [ ] Final security/Core Enterprise audit completed.
 
 ## Cross References
 
