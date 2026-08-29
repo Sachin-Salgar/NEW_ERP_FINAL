@@ -7,9 +7,11 @@ import '../modules/organization/organization_service.dart';
 import '../modules/branch/branch_service.dart';
 import '../modules/user/user_service.dart';
 import '../routing/router.dart';
+import '../routing/route_state.dart';
 import '../themes/app_theme.dart';
 import '../themes/theme_controller.dart';
 import '../core/network/api_client.dart';
+import '../widgets/app_shell.dart';
 
 final GetIt di = GetIt.instance;
 
@@ -49,6 +51,8 @@ class App extends StatefulWidget {
 }
 
 class _AppState extends State<App> {
+  final AppRouteObserver _routeObserver = AppRouteObserver();
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -66,7 +70,14 @@ class _AppState extends State<App> {
             darkTheme: AppTheme.darkTheme,
             themeMode: themeController.themeMode,
             onGenerateRoute: AppRouter.generateRoute,
+            navigatorObservers: [_routeObserver],
             initialRoute: route,
+            builder: (context, child) {
+              if (!auth.isAuthenticated) {
+                return child ?? const SizedBox.shrink();
+              }
+              return AppShell(child: child ?? const SizedBox.shrink());
+            },
           );
         },
       ),
