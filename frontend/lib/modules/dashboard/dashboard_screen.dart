@@ -7,7 +7,6 @@ import '../../modules/user/user_service.dart';
 import '../../presentation/ui/components/dashboard/storage_details_card.dart';
 import '../../presentation/ui/components/responsive.dart';
 import '../../presentation/ui/components/stat_card/erp_stat_card.dart';
-import '../../widgets/app_shell.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -202,50 +201,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    return AppShell(
-      child: RefreshIndicator(
-        onRefresh: _refreshDashboard,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-          children: [
-            // Upstream dashboard behavior:
-            //   >= 850px: main content + storage side-by-side.
-            //   <  850px: storage moves below the main content.
-            if (!ErpResponsive.isMobile(context))
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 5,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        statGrid(),
-                        if (_error != null || hasNoData) ...[
-                          const SizedBox(height: 16),
-                          statusContent(),
-                        ],
+    return RefreshIndicator(
+      onRefresh: _refreshDashboard,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        children: [
+          // Upstream dashboard behavior:
+          //   >= 850px: main content + storage side-by-side.
+          //   <  850px: storage moves below the main content.
+          if (!ErpResponsive.isMobile(context))
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 5,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      statGrid(),
+                      if (_error != null || hasNoData) ...[
+                        const SizedBox(height: 16),
+                        statusContent(),
                       ],
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    flex: 2,
-                    child: StorageDetailsCard(),
-                  ),
-                ],
-              )
-            else ...[
-              statGrid(),
-              if (_error != null || hasNoData) ...[
-                const SizedBox(height: 16),
-                statusContent(),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  flex: 2,
+                  child: StorageDetailsCard(),
+                ),
               ],
+            )
+          else ...[
+            statGrid(),
+            if (_error != null || hasNoData) ...[
               const SizedBox(height: 16),
-              const StorageDetailsCard(),
+              statusContent(),
             ],
+            const SizedBox(height: 16),
+            const StorageDetailsCard(),
           ],
-        ),
+        ],
       ),
     );
   }
