@@ -3,27 +3,25 @@ import 'package:flutter/material.dart';
 /// Canonical metadata for authenticated application navigation.
 ///
 /// The same definitions drive sidebar visibility, route permissions, titles,
-/// and route selection. Screen construction remains in [AppRouter] so this
-/// model stays presentation/routing metadata only.
+/// and route selection. Screen construction remains in [AppRouter].
 class AppRouteConfig {
   final String path;
   final String title;
+  final String group;
   final String? permissionKey;
   final String? moduleCode;
   final IconData icon;
-  final bool topLevel;
 
   const AppRouteConfig({
     required this.path,
     required this.title,
+    required this.group,
     required this.permissionKey,
     required this.moduleCode,
     required this.icon,
-    this.topLevel = true,
   });
 
-  bool matches(String route) =>
-      route == path || route.startsWith('$path/');
+  bool matches(String route) => route == path || route.startsWith('$path/');
 }
 
 class AppRoutes {
@@ -32,46 +30,47 @@ class AppRoutes {
   static const dashboard = AppRouteConfig(
     path: '/dashboard',
     title: 'Dashboard',
+    group: 'GENERAL',
     permissionKey: null,
     moduleCode: 'core',
     icon: Icons.dashboard_outlined,
   );
-
   static const organizations = AppRouteConfig(
     path: '/organizations',
     title: 'Organizations',
+    group: 'MANAGEMENT',
     permissionKey: 'organization.read',
     moduleCode: 'organization',
     icon: Icons.apartment_outlined,
   );
-
   static const branches = AppRouteConfig(
     path: '/organizations/branches',
     title: 'Branches',
+    group: 'MANAGEMENT',
     permissionKey: 'branch.read',
     moduleCode: 'branch',
     icon: Icons.store_outlined,
   );
-
   static const users = AppRouteConfig(
     path: '/users',
     title: 'Users',
+    group: 'MANAGEMENT',
     permissionKey: 'user.read',
     moduleCode: 'user-management',
     icon: Icons.people_outline,
   );
-
   static const roles = AppRouteConfig(
     path: '/roles',
     title: 'Roles',
+    group: 'MANAGEMENT',
     permissionKey: 'role.read',
     moduleCode: 'security',
     icon: Icons.admin_panel_settings_outlined,
   );
-
   static const permissions = AppRouteConfig(
     path: '/permissions',
     title: 'Permissions',
+    group: 'MANAGEMENT',
     permissionKey: 'permission.read',
     moduleCode: 'security',
     icon: Icons.lock_outline,
@@ -108,16 +107,24 @@ class AppRoutes {
     '/permissions': 'permission.read',
   };
 
+  static String normalize(String path) {
+    if (path.isEmpty || path == '/') return '/dashboard';
+    if (path.endsWith('/') && path.length > 1) return path.substring(0, path.length - 1);
+    return path;
+  }
+
   static String canonicalTopLevel(String route) {
+    final normalized = normalize(route);
     for (final config in topLevel) {
-      if (config.matches(route)) return config.path;
+      if (config.matches(normalized)) return config.path;
     }
     return dashboard.path;
   }
 
   static AppRouteConfig forRoute(String route) {
+    final normalized = normalize(route);
     for (final config in topLevel) {
-      if (config.matches(route)) return config;
+      if (config.matches(normalized)) return config;
     }
     return dashboard;
   }
