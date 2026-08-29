@@ -3,8 +3,8 @@
 **Status:** Living implementation roadmap  
 **Authority:** Architecture documents and Approved ADRs define the intended system; this document records what is actually implemented and what remains to be validated or built.
 
-**Last reconciled:** 2026-08-28  
-**Branch:** `frontend-responsive-admin-ui`
+**Last reconciled:** 2026-08-29  
+**Branch:** `main`
 
 ## Status definitions
 
@@ -27,7 +27,7 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 
 ## 2. Current checkpoint
 
-**Current phase:** Core Enterprise foundation implemented; final cross-layer verification and security gates are in progress.
+**Current phase:** Core Enterprise foundation implemented; frontend navigation/routing stabilization and final cross-layer verification are in progress.
 
 ### Implemented
 
@@ -43,10 +43,12 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 - Responsive admin UI foundation based on the adopted upstream responsive admin template direction.
 - Poppins typography and Material 3-based theme foundation.
 - **Project-wide light/dark theme switching — COMPLETED.** Login has a floating theme control; desktop/tablet use an icon control in the top bar; mobile uses an icon-only control. Shared theme controller/button infrastructure is used rather than screen-specific theme logic.
+- Initial persistent authenticated application shell with responsive sidebar/top bar.
 
 ### Not yet complete
 
-- Final browser E2E verification.
+- Canonical Flutter Web Router 2.0 integration for browser URL/history synchronization.
+- Final browser E2E verification of authenticated navigation.
 - Final security audit.
 - Final Core Enterprise completion audit.
 - Full business-module implementation.
@@ -86,7 +88,9 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 | Permission-aware navigation | **IMPLEMENTED — VALIDATION PENDING** | Navigation visibility is permission-aware; backend remains authoritative. |
 | Permission-aware route guards | **IMPLEMENTED — VALIDATION PENDING** | Flutter guards exist and remain UX controls only. |
 | Module enablement/licensing | **IMPLEMENTED — VALIDATION PENDING** | Module access service/middleware exists. |
+| Persistent authenticated shell | **IMPLEMENTED — VALIDATION PENDING** | App shell with sidebar/top bar exists; navigation ownership is being consolidated under the canonical router. |
 | Responsive admin UI migration | **IMPLEMENTED — VALIDATION PENDING** | Upstream responsive layout direction, responsive breakpoints, cards/spacing and Material 3 foundation have been adopted; final device/browser verification remains. |
+| Web navigation/routing | **PARTIAL** | Current named-route navigation and persistent shell exist, but browser history/deep-link synchronization is not yet canonical. Router 2.0 stabilization is in progress. |
 | Project-wide theme switching | **COMPLETED** | Shared light/dark theme infrastructure is active across login and authenticated responsive layouts; mobile control is icon-only. |
 | Core frontend/backend E2E | **BLOCKED / PENDING VALIDATION** | E2E scenarios exist, but authoritative browser runner evidence remains incomplete. |
 
@@ -163,7 +167,8 @@ The current verification pass must cover:
 11. Tenant isolation and transaction-local RLS behavior.
 12. Regression check for existing backend tests and frontend tests.
 13. Vercel production build/deployment verification.
-14. Final security and Core Enterprise audit after technical verification.
+14. Browser route deep-link, back/forward, refresh, and shell-persistence verification.
+15. Final security and Core Enterprise audit after technical verification.
 
 **Roadmap rule:** a verification item is not marked COMPLETED until actual repository/CI/deployment evidence supports it.
 
@@ -182,7 +187,7 @@ The current verification pass must cover:
 
 ## 10. Reconciliation summary
 
-The roadmap now reflects the current implementation direction: identity-based tenancy, Core Enterprise administration/RBAC, responsive Flutter admin UI, Poppins/Material 3 styling, and **project-wide light/dark theme switching completed**. Remaining work is clearly separated into validation gates and genuinely unimplemented platform/business capabilities.
+The roadmap now reflects the current implementation direction: identity-based tenancy, Core Enterprise administration/RBAC, responsive Flutter admin UI, Poppins/Material 3 styling, project-wide light/dark theme switching, and a persistent authenticated shell. **Canonical Flutter Web navigation/routing is the current implementation target before the Core Enterprise verification gate can be closed.**
 
 ```text
 Identity-based authentication
@@ -195,9 +200,11 @@ Organization / Location authorization
         ↓
 RBAC + module enablement
         ↓
-Responsive admin UI + theme system
+Persistent responsive admin shell
         ↓
-Core Enterprise verification/security gate   ← CURRENT
+Canonical Flutter Web routing   ← CURRENT IMPLEMENTATION
+        ↓
+Core Enterprise verification/security gate
         ↓
 Sales
         ↓
