@@ -29,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.of(context).pushNamedAndRemoveUntil('/dashboard', (route) => false);
       return;
     }
-    setState(() { _isSubmitting = false; _errorMessage = 'Incorrect username or password. Please try again.'; });
+    setState(() { _isSubmitting = false; _errorMessage = auth.lastLoginError ?? 'Login failed. Please try again.'; });
   }
 
   @override
@@ -101,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextButton(style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 36), tapTargetSize: MaterialTapTargetSize.shrinkWrap), onPressed: _isSubmitting ? null : () {}, child: const Text('Forgot password?', maxLines: 1, style: TextStyle(fontSize: 13))),
                         ],
                       ),
-                      if (_errorMessage != null) ...[const SizedBox(height: 6), Text(_errorMessage!, style: const TextStyle(color: Colors.red))],
+                      if (_errorMessage != null) ...[const SizedBox(height: 6), Text(_errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red))],
                       const SizedBox(height: 14),
                       SizedBox(width: double.infinity, height: 48, child: FilledButton(key: const ValueKey('login_submit_button'), onPressed: _isSubmitting ? null : _submit, child: _isSubmitting ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Sign in', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)))),
                       const SizedBox(height: 16),
