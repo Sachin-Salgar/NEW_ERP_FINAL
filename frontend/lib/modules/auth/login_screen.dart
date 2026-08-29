@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
 import '../../core/auth/auth_service.dart';
+import '../../routing/app_router_delegate.dart';
 import '../../themes/theme_controller.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -26,7 +27,12 @@ class _LoginScreenState extends State<LoginScreen> {
     final ok = await auth.login(baseUrl, _identifierController.text.trim(), _passwordController.text);
     if (!mounted) return;
     if (ok) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/dashboard', (route) => false);
+      final delegate = Router.of(context).routerDelegate;
+      if (delegate is AppRouterDelegate) {
+        await delegate.setNewRoutePath('/dashboard');
+      } else {
+        Navigator.of(context).pushNamedAndRemoveUntil('/dashboard', (route) => false);
+      }
       return;
     }
     setState(() { _isSubmitting = false; _errorMessage = auth.lastLoginError ?? 'Login failed. Please try again.'; });
