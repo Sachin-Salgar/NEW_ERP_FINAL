@@ -10,11 +10,13 @@ import 'profile_context_menu.dart';
 class AppShell extends StatefulWidget {
   final Widget child;
   final GlobalKey<NavigatorState> navigatorKey;
+  final GlobalKey<NavigatorState> rootNavigatorKey;
 
   const AppShell({
     super.key,
     required this.child,
     required this.navigatorKey,
+    required this.rootNavigatorKey,
   });
 
   @override
@@ -43,13 +45,16 @@ class _AppShellState extends State<AppShell> {
 
   void _handleNavigate(String route) {
     final currentRoute = AppRouteState.currentRoute.value;
-    if (currentRoute == route || currentRoute?.startsWith('$route/') == true) return;
+    if (currentRoute == route || currentRoute?.startsWith('$route/') == true) {
+      return;
+    }
     widget.navigatorKey.currentState?.pushNamed(route);
   }
 
   Future<void> _logout(AuthService auth) async {
+    // AuthService owns session teardown. AppRouterDelegate listens to the auth
+    // state and switches the root navigator back to /login without reloading.
     await auth.logout();
-    widget.navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (_) => false);
   }
 
   void _toggleSidebar() => setState(() => _sidebarCollapsed = !_sidebarCollapsed);
