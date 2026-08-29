@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -27,6 +28,7 @@ class AuthService extends ChangeNotifier {
   Map<String, dynamic>? currentUser, deploymentInfo;
   List<Map<String, dynamic>> availableOrganizations = const [], availableLocations = const [], availableModules = const [];
   bool requiresOrganizationSelection = false, requiresLocationSelection = false;
+  String? lastLoginError;
   bool get isAuthenticated => _accessToken != null && _expiresAt != null && DateTime.now().isBefore(_expiresAt!);
   String? get accessToken => _accessToken;
   String get nextPostAuthRoute => isAuthenticated ? '/dashboard' : '/login';
@@ -43,14 +45,43 @@ class AuthService extends ChangeNotifier {
 
   Future<bool> login(String baseUrl, String identifier, String password) async {
     _ensureApiClient(baseUrl);
+    lastLoginError = null;
     try {
       final r = await _apiClient.post('/api/v1/auth/login', body: {'identifier': identifier, 'password': password});
-      if (r.statusCode != 200) return false; await _storeSession(jsonDecode(r.body) as Map<String,dynamic>);
+      if (r.statusCode != 200) {
+        lastLoginError = _loginErrorFromResponse(r.statusCode, r.body);
+        if (kDebugMode) debugPrint('ERP login failed: HTTP ${r.statusCode}; ${lastLoginError ?? 'no response message'}');
+        return false;
+      }
+      await _storeSession(jsonDecode(r.body) as Map<String,dynamic>);
       // Context is initialized from the user's configured defaults when available. Missing defaults do not block login.
       await loadAuthorizedOrganizations(baseUrl);
       if (currentOrganizationId != null) { await loadAuthorizedLocations(baseUrl); await loadAccessibleModules(baseUrl); await _loadPermissionsIfContextReady(baseUrl); }
       notifyListeners(); return true;
-    } catch (_) { return false; }
+    } on TimeoutException {
+      lastLoginError = 'Unable to reach the ERP server (request timed out).';
+      if (kDebugMode) debugPrint('ERP login failed: request timed out.');
+      return false;
+    } catch (e) {
+      lastLoginError = 'Unable to reach the ERP server. Check the API connection and try again.';
+      if (kDebugMode) debugPrint('ERP login failed: $e');
+      return false;
+    }
+  }
+
+  String _loginErrorFromResponse(int statusCode, String body) {
+    String? message;
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map<String, dynamic>) {
+        final value = decoded['message'] ?? decoded['error'];
+        if (value is String && value.trim().isNotEmpty) message = value.trim();
+      }
+    } catch (_) {}
+    if (statusCode == 401) return 'Incorrect username or password.';
+    if (statusCode == 400 || statusCode == 422) return message ?? 'The login request was rejected by the ERP server.';
+    if (statusCode >= 500) return 'ERP server error (HTTP $statusCode). Please try again later.';
+    return message ?? 'Login failed (HTTP $statusCode).';
   }
 
   Future<void> _storeSession(Map<String,dynamic> body) async {
@@ -70,7 +101,7 @@ class AuthService extends ChangeNotifier {
   Future<bool> loadAuthorizedOrganizations(String baseUrl) async { if(_accessToken==null)return false; _currentBaseUrl=baseUrl; _ensureApiClient(baseUrl); try{final r=await _apiClient.get('/api/v1/auth/organizations'); if(r.statusCode!=200)return false; final b=jsonDecode(r.body) as Map<String,dynamic>; final l=(b['organizations'] as List<dynamic>?)??const[]; availableOrganizations=l.map((x)=>Map<String,dynamic>.from(x as Map)).toList(); final active=(b['activeOrganizationId']??currentOrganizationId??'').toString().trim(); requiresOrganizationSelection=false; if(active.isNotEmpty&&availableOrganizations.any((o)=>(o['id']??'').toString()==active)){currentOrganizationId=active;selectedOrganizationId=active;await _secureStorage.write(key:'organization_id',value:active);} notifyListeners(); return true;}catch(_){return false;} }
   Future<bool> selectOrganization(String organizationId) async { final id=organizationId.trim(); if(id.isEmpty||!availableOrganizations.any((o)=>(o['id']??'').toString()==id))return false; try{final base=_currentBaseUrl;_ensureApiClient(base);final r=await _apiClient.post('/api/v1/auth/organizations/select',body:{'organizationId':id});if(r.statusCode!=200)return false;await _storeSession(jsonDecode(r.body) as Map<String,dynamic>);requiresOrganizationSelection=false;await loadAuthorizedLocations(base);await loadAccessibleModules(base);await _loadPermissionsIfContextReady(base);notifyListeners();return true;}catch(_){return false;} }
   Future<bool> loadAuthorizedLocations(String baseUrl) async { if(_accessToken==null||currentOrganizationId==null)return false; _currentBaseUrl=baseUrl;_ensureApiClient(baseUrl);try{final r=await _apiClient.get('/api/v1/locations');if(r.statusCode!=200)return false;final b=jsonDecode(r.body) as Map<String,dynamic>;final l=(b['locations'] as List<dynamic>?)??const[];availableLocations=l.map((x)=>Map<String,dynamic>.from(x as Map)).toList();final active=(b['activeLocationId']??currentLocationId??'').toString().trim();requiresLocationSelection=false;if(active.isNotEmpty&&availableLocations.any((x)=>(x['id']??'').toString()==active)){currentLocationId=active;selectedLocationId=active;await _secureStorage.write(key:'location_id',value:active);}notifyListeners();return true;}catch(_){return false;} }
-  Future<bool> selectLocation(String locationId) async {final id=locationId.trim();if(id.isEmpty||!availableLocations.any((x)=>(x['id']??'').toString()==id))return false;try{final base=_currentBaseUrl;_ensureApiClient(base);final r=await _apiClient.post('/api/v1/locations/$id/select');if(r.statusCode!=200)return false;await _storeSession(jsonDecode(r.body) as Map<String,dynamic>);currentLocationId=id;selectedLocationId=id;requiresLocationSelection=false;await _loadPermissionsIfContextReady(base);notifyListeners();return true;}catch(_){return false;} }
+  Future<bool> selectLocation(String locationId) async {final id=locationId.trim();if(id.isEmpty||!availableLocations.any((o)=>(o['id']??'').toString()==id))return false;try{final base=_currentBaseUrl;_ensureApiClient(base);final r=await _apiClient.post('/api/v1/locations/$id/select');if(r.statusCode!=200)return false;await _storeSession(jsonDecode(r.body) as Map<String,dynamic>);currentLocationId=id;selectedLocationId=id;requiresLocationSelection=false;await _loadPermissionsIfContextReady(base);notifyListeners();return true;}catch(_){return false;} }
   Future<bool> loadAccessibleModules(String baseUrl) async {if(_accessToken==null||currentOrganizationId==null)return false;_currentBaseUrl=baseUrl;_ensureApiClient(baseUrl);try{final r=await _apiClient.get('/api/v1/auth/modules');if(r.statusCode!=200)return false;final b=jsonDecode(r.body) as Map<String,dynamic>;availableModules=((b['modules'] as List<dynamic>?)??const[]).map((x)=>Map<String,dynamic>.from(x as Map)).toList();notifyListeners();return true;}catch(_){return false;}}
   Future<List<String>> fetchEffectivePermissions(String baseUrl) async {if(_accessToken==null||currentUser==null)return[];_currentBaseUrl=baseUrl;_ensureApiClient(baseUrl);final id=currentUser?['id'] as String?;if(id==null)return[];return authzService.loadPermissions(_apiClient,id);}
   Future<void> _loadPermissionsIfContextReady(String baseUrl) async {if(_accessToken==null||currentUser==null||currentOrganizationId==null)return;await fetchEffectivePermissions(baseUrl);}
