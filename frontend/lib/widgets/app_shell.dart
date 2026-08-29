@@ -9,8 +9,13 @@ import 'profile_context_menu.dart';
 
 class AppShell extends StatefulWidget {
   final Widget child;
+  final GlobalKey<NavigatorState> navigatorKey;
 
-  const AppShell({super.key, required this.child});
+  const AppShell({
+    super.key,
+    required this.child,
+    required this.navigatorKey,
+  });
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -21,44 +26,13 @@ class _AppShellState extends State<AppShell> {
 
   List<Map<String, dynamic>> _navigationItems(AuthService auth) {
     final items = <Map<String, dynamic>>[
-      {
-        'menuName': 'Dashboard',
-        'path': '/dashboard',
-        'permissionKey': null,
-        'moduleCode': 'core',
-      },
-      {
-        'menuName': 'Organizations',
-        'path': '/organizations',
-        'permissionKey': 'organization.read',
-        'moduleCode': 'organization',
-      },
-      {
-        'menuName': 'Branches',
-        'path': '/organizations/branches',
-        'permissionKey': 'branch.read',
-        'moduleCode': 'branch',
-      },
-      {
-        'menuName': 'Users',
-        'path': '/users',
-        'permissionKey': 'user.read',
-        'moduleCode': 'user-management',
-      },
-      {
-        'menuName': 'Roles',
-        'path': '/roles',
-        'permissionKey': 'role.read',
-        'moduleCode': 'security',
-      },
-      {
-        'menuName': 'Permissions',
-        'path': '/permissions',
-        'permissionKey': 'permission.read',
-        'moduleCode': 'security',
-      },
+      {'menuName': 'Dashboard', 'path': '/dashboard', 'permissionKey': null, 'moduleCode': 'core'},
+      {'menuName': 'Organizations', 'path': '/organizations', 'permissionKey': 'organization.read', 'moduleCode': 'organization'},
+      {'menuName': 'Branches', 'path': '/organizations/branches', 'permissionKey': 'branch.read', 'moduleCode': 'branch'},
+      {'menuName': 'Users', 'path': '/users', 'permissionKey': 'user.read', 'moduleCode': 'user-management'},
+      {'menuName': 'Roles', 'path': '/roles', 'permissionKey': 'role.read', 'moduleCode': 'security'},
+      {'menuName': 'Permissions', 'path': '/permissions', 'permissionKey': 'permission.read', 'moduleCode': 'security'},
     ];
-
     return items.where((item) {
       final permission = item['permissionKey'] as String?;
       final module = item['moduleCode'] as String?;
@@ -67,34 +41,24 @@ class _AppShellState extends State<AppShell> {
     }).toList();
   }
 
-  void _handleNavigate(BuildContext context, String route) {
+  void _handleNavigate(String route) {
     final currentRoute = AppRouteState.currentRoute.value;
-    if (currentRoute == route || currentRoute?.startsWith('$route/') == true) {
-      return;
-    }
-    Navigator.of(context).pushNamed(route);
+    if (currentRoute == route || currentRoute?.startsWith('$route/') == true) return;
+    widget.navigatorKey.currentState?.pushNamed(route);
   }
 
-  Future<void> _logout(BuildContext context, AuthService auth) async {
+  Future<void> _logout(AuthService auth) async {
     await auth.logout();
-    if (context.mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
-    }
+    widget.navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (_) => false);
   }
 
-  void _toggleSidebar() {
-    setState(() => _sidebarCollapsed = !_sidebarCollapsed);
-  }
+  void _toggleSidebar() => setState(() => _sidebarCollapsed = !_sidebarCollapsed);
 
   @override
   Widget build(BuildContext context) {
     final auth = GetIt.instance.get<AuthService>();
-
     return AnimatedBuilder(
-      animation: Listenable.merge([
-        auth.authzService,
-        AppRouteState.currentRoute,
-      ]),
+      animation: Listenable.merge([auth.authzService, AppRouteState.currentRoute]),
       builder: (context, _) => _buildShell(context, auth),
     );
   }
@@ -118,7 +82,7 @@ class _AppShellState extends State<AppShell> {
               child: Sidebar(
                 collapsed: _sidebarCollapsed,
                 selectedRoute: route ?? '/dashboard',
-                onSelect: (path) => _handleNavigate(context, path),
+                onSelect: _handleNavigate,
               ),
             ),
             Expanded(
@@ -128,10 +92,7 @@ class _AppShellState extends State<AppShell> {
                     title: _pageTitle(route),
                     onMenuPressed: _toggleSidebar,
                     navigationCollapsed: _sidebarCollapsed,
-                    actions: [
-                      if (auth.currentUser != null)
-                        const ProfileContextMenu(),
-                    ],
+                    actions: [if (auth.currentUser != null) const ProfileContextMenu()],
                   ),
                   Expanded(child: widget.child),
                 ],
@@ -146,9 +107,7 @@ class _AppShellState extends State<AppShell> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: TopBar(
         title: _pageTitle(route),
-        actions: [
-          if (auth.currentUser != null) const ProfileContextMenu(),
-        ],
+        actions: [if (auth.currentUser != null) const ProfileContextMenu()],
       ),
       drawer: Drawer(
         child: SafeArea(
@@ -159,28 +118,23 @@ class _AppShellState extends State<AppShell> {
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  children: navItems
-                      .map(
-                        (item) => ListTile(
-                          leading: Icon(_iconForRoute(item['path'] as String)),
-                          title: Text(item['menuName'] as String),
-                          selected: route == item['path'],
-                          selectedColor:
-                              Theme.of(context).colorScheme.primary,
-                          onTap: () {
-                            Navigator.of(context).pop();
-                            _handleNavigate(context, item['path'] as String);
-                          },
-                        ),
-                      )
-                      .toList(),
+                  children: navItems.map((item) => ListTile(
+                    leading: Icon(_iconForRoute(item['path'] as String)),
+                    title: Text(item['menuName'] as String),
+                    selected: route == item['path'],
+                    selectedColor: Theme.of(context).colorScheme.primary,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      _handleNavigate(item['path'] as String);
+                    },
+                  )).toList(),
                 ),
               ),
               Divider(height: 1, color: Theme.of(context).dividerColor),
               ListTile(
                 leading: const Icon(Icons.logout_outlined),
                 title: const Text('Logout'),
-                onTap: () => _logout(context, auth),
+                onTap: () => _logout(auth),
               ),
             ],
           ),
@@ -201,16 +155,10 @@ class _AppShellState extends State<AppShell> {
 
   static IconData _iconForRoute(String route) {
     if (route == '/dashboard') return Icons.dashboard_outlined;
-    if (route.startsWith('/organizations/branches')) {
-      return Icons.store_outlined;
-    }
-    if (route.startsWith('/organizations')) {
-      return Icons.apartment_outlined;
-    }
+    if (route.startsWith('/organizations/branches')) return Icons.store_outlined;
+    if (route.startsWith('/organizations')) return Icons.apartment_outlined;
     if (route.startsWith('/users')) return Icons.people_outline;
-    if (route.startsWith('/roles')) {
-      return Icons.admin_panel_settings_outlined;
-    }
+    if (route.startsWith('/roles')) return Icons.admin_panel_settings_outlined;
     return Icons.lock_outline;
   }
 }
@@ -230,10 +178,7 @@ class _BrandHeader extends StatelessWidget {
               color: theme.colorScheme.primary,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
-              Icons.grid_view_rounded,
-              color: theme.colorScheme.onPrimary,
-            ),
+            child: Icon(Icons.grid_view_rounded, color: theme.colorScheme.onPrimary),
           ),
           const SizedBox(width: 12),
           Text('NEW ERP', style: theme.textTheme.titleLarge),
