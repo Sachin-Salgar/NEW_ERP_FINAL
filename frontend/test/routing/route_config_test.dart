@@ -10,8 +10,14 @@ void main() {
     });
 
     test('maps child routes to their top-level navigation item', () {
-      expect(AppRoutes.canonicalTopLevel('/organizations/create'), '/organizations');
-      expect(AppRoutes.canonicalTopLevel('/organizations/branches/edit'), '/organizations');
+      expect(
+        AppRoutes.canonicalTopLevel('/organizations/create'),
+        '/organizations',
+      );
+      expect(
+        AppRoutes.canonicalTopLevel('/organizations/branches/edit'),
+        '/organizations',
+      );
       expect(AppRoutes.canonicalTopLevel('/settings/branches'), '/settings');
       expect(AppRoutes.canonicalTopLevel('/users/roles'), '/users');
       expect(AppRoutes.canonicalTopLevel('/roles/edit'), '/roles');
@@ -23,7 +29,9 @@ void main() {
       expect(organizations.permissionKey, 'organization.read');
       expect(organizations.moduleCode, 'organization');
 
-      final settingsOrganizations = AppRoutes.forRoute('/settings/organizations/create');
+      final settingsOrganizations = AppRoutes.forRoute(
+        '/settings/organizations/create',
+      );
       expect(settingsOrganizations.title, 'Organizations');
       expect(settingsOrganizations.permissionKey, 'organization.read');
       expect(settingsOrganizations.moduleCode, 'organization');
@@ -33,6 +41,16 @@ void main() {
       expect(settingsBranches.permissionKey, 'branch.read');
       expect(settingsBranches.moduleCode, 'branch');
 
+      final settingsUsers = AppRoutes.forRoute('/settings/users/create');
+      expect(settingsUsers.title, 'Users');
+      expect(settingsUsers.permissionKey, 'user.read');
+      expect(settingsUsers.moduleCode, 'user-management');
+
+      final settingsRoles = AppRoutes.forRoute('/settings/roles/create');
+      expect(settingsRoles.title, 'Roles & Permissions');
+      expect(settingsRoles.permissionKey, 'role.read');
+      expect(settingsRoles.moduleCode, 'security');
+
       final dashboard = AppRoutes.forRoute('/dashboard');
       expect(dashboard.permissionKey, isNull);
       expect(dashboard.moduleCode, 'core');
@@ -41,14 +59,28 @@ void main() {
     test('keeps all settings child routes under the settings layout', () {
       expect(AppRoutes.isSettingsRoute('/settings'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/organizations'), isTrue);
-      expect(AppRoutes.isSettingsRoute('/settings/organizations/create'), isTrue);
-      expect(AppRoutes.isSettingsRoute('/settings/organizations/abc/edit'), isTrue);
+      expect(
+        AppRoutes.isSettingsRoute('/settings/organizations/create'),
+        isTrue,
+      );
+      expect(
+        AppRoutes.isSettingsRoute('/settings/organizations/abc/edit'),
+        isTrue,
+      );
       expect(AppRoutes.isSettingsRoute('/settings/branches/create'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/branches/abc/edit'), isTrue);
+      expect(AppRoutes.isSettingsRoute('/settings/users'), isTrue);
+      expect(AppRoutes.isSettingsRoute('/settings/users/create'), isTrue);
+      expect(AppRoutes.isSettingsRoute('/settings/users/123/edit'), isTrue);
+      expect(AppRoutes.isSettingsRoute('/settings/roles/create'), isTrue);
+      expect(AppRoutes.isSettingsRoute('/settings/roles/123/edit'), isTrue);
     });
 
     test('unknown routes resolve to a safe navigation metadata entry', () {
-      expect(AppRoutes.forRoute('/not-a-real-route'), same(AppRoutes.dashboard));
+      expect(
+        AppRoutes.forRoute('/not-a-real-route'),
+        same(AppRoutes.dashboard),
+      );
     });
   });
 }

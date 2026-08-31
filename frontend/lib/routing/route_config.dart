@@ -75,6 +75,22 @@ class AppRoutes {
     moduleCode: 'branch',
     icon: Icons.store_outlined,
   );
+  static const settingsUsers = AppRouteConfig(
+    path: '/settings/users',
+    title: 'Users',
+    group: 'SETTINGS',
+    permissionKey: 'user.read',
+    moduleCode: 'user-management',
+    icon: Icons.people_outline,
+  );
+  static const settingsRoles = AppRouteConfig(
+    path: '/settings/roles',
+    title: 'Roles & Permissions',
+    group: 'SETTINGS',
+    permissionKey: 'role.read',
+    moduleCode: 'security',
+    icon: Icons.admin_panel_settings_outlined,
+  );
   static const users = AppRouteConfig(
     path: '/users',
     title: 'Users',
@@ -103,6 +119,8 @@ class AppRoutes {
   static const settingsNavigation = <AppRouteConfig>[
     settingsOrganizations,
     settingsBranches,
+    settingsUsers,
+    settingsRoles,
   ];
 
   static const topLevel = <AppRouteConfig>[
@@ -124,6 +142,14 @@ class AppRoutes {
     '/settings/branches/create': 'branch.manage',
     '/settings/branches/details': 'branch.read',
     '/settings/branches/edit': 'branch.manage',
+    '/settings/users': 'user.read',
+    '/settings/users/create': 'user.manage',
+    '/settings/users/details': 'user.read',
+    '/settings/users/edit': 'user.manage',
+    '/settings/roles': 'role.read',
+    '/settings/roles/create': 'role.manage',
+    '/settings/roles/details': 'role.read',
+    '/settings/roles/edit': 'role.manage',
     '/organizations': 'organization.read',
     '/organizations/create': 'organization.manage',
     '/organizations/details': 'organization.read',
@@ -138,17 +164,21 @@ class AppRoutes {
     '/users/edit': 'user.manage',
     '/users/roles': 'user.manage',
     '/users/access': 'user.manage',
+    '/settings/users/roles': 'user.manage',
+    '/settings/users/access': 'user.manage',
     '/roles': 'role.read',
     '/roles/create': 'role.manage',
     '/roles/edit': 'role.manage',
     '/permissions': 'permission.read',
   };
 
-  static bool isSettingsRoute(String route) => normalize(route).startsWith('/settings');
+  static bool isSettingsRoute(String route) =>
+      normalize(route).startsWith('/settings');
 
   static String normalize(String path) {
     if (path.isEmpty || path == '/') return '/dashboard';
-    if (path.endsWith('/') && path.length > 1) return path.substring(0, path.length - 1);
+    if (path.endsWith('/') && path.length > 1)
+      return path.substring(0, path.length - 1);
     return path;
   }
 
