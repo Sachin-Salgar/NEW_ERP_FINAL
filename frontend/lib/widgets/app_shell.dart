@@ -7,6 +7,7 @@ import '../presentation/ui/components/topbar.dart';
 import '../routing/route_config.dart';
 import '../routing/route_state.dart';
 import 'profile_context_menu.dart';
+import 'settings_shell.dart';
 
 class AppShell extends StatefulWidget {
   final Widget child;
@@ -24,6 +25,15 @@ class _AppShellState extends State<AppShell> {
 
   List<AppRouteConfig> _navigationItems(AuthService auth) {
     return AppRoutes.topLevel.where((item) {
+      if (item.path == '/settings') {
+        return AppRoutes.settingsNavigation.any((settingsItem) {
+          final permission = settingsItem.permissionKey;
+          final module = settingsItem.moduleCode;
+          return (permission == null || auth.hasPermission(permission)) &&
+              (module == null || auth.hasModule(module));
+        });
+      }
+
       final permission = item.permissionKey;
       final module = item.moduleCode;
       return (permission == null || auth.hasPermission(permission)) &&
@@ -57,8 +67,23 @@ class _AppShellState extends State<AppShell> {
     final isDesktop = width >= 1100;
     final route = AppRoutes.normalize(AppRouteState.currentRoute.value ?? '/dashboard');
     final routeConfig = AppRoutes.forRoute(route);
+    final isSettingsRoute = AppRoutes.isSettingsRoute(route);
 
     if (isDesktop) {
+      final content = isSettingsRoute
+          ? SettingsShell(selectedRoute: route, onSelect: _handleNavigate, child: widget.child)
+          : Column(
+              children: [
+                TopBar(
+                  title: routeConfig.title,
+                  onMenuPressed: _toggleSidebar,
+                  navigationCollapsed: _sidebarCollapsed,
+                  actions: [if (auth.currentUser != null) const ProfileContextMenu()],
+                ),
+                Expanded(child: widget.child),
+              ],
+            );
+
       return Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: Row(
@@ -71,17 +96,19 @@ class _AppShellState extends State<AppShell> {
               child: Sidebar(collapsed: _sidebarCollapsed, selectedRoute: route, onSelect: _handleNavigate),
             ),
             Expanded(
-              child: Column(
-                children: [
-                  TopBar(
-                    title: routeConfig.title,
-                    onMenuPressed: _toggleSidebar,
-                    navigationCollapsed: _sidebarCollapsed,
-                    actions: [if (auth.currentUser != null) const ProfileContextMenu()],
-                  ),
-                  Expanded(child: widget.child),
-                ],
-              ),
+              child: isSettingsRoute
+                  ? Column(
+                      children: [
+                        TopBar(
+                          title: routeConfig.title,
+                          onMenuPressed: _toggleSidebar,
+                          navigationCollapsed: _sidebarCollapsed,
+                          actions: [if (auth.currentUser != null) const ProfileContextMenu()],
+                        ),
+                        Expanded(child: SettingsShell(selectedRoute: route, onSelect: _handleNavigate, child: widget.child)),
+                      ],
+                    )
+                  : content,
             ),
           ],
         ),
@@ -125,7 +152,9 @@ class _AppShellState extends State<AppShell> {
           ),
         ),
       ),
-      body: widget.child,
+      body: isSettingsRoute
+          ? SettingsShell(selectedRoute: route, onSelect: _handleNavigate, child: widget.child)
+          : widget.child,
     );
   }
 }

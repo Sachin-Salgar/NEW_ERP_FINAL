@@ -46,6 +46,35 @@ class AppRouter {
         return MaterialPageRoute(settings: settings, builder: (_) => const LoginScreen());
       case '/organization-selection':
         return MaterialPageRoute(settings: settings, builder: (_) => const _OrganizationSelectionScreen());
+      case '/settings':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/settings/organizations',
+            child: const OrganizationListScreen(),
+          ),
+        );
+      case '/settings/organizations':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/settings/organizations',
+            child: const OrganizationListScreen(),
+          ),
+        );
+      case '/settings/branches': {
+        final organizationId = auth.currentOrganizationId ?? auth.selectedOrganizationId ?? '';
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/settings/branches',
+            child: BranchListScreen(organizationId: organizationId),
+          ),
+        );
+      }
       case '/organizations':
         return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/organizations', child: const OrganizationListScreen()));
       case '/organizations/create':

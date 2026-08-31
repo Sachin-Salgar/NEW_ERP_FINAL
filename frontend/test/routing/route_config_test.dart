@@ -12,6 +12,7 @@ void main() {
     test('maps child routes to their top-level navigation item', () {
       expect(AppRoutes.canonicalTopLevel('/organizations/create'), '/organizations');
       expect(AppRoutes.canonicalTopLevel('/organizations/branches/edit'), '/organizations');
+      expect(AppRoutes.canonicalTopLevel('/settings/branches'), '/settings');
       expect(AppRoutes.canonicalTopLevel('/users/roles'), '/users');
       expect(AppRoutes.canonicalTopLevel('/roles/edit'), '/roles');
     });
@@ -21,6 +22,11 @@ void main() {
       expect(organizations.title, 'Organizations');
       expect(organizations.permissionKey, 'organization.read');
       expect(organizations.moduleCode, 'organization');
+
+      final settingsBranches = AppRoutes.forRoute('/settings/branches');
+      expect(settingsBranches.title, 'Branches');
+      expect(settingsBranches.permissionKey, 'branch.read');
+      expect(settingsBranches.moduleCode, 'branch');
 
       final dashboard = AppRoutes.forRoute('/dashboard');
       expect(dashboard.permissionKey, isNull);

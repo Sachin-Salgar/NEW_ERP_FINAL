@@ -35,6 +35,14 @@ class AppRoutes {
     moduleCode: 'core',
     icon: Icons.dashboard_outlined,
   );
+  static const settings = AppRouteConfig(
+    path: '/settings',
+    title: 'Settings',
+    group: 'GENERAL',
+    permissionKey: null,
+    moduleCode: null,
+    icon: Icons.settings_outlined,
+  );
   static const organizations = AppRouteConfig(
     path: '/organizations',
     title: 'Organizations',
@@ -47,6 +55,22 @@ class AppRoutes {
     path: '/organizations/branches',
     title: 'Branches',
     group: 'MANAGEMENT',
+    permissionKey: 'branch.read',
+    moduleCode: 'branch',
+    icon: Icons.store_outlined,
+  );
+  static const settingsOrganizations = AppRouteConfig(
+    path: '/settings/organizations',
+    title: 'Organizations',
+    group: 'SETTINGS',
+    permissionKey: 'organization.read',
+    moduleCode: 'organization',
+    icon: Icons.apartment_outlined,
+  );
+  static const settingsBranches = AppRouteConfig(
+    path: '/settings/branches',
+    title: 'Branches',
+    group: 'SETTINGS',
     permissionKey: 'branch.read',
     moduleCode: 'branch',
     icon: Icons.store_outlined,
@@ -76,10 +100,14 @@ class AppRoutes {
     icon: Icons.lock_outline,
   );
 
+  static const settingsNavigation = <AppRouteConfig>[
+    settingsOrganizations,
+    settingsBranches,
+  ];
+
   static const topLevel = <AppRouteConfig>[
     dashboard,
-    organizations,
-    branches,
+    settings,
     users,
     roles,
     permissions,
@@ -87,6 +115,9 @@ class AppRoutes {
 
   static const routePermissions = <String, String?>{
     '/dashboard': null,
+    '/settings': null,
+    '/settings/organizations': 'organization.read',
+    '/settings/branches': 'branch.read',
     '/organizations': 'organization.read',
     '/organizations/create': 'organization.manage',
     '/organizations/details': 'organization.read',
@@ -107,6 +138,8 @@ class AppRoutes {
     '/permissions': 'permission.read',
   };
 
+  static bool isSettingsRoute(String route) => normalize(route).startsWith('/settings');
+
   static String normalize(String path) {
     if (path.isEmpty || path == '/') return '/dashboard';
     if (path.endsWith('/') && path.length > 1) return path.substring(0, path.length - 1);
@@ -118,12 +151,22 @@ class AppRoutes {
     for (final config in topLevel) {
       if (config.matches(normalized)) return config.path;
     }
+    if (isSettingsRoute(normalized)) return settings.path;
+    for (final config in [organizations, branches]) {
+      if (config.matches(normalized)) return config.path;
+    }
     return dashboard.path;
   }
 
   static AppRouteConfig forRoute(String route) {
     final normalized = normalize(route);
+    for (final config in settingsNavigation) {
+      if (config.matches(normalized)) return config;
+    }
     for (final config in topLevel) {
+      if (config.matches(normalized)) return config;
+    }
+    for (final config in [organizations, branches]) {
       if (config.matches(normalized)) return config;
     }
     return dashboard;
