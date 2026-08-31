@@ -46,6 +46,9 @@ class ApiClient {
     if (accessToken != null) {
       headers['Authorization'] = 'Bearer $accessToken';
     }
+    if (auth.currentTenantId != null && auth.currentTenantId!.isNotEmpty) {
+      headers['x-tenant-id'] = auth.currentTenantId!;
+    }
 
     http.Response resp = await fn(headers).timeout(timeout);
 
@@ -55,6 +58,9 @@ class ApiClient {
         final newToken = auth.accessToken;
         if (newToken != null) {
           headers['Authorization'] = 'Bearer $newToken';
+          if (auth.currentTenantId != null && auth.currentTenantId!.isNotEmpty) {
+            headers['x-tenant-id'] = auth.currentTenantId!;
+          }
           resp = await fn(headers).timeout(timeout);
         }
       }

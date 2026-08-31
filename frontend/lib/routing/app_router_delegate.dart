@@ -24,9 +24,12 @@ class AppRouterDelegate extends RouterDelegate<String>
   bool _disposed = false;
   bool _syncingBrowserRoute = false;
 
+  static String normalizePath(String? path) => AppRoutes.normalize(path ?? '/');
+
   AppRouterDelegate({required this.auth}) {
     _contentObserver = _ContentRouteObserver(_onContentRouteChanged);
     auth.addListener(_onAuthChanged);
+    _path = normalizePath(_path);
     _syncRouteState(_path);
   }
 
@@ -35,7 +38,7 @@ class AppRouterDelegate extends RouterDelegate<String>
 
   @override
   Future<void> setNewRoutePath(String configuration) async {
-    var target = AppRoutes.normalize(configuration);
+    var target = normalizePath(configuration);
     if (!auth.isAuthenticated) {
       target = '/login';
     } else if (target == '/login') {
@@ -50,6 +53,7 @@ class AppRouterDelegate extends RouterDelegate<String>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_disposed) return;
       final currentNavigator = contentNavigatorKey.currentState;
+      if (currentNavigator != null && !currentNavigator.mounted) return;
       if (currentNavigator != null) {
         currentNavigator.pushNamedAndRemoveUntil(target, (_) => false);
       }
@@ -58,7 +62,7 @@ class AppRouterDelegate extends RouterDelegate<String>
   }
 
   void navigate(String path) {
-    final target = AppRoutes.normalize(path);
+    final target = normalizePath(path);
     if (!auth.isAuthenticated || target == _path) return;
     contentNavigatorKey.currentState?.pushNamed(target);
   }
@@ -108,7 +112,7 @@ class AppRouterDelegate extends RouterDelegate<String>
             child: LoginScreen(),
           ),
         ],
-        onPopPage: (route, result) => route.didPop(result),
+        onDidRemovePage: (_) {},
       );
     }
 
@@ -131,7 +135,7 @@ class AppRouterDelegate extends RouterDelegate<String>
           ),
         ),
       ],
-      onPopPage: (route, result) => route.didPop(result),
+      onDidRemovePage: (_) {},
     );
   }
 

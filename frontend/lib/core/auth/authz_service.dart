@@ -8,6 +8,8 @@ class AuthZService with ChangeNotifier {
   List<String>? _permissions;
   bool _isLoading = false;
   String? _loadedForUserId;
+  String? _loadingUserId;
+  final Map<String, Future<List<String>>> _pendingLoads = {};
 
   bool get isLoading => _isLoading;
   bool get isLoaded => _permissions != null && _loadedForUserId != null;
@@ -19,21 +21,45 @@ class AuthZService with ChangeNotifier {
   /// refresh is in flight. This prevents route transitions from temporarily
   /// looking unauthorized while the same user's effective permissions are
   /// being refreshed.
-  Future<List<String>> loadPermissions(ApiClient apiClient, String userId) async {
-    if (_isLoading && _loadedForUserId == userId) {
-      return List<String>.from(_permissions ?? const <String>[]);
+  Future<List<String>> loadPermissions(ApiClient apiClient, String userId, {bool force = false}) async {
+    final existingPending = _pendingLoads[userId];
+    if (!force && existingPending != null) {
+      return existingPending;
+    }
+
+    if (!force && _loadedForUserId == userId && _permissions != null) {
+      return List<String>.from(_permissions!);
     }
 
     final previousPermissions = _permissions;
     final previousUserId = _loadedForUserId;
+    _loadingUserId = userId;
     _isLoading = true;
     notifyListeners();
 
+    final future = _loadPermissionsCore(apiClient, userId, previousPermissions, previousUserId)
+        .whenComplete(() {
+          if (_loadingUserId == userId) {
+            _loadingUserId = null;
+          }
+          _pendingLoads.remove(userId);
+          _isLoading = false;
+          notifyListeners();
+        });
+
+    _pendingLoads[userId] = future;
+    return future;
+  }
+
+  Future<List<String>> _loadPermissionsCore(
+    ApiClient apiClient,
+    String userId,
+    List<String>? previousPermissions,
+    String? previousUserId,
+  ) async {
     try {
       final resp = await apiClient.get('/api/v1/rbac/users/$userId/effective-permissions');
       if (resp.statusCode != 200) {
-        // Keep an existing snapshot for the same user during a transient
-        // refresh failure. A completely new user still has no permissions.
         if (previousUserId != userId) {
           _permissions = null;
           _loadedForUserId = null;
@@ -65,9 +91,6 @@ class AuthZService with ChangeNotifier {
         _loadedForUserId = previousUserId;
       }
       return List<String>.from(_permissions ?? const <String>[]);
-    } finally {
-      _isLoading = false;
-      notifyListeners();
     }
   }
 
@@ -86,12 +109,14 @@ class AuthZService with ChangeNotifier {
 
   Future<List<String>> refresh(ApiClient apiClient) async {
     if (_loadedForUserId == null) return [];
-    return loadPermissions(apiClient, _loadedForUserId!);
+    return loadPermissions(apiClient, _loadedForUserId!, force: true);
   }
 
   void clear() {
     _permissions = null;
     _loadedForUserId = null;
+    _loadingUserId = null;
+    _pendingLoads.clear();
     _isLoading = false;
     notifyListeners();
   }

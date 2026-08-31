@@ -95,6 +95,35 @@ void main() {
       expect(svc.hasPermission('p2'), isTrue);
     });
 
+    test('coalesces concurrent permission loads for the same user', () async {
+      var calls = 0;
+      final client = MockClient((request) async {
+        if (request.url.path.contains('effective-permissions')) {
+          calls += 1;
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          return http.Response(jsonEncode({
+            'success': true,
+            'userId': 'user-1',
+            'permissions': ['perm.a']
+          }), 200);
+        }
+        return http.Response('not found', 404);
+      });
+
+      final authStub = AuthService(secureStorage: _MemorySecureStorage(), apiClientFactory: (baseUrl) => ApiClient(baseUrl: baseUrl, httpClient: client));
+      GetIt.instance.registerSingleton<AuthService>(authStub);
+      final api = ApiClient(baseUrl: 'http://example.com', httpClient: client);
+      final svc = AuthZService();
+
+      final first = svc.loadPermissions(api, 'user-1');
+      final second = svc.loadPermissions(api, 'user-1');
+      final results = await Future.wait([first, second]);
+
+      expect(calls, 1);
+      expect(results[0], contains('perm.a'));
+      expect(svc.hasPermission('perm.a'), isTrue);
+    });
+
     test('clear removes permissions and does not grant access', () async {
       final client = MockClient((request) async {
         if (request.url.path.contains('effective-permissions')) {

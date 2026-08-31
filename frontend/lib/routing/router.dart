@@ -28,12 +28,24 @@ class AppRouter {
   static const Map<String, String?> routePermissions = AppRoutes.routePermissions;
 
   static Route<dynamic>? generateRoute(RouteSettings settings) {
+    final auth = GetIt.instance.get<AuthService>();
+    final path = settings.name ?? '/';
+
+    if (auth.isAuthenticated && auth.requiresOrganizationSelection && path != '/login' && path != '/organization-selection') {
+      return MaterialPageRoute(
+        settings: const RouteSettings(name: '/organization-selection'),
+        builder: (_) => const _OrganizationSelectionScreen(),
+      );
+    }
+
     switch (settings.name) {
       case '/':
       case '/dashboard':
         return MaterialPageRoute(settings: const RouteSettings(name: '/dashboard'), builder: (context) => _protected(context, routeName: '/dashboard', child: const DashboardScreen()));
       case '/login':
         return MaterialPageRoute(settings: settings, builder: (_) => const LoginScreen());
+      case '/organization-selection':
+        return MaterialPageRoute(settings: settings, builder: (_) => const _OrganizationSelectionScreen());
       case '/organizations':
         return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/organizations', child: const OrganizationListScreen()));
       case '/organizations/create':
@@ -78,7 +90,54 @@ class AppRouter {
   static Widget _protected(BuildContext context, {required String routeName, required Widget child}) {
     final auth = GetIt.instance.get<AuthService>();
     if (!auth.isAuthenticated) return const LoginScreen();
+    if (auth.requiresOrganizationSelection) {
+      return const _OrganizationSelectionScreen();
+    }
     return _RouteAuthorizationGate(routeName: routeName, child: child);
+  }
+}
+
+class _OrganizationSelectionScreen extends StatelessWidget {
+  const _OrganizationSelectionScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = GetIt.instance.get<AuthService>();
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Select organization')),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: auth.availableOrganizations.isEmpty
+              ? const Center(child: Text('Select organization'))
+              : ListView.separated(
+                  itemCount: auth.availableOrganizations.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final org = auth.availableOrganizations[index];
+                    final id = (org['id'] ?? '').toString();
+                    final name = (org['name'] ?? id).toString();
+
+                    return Card(
+                      child: ListTile(
+                        title: Text(name),
+                        trailing: FilledButton(
+                          onPressed: () async {
+                            final ok = await auth.selectOrganization(id);
+                            if (ok && context.mounted) {
+                              Navigator.of(context).pushNamedAndRemoveUntil('/dashboard', (_) => false);
+                            }
+                          },
+                          child: const Text('Select'),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ),
+    );
   }
 }
 
@@ -95,14 +154,17 @@ class _RouteAuthorizationGateState extends State<_RouteAuthorizationGate> {
   AuthService get _auth => GetIt.instance.get<AuthService>();
 
   @override
-  void initState() { super.initState(); _ensurePermissionsLoaded(); }
+  void initState() {
+    super.initState();
+    _ensurePermissionsLoaded();
+  }
 
   Future<void> _ensurePermissionsLoaded() async {
     final requiredPermission = AppRouter.routePermissions[widget.routeName];
-    if (requiredPermission == null || _auth.authzService.isLoaded || _auth.authzService.isLoading || _loadingStarted) return;
+    if (requiredPermission == null || !_auth.isAuthenticated) return;
+    if (_auth.authzService.isLoaded || _auth.authzService.isLoading || _loadingStarted) return;
     _loadingStarted = true;
-    final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
-    await _auth.fetchEffectivePermissions(baseUrl);
+    await _auth.ensureEffectivePermissionsLoaded();
     if (mounted) setState(() {});
   }
 
@@ -110,21 +172,38 @@ class _RouteAuthorizationGateState extends State<_RouteAuthorizationGate> {
   Widget build(BuildContext context) {
     final requiredPermission = AppRouter.routePermissions[widget.routeName];
     if (!_auth.isAuthenticated) return const LoginScreen();
-    if (requiredPermission != null && (!_auth.authzService.isLoaded || _auth.authzService.isLoading)) {
-      return AnimatedBuilder(
-        animation: _auth.authzService,
-        builder: (context, _) => !_auth.authzService.isLoading && _auth.authzService.isLoaded
-            ? _content(requiredPermission)
-            : const Center(child: CircularProgressIndicator()),
-      );
-    }
-    return _content(requiredPermission);
-  }
 
-  Widget _content(String? requiredPermission) {
-    if (requiredPermission != null && !_auth.hasPermission(requiredPermission)) {
-      return Center(child: Padding(padding: const EdgeInsets.all(24), child: Text('Access denied for ${widget.routeName}.\nRequired permission: $requiredPermission.', textAlign: TextAlign.center)));
+    if (requiredPermission != null) {
+      if (_auth.authzService.isLoading) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (!_auth.authzService.isLoaded) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (!_auth.hasPermission(requiredPermission)) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Access denied',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Required permission: $requiredPermission.',
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
+      }
     }
+
     return widget.child;
   }
 }

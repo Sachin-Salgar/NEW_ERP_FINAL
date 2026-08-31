@@ -8,17 +8,50 @@ import '../../presentation/ui/components/page_header.dart';
 import 'permission_service.dart';
 import 'permission_detail_screen.dart';
 
-class PermissionListScreen extends StatelessWidget {
+class PermissionListScreen extends StatefulWidget {
   const PermissionListScreen({Key? key}) : super(key: key);
 
   @override
+  State<PermissionListScreen> createState() => _PermissionListScreenState();
+}
+
+class _PermissionListScreenState extends State<PermissionListScreen> {
+  late final AuthService _auth;
+  late final PermissionService _service;
+
+  void _onServiceChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _auth = GetIt.instance.get<AuthService>();
+    final apiClient = GetIt.instance.isRegistered<ApiClient>()
+        ? GetIt.instance.get<ApiClient>()
+        : ApiClient(baseUrl: 'http://localhost:3000');
+    _service = PermissionService(apiClient: apiClient);
+    _service.addListener(_onServiceChanged);
+    if (_auth.hasPermission('permission.read') && !_service.isLoading && !_service.fetchedOnce && _service.error == null) {
+      _service.fetchPermissions();
+    }
+  }
+
+  @override
+  void dispose() {
+    _service.removeListener(_onServiceChanged);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final auth = GetIt.instance.get<AuthService>();
-    return ChangeNotifierProvider(
-      create: (_) => PermissionService(apiClient: GetIt.instance.get<ApiClient>()),
+    if (!_auth.hasPermission('permission.read')) {
+      return const Scaffold(body: Center(child: Text('You do not have permission to view permissions.')));
+    }
+
+    return ChangeNotifierProvider<PermissionService>.value(
+      value: _service,
       child: Consumer<PermissionService>(builder: (context, svc, _) {
-        if (!auth.hasPermission('permission.read')) return const Scaffold(body: Center(child: Text('You do not have permission to view permissions.')));
-        if (!svc.isLoading && !svc.fetchedOnce && svc.error == null) WidgetsBinding.instance.addPostFrameCallback((_) => svc.fetchPermissions());
         return Scaffold(body: CustomScrollView(slivers: [
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
@@ -51,7 +84,18 @@ class PermissionListScreen extends StatelessWidget {
                     columnSpacing: 30, horizontalMargin: 20, headingRowHeight: 52, dataRowMinHeight: 62, dataRowMaxHeight: 72,
                     columns: const [DataColumn(label: Text('Permission')), DataColumn(label: Text('Action'))],
                     rows: svc.permissions.map((key) => DataRow(cells: [
-                      DataCell(Text(key, style: const TextStyle(fontWeight: FontWeight.w600))),
+                      DataCell(
+                        Row(
+                          children: [
+                            const CircleAvatar(
+                              radius: 12,
+                              child: Icon(Icons.lock_outline, size: 15),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(child: Text(key, style: const TextStyle(fontWeight: FontWeight.w600))),
+                          ],
+                        ),
+                      ),
                       DataCell(IconButton(icon: const Icon(Icons.chevron_right), tooltip: 'View details', onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PermissionDetailScreen(permissionKey: key))))),
                     ])).toList(),
                   );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
 import '../../core/auth/auth_service.dart';
+import '../../core/network/api_client.dart';
 import '../../modules/organization/organization_service.dart';
 import '../../modules/user/user_service.dart';
 import '../../presentation/ui/components/dashboard/storage_details_card.dart';
@@ -26,9 +27,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _authService = GetIt.instance.get<AuthService>();
-    _organizationService = GetIt.instance.get<OrganizationService>();
-    _userService = GetIt.instance.get<UserService>();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshDashboard());
+    final apiClient = GetIt.instance.isRegistered<ApiClient>()
+        ? GetIt.instance.get<ApiClient>()
+        : ApiClient(baseUrl: 'http://localhost:3000');
+    _organizationService = GetIt.instance.isRegistered<OrganizationService>()
+        ? GetIt.instance.get<OrganizationService>()
+        : OrganizationService(apiClient: apiClient);
+    _userService = GetIt.instance.isRegistered<UserService>()
+        ? GetIt.instance.get<UserService>()
+        : UserService(apiClient: apiClient);
+    _refreshDashboard();
   }
 
   Future<void> _refreshDashboard() async {

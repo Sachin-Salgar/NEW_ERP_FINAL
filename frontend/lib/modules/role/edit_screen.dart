@@ -64,7 +64,13 @@ class _RoleEditScreenState extends State<RoleEditScreen> {
                   const SizedBox(height: 18),
                   TextFormField(controller: _descCtrl, decoration: const InputDecoration(labelText: 'Description (optional)'), maxLines: 3),
                   const SizedBox(height: 12),
-                  SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('System role'), subtitle: const Text('Use only when this role is intended to be a protected system role.'), value: _isSystem, onChanged: (v) => setState(() => _isSystem = v)),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('System role'),
+                    subtitle: const Text('Use only when this role is intended to be a protected system role.'),
+                    value: _isSystem,
+                    onChanged: (v) => setState(() => _isSystem = v ?? false),
+                  ),
                   if (svc.error != null) ...[const SizedBox(height: 12), Text('Error: ${svc.error}', style: TextStyle(color: Colors.red.shade700))],
                   const SizedBox(height: 24),
                   Align(alignment: Alignment.centerRight, child: FilledButton.icon(
@@ -74,7 +80,7 @@ class _RoleEditScreenState extends State<RoleEditScreen> {
                       if (updated != null && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Role updated')));
                     },
                     icon: svc.isLoading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_outlined),
-                    label: const Text('Save changes'),
+                    label: const Text('Save'),
                   )),
                 ]),
               ))),

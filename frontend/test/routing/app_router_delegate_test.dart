@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:new_erp_final_frontend/routing/app_router_delegate.dart';
 
@@ -19,13 +20,13 @@ void main() {
 
     expect(
       await parser.parseRouteInformation(
-        const RouteInformation(uri: Uri(path: '/organizations')),
+        RouteInformation(uri: Uri(path: '/organizations')),
       ),
       '/organizations',
     );
     expect(
       await parser.parseRouteInformation(
-        const RouteInformation(uri: Uri(path: '/')),
+        RouteInformation(uri: Uri(path: '/')),
       ),
       '/dashboard',
     );

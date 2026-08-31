@@ -9,24 +9,53 @@ import 'role_service.dart';
 import 'edit_screen.dart';
 import '../permission/role_permission_screen.dart';
 
-class RoleListScreen extends StatelessWidget {
+class RoleListScreen extends StatefulWidget {
   static const routeName = '/roles';
   const RoleListScreen({Key? key}) : super(key: key);
 
   @override
+  State<RoleListScreen> createState() => _RoleListScreenState();
+}
+
+class _RoleListScreenState extends State<RoleListScreen> {
+  late final AuthService _auth;
+  late final RoleService _service;
+
+  void _onServiceChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _auth = GetIt.instance.get<AuthService>();
+    final apiClient = GetIt.instance.isRegistered<ApiClient>()
+        ? GetIt.instance.get<ApiClient>()
+        : ApiClient(baseUrl: 'http://localhost:3000');
+    _service = RoleService(apiClient: apiClient);
+    _service.addListener(_onServiceChanged);
+    if (_auth.hasPermission('role.read') && !_service.isLoading && !_service.fetchedOnce && _service.error == null) {
+      _service.fetchRoles();
+    }
+  }
+
+  @override
+  void dispose() {
+    _service.removeListener(_onServiceChanged);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final auth = GetIt.instance.get<AuthService>();
-    return ChangeNotifierProvider(
-      create: (_) => RoleService(apiClient: GetIt.instance.get<ApiClient>()),
+    if (!_auth.hasPermission('role.read')) {
+      return const Scaffold(
+        body: Center(child: Text('You do not have permission to view roles.')),
+      );
+    }
+
+    return ChangeNotifierProvider<RoleService>.value(
+      value: _service,
       child: Consumer<RoleService>(builder: (context, svc, _) {
-        if (!auth.hasPermission('role.read')) {
-          return const Scaffold(
-            body: Center(child: Text('You do not have permission to view roles.')),
-          );
-        }
-        if (!svc.isLoading && !svc.fetchedOnce && svc.error == null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) => svc.fetchRoles());
-        }
         return Scaffold(
           body: CustomScrollView(
             slivers: [
@@ -69,7 +98,7 @@ class RoleListScreen extends StatelessWidget {
                           if (constraints.maxWidth < 700) {
                             return Column(
                               children: svc.roles
-                                  .map((r) => _RoleTile(role: r, auth: auth))
+                                  .map((r) => _RoleTile(role: r, auth: _auth))
                                   .toList(),
                             );
                           }
@@ -90,16 +119,30 @@ class RoleListScreen extends StatelessWidget {
                               return DataRow(
                                 cells: [
                                   DataCell(
-                                    Text(
-                                      r['name']?.toString() ??
-                                          r['code']?.toString() ??
-                                          'Unnamed',
-                                      style: const TextStyle(fontWeight: FontWeight.w600),
+                                    Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 12,
+                                          child: Icon(
+                                            system ? Icons.shield : Icons.badge_outlined,
+                                            size: 15,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            r['name']?.toString() ??
+                                                r['code']?.toString() ??
+                                                'Unnamed',
+                                            style: const TextStyle(fontWeight: FontWeight.w600),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                   DataCell(Text(r['description']?.toString() ?? '—')),
                                   DataCell(Text(system ? 'System' : 'Custom')),
-                                  DataCell(_RoleActions(role: r, auth: auth)),
+                                  DataCell(_RoleActions(role: r, auth: _auth)),
                                 ],
                               );
                             }).toList(),
@@ -128,9 +171,7 @@ class _RoleTile extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
         leading: CircleAvatar(
           child: Icon(
-            role['isSystem'] == true
-                ? Icons.shield_outlined
-                : Icons.badge_outlined,
+            role['isSystem'] == true ? Icons.shield : Icons.badge_outlined,
             size: 19,
           ),
         ),

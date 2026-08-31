@@ -31,13 +31,13 @@ class RoleService extends ChangeNotifier {
           list.map((e) => Map<String, dynamic>.from(e as Map)),
         );
       } else if (resp.statusCode == 403) {
-        error = 'Forbidden';
+        error = 'Error: Forbidden';
         roles = [];
       } else {
-        error = 'Failed to load roles: ${resp.statusCode}';
+        error = 'Error: Failed to load roles: ${resp.statusCode}';
       }
     } catch (e) {
-      error = e.toString();
+      error = 'Error: $e';
     }
 
     isLoading = false;

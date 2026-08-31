@@ -29,13 +29,13 @@ class PermissionService extends ChangeNotifier {
         final list = (body['permissions'] as List<dynamic>?) ?? [];
         permissions = List<String>.from(list.map((e) => e.toString()));
       } else if (resp.statusCode == 403) {
-        error = 'Forbidden';
+        error = 'Error: Forbidden';
         permissions = [];
       } else {
-        error = 'Failed to load permissions: ${resp.statusCode}';
+        error = 'Error: Failed to load permissions: ${resp.statusCode}';
       }
     } catch (e) {
-      error = e.toString();
+      error = 'Error: $e';
     }
 
     isLoading = false;
