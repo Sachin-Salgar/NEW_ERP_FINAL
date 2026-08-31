@@ -20,18 +20,23 @@ class SettingsShell extends StatelessWidget {
     final isDesktop = width >= 1100;
 
     if (isDesktop) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SettingsSidebar(selectedRoute: selectedRoute, onSelect: onSelect),
-          Expanded(child: child),
-        ],
+      return Padding(
+        padding: const EdgeInsets.only(left: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SettingsSidebar(selectedRoute: selectedRoute, onSelect: onSelect),
+            const SizedBox(width: 12),
+            Expanded(child: child),
+          ],
+        ),
       );
     }
 
     return Column(
       children: [
         SettingsSidebar(selectedRoute: selectedRoute, onSelect: onSelect, compact: true),
+        const SizedBox(height: 12),
         Expanded(child: child),
       ],
     );

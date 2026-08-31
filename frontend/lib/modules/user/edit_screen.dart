@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import '../../core/auth/auth_service.dart';
+import '../../presentation/ui/components/back_button.dart';
 import 'user_service.dart';
 import '../../presentation/ui/components/page_header.dart';
 
 class UserEditScreen extends StatefulWidget {
-  const UserEditScreen({super.key});
+  final String? id;
+
+  const UserEditScreen({super.key, this.id});
+
   @override
   State<UserEditScreen> createState() => _UserEditScreenState();
 }
@@ -33,8 +37,8 @@ class _UserEditScreenState extends State<UserEditScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final id = ModalRoute.of(context)?.settings.arguments as String?;
-    if (id != null && user == null) _load(id);
+    final resolvedId = widget.id ?? (ModalRoute.of(context)?.settings.arguments as String?);
+    if (resolvedId != null && resolvedId.isNotEmpty && user == null) _load(resolvedId);
   }
 
   @override
@@ -101,13 +105,18 @@ class _UserEditScreenState extends State<UserEditScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const ErpPageHeader(
+                  ErpPageHeader(
                     title: 'Edit User',
                     subtitle: 'Update user account information',
-                    breadcrumbs: [
+                    breadcrumbs: const [
                       ErpBreadcrumbItem(label: 'Dashboard'),
                       ErpBreadcrumbItem(label: 'Users'),
                       ErpBreadcrumbItem(label: 'Edit'),
+                    ],
+                    actions: [
+                      SettingsBackButton(
+                        parentRoute: '/settings/users',
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),

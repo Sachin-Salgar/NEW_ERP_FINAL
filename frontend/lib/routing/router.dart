@@ -29,9 +29,32 @@ import 'route_config.dart';
 class AppRouter {
   static const Map<String, String?> routePermissions = AppRoutes.routePermissions;
 
+  static String _lastPathSegment(String route) {
+    final segments = route.split('/').where((segment) => segment.isNotEmpty).toList();
+    if (segments.isEmpty) return '';
+    return segments.last;
+  }
+
+  static String? _extractDetailId(
+    String routeName,
+    Object? arguments, [
+    String? expectedKey,
+  ]) {
+    if (arguments is String && arguments.isNotEmpty) return arguments;
+    if (arguments is Map) {
+      final key = expectedKey ?? 'id';
+      final value = arguments[key];
+      if (value is String && value.isNotEmpty) return value;
+      final alternative = arguments['${key}Id'];
+      if (alternative is String && alternative.isNotEmpty) return alternative;
+    }
+    final segment = _lastPathSegment(routeName);
+    return segment.isEmpty ? null : segment;
+  }
+
   static Route<dynamic>? generateRoute(RouteSettings settings) {
     final auth = GetIt.instance.get<AuthService>();
-    final path = settings.name ?? '/';
+    final path = AppRoutes.normalize(settings.name ?? '/');
 
     if (auth.isAuthenticated &&
         auth.requiresOrganizationSelection &&
@@ -43,7 +66,139 @@ class AppRouter {
       );
     }
 
-    switch (settings.name) {
+    if (path.startsWith('/settings/organizations/details/')) {
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => _protected(
+          context,
+          routeName: path,
+          child: OrganizationDetailsScreen(
+            id: _extractDetailId(path, settings.arguments) ?? '',
+          ),
+        ),
+      );
+    }
+
+    if (path.startsWith('/settings/organizations/edit/')) {
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => _protected(
+          context,
+          routeName: path,
+          child: EditOrganizationScreen(
+            id: _extractDetailId(path, settings.arguments) ?? '',
+          ),
+        ),
+      );
+    }
+
+    if (path.startsWith('/settings/branches/details/')) {
+      final organizationId =
+          (settings.arguments is Map ? (settings.arguments as Map)['organizationId'] : null) as String? ??
+          auth.currentOrganizationId ??
+          auth.selectedOrganizationId ??
+          '';
+      final branchId = _extractDetailId(path, settings.arguments) ?? '';
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => _protected(
+          context,
+          routeName: path,
+          child: BranchDetailsScreen(
+            organizationId: organizationId,
+            branchId: branchId,
+          ),
+        ),
+      );
+    }
+
+    if (path.startsWith('/settings/branches/edit/')) {
+      final organizationId =
+          (settings.arguments is Map ? (settings.arguments as Map)['organizationId'] : null) as String? ??
+          auth.currentOrganizationId ??
+          auth.selectedOrganizationId ??
+          '';
+      final branchId = _extractDetailId(path, settings.arguments) ?? '';
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => _protected(
+          context,
+          routeName: path,
+          child: EditBranchScreen(
+            organizationId: organizationId,
+            branchId: branchId,
+          ),
+        ),
+      );
+    }
+
+    if (path.startsWith('/settings/users/details/')) {
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => _protected(
+          context,
+          routeName: path,
+          child: UserDetailsScreen(id: _extractDetailId(path, settings.arguments) ?? ''),
+        ),
+      );
+    }
+
+    if (path.startsWith('/settings/users/edit/')) {
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => _protected(
+          context,
+          routeName: path,
+          child: UserEditScreen(id: _extractDetailId(path, settings.arguments) ?? ''),
+        ),
+      );
+    }
+
+    if (path.startsWith('/settings/users/roles/')) {
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => _protected(
+          context,
+          routeName: path,
+          child: UserRoleAssignmentScreen(userId: _extractDetailId(path, settings.arguments) ?? ''),
+        ),
+      );
+    }
+
+    if (path.startsWith('/settings/users/access/')) {
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => _protected(
+          context,
+          routeName: path,
+          child: UserAccessScreen(userId: _extractDetailId(path, settings.arguments) ?? ''),
+        ),
+      );
+    }
+
+    if (path.startsWith('/settings/roles/edit/')) {
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => _protected(
+          context,
+          routeName: path,
+          child: RoleEditScreen(roleId: _extractDetailId(path, settings.arguments) ?? ''),
+        ),
+      );
+    }
+
+    if (path.startsWith('/settings/roles/permissions/')) {
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => _protected(
+          context,
+          routeName: path,
+          child: RolePermissionScreen(roleId: _extractDetailId(path, settings.arguments) ?? ''),
+        ),
+      );
+    }
+
+    switch (path) {
       case '/':
       case '/dashboard':
         return MaterialPageRoute(

@@ -38,11 +38,12 @@ export class UserRegistrationService {
       role = await this.repository.createRole(tenantId, defaultRoleCode, defaultRoleCode === 'admin' ? 'Administrator' : 'Member');
     }
 
+    const targetOrganizationId = input.organizationId ?? actor.organizationId ?? null;
     const passwordHash = await this.passwordHasher.hash(password);
     const user = await this.repository.createUser({
       id: uuidV7(),
       tenantId,
-      organizationId: input.organizationId ?? actor.organizationId ?? null,
+      organizationId: targetOrganizationId,
       defaultBranchId: input.defaultBranchId ?? actor.defaultBranchId ?? null,
       username,
       email,
@@ -50,6 +51,9 @@ export class UserRegistrationService {
       status: 'active',
     });
 
+    if (targetOrganizationId) {
+      await this.repository.assignUserToOrganization(tenantId, user.id, targetOrganizationId);
+    }
     await this.repository.assignUserRole(tenantId, user.id, role.id);
 
     return {

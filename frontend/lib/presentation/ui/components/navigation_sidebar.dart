@@ -37,9 +37,12 @@ class Sidebar extends StatelessWidget {
     }
 
     return Container(
+      margin: const EdgeInsets.all(12),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         border: Border(right: BorderSide(color: theme.dividerColor)),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: SafeArea(
         child: Column(

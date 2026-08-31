@@ -110,6 +110,7 @@ export interface UserRegistrationRepository {
     passwordHash: string;
     status?: string;
   }): Promise<UserRegistrationRecord>;
+  assignUserToOrganization(tenantId: string, userId: string, organizationId: string): Promise<boolean>;
   assignUserRole(tenantId: string, userId: string, roleId: string): Promise<void>;
 }
 
@@ -238,6 +239,7 @@ export interface AuthorizationRepository {
   listPermissions(tenantId: string): Promise<Array<{ id: string; moduleCode: string; resource: string; action: string; scope: 'own' | 'branch' | 'organization' | 'tenant' | 'global'; permissionKey: string; displayName: string; description?: string | null; isSystem: boolean }>>;
   assignPermissionsToRole(tenantId: string, roleId: string, permissionKeys: string[]): Promise<number>;
   removePermissionsFromRole(tenantId: string, roleId: string, permissionKeys: string[]): Promise<number>;
+  replacePermissionsForRole(tenantId: string, roleId: string, permissionKeys: string[]): Promise<number>;
   getPermissionsForRole(tenantId: string, roleId: string): Promise<PermissionDescriptor[]>;
   assignRoleToUser(tenantId: string, userId: string, roleId: string): Promise<boolean>;
   revokeRoleFromUser(tenantId: string, userId: string, roleId: string): Promise<boolean>;

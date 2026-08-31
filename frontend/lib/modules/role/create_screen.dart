@@ -40,13 +40,25 @@ class _RoleCreateScreenState extends State<RoleCreateScreen> {
 
         if (!hasPermission) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Create Role')),
+            appBar: AppBar(
+              leading: IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back_outlined),
+              ),
+              title: const Text('Create Role'),
+            ),
             body: const Center(child: Text('You do not have permission to create roles.')),
           );
         }
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Create Role')),
+          appBar: AppBar(
+            leading: IconButton(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.arrow_back_outlined),
+            ),
+            title: const Text('Create Role'),
+          ),
           body: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Form(

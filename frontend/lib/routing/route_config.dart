@@ -178,15 +178,46 @@ class AppRoutes {
     '/permissions': 'permission.read',
   };
 
+  static const _legacyAliases = <String, String>{
+    '/organizations': '/settings/organizations',
+    '/organizations/create': '/settings/organizations/create',
+    '/organizations/details': '/settings/organizations/details',
+    '/organizations/edit': '/settings/organizations/edit',
+    '/organizations/branches': '/settings/branches',
+    '/organizations/branches/create': '/settings/branches/create',
+    '/organizations/branches/details': '/settings/branches/details',
+    '/organizations/branches/edit': '/settings/branches/edit',
+    '/users': '/settings/users',
+    '/users/create': '/settings/users/create',
+    '/users/details': '/settings/users/details',
+    '/users/edit': '/settings/users/edit',
+    '/users/roles': '/settings/users/roles',
+    '/users/access': '/settings/users/access',
+    '/roles': '/settings/roles',
+    '/roles/create': '/settings/roles/create',
+    '/roles/edit': '/settings/roles/edit',
+    '/permissions': '/settings/permissions',
+  };
+
+  static String _remapLegacy(String path) {
+    for (final entry in _legacyAliases.entries) {
+      if (path == entry.key) return entry.value;
+      if (path.startsWith('${entry.key}/')) {
+        return '${entry.value}${path.substring(entry.key.length)}';
+      }
+    }
+    return path;
+  }
+
   static bool isSettingsRoute(String route) =>
       normalize(route).startsWith('/settings');
 
   static String normalize(String path) {
     if (path.isEmpty || path == '/') return '/dashboard';
-    if (path.endsWith('/') && path.length > 1) {
-      return path.substring(0, path.length - 1);
-    }
-    return path;
+    final trimmed = path.endsWith('/') && path.length > 1
+        ? path.substring(0, path.length - 1)
+        : path;
+    return _remapLegacy(trimmed);
   }
 
   static String canonicalTopLevel(String route) {

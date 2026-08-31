@@ -6,17 +6,18 @@ void main() {
     test('normalizes root and trailing slash', () {
       expect(AppRoutes.normalize('/'), '/dashboard');
       expect(AppRoutes.normalize(''), '/dashboard');
-      expect(AppRoutes.normalize('/organizations/'), '/organizations');
+      expect(AppRoutes.normalize('/organizations/'), '/settings/organizations');
+      expect(AppRoutes.normalize('/users/'), '/settings/users');
     });
 
     test('maps child routes to their top-level navigation item', () {
       expect(
         AppRoutes.canonicalTopLevel('/organizations/create'),
-        '/organizations',
+        '/settings',
       );
       expect(
         AppRoutes.canonicalTopLevel('/organizations/branches/edit'),
-        '/organizations',
+        '/settings',
       );
       expect(AppRoutes.canonicalTopLevel('/settings/branches'), '/settings');
       expect(AppRoutes.canonicalTopLevel('/settings/users/roles'), '/settings');

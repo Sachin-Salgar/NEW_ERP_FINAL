@@ -53,6 +53,11 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply):
   }
 
   const claims = request.server.jwtTokenService.verifyAccessToken(token);
+  const tenantHeaderValue = typeof request.headers['x-tenant-id'] === 'string' ? request.headers['x-tenant-id'].trim() : '';
+  if (tenantHeaderValue && tenantHeaderValue !== claims.tenantId) {
+    throw new UnauthorizedError('Tenant context mismatch.');
+  }
+
   const session = await request.server.authService.validateSession(claims.sessionId, claims.tenantId);
   if (!session) {
     throw new UnauthorizedError('Session is invalid or expired.');

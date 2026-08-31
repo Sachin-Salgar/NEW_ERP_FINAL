@@ -32,6 +32,10 @@ export class AuthorizationService {
     return this.authorizationRepository.removePermissionsFromRole(tenantId, roleId, permissionKeys);
   }
 
+  async replacePermissionsForRole(tenantId: string, roleId: string, permissionKeys: string[]): Promise<number> {
+    return this.authorizationRepository.replacePermissionsForRole(tenantId, roleId, permissionKeys);
+  }
+
   async getPermissionsForRole(tenantId: string, roleId: string): Promise<PermissionDescriptor[]> {
     return this.authorizationRepository.getPermissionsForRole(tenantId, roleId);
   }

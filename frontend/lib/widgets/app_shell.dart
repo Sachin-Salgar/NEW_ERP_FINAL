@@ -43,9 +43,18 @@ class _AppShellState extends State<AppShell> {
 
   void _handleNavigate(String route) {
     final target = AppRoutes.normalize(route);
-    final current = AppRouteState.currentRoute.value;
-    if (current == target || current?.startsWith('$target/') == true) return;
-    widget.navigatorKey.currentState?.pushNamed(target);
+    final current = AppRouteState.currentRoute.value ?? '/dashboard';
+    if (current == target) return;
+
+    final navigator = widget.navigatorKey.currentState;
+    if (navigator == null) return;
+
+    if (navigator.canPop() || current.startsWith('/settings/') && target.startsWith('/settings/')) {
+      navigator.pushNamedAndRemoveUntil(target, (route) => false);
+      return;
+    }
+
+    navigator.pushNamed(target);
   }
 
   Future<void> _logout(AuthService auth) async => auth.logout();
@@ -105,7 +114,12 @@ class _AppShellState extends State<AppShell> {
                           navigationCollapsed: _sidebarCollapsed,
                           actions: [if (auth.currentUser != null) const ProfileContextMenu()],
                         ),
-                        Expanded(child: SettingsShell(selectedRoute: route, onSelect: _handleNavigate, child: widget.child)),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 8),
+                            child: SettingsShell(selectedRoute: route, onSelect: _handleNavigate, child: widget.child),
+                          ),
+                        ),
                       ],
                     )
                   : content,

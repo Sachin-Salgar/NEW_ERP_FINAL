@@ -9,9 +9,9 @@ void main() {
       expect(AppRouterDelegate.normalizePath(''), '/dashboard');
     });
 
-    test('removes trailing slash without changing route', () {
-      expect(AppRouterDelegate.normalizePath('/organizations/'), '/organizations');
-      expect(AppRouterDelegate.normalizePath('/roles/'), '/roles');
+    test('remaps legacy routes to the canonical settings location', () {
+      expect(AppRouterDelegate.normalizePath('/organizations/'), '/settings/organizations');
+      expect(AppRouterDelegate.normalizePath('/roles/'), '/settings/roles');
     });
   });
 
@@ -22,7 +22,7 @@ void main() {
       await parser.parseRouteInformation(
         RouteInformation(uri: Uri(path: '/organizations')),
       ),
-      '/organizations',
+      '/settings/organizations',
     );
     expect(
       await parser.parseRouteInformation(

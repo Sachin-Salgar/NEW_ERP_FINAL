@@ -96,6 +96,25 @@ const rbacRoutes: FastifyPluginAsync = async (fastify) => {
     return { success: true, permissions };
   });
 
+  fastify.put('/rbac/roles/:roleId/permissions', { preHandler: [requireAuth, requirePermission('role.manage')] }, async (request) => {
+    const tenantId = request.tenantId ?? getTenantIdFromRequest(request);
+    if (!tenantId) {
+      throw new ValidationError('Tenant context is required.');
+    }
+
+    const body = request.body as Record<string, unknown> | undefined;
+    const roleId = String((request.params as { roleId?: string }).roleId ?? '');
+    const permissionKeys = normalizePermissionKeys(body?.permissionKeys ?? body?.permissionKey ?? body?.permissions);
+
+    const role = await request.server.authorizationService.getRole(tenantId, roleId);
+    if (!role) {
+      throw new NotFoundError('Role not found.');
+    }
+
+    const count = await request.server.authorizationService.replacePermissionsForRole(tenantId, roleId, permissionKeys);
+    return { success: true, replaced: count };
+  });
+
   fastify.post('/rbac/roles/:roleId/permissions', { preHandler: [requireAuth, requirePermission('role.manage')] }, async (request) => {
     const tenantId = request.tenantId ?? getTenantIdFromRequest(request);
     if (!tenantId) {

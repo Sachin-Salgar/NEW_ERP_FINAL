@@ -35,9 +35,12 @@ class SettingsSidebar extends StatelessWidget {
 
     if (compact) {
       return Container(
+        margin: const EdgeInsets.all(12),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           border: Border(bottom: BorderSide(color: theme.dividerColor)),
+          borderRadius: BorderRadius.circular(18),
         ),
         child: SafeArea(
           bottom: false,
@@ -65,9 +68,12 @@ class SettingsSidebar extends StatelessWidget {
 
     return Container(
       width: 260,
+      margin: const EdgeInsets.all(12),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         border: Border(right: BorderSide(color: theme.dividerColor)),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: SafeArea(
         child: Column(

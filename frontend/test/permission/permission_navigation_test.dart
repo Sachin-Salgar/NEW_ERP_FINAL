@@ -141,7 +141,7 @@ void main() {
     expect(find.text('No users found'), findsOneWidget);
   });
 
-  testWidgets('Sidebar hides protected menu items without permission', (
+  testWidgets('Sidebar keeps the main navigation canonical and hides protected settings items unless they are in the current settings shell', (
     tester,
   ) async {
     await _setupAuthenticatedAuth(permissions: ['user.read']);
@@ -153,7 +153,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Users'), findsOneWidget);
+    expect(find.text('Dashboard'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
+    expect(find.text('Users'), findsNothing);
     expect(find.text('Roles'), findsNothing);
     expect(find.text('Permissions'), findsNothing);
   });

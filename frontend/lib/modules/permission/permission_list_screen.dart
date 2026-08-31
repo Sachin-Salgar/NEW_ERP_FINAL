@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/network/api_client.dart';
 import '../../core/auth/auth_service.dart';
 import '../../presentation/ui/components/page_header.dart';
+import 'permission_metadata.dart';
 import 'permission_service.dart';
 
 class PermissionListScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class PermissionListScreen extends StatefulWidget {
 class _PermissionListScreenState extends State<PermissionListScreen> {
   late final AuthService _auth;
   late final PermissionService _service;
+  final TextEditingController _searchController = TextEditingController();
 
   void _onServiceChanged() {
     if (mounted) setState(() {});
@@ -42,6 +44,7 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
   @override
   void dispose() {
     _service.removeListener(_onServiceChanged);
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -60,8 +63,7 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
       child: Consumer<PermissionService>(
         builder: (context, svc, _) {
           final isSettingsRoute =
-              ModalRoute.of(context)?.settings.name?.startsWith('/settings') ??
-              false;
+              ModalRoute.of(context)?.settings.name?.startsWith('/settings') ?? false;
           final breadcrumbs = <ErpBreadcrumbItem>[
             ErpBreadcrumbItem(
               label: isSettingsRoute ? 'Settings' : 'Dashboard',
@@ -69,6 +71,19 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
             ),
             const ErpBreadcrumbItem(label: 'Permissions'),
           ];
+
+          final permissions = svc.permissionDetails.isNotEmpty
+              ? svc.permissionDetails
+              : svc.permissions
+                    .map(PermissionDescriptor.fromJson)
+                    .toList(growable: false);
+          final filtered = permissions.where((item) {
+            final query = _searchController.text.trim().toLowerCase();
+            if (query.isEmpty) return true;
+            final haystack = '${item.displayName} ${item.permissionKey} ${item.moduleName}'.toLowerCase();
+            return haystack.contains(query);
+          }).toList(growable: false);
+          final groups = PermissionDescriptor.groupByModule(filtered);
 
           return Scaffold(
             body: CustomScrollView(
@@ -78,9 +93,22 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
                   sliver: SliverToBoxAdapter(
                     child: ErpPageHeader(
                       title: 'Permissions',
-                      subtitle:
-                          'Browse and inspect available system permissions',
+                      subtitle: 'Browse and inspect available system permissions',
                       breadcrumbs: breadcrumbs,
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                  sliver: SliverToBoxAdapter(
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: const InputDecoration(
+                        hintText: 'Search permissions',
+                        prefixIcon: Icon(Icons.search_outlined),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (_) => setState(() {}),
                     ),
                   ),
                 ),
@@ -96,110 +124,77 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
                       child: Text('Unable to load permissions: ${svc.error}'),
                     ),
                   )
-                else if (svc.permissions.isEmpty)
+                else if (permissions.isEmpty)
                   const SliverFillRemaining(
                     hasScrollBody: false,
                     child: Center(child: Text('No permissions found.')),
                   )
+                else if (filtered.isEmpty)
+                  const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(child: Text('No permissions match your search.')),
+                  )
                 else
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                    sliver: SliverToBoxAdapter(
-                      child: Card(
-                        clipBehavior: Clip.antiAlias,
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            if (constraints.maxWidth < 700)
-                              return Column(
-                                children: svc.permissions
-                                    .map(
-                                      (key) => ListTile(
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                              horizontal: 20,
-                                              vertical: 5,
-                                            ),
-                                        leading: CircleAvatar(
-                                          child: const Icon(
-                                            Icons.lock_outline,
-                                            size: 18,
-                                          ),
-                                        ),
-                                        title: Text(
-                                          key,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        trailing: const Icon(
-                                          Icons.chevron_right,
-                                        ),
-                                        onTap: () => Navigator.of(context)
-                                            .pushNamed(
-                                              '/settings/permissions/details',
-                                              arguments: key,
-                                            ),
-                                      ),
-                                    )
-                                    .toList(),
-                              );
-                            return DataTable(
-                              columnSpacing: 30,
-                              horizontalMargin: 20,
-                              headingRowHeight: 52,
-                              dataRowMinHeight: 62,
-                              dataRowMaxHeight: 72,
-                              columns: const [
-                                DataColumn(label: Text('Permission')),
-                                DataColumn(label: Text('Action')),
-                              ],
-                              rows: svc.permissions
-                                  .map(
-                                    (key) => DataRow(
-                                      cells: [
-                                        DataCell(
-                                          Row(
-                                            children: [
-                                              const CircleAvatar(
-                                                radius: 12,
-                                                child: Icon(
-                                                  Icons.lock_outline,
-                                                  size: 15,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 10),
-                                              Expanded(
-                                                child: Text(
-                                                  key,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        DataCell(
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.chevron_right,
-                                            ),
-                                            tooltip: 'View details',
-                                            onPressed: () =>
-                                                Navigator.of(context).pushNamed(
-                                                  '/settings/permissions/details',
-                                                  arguments: key,
-                                                ),
-                                          ),
-                                        ),
-                                      ],
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final moduleName = groups.keys.toList()[index];
+                        final modulePermissions = groups[moduleName]!;
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 18),
+                          child: Card(
+                            clipBehavior: Clip.antiAlias,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                                  child: Text(
+                                    moduleName,
+                                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.w700,
                                     ),
-                                  )
-                                  .toList(),
-                            );
-                          },
-                        ),
-                      ),
+                                  ),
+                                ),
+                                ...modulePermissions.map((permission) {
+                                  return ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                                    leading: CircleAvatar(
+                                      radius: 16,
+                                      child: Icon(
+                                        permission.action == 'read'
+                                            ? Icons.visibility_outlined
+                                            : permission.action == 'create'
+                                                ? Icons.add_circle_outline
+                                                : permission.action == 'update'
+                                                    ? Icons.edit_outlined
+                                                    : permission.action == 'delete'
+                                                        ? Icons.delete_outline
+                                                        : Icons.lock_outline,
+                                        size: 18,
+                                      ),
+                                    ),
+                                    title: Text(
+                                      permission.displayName,
+                                      style: const TextStyle(fontWeight: FontWeight.w600),
+                                    ),
+                                    subtitle: permission.description != null && permission.description!.isNotEmpty
+                                        ? Text(permission.description!)
+                                        : Text(permission.permissionKey),
+                                    trailing: const Icon(Icons.chevron_right),
+                                    onTap: () => Navigator.of(context).pushNamed(
+                                      '/settings/permissions/details',
+                                      arguments: permission.permissionKey,
+                                    ),
+                                  );
+                                }),
+                              ],
+                            ),
+                          ),
+                        );
+                      }, childCount: groups.length),
                     ),
                   ),
               ],

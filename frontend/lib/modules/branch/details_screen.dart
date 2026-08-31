@@ -1,2 +1,175 @@
-import 'package:flutter/material.dart';import 'package:get_it/get_it.dart';import '../../core/auth/auth_service.dart';import 'branch_service.dart';import '../../presentation/ui/components/page_header.dart';
-class BranchDetailsScreen extends StatefulWidget{final String organizationId,branchId;const BranchDetailsScreen({super.key,required this.organizationId,required this.branchId});@override State<BranchDetailsScreen>createState()=>_BranchDetailsScreenState();}class _BranchDetailsScreenState extends State<BranchDetailsScreen>{Map<String,dynamic>? branch;bool loading=true;String? error;late final BranchService service;late final AuthService auth;@override void initState(){super.initState();service=GetIt.instance.get<BranchService>();auth=GetIt.instance.get<AuthService>();_load();}Future<void>_load()async{final d=await service.getBranch(widget.organizationId,widget.branchId);if(!mounted)return;setState((){branch=d;loading=false;error=d==null?'Branch not found':null;});}Future<void>_deactivate()async{if(!auth.hasPermission('branch.manage'))return;final ok=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(title:const Text('Deactivate branch?'),content:const Text('This will deactivate the branch.'),actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:const Text('Deactivate'))]));if(ok==true&&await service.deactivateBranch(widget.organizationId,widget.branchId)&&mounted)Navigator.pop(context);}@override Widget build(BuildContext context){if(loading)return const Scaffold(body:Center(child:CircularProgressIndicator()));if(branch==null)return Scaffold(body:Center(child:Text(error??'Branch not found')));final manage=auth.hasPermission('branch.manage');return Scaffold(body:SafeArea(child:SingleChildScrollView(padding:const EdgeInsets.fromLTRB(24,24,24,32),child:Center(child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:900),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[ErpPageHeader(title:branch!['name']??'Branch',subtitle:branch!['city']??'',breadcrumbs:const[ErpBreadcrumbItem(label:'Dashboard'),ErpBreadcrumbItem(label:'Organizations'),ErpBreadcrumbItem(label:'Branches'),ErpBreadcrumbItem(label:'Details')],actions:manage?[FilledButton.icon(onPressed:()=>Navigator.pushNamed(context,'/settings/branches/edit',arguments:{'organizationId':widget.organizationId,'branchId':widget.branchId}),icon:const Icon(Icons.edit_outlined),label:const Text('Edit'))]:null),const SizedBox(height:12),Card(child:Padding(padding:const EdgeInsets.all(24),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[Text('Branch information',style:Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w700)),const SizedBox(height:20),Wrap(spacing:40,runSpacing:24,children:[_Info('Code',branch!['code']),_Info('City',branch!['city']),_Info('Address',branch!['addressLine1'])]),const SizedBox(height:28),if(manage)FilledButton.icon(onPressed:_deactivate,icon:const Icon(Icons.block_outlined),label:const Text('Deactivate'))])))]))))));}}class _Info extends StatelessWidget{final String label;final dynamic value;const _Info(this.label,this.value);@override Widget build(BuildContext context)=>SizedBox(width:240,child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(label,style:Theme.of(context).textTheme.labelMedium),const SizedBox(height:6),Text(value?.toString()??'—',style:Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight:FontWeight.w600))]));}
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+
+import '../../core/auth/auth_service.dart';
+import '../../presentation/ui/components/back_button.dart';
+import 'branch_service.dart';
+import '../../presentation/ui/components/page_header.dart';
+
+class BranchDetailsScreen extends StatefulWidget {
+  final String organizationId, branchId;
+  const BranchDetailsScreen({super.key, required this.organizationId, required this.branchId});
+  @override
+  State<BranchDetailsScreen> createState() => _BranchDetailsScreenState();
+}
+
+class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
+  Map<String, dynamic>? branch;
+  bool loading = true;
+  String? error;
+  late final BranchService service;
+  late final AuthService auth;
+  @override
+  void initState() {
+    super.initState();
+    service = GetIt.instance.get<BranchService>();
+    auth = GetIt.instance.get<AuthService>();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final d = await service.getBranch(widget.organizationId, widget.branchId);
+    if (!mounted) return;
+    setState(() {
+      branch = d;
+      loading = false;
+      error = d == null ? 'Branch not found' : null;
+    });
+  }
+
+  Future<void> _deactivate() async {
+    if (!auth.hasPermission('branch.manage')) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Deactivate branch?'),
+        content: const Text('This will deactivate the branch.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Deactivate')),
+        ],
+      ),
+    );
+    if (ok == true &&
+        await service.deactivateBranch(widget.organizationId, widget.branchId) &&
+        mounted)
+      Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (branch == null) return Scaffold(body: Center(child: Text(error ?? 'Branch not found')));
+    final manage = auth.hasPermission('branch.manage');
+    return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ErpPageHeader(
+                    title: branch!['name'] ?? 'Branch',
+                    subtitle: branch!['city'] ?? '',
+                    breadcrumbs: const [
+                      ErpBreadcrumbItem(label: 'Dashboard'),
+                      ErpBreadcrumbItem(label: 'Organizations'),
+                      ErpBreadcrumbItem(label: 'Branches'),
+                      ErpBreadcrumbItem(label: 'Details'),
+                    ],
+                    actions: [
+                      SettingsBackButton(
+                        parentRoute: '/settings/branches',
+                      ),
+                      if (manage)
+                        FilledButton.icon(
+                          onPressed: () => Navigator.pushNamed(
+                            context,
+                            '/settings/branches/edit/${widget.branchId}',
+                            arguments: {
+                              'organizationId': widget.organizationId,
+                              'branchId': widget.branchId,
+                            },
+                          ),
+                          icon: const Icon(Icons.edit_outlined),
+                          label: const Text('Edit'),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'Branch information',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 20),
+                          Wrap(
+                            spacing: 40,
+                            runSpacing: 24,
+                            children: [
+                              _Info('Code', branch!['code']),
+                              _Info('Name', branch!['name']),
+                              _Info('Status', branch!['status']),
+                              _Info('City', branch!['city']),
+                              _Info('District', branch!['district']),
+                              _Info('State', branch!['state']),
+                              _Info('Country', branch!['country']),
+                              _Info('Postal code', branch!['postalCode']),
+                              _Info('Timezone', branch!['timezone']),
+                              _Info('Address line 1', branch!['addressLine1']),
+                              _Info('Address line 2', branch!['addressLine2']),
+                              _Info('Head office', branch!['isHeadOffice'] == true ? 'Yes' : 'No'),
+                              _Info('Default branch', branch!['isDefault'] == true ? 'Yes' : 'No'),
+                              _Info('Remarks', branch!['remarks']),
+                            ],
+                          ),
+                          const SizedBox(height: 28),
+                          if (manage)
+                            FilledButton.icon(
+                              onPressed: _deactivate,
+                              icon: const Icon(Icons.block_outlined),
+                              label: const Text('Deactivate'),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Info extends StatelessWidget {
+  final String label;
+  final dynamic value;
+  const _Info(this.label, this.value);
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 240,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.labelMedium),
+        const SizedBox(height: 6),
+        Text(
+          value?.toString() ?? '—',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+        ),
+      ],
+    ),
+  );
+}

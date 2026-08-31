@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
 import '../../core/auth/auth_service.dart';
+import '../../presentation/ui/components/back_button.dart';
 import 'user_service.dart';
 import '../../presentation/ui/components/page_header.dart';
 
 class UserDetailsScreen extends StatefulWidget {
-  const UserDetailsScreen({super.key});
+  final String? id;
+
+  const UserDetailsScreen({super.key, this.id});
+
   @override
   State<UserDetailsScreen> createState() => _UserDetailsScreenState();
 }
@@ -17,11 +21,12 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
   Map<String, dynamic>? user;
   bool loading = true;
   String? error;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final id = ModalRoute.of(context)!.settings.arguments as String?;
-    if (id != null && user == null) _load(id);
+    final routeId = widget.id ?? (ModalRoute.of(context)?.settings.arguments as String?);
+    if (routeId != null && routeId.isNotEmpty && user == null) _load(routeId);
   }
 
   @override
@@ -58,27 +63,18 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
         title: const Text('Deactivate user?'),
         content: const Text('This will deactivate the account.'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: const Text('Deactivate'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Deactivate')),
         ],
       ),
     );
-    if (confirmed == true && await service.deactivateUser(user!['id']))
-      await _load(user!['id']);
+    if (confirmed == true && await service.deactivateUser(user!['id'])) await _load(user!['id']);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (loading)
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    if (user == null)
-      return Scaffold(body: Center(child: Text(error ?? 'User not found')));
+    if (loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (user == null) return Scaffold(body: Center(child: Text(error ?? 'User not found')));
     final manage = auth.hasPermission('user.manage');
     return Scaffold(
       body: SafeArea(
@@ -98,19 +94,20 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                       ErpBreadcrumbItem(label: 'Users'),
                       ErpBreadcrumbItem(label: 'Details'),
                     ],
-                    actions: manage
-                        ? [
-                            FilledButton.icon(
-                              onPressed: () => Navigator.pushNamed(
-                                context,
-                                '/settings/users/edit',
-                                arguments: user!['id'],
-                              ),
-                              icon: const Icon(Icons.edit_outlined),
-                              label: const Text('Edit'),
-                            ),
-                          ]
-                        : null,
+                    actions: [
+                      SettingsBackButton(
+                        parentRoute: '/settings/users',
+                      ),
+                      if (manage)
+                        FilledButton.icon(
+                          onPressed: () => Navigator.pushNamed(
+                            context,
+                            '/settings/users/edit/${user!['id']}',
+                          ),
+                          icon: const Icon(Icons.edit_outlined),
+                          label: const Text('Edit'),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   Card(
@@ -128,20 +125,13 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                           LayoutBuilder(
                             builder: (context, c) {
                               final data = [
-                                _Info(
-                                  label: 'Username',
-                                  value: user!['username'],
-                                ),
+                                _Info(label: 'Username', value: user!['username']),
                                 _Info(label: 'Email', value: user!['email']),
                                 _Info(label: 'Status', value: user!['status']),
                               ];
                               return c.maxWidth < 600
                                   ? Column(children: data)
-                                  : Wrap(
-                                      spacing: 40,
-                                      runSpacing: 24,
-                                      children: data,
-                                    );
+                                  : Wrap(spacing: 40, runSpacing: 24, children: data);
                             },
                           ),
                           if (error != null) ...[
@@ -169,8 +159,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                                 OutlinedButton.icon(
                                   onPressed: () => Navigator.pushNamed(
                                     context,
-                                    '/settings/users/roles',
-                                    arguments: user!['id'],
+                                    '/settings/users/roles/${user!['id']}',
                                   ),
                                   icon: const Icon(Icons.assignment_outlined),
                                   label: const Text('Assign Roles'),
@@ -179,8 +168,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                                 OutlinedButton.icon(
                                   onPressed: () => Navigator.pushNamed(
                                     context,
-                                    '/settings/users/access',
-                                    arguments: user!['id'],
+                                    '/settings/users/access/${user!['id']}',
                                   ),
                                   icon: const Icon(Icons.security_outlined),
                                   label: const Text('Manage Access'),
@@ -215,8 +203,7 @@ class _Info extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           value?.toString() ?? '—',
-          style: Theme.of(context).textTheme.bodyLarge
-              ?.copyWith(fontWeight: FontWeight.w600),
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
         ),
       ],
     ),
