@@ -58,6 +58,17 @@ class _RoleListScreenState extends State<RoleListScreen> {
       value: _service,
       child: Consumer<RoleService>(
         builder: (context, svc, _) {
+          final isSettingsRoute =
+              ModalRoute.of(context)?.settings.name?.startsWith('/settings') ??
+              false;
+          final breadcrumbs = <ErpBreadcrumbItem>[
+            ErpBreadcrumbItem(
+              label: isSettingsRoute ? 'Settings' : 'Dashboard',
+              route: isSettingsRoute ? '/settings' : '/dashboard',
+            ),
+            const ErpBreadcrumbItem(label: 'Roles'),
+          ];
+
           return Scaffold(
             body: CustomScrollView(
               slivers: [
@@ -67,10 +78,7 @@ class _RoleListScreenState extends State<RoleListScreen> {
                     child: ErpPageHeader(
                       title: 'Roles',
                       subtitle: 'Manage security roles and access assignments',
-                      breadcrumbs: const [
-                        ErpBreadcrumbItem(label: 'Dashboard'),
-                        ErpBreadcrumbItem(label: 'Roles'),
-                      ],
+                      breadcrumbs: breadcrumbs,
                       actions: _auth.hasPermission('role.manage')
                           ? [
                               FilledButton.icon(

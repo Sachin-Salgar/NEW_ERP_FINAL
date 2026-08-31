@@ -85,11 +85,19 @@ class AppRoutes {
   );
   static const settingsRoles = AppRouteConfig(
     path: '/settings/roles',
-    title: 'Roles & Permissions',
+    title: 'Roles',
     group: 'SETTINGS',
     permissionKey: 'role.read',
     moduleCode: 'security',
     icon: Icons.admin_panel_settings_outlined,
+  );
+  static const settingsPermissions = AppRouteConfig(
+    path: '/settings/permissions',
+    title: 'Permissions',
+    group: 'SETTINGS',
+    permissionKey: 'permission.read',
+    moduleCode: 'security',
+    icon: Icons.lock_outline,
   );
   static const users = AppRouteConfig(
     path: '/users',
@@ -121,15 +129,10 @@ class AppRoutes {
     settingsBranches,
     settingsUsers,
     settingsRoles,
+    settingsPermissions,
   ];
 
-  static const topLevel = <AppRouteConfig>[
-    dashboard,
-    settings,
-    users,
-    roles,
-    permissions,
-  ];
+  static const topLevel = <AppRouteConfig>[dashboard, settings];
 
   static const routePermissions = <String, String?>{
     '/dashboard': null,
@@ -150,6 +153,8 @@ class AppRoutes {
     '/settings/roles/create': 'role.manage',
     '/settings/roles/details': 'role.read',
     '/settings/roles/edit': 'role.manage',
+    '/settings/permissions': 'permission.read',
+    '/settings/permissions/details': 'permission.read',
     '/organizations': 'organization.read',
     '/organizations/create': 'organization.manage',
     '/organizations/details': 'organization.read',

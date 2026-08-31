@@ -47,9 +47,14 @@ void main() {
       expect(settingsUsers.moduleCode, 'user-management');
 
       final settingsRoles = AppRoutes.forRoute('/settings/roles/create');
-      expect(settingsRoles.title, 'Roles & Permissions');
+      expect(settingsRoles.title, 'Roles');
       expect(settingsRoles.permissionKey, 'role.read');
       expect(settingsRoles.moduleCode, 'security');
+
+      final settingsPermissions = AppRoutes.forRoute('/settings/permissions');
+      expect(settingsPermissions.title, 'Permissions');
+      expect(settingsPermissions.permissionKey, 'permission.read');
+      expect(settingsPermissions.moduleCode, 'security');
 
       final dashboard = AppRoutes.forRoute('/dashboard');
       expect(dashboard.permissionKey, isNull);
@@ -74,6 +79,11 @@ void main() {
       expect(AppRoutes.isSettingsRoute('/settings/users/123/edit'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/roles/create'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/roles/123/edit'), isTrue);
+      expect(AppRoutes.isSettingsRoute('/settings/permissions'), isTrue);
+      expect(
+        AppRoutes.isSettingsRoute('/settings/permissions/details'),
+        isTrue,
+      );
     });
 
     test('unknown routes resolve to a safe navigation metadata entry', () {

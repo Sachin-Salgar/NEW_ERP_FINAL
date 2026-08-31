@@ -42,6 +42,17 @@ class _UserListScreenState extends State<UserListScreen> {
               child: Text('You do not have permission to view users.'),
             );
           final users = service.users;
+          final isSettingsRoute =
+              ModalRoute.of(context)?.settings.name?.startsWith('/settings') ??
+              false;
+          final breadcrumbs = <ErpBreadcrumbItem>[
+            ErpBreadcrumbItem(
+              label: isSettingsRoute ? 'Settings' : 'Dashboard',
+              route: isSettingsRoute ? '/settings' : '/dashboard',
+            ),
+            const ErpBreadcrumbItem(label: 'Users'),
+          ];
+
           return CustomScrollView(
             slivers: [
               SliverPadding(
@@ -50,13 +61,7 @@ class _UserListScreenState extends State<UserListScreen> {
                   child: ErpPageHeader(
                     title: 'Users',
                     subtitle: 'Manage user accounts and access',
-                    breadcrumbs: const [
-                      ErpBreadcrumbItem(
-                        label: 'Dashboard',
-                        route: '/dashboard',
-                      ),
-                      ErpBreadcrumbItem(label: 'Users'),
-                    ],
+                    breadcrumbs: breadcrumbs,
                     actions: auth.hasPermission('user.manage')
                         ? [
                             FilledButton.icon(

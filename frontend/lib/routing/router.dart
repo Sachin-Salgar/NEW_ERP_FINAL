@@ -12,6 +12,7 @@ import '../modules/organization/create_screen.dart';
 import '../modules/organization/details_screen.dart';
 import '../modules/organization/edit_screen.dart';
 import '../modules/organization/list_screen.dart';
+import '../modules/permission/permission_detail_screen.dart';
 import '../modules/permission/permission_list_screen.dart';
 import '../modules/permission/role_permission_screen.dart';
 import '../modules/role/create_screen.dart';
@@ -281,6 +282,26 @@ class AppRouter {
             context,
             routeName: '/settings/roles/edit',
             child: RoleEditScreen(roleId: settings.arguments as String? ?? ''),
+          ),
+        );
+      case '/settings/permissions':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/settings/permissions',
+            child: const PermissionListScreen(),
+          ),
+        );
+      case '/settings/permissions/details':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/settings/permissions/details',
+            child: PermissionDetailScreen(
+              permissionKey: settings.arguments as String? ?? '',
+            ),
           ),
         );
       case '/organizations':
