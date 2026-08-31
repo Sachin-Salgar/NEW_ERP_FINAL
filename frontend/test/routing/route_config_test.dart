@@ -19,8 +19,12 @@ void main() {
         '/organizations',
       );
       expect(AppRoutes.canonicalTopLevel('/settings/branches'), '/settings');
-      expect(AppRoutes.canonicalTopLevel('/users/roles'), '/users');
-      expect(AppRoutes.canonicalTopLevel('/roles/edit'), '/roles');
+      expect(AppRoutes.canonicalTopLevel('/settings/users/roles'), '/settings');
+      expect(AppRoutes.canonicalTopLevel('/settings/roles/edit'), '/settings');
+      expect(
+        AppRoutes.canonicalTopLevel('/settings/roles/permissions'),
+        '/settings',
+      );
     });
 
     test('uses the same metadata for titles, permissions and modules', () {
@@ -51,6 +55,17 @@ void main() {
       expect(settingsRoles.permissionKey, 'role.read');
       expect(settingsRoles.moduleCode, 'security');
 
+      final rolePermissions = AppRoutes.forRoute(
+        '/settings/roles/permissions',
+      );
+      expect(rolePermissions.title, 'Roles');
+      expect(rolePermissions.permissionKey, 'role.read');
+      expect(rolePermissions.moduleCode, 'security');
+      expect(
+        AppRoutes.routePermissions['/settings/roles/permissions'],
+        'role.manage',
+      );
+
       final settingsPermissions = AppRoutes.forRoute('/settings/permissions');
       expect(settingsPermissions.title, 'Permissions');
       expect(settingsPermissions.permissionKey, 'permission.read');
@@ -77,7 +92,10 @@ void main() {
       expect(AppRoutes.isSettingsRoute('/settings/users'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/users/create'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/users/123/edit'), isTrue);
+      expect(AppRoutes.isSettingsRoute('/settings/users/roles'), isTrue);
+      expect(AppRoutes.isSettingsRoute('/settings/users/access'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/roles/create'), isTrue);
+      expect(AppRoutes.isSettingsRoute('/settings/roles/permissions'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/roles/123/edit'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/permissions'), isTrue);
       expect(
