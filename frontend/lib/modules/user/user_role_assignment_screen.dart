@@ -139,7 +139,13 @@ class _UserRoleAssignmentScreenState extends State<UserRoleAssignmentScreen> {
   Widget build(BuildContext context) {
     if (!auth.hasPermission('user.manage')) {
       return Scaffold(
-        appBar: AppBar(title: const Text('User Roles')),
+        appBar: AppBar(
+          leading: IconButton(
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: const Icon(Icons.arrow_back_outlined),
+          ),
+          title: const Text('Assign Roles'),
+        ),
         body: const Center(
           child: Text('You do not have permission to manage user roles.'),
         ),
@@ -156,7 +162,13 @@ class _UserRoleAssignmentScreenState extends State<UserRoleAssignmentScreen> {
         .toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('User Roles')),
+      appBar: AppBar(
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const Icon(Icons.arrow_back_outlined),
+        ),
+        title: const Text('Assign Roles'),
+      ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
@@ -166,7 +178,7 @@ class _UserRoleAssignmentScreenState extends State<UserRoleAssignmentScreen> {
                 children: [
                   if (user != null) ...[
                     Text(
-                      'User: ${user!['username'] ?? user!['email'] ?? 'Unknown user'}',
+                      'Managing roles for: ${user!['username'] ?? user!['email'] ?? 'Unknown user'}',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 8),

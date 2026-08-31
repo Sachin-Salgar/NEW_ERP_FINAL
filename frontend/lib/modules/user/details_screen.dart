@@ -172,8 +172,8 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                                     '/settings/users/roles',
                                     arguments: user!['id'],
                                   ),
-                                  icon: const Icon(Icons.badge_outlined),
-                                  label: const Text('Roles'),
+                                  icon: const Icon(Icons.assignment_outlined),
+                                  label: const Text('Assign Roles'),
                                 ),
                               if (manage)
                                 OutlinedButton.icon(
@@ -183,7 +183,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                                     arguments: user!['id'],
                                   ),
                                   icon: const Icon(Icons.security_outlined),
-                                  label: const Text('Access'),
+                                  label: const Text('Manage Access'),
                                 ),
                             ],
                           ),
