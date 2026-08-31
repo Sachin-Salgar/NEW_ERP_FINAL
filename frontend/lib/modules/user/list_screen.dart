@@ -19,7 +19,12 @@ class _UserListScreenState extends State<UserListScreen> {
   @override
   void initState() {
     super.initState();
-    service.fetchUsers();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !auth.hasPermission('user.read')) return;
+      if (!service.isLoading) {
+        service.fetchUsers();
+      }
+    });
   }
 
   @override

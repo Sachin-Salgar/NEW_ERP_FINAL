@@ -31,12 +31,12 @@ class _PermissionListScreenState extends State<PermissionListScreen> {
         : ApiClient(baseUrl: 'http://localhost:3000');
     _service = PermissionService(apiClient: apiClient);
     _service.addListener(_onServiceChanged);
-    if (_auth.hasPermission('permission.read') &&
-        !_service.isLoading &&
-        !_service.fetchedOnce &&
-        _service.error == null) {
-      _service.fetchPermissions();
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_auth.hasPermission('permission.read')) return;
+      if (!_service.isLoading && !_service.fetchedOnce && _service.error == null) {
+        _service.fetchPermissions();
+      }
+    });
   }
 
   @override

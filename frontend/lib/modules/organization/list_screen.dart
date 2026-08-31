@@ -24,11 +24,15 @@ class _OrganizationListScreenState extends State<OrganizationListScreen> {
     final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
     service = OrganizationService(apiClient: ApiClient(baseUrl: baseUrl));
     auth = GetIt.instance.get<AuthService>();
-    _init();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _init();
+    });
   }
 
   Future<void> _init() async {
     await auth.fetchEffectivePermissions(const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000'));
+    if (!mounted) return;
     await service.fetchOrganizations();
   }
 

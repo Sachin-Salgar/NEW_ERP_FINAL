@@ -32,12 +32,12 @@ class _RoleListScreenState extends State<RoleListScreen> {
         : ApiClient(baseUrl: 'http://localhost:3000');
     _service = RoleService(apiClient: apiClient);
     _service.addListener(_onServiceChanged);
-    if (_auth.hasPermission('role.read') &&
-        !_service.isLoading &&
-        !_service.fetchedOnce &&
-        _service.error == null) {
-      _service.fetchRoles();
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_auth.hasPermission('role.read')) return;
+      if (!_service.isLoading && !_service.fetchedOnce && _service.error == null) {
+        _service.fetchRoles();
+      }
+    });
   }
 
   @override
