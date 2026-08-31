@@ -23,6 +23,11 @@ void main() {
       expect(organizations.permissionKey, 'organization.read');
       expect(organizations.moduleCode, 'organization');
 
+      final settingsOrganizations = AppRoutes.forRoute('/settings/organizations/create');
+      expect(settingsOrganizations.title, 'Organizations');
+      expect(settingsOrganizations.permissionKey, 'organization.read');
+      expect(settingsOrganizations.moduleCode, 'organization');
+
       final settingsBranches = AppRoutes.forRoute('/settings/branches');
       expect(settingsBranches.title, 'Branches');
       expect(settingsBranches.permissionKey, 'branch.read');
@@ -31,6 +36,15 @@ void main() {
       final dashboard = AppRoutes.forRoute('/dashboard');
       expect(dashboard.permissionKey, isNull);
       expect(dashboard.moduleCode, 'core');
+    });
+
+    test('keeps all settings child routes under the settings layout', () {
+      expect(AppRoutes.isSettingsRoute('/settings'), isTrue);
+      expect(AppRoutes.isSettingsRoute('/settings/organizations'), isTrue);
+      expect(AppRoutes.isSettingsRoute('/settings/organizations/create'), isTrue);
+      expect(AppRoutes.isSettingsRoute('/settings/organizations/abc/edit'), isTrue);
+      expect(AppRoutes.isSettingsRoute('/settings/branches/create'), isTrue);
+      expect(AppRoutes.isSettingsRoute('/settings/branches/abc/edit'), isTrue);
     });
 
     test('unknown routes resolve to a safe navigation metadata entry', () {

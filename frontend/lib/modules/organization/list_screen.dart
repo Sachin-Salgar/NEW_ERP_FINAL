@@ -54,7 +54,7 @@ class _OrganizationListScreenState extends State<OrganizationListScreen> {
                   subtitle: 'Manage organizations in the ERP',
                   breadcrumbs: const [ErpBreadcrumbItem(label: 'Dashboard'), ErpBreadcrumbItem(label: 'Organizations')],
                   actions: auth.hasPermission('organization.manage')
-                      ? [FilledButton.icon(onPressed: () => Navigator.of(context).pushNamed('/organizations/create'), icon: const Icon(Icons.add), label: const Text('Add Organization'))]
+                      ? [FilledButton.icon(onPressed: () => Navigator.of(context).pushNamed('/settings/organizations/create'), icon: const Icon(Icons.add), label: const Text('Add Organization'))]
                       : null,
                 )),
               ),
@@ -68,7 +68,7 @@ class _OrganizationListScreenState extends State<OrganizationListScreen> {
                     child: LayoutBuilder(builder: (context, constraints) {
                       final compact = constraints.maxWidth < 650;
                       return compact
-                          ? Column(children: items.map((org) => _OrganizationTile(org: org, onTap: () => Navigator.of(context).pushNamed('/organizations/details', arguments: org['id']))).toList())
+                              ? Column(children: items.map((org) => _OrganizationTile(org: org, onTap: () => Navigator.of(context).pushNamed('/settings/organizations/details', arguments: org['id']))).toList())
                           : DataTable(
                               columnSpacing: 28,
                               horizontalMargin: 20,
@@ -80,7 +80,7 @@ class _OrganizationListScreenState extends State<OrganizationListScreen> {
                                 DataCell(Text(org['name'] ?? org['code'] ?? 'Unnamed', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600))),
                                 DataCell(Text(org['legalName'] ?? '')),
                                 DataCell(Text(org['code'] ?? '—')),
-                                DataCell(IconButton(onPressed: () => Navigator.of(context).pushNamed('/organizations/details', arguments: org['id']), icon: const Icon(Icons.chevron_right))),
+                                DataCell(IconButton(onPressed: () => Navigator.of(context).pushNamed('/settings/organizations/details', arguments: org['id']), icon: const Icon(Icons.chevron_right))),
                               ])).toList(),
                             );
                     }),

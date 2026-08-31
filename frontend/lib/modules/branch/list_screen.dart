@@ -52,7 +52,7 @@ class _BranchListScreenState extends State<BranchListScreen> {
                   subtitle: 'Branches for this organization',
                   breadcrumbs: const [ErpBreadcrumbItem(label: 'Dashboard'), ErpBreadcrumbItem(label: 'Organizations'), ErpBreadcrumbItem(label: 'Branches')],
                   actions: auth.hasPermission('branch.manage') ? [FilledButton.icon(
-                    onPressed: () => Navigator.of(context).pushNamed('/organizations/branches/create', arguments: widget.organizationId),
+                   onPressed: () => Navigator.of(context).pushNamed('/settings/branches/create', arguments: widget.organizationId),
                     icon: const Icon(Icons.add), label: const Text('Add Branch'),
                   )] : null,
                 )),
@@ -72,7 +72,7 @@ class _BranchListScreenState extends State<BranchListScreen> {
                           title: Text(b['name'] ?? b['code'] ?? 'Unnamed', style: const TextStyle(fontWeight: FontWeight.w600)),
                           subtitle: Text(b['city'] ?? b['code'] ?? ''),
                           trailing: const Icon(Icons.chevron_right),
-                          onTap: () => Navigator.of(context).pushNamed('/organizations/branches/details', arguments: {'organizationId': widget.organizationId, 'branchId': b['id']}),
+                          onTap: () => Navigator.of(context).pushNamed('/settings/branches/details', arguments: {'organizationId': widget.organizationId, 'branchId': b['id']}),
                         )).toList());
                       }
                       return DataTable(
@@ -86,7 +86,7 @@ class _BranchListScreenState extends State<BranchListScreen> {
                           DataCell(Text(b['name'] ?? b['code'] ?? 'Unnamed', style: const TextStyle(fontWeight: FontWeight.w600))),
                           DataCell(Text(b['code'] ?? '—')),
                           DataCell(Text(b['city'] ?? '—')),
-                          DataCell(IconButton(onPressed: () => Navigator.of(context).pushNamed('/organizations/branches/details', arguments: {'organizationId': widget.organizationId, 'branchId': b['id']}), icon: const Icon(Icons.chevron_right))),
+                          DataCell(IconButton(onPressed: () => Navigator.of(context).pushNamed('/settings/branches/details', arguments: {'organizationId': widget.organizationId, 'branchId': b['id']}), icon: const Icon(Icons.chevron_right))),
                         ])).toList(),
                       );
                     }),
