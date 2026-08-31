@@ -149,12 +149,15 @@ class AppRoutes {
     '/settings/users/create': 'user.manage',
     '/settings/users/details': 'user.read',
     '/settings/users/edit': 'user.manage',
+    '/settings/users/roles': 'user.manage',
+    '/settings/users/access': 'user.manage',
     '/settings/roles': 'role.read',
     '/settings/roles/create': 'role.manage',
-    '/settings/roles/details': 'role.read',
     '/settings/roles/edit': 'role.manage',
+    '/settings/roles/permissions': 'role.manage',
     '/settings/permissions': 'permission.read',
     '/settings/permissions/details': 'permission.read',
+    // Legacy routes are retained for compatibility with existing deep links.
     '/organizations': 'organization.read',
     '/organizations/create': 'organization.manage',
     '/organizations/details': 'organization.read',
@@ -169,8 +172,6 @@ class AppRoutes {
     '/users/edit': 'user.manage',
     '/users/roles': 'user.manage',
     '/users/access': 'user.manage',
-    '/settings/users/roles': 'user.manage',
-    '/settings/users/access': 'user.manage',
     '/roles': 'role.read',
     '/roles/create': 'role.manage',
     '/roles/edit': 'role.manage',
@@ -182,8 +183,9 @@ class AppRoutes {
 
   static String normalize(String path) {
     if (path.isEmpty || path == '/') return '/dashboard';
-    if (path.endsWith('/') && path.length > 1)
+    if (path.endsWith('/') && path.length > 1) {
       return path.substring(0, path.length - 1);
+    }
     return path;
   }
 
