@@ -247,17 +247,9 @@ class AppRouter {
           builder: (context) => _protected(
             context,
             routeName: '/settings/roles/permissions',
-            child: RolePermissionScreen(roleId: settings.arguments as String? ?? ''),
-          ),
-        );
-      case '/settings/roles/details':
-        // Backward-compatible alias for existing role permission deep links.
-        return MaterialPageRoute(
-          settings: settings,
-          builder: (context) => _protected(
-            context,
-            routeName: '/settings/roles/permissions',
-            child: RolePermissionScreen(roleId: settings.arguments as String? ?? ''),
+            child: RolePermissionScreen(
+              roleId: settings.arguments as String? ?? '',
+            ),
           ),
         );
       case '/settings/roles/edit':

@@ -94,13 +94,18 @@ void main() {
       expect(AppRoutes.isSettingsRoute('/settings/users/123/edit'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/users/roles'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/users/access'), isTrue);
+      expect(AppRoutes.isSettingsRoute('/settings/roles'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/roles/create'), isTrue);
+      expect(AppRoutes.isSettingsRoute('/settings/roles/edit'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/roles/permissions'), isTrue);
-      expect(AppRoutes.isSettingsRoute('/settings/roles/123/edit'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/permissions'), isTrue);
       expect(
         AppRoutes.isSettingsRoute('/settings/permissions/details'),
         isTrue,
+      );
+      expect(
+        AppRoutes.routePermissions['/settings/roles/permissions'],
+        'role.manage',
       );
     });
 

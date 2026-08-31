@@ -153,8 +153,8 @@ class AppRoutes {
     '/settings/users/access': 'user.manage',
     '/settings/roles': 'role.read',
     '/settings/roles/create': 'role.manage',
-    '/settings/roles/edit': 'role.manage',
     '/settings/roles/permissions': 'role.manage',
+    '/settings/roles/edit': 'role.manage',
     '/settings/permissions': 'permission.read',
     '/settings/permissions/details': 'permission.read',
     // Legacy routes are retained for compatibility with existing deep links.
