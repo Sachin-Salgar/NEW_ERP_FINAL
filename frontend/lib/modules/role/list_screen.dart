@@ -59,8 +59,7 @@ class _RoleListScreenState extends State<RoleListScreen> {
       child: Consumer<RoleService>(
         builder: (context, svc, _) {
           final isSettingsRoute =
-              ModalRoute.of(context)?.settings.name?.startsWith('/settings') ??
-              false;
+              ModalRoute.of(context)?.settings.name?.startsWith('/settings') ?? false;
           final breadcrumbs = <ErpBreadcrumbItem>[
             ErpBreadcrumbItem(
               label: isSettingsRoute ? 'Settings' : 'Dashboard',
@@ -148,35 +147,23 @@ class _RoleListScreenState extends State<RoleListScreen> {
                                           CircleAvatar(
                                             radius: 12,
                                             child: Icon(
-                                              system
-                                                  ? Icons.shield
-                                                  : Icons.badge_outlined,
+                                              system ? Icons.shield : Icons.badge_outlined,
                                               size: 15,
                                             ),
                                           ),
                                           const SizedBox(width: 10),
                                           Expanded(
                                             child: Text(
-                                              r['name']?.toString() ??
-                                                  r['code']?.toString() ??
-                                                  'Unnamed',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                              ),
+                                              r['name']?.toString() ?? r['code']?.toString() ?? 'Unnamed',
+                                              style: const TextStyle(fontWeight: FontWeight.w600),
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                    DataCell(
-                                      Text(r['description']?.toString() ?? '—'),
-                                    ),
-                                    DataCell(
-                                      Text(system ? 'System' : 'Custom'),
-                                    ),
-                                    DataCell(
-                                      _RoleActions(role: r, auth: _auth),
-                                    ),
+                                    DataCell(Text(r['description']?.toString() ?? '—')),
+                                    DataCell(Text(system ? 'System' : 'Custom')),
+                                    DataCell(_RoleActions(role: r, auth: _auth)),
                                   ],
                                 );
                               }).toList(),
@@ -237,17 +224,19 @@ class _RoleActions extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             tooltip: 'Edit role',
-            onPressed: () =>
-                Navigator.of(context)
-                    .pushNamed('/settings/roles/edit', arguments: id),
+            onPressed: () => Navigator.of(context).pushNamed(
+              '/settings/roles/edit',
+              arguments: id,
+            ),
           ),
         if (auth.hasPermission('role.manage'))
           IconButton(
             icon: const Icon(Icons.admin_panel_settings_outlined),
             tooltip: 'Manage permissions',
-            onPressed: () =>
-                Navigator.of(context)
-                    .pushNamed('/settings/roles/details', arguments: id),
+            onPressed: () => Navigator.of(context).pushNamed(
+              '/settings/roles/permissions',
+              arguments: id,
+            ),
           ),
       ],
     );
