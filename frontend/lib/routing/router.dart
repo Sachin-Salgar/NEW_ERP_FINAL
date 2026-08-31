@@ -54,14 +54,24 @@ class AppRouter {
         return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/organizations/details', child: OrganizationDetailsScreen(id: settings.arguments as String? ?? '')));
       case '/organizations/edit':
         return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/organizations/edit', child: EditOrganizationScreen(id: settings.arguments as String? ?? '')));
-      case '/organizations/branches':
-        return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/organizations/branches', child: BranchListScreen(organizationId: settings.arguments as String? ?? '')));
-      case '/organizations/branches/create':
-        return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/organizations/branches/create', child: CreateBranchScreen(organizationId: settings.arguments as String? ?? '')));
-      case '/organizations/branches/details':
-        return MaterialPageRoute(settings: settings, builder: (context) { final args = settings.arguments as Map<String, dynamic>? ?? {}; return _protected(context, routeName: '/organizations/branches/details', child: BranchDetailsScreen(organizationId: args['organizationId'] as String? ?? '', branchId: args['branchId'] as String? ?? '')); });
-      case '/organizations/branches/edit':
-        return MaterialPageRoute(settings: settings, builder: (context) { final args = settings.arguments as Map<String, dynamic>? ?? {}; return _protected(context, routeName: '/organizations/branches/edit', child: EditBranchScreen(organizationId: args['organizationId'] as String? ?? '', branchId: args['branchId'] as String? ?? '')); });
+      case '/organizations/branches': {
+        final organizationId = (settings.arguments is String ? settings.arguments as String? : null) ?? auth.currentOrganizationId ?? auth.selectedOrganizationId ?? '';
+        return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/organizations/branches', child: BranchListScreen(organizationId: organizationId)));
+      }
+      case '/organizations/branches/create': {
+        final organizationId = (settings.arguments is String ? settings.arguments as String? : null) ?? auth.currentOrganizationId ?? auth.selectedOrganizationId ?? '';
+        return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/organizations/branches/create', child: CreateBranchScreen(organizationId: organizationId)));
+      }
+      case '/organizations/branches/details': {
+        final args = settings.arguments as Map<String, dynamic>? ?? {};
+        final organizationId = (args['organizationId'] as String? ?? auth.currentOrganizationId ?? auth.selectedOrganizationId ?? '');
+        return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/organizations/branches/details', child: BranchDetailsScreen(organizationId: organizationId, branchId: args['branchId'] as String? ?? '')));
+      }
+      case '/organizations/branches/edit': {
+        final args = settings.arguments as Map<String, dynamic>? ?? {};
+        final organizationId = (args['organizationId'] as String? ?? auth.currentOrganizationId ?? auth.selectedOrganizationId ?? '');
+        return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/organizations/branches/edit', child: EditBranchScreen(organizationId: organizationId, branchId: args['branchId'] as String? ?? '')));
+      }
       case '/users':
         return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/users', child: const UserListScreen()));
       case '/users/create':

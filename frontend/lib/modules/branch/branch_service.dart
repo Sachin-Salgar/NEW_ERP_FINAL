@@ -17,13 +17,26 @@ class BranchService extends ChangeNotifier {
   BranchService({required this.apiClient})
     : auth = GetIt.instance.get<AuthService>();
 
-  Future<void> fetchBranches(String organizationId) async {
+  String _resolveOrganizationId([String? providedOrganizationId]) {
+    final candidate = (providedOrganizationId ?? auth.currentOrganizationId ?? auth.selectedOrganizationId ?? '')
+        .toString()
+        .trim();
+
+    if (candidate.isEmpty) {
+      throw StateError('Organization context is missing. Please select or restore an active organization before loading branches.');
+    }
+
+    return candidate;
+  }
+
+  Future<void> fetchBranches([String? organizationId]) async {
     isLoading = true;
     error = null;
     notifyListeners();
     try {
+      final resolvedOrganizationId = _resolveOrganizationId(organizationId);
       final resp = await apiClient.get(
-        '/api/v1/organizations/$organizationId/branches',
+        '/api/v1/organizations/$resolvedOrganizationId/branches',
       );
       if (resp.statusCode == 200) {
         final body = jsonDecode(resp.body) as Map<String, dynamic>;
@@ -42,16 +55,18 @@ class BranchService extends ChangeNotifier {
   }
 
   Future<bool> createBranch(
-    String organizationId,
-    Map<String, dynamic> payload,
-  ) async {
+    String? organizationId, [
+    Map<String, dynamic>? payload,
+  ]) async {
     try {
+      final resolvedOrganizationId = _resolveOrganizationId(organizationId);
+      final resolvedPayload = payload ?? const <String, dynamic>{};
       final resp = await apiClient.post(
-        '/api/v1/organizations/$organizationId/branches',
-        body: payload,
+        '/api/v1/organizations/$resolvedOrganizationId/branches',
+        body: resolvedPayload,
       );
       if (resp.statusCode == 201) {
-        await fetchBranches(organizationId);
+        await fetchBranches(resolvedOrganizationId);
         return true;
       }
       return false;
@@ -61,12 +76,13 @@ class BranchService extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>?> getBranch(
-    String organizationId,
+    String? organizationId,
     String branchId,
   ) async {
     try {
+      final resolvedOrganizationId = _resolveOrganizationId(organizationId);
       final resp = await apiClient.get(
-        '/api/v1/organizations/$organizationId/branches/$branchId',
+        '/api/v1/organizations/$resolvedOrganizationId/branches/$branchId',
       );
       if (resp.statusCode == 200) {
         final body = jsonDecode(resp.body) as Map<String, dynamic>;
@@ -79,17 +95,18 @@ class BranchService extends ChangeNotifier {
   }
 
   Future<bool> updateBranch(
-    String organizationId,
+    String? organizationId,
     String branchId,
     Map<String, dynamic> payload,
   ) async {
     try {
+      final resolvedOrganizationId = _resolveOrganizationId(organizationId);
       final resp = await apiClient.put(
-        '/api/v1/organizations/$organizationId/branches/$branchId',
+        '/api/v1/organizations/$resolvedOrganizationId/branches/$branchId',
         body: payload,
       );
       if (resp.statusCode == 200) {
-        await fetchBranches(organizationId);
+        await fetchBranches(resolvedOrganizationId);
         return true;
       }
     } catch (e) {
@@ -98,13 +115,14 @@ class BranchService extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> deactivateBranch(String organizationId, String branchId) async {
+  Future<bool> deactivateBranch(String? organizationId, String branchId) async {
     try {
+      final resolvedOrganizationId = _resolveOrganizationId(organizationId);
       final resp = await apiClient.post(
-        '/api/v1/organizations/$organizationId/branches/$branchId/deactivate',
+        '/api/v1/organizations/$resolvedOrganizationId/branches/$branchId/deactivate',
       );
       if (resp.statusCode == 200) {
-        await fetchBranches(organizationId);
+        await fetchBranches(resolvedOrganizationId);
         return true;
       }
     } catch (e) {}
