@@ -6,6 +6,7 @@ import 'package:integration_test/integration_test.dart';
 
 import 'package:new_erp_final_frontend/app/app.dart';
 import 'package:new_erp_final_frontend/core/auth/auth_service.dart';
+import 'package:new_erp_final_frontend/modules/auth/login_screen.dart';
 import 'package:new_erp_final_frontend/modules/dashboard/dashboard_screen.dart';
 import 'package:new_erp_final_frontend/presentation/ui/components/settings_sidebar.dart';
 import 'package:new_erp_final_frontend/routing/app_router_delegate.dart';
@@ -41,6 +42,16 @@ Future<void> _waitFor(WidgetTester tester, Finder finder, {Duration timeout = co
   fail('Timed out waiting for finder: $finder (${diagnostics.join(', ')})');
 }
 
+Future<void> _settle(WidgetTester tester) async {
+  // Do not use pumpAndSettle for the browser matrix. Flutter web-server can
+  // keep a frame scheduled while the integration-test SSE channel is active,
+  // causing pumpAndSettle to wait forever. A bounded settle is sufficient
+  // because all meaningful async waits use _waitFor below.
+  for (var i = 0; i < 20; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
 Future<void> _resetBrowserTestState() async {
   web.window.localStorage.clear();
   web.window.sessionStorage.clear();
@@ -51,13 +62,16 @@ Future<void> _login(WidgetTester tester, String email, String password) async {
   await tester.enterText(find.byKey(const ValueKey('login_identifier_field')), email);
   await tester.enterText(find.byKey(const ValueKey('login_password_field')), password);
   await tester.tap(find.byKey(const ValueKey('login_submit_button')));
-  await tester.pump();
+  await _settle(tester);
 }
 
 Future<AppRouterDelegate> _routerDelegate(WidgetTester tester) async {
   Finder contextFinder = find.byType(DashboardScreen);
   if (contextFinder.evaluate().isEmpty) {
     contextFinder = find.byType(SettingsSidebar);
+  }
+  if (contextFinder.evaluate().isEmpty) {
+    contextFinder = find.byType(LoginScreen);
   }
   await _waitFor(tester, contextFinder);
   final context = tester.element(contextFinder.first);
@@ -70,12 +84,8 @@ Future<AppRouterDelegate> _routerDelegate(WidgetTester tester) async {
 
 Future<void> _openRoute(WidgetTester tester, String route) async {
   final delegate = await _routerDelegate(tester);
-  // Use the application's normal authenticated navigation path for route
-  // transitions. This updates the nested Navigator and browser history via
-  // the existing route observer, avoiding a synthetic RouterDelegate call
-  // that can leave the persistent shell on its previous child route.
   delegate.navigate(route);
-  await tester.pumpAndSettle();
+  await _settle(tester);
   await _waitFor(tester, _routeContentFinder(route));
   expect(AppRouteState.currentRoute.value, equals(route));
 }
@@ -92,24 +102,24 @@ Finder _routeContentFinder(String route) {
 Future<void> _navigateRoute(WidgetTester tester, String route) async {
   final delegate = await _routerDelegate(tester);
   delegate.navigate(route);
-  await tester.pumpAndSettle();
+  await _settle(tester);
 }
 
 Future<void> _logout(WidgetTester tester) async {
   await tester.tap(find.byTooltip('Profile and working context'));
-  await tester.pumpAndSettle();
+  await _settle(tester);
   await tester.tap(find.text('Logout').last);
-  await tester.pumpAndSettle();
+  await _settle(tester);
 }
 
 Future<void> _browserBack(WidgetTester tester) async {
   web.window.history.back();
-  await tester.pumpAndSettle();
+  await _waitFor(tester, _routeContentFinder(AppRouteState.currentRoute.value));
 }
 
 Future<void> _browserForward(WidgetTester tester) async {
   web.window.history.forward();
-  await tester.pumpAndSettle();
+  await _waitFor(tester, _routeContentFinder(AppRouteState.currentRoute.value));
 }
 
 void main() {
@@ -151,7 +161,8 @@ void main() {
     );
     expect(branchesSidebarTarget, findsOneWidget);
     await tester.tap(branchesSidebarTarget);
-    await tester.pumpAndSettle();
+    await _settle(tester);
+    await _waitFor(tester, find.text('Branches'));
     expect(AppRouteState.currentRoute.value, equals('/settings/branches'));
     expect(find.text('Branches'), findsWidgets);
 
@@ -171,15 +182,18 @@ void main() {
     await _openRoute(tester, '/settings/branches/details/$_branchId');
     await _waitFor(tester, find.text('Branch information'));
     web.window.location.reload();
-    await tester.pumpAndSettle();
+    await _settle(tester);
     await _waitFor(tester, find.text('Branch information'));
     expect(AppRouteState.currentRoute.value, equals('/settings/branches/details/$_branchId'));
     expect(find.text('E2E Main Branch'), findsWidgets);
 
     await _logout(tester);
     await _waitFor(tester, find.byKey(const ValueKey('login_identifier_field')));
-    await _openRoute(tester, '/settings/organizations');
+    final loginDelegate = await _routerDelegate(tester);
+    await loginDelegate.setNewRoutePath('/settings/organizations');
+    await _settle(tester);
     await _waitFor(tester, find.byKey(const ValueKey('login_identifier_field')));
+    expect(AppRouteState.currentRoute.value, equals('/login'));
     expect(find.text('Dashboard'), findsNothing);
   }, timeout: const Timeout(Duration(seconds: 240)));
 
