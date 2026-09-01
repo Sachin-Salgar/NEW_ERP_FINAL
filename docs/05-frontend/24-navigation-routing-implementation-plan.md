@@ -83,7 +83,7 @@ Navigation visibility and top-level route selection now consume the same route m
 
 ### Phase F — Back/forward and refresh behavior — IMPLEMENTED, VALIDATION PENDING
 
-The Router 2.0 delegate/parser contract and persistent content navigator are implemented. Browser matrix verification remains a separate release gate and has intentionally not been marked complete from code inspection alone.
+The Router 2.0 delegate/parser contract and persistent content navigator are implemented. CI now provides real Chrome browser execution for the existing admin and limited-user E2E scenarios. The broader browser matrix remains a separate release gate.
 
 ## 4. Compatibility constraints
 
@@ -108,7 +108,14 @@ Remaining automated verification should include:
 
 ### Browser/E2E
 
-The final browser matrix must cover widths:
+The repository now has deterministic CI browser execution using Flutter Web, ChromeDriver, and a locally started Postgres-backed API. GitHub Actions run **33486274877** completed successfully on `main` commit `8dd4d17edd3f050a66c1bd2c25e47597fda21a95`, including:
+
+- **Run admin E2E test — success**
+- **Run limited-user E2E test — success**
+
+These scenarios provide authoritative CI evidence for the existing authenticated login/dashboard flows against the repository-controlled backend and database.
+
+They do **not** by themselves prove the complete browser navigation matrix below. The remaining matrix must cover widths:
 
 - 1440
 - 1280
@@ -136,9 +143,9 @@ At representative authenticated widths verify:
 2. Introduce router/parser/delegate — COMPLETE.
 3. Move authenticated content navigation into the persistent shell — COMPLETE.
 4. Connect sidebar navigation to canonical routing — COMPLETE.
-5. Add route/authorization tests — IMPLEMENTED; final suite validation pending.
-6. Run Flutter analyze/test/build — VALIDATION PENDING.
-7. Run authenticated browser navigation matrix — VALIDATION PENDING.
+5. Add route/authorization tests — IMPLEMENTED; validated by repository tests and CI execution for the current E2E scenarios.
+6. Run Flutter analyze/test/build — VALIDATION PENDING for the final release gate.
+7. Run authenticated browser navigation matrix — PARTIALLY VALIDATED; admin and limited-user login/dashboard E2E pass in CI, while the broader navigation matrix remains.
 8. Commit in small, reversible steps — COMPLETE for the current implementation sequence.
 
 ## 7. Definition of done
@@ -154,6 +161,7 @@ Implementation requirements are complete. Release completion remains gated by ac
 - [x] Unsupported paths render a controlled not-found state.
 - [x] Permission-aware menus and route guards use shared route metadata for their route contract.
 - [x] Authorization refresh no longer causes a competing route-level permission load.
+- [x] Deterministic CI browser runner executes the existing admin and limited-user Flutter Web E2E scenarios successfully.
 - [ ] Browser back/forward matrix verified.
 - [ ] Authenticated refresh/session restoration matrix verified.
 - [ ] Representative responsive browser matrix verified.
