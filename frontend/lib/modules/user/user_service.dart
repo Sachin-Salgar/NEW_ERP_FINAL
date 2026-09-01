@@ -67,7 +67,8 @@ class UserService extends ChangeNotifier {
 
   Future<bool> updateUser(String id, Map<String, dynamic> payload) async {
     try {
-      final resp = await apiClient.put('/api/v1/users/$id', body: payload);
+      // The Core API exposes user updates as PATCH /users/:id.
+      final resp = await apiClient.patch('/api/v1/users/$id', body: payload);
       if (resp.statusCode == 200) {
         await fetchUsers();
         return true;

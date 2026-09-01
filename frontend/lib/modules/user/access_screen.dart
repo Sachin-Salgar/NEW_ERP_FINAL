@@ -6,7 +6,9 @@ import '../../modules/branch/branch_service.dart';
 import 'user_service.dart';
 
 class UserAccessScreen extends StatefulWidget {
-  const UserAccessScreen({Key? key}) : super(key: key);
+  final String? userId;
+
+  const UserAccessScreen({Key? key, this.userId}) : super(key: key);
 
   @override
   State<UserAccessScreen> createState() => _UserAccessScreenState();
@@ -68,8 +70,8 @@ class _UserAccessScreenState extends State<UserAccessScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final userId = ModalRoute.of(context)!.settings.arguments as String?;
-    if (userId != null && user == null) _loadUser(userId);
+    final userId = widget.userId ?? (ModalRoute.of(context)?.settings.arguments as String?);
+    if (userId != null && userId.isNotEmpty && user == null) _loadUser(userId);
 
     return Scaffold(
       appBar: AppBar(title: const Text('User Access')),

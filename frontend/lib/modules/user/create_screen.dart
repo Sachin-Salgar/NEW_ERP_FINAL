@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import '../../core/auth/auth_service.dart';
+import '../../presentation/ui/components/back_button.dart';
 import '../../modules/organization/organization_service.dart';
 import 'user_service.dart';
 import '../../presentation/ui/components/page_header.dart';
@@ -77,13 +78,18 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const ErpPageHeader(
+                  ErpPageHeader(
                     title: 'Create User',
                     subtitle: 'Create a user account and assign its context',
-                    breadcrumbs: [
+                    breadcrumbs: const [
                       ErpBreadcrumbItem(label: 'Dashboard'),
                       ErpBreadcrumbItem(label: 'Users'),
                       ErpBreadcrumbItem(label: 'Create'),
+                    ],
+                    actions: [
+                      SettingsBackButton(
+                        onPressed: () => Navigator.of(context).pushNamed('/settings/users'),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),

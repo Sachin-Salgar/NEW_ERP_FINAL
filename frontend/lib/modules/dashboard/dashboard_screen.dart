@@ -78,7 +78,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         subtitle: 'Active organizations in ERP',
         accentColor: theme.colorScheme.primary,
         loading: _isLoading,
-        onTap: () => Navigator.of(context).pushNamed('/organizations'),
+        onTap: () => Navigator.of(context).pushNamed('/settings/organizations'),
       ),
       ErpStatCard(
         title: 'Users',

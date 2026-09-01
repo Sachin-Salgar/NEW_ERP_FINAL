@@ -59,6 +59,21 @@ const migrationChecks: Record<string, (client: Client) => Promise<boolean>> = {
     (await tableExists(client, 'user_location_access')) &&
     (await columnExists(client, 'user_sessions', 'location_id')) &&
     !(await columnExists(client, 'user_location_access', 'id')),
+  '0002-organization-module-access': async (client) =>
+    (await tableExists(client, 'organization_modules')) &&
+    (await tableExists(client, 'tenant_modules')) &&
+    (await functionExists(client, 'initialize_core_organization_modules')) &&
+    (await functionExists(client, 'initialize_core_tenant_modules')) &&
+    (await triggerExists(client, 'trg_initialize_core_organization_modules', 'organizations')) &&
+    (await triggerExists(client, 'trg_initialize_core_tenant_modules', 'tenants')) &&
+    (await policyExists(client, 'organization_modules', 'organization_modules_tenant_org_isolation_policy')),
+  '0003-identity-based-login': async (client) =>
+    (await tableExists(client, 'auth_login_identifiers')) &&
+    (await columnExists(client, 'users', 'tenant_id')) &&
+    (await indexExists(client, 'idx_auth_login_identifiers_lookup')),
+  '0004-sync-login-identifiers': async (client) =>
+    (await functionExists(client, 'sync_auth_login_identifiers')) &&
+    (await triggerExists(client, 'trg_sync_auth_login_identifiers', 'users')),
 };
 
 async function tableExists(client: Client, tableName: string): Promise<boolean> {
@@ -81,6 +96,55 @@ async function columnExists(client: Client, tableName: string, columnName: strin
     [tableName, columnName],
   );
 
+  return result.rows[0]?.exists ?? false;
+}
+
+async function functionExists(client: Client, functionName: string): Promise<boolean> {
+  const result = await client.query<{ exists: boolean }>(
+    'SELECT to_regprocedure($1) IS NOT NULL AS exists',
+    [`public.${functionName}`],
+  );
+  return result.rows[0]?.exists ?? false;
+}
+
+async function triggerExists(client: Client, triggerName: string, tableName: string): Promise<boolean> {
+  const result = await client.query<{ exists: boolean }>(
+    `SELECT EXISTS (
+      SELECT 1
+      FROM pg_trigger t
+      JOIN pg_class c ON c.oid = t.tgrelid
+      WHERE c.relname = $1
+        AND t.tgname = $2
+    ) AS exists;`,
+    [tableName, triggerName],
+  );
+  return result.rows[0]?.exists ?? false;
+}
+
+async function indexExists(client: Client, indexName: string): Promise<boolean> {
+  const result = await client.query<{ exists: boolean }>(
+    `SELECT EXISTS (
+       SELECT 1
+       FROM pg_indexes
+       WHERE schemaname = 'public'
+         AND indexname = $1
+     ) AS exists;`,
+    [indexName],
+  );
+  return result.rows[0]?.exists ?? false;
+}
+
+async function policyExists(client: Client, tableName: string, policyName: string): Promise<boolean> {
+  const result = await client.query<{ exists: boolean }>(
+    `SELECT EXISTS (
+       SELECT 1
+       FROM pg_policies
+       WHERE schemaname = 'public'
+         AND tablename = $1
+         AND policyname = $2
+     ) AS exists;`,
+    [tableName, policyName],
+  );
   return result.rows[0]?.exists ?? false;
 }
 
@@ -141,9 +205,9 @@ async function applyMigrationFile(client: Client, filePath: string): Promise<voi
   }
 }
 
-async function main() {
-  const config = loadConfig();
-  const client = new Client({ connectionString: config.DATABASE_URL });
+export async function runMigrations(databaseUrl?: string): Promise<void> {
+  const resolvedUrl = databaseUrl ?? loadConfig().DATABASE_URL;
+  const client = new Client({ connectionString: resolvedUrl });
 
   try {
     await client.connect();
@@ -189,7 +253,13 @@ async function main() {
   }
 }
 
-main().catch((error: unknown) => {
-  console.error('Database bootstrap failed', error);
-  process.exitCode = 1;
-});
+async function main() {
+  await runMigrations();
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  main().catch((error: unknown) => {
+    console.error('Database bootstrap failed', error);
+    process.exitCode = 1;
+  });
+}

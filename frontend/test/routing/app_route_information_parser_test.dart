@@ -15,7 +15,7 @@ void main() {
       await parser.parseRouteInformation(
         RouteInformation(uri: Uri.parse('/organizations/')),
       ),
-      '/organizations',
+      '/settings/organizations',
     );
   });
 
@@ -24,7 +24,7 @@ void main() {
     expect(parser.restoreRouteInformation('/').uri.path, '/dashboard');
     expect(
       parser.restoreRouteInformation('/organizations').uri.path,
-      '/organizations',
+      '/settings/organizations',
     );
   });
 }

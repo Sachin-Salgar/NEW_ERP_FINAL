@@ -21,12 +21,14 @@ class BranchService extends ChangeNotifier {
     final candidate = (providedOrganizationId ?? auth.currentOrganizationId ?? auth.selectedOrganizationId ?? '')
         .toString()
         .trim();
+    final fallback = (auth.currentOrganizationId ?? auth.selectedOrganizationId ?? '').toString().trim();
+    final resolved = candidate.isEmpty ? fallback : candidate;
 
-    if (candidate.isEmpty) {
+    if (resolved.isEmpty) {
       throw StateError('Organization context is missing. Please select or restore an active organization before loading branches.');
     }
 
-    return candidate;
+    return resolved;
   }
 
   Future<void> fetchBranches([String? organizationId]) async {

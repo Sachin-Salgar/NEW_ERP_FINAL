@@ -35,6 +35,14 @@ class AppRoutes {
     moduleCode: 'core',
     icon: Icons.dashboard_outlined,
   );
+  static const settings = AppRouteConfig(
+    path: '/settings',
+    title: 'Settings',
+    group: 'GENERAL',
+    permissionKey: null,
+    moduleCode: null,
+    icon: Icons.settings_outlined,
+  );
   static const organizations = AppRouteConfig(
     path: '/organizations',
     title: 'Organizations',
@@ -50,6 +58,46 @@ class AppRoutes {
     permissionKey: 'branch.read',
     moduleCode: 'branch',
     icon: Icons.store_outlined,
+  );
+  static const settingsOrganizations = AppRouteConfig(
+    path: '/settings/organizations',
+    title: 'Organizations',
+    group: 'SETTINGS',
+    permissionKey: 'organization.read',
+    moduleCode: 'organization',
+    icon: Icons.apartment_outlined,
+  );
+  static const settingsBranches = AppRouteConfig(
+    path: '/settings/branches',
+    title: 'Branches',
+    group: 'SETTINGS',
+    permissionKey: 'branch.read',
+    moduleCode: 'branch',
+    icon: Icons.store_outlined,
+  );
+  static const settingsUsers = AppRouteConfig(
+    path: '/settings/users',
+    title: 'Users',
+    group: 'SETTINGS',
+    permissionKey: 'user.read',
+    moduleCode: 'user-management',
+    icon: Icons.people_outline,
+  );
+  static const settingsRoles = AppRouteConfig(
+    path: '/settings/roles',
+    title: 'Roles',
+    group: 'SETTINGS',
+    permissionKey: 'role.read',
+    moduleCode: 'security',
+    icon: Icons.admin_panel_settings_outlined,
+  );
+  static const settingsPermissions = AppRouteConfig(
+    path: '/settings/permissions',
+    title: 'Permissions',
+    group: 'SETTINGS',
+    permissionKey: 'permission.read',
+    moduleCode: 'security',
+    icon: Icons.lock_outline,
   );
   static const users = AppRouteConfig(
     path: '/users',
@@ -76,17 +124,40 @@ class AppRoutes {
     icon: Icons.lock_outline,
   );
 
-  static const topLevel = <AppRouteConfig>[
-    dashboard,
-    organizations,
-    branches,
-    users,
-    roles,
-    permissions,
+  static const settingsNavigation = <AppRouteConfig>[
+    settingsOrganizations,
+    settingsBranches,
+    settingsUsers,
+    settingsRoles,
+    settingsPermissions,
   ];
+
+  static const topLevel = <AppRouteConfig>[dashboard, settings];
 
   static const routePermissions = <String, String?>{
     '/dashboard': null,
+    '/settings': null,
+    '/settings/organizations': 'organization.read',
+    '/settings/organizations/create': 'organization.manage',
+    '/settings/organizations/details': 'organization.read',
+    '/settings/organizations/edit': 'organization.manage',
+    '/settings/branches': 'branch.read',
+    '/settings/branches/create': 'branch.manage',
+    '/settings/branches/details': 'branch.read',
+    '/settings/branches/edit': 'branch.manage',
+    '/settings/users': 'user.read',
+    '/settings/users/create': 'user.manage',
+    '/settings/users/details': 'user.read',
+    '/settings/users/edit': 'user.manage',
+    '/settings/users/roles': 'user.manage',
+    '/settings/users/access': 'user.manage',
+    '/settings/roles': 'role.read',
+    '/settings/roles/create': 'role.manage',
+    '/settings/roles/permissions': 'role.manage',
+    '/settings/roles/edit': 'role.manage',
+    '/settings/permissions': 'permission.read',
+    '/settings/permissions/details': 'permission.read',
+    // Legacy routes are retained for compatibility with existing deep links.
     '/organizations': 'organization.read',
     '/organizations/create': 'organization.manage',
     '/organizations/details': 'organization.read',
@@ -107,10 +178,46 @@ class AppRoutes {
     '/permissions': 'permission.read',
   };
 
+  static const _legacyAliases = <String, String>{
+    '/organizations': '/settings/organizations',
+    '/organizations/create': '/settings/organizations/create',
+    '/organizations/details': '/settings/organizations/details',
+    '/organizations/edit': '/settings/organizations/edit',
+    '/organizations/branches': '/settings/branches',
+    '/organizations/branches/create': '/settings/branches/create',
+    '/organizations/branches/details': '/settings/branches/details',
+    '/organizations/branches/edit': '/settings/branches/edit',
+    '/users': '/settings/users',
+    '/users/create': '/settings/users/create',
+    '/users/details': '/settings/users/details',
+    '/users/edit': '/settings/users/edit',
+    '/users/roles': '/settings/users/roles',
+    '/users/access': '/settings/users/access',
+    '/roles': '/settings/roles',
+    '/roles/create': '/settings/roles/create',
+    '/roles/edit': '/settings/roles/edit',
+    '/permissions': '/settings/permissions',
+  };
+
+  static String _remapLegacy(String path) {
+    for (final entry in _legacyAliases.entries) {
+      if (path == entry.key) return entry.value;
+      if (path.startsWith('${entry.key}/')) {
+        return '${entry.value}${path.substring(entry.key.length)}';
+      }
+    }
+    return path;
+  }
+
+  static bool isSettingsRoute(String route) =>
+      normalize(route).startsWith('/settings');
+
   static String normalize(String path) {
     if (path.isEmpty || path == '/') return '/dashboard';
-    if (path.endsWith('/') && path.length > 1) return path.substring(0, path.length - 1);
-    return path;
+    final trimmed = path.endsWith('/') && path.length > 1
+        ? path.substring(0, path.length - 1)
+        : path;
+    return _remapLegacy(trimmed);
   }
 
   static String canonicalTopLevel(String route) {
@@ -118,12 +225,22 @@ class AppRoutes {
     for (final config in topLevel) {
       if (config.matches(normalized)) return config.path;
     }
+    if (isSettingsRoute(normalized)) return settings.path;
+    for (final config in [organizations, branches]) {
+      if (config.matches(normalized)) return config.path;
+    }
     return dashboard.path;
   }
 
   static AppRouteConfig forRoute(String route) {
     final normalized = normalize(route);
+    for (final config in settingsNavigation) {
+      if (config.matches(normalized)) return config;
+    }
     for (final config in topLevel) {
+      if (config.matches(normalized)) return config;
+    }
+    for (final config in [organizations, branches]) {
       if (config.matches(normalized)) return config;
     }
     return dashboard;

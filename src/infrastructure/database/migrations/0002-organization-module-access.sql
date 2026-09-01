@@ -60,6 +60,10 @@ ON CONFLICT (organization_id, module_id) DO NOTHING;
 --> statement-breakpoint
 
 -- Existing tenants receive all currently-defined core modules as platform entitlements.
+-- This backfill runs outside tenant-specific RLS context, so it temporarily bypasses
+-- the tenant_modules policy during the migration and restores it afterwards.
+ALTER TABLE IF EXISTS "tenant_modules" DISABLE ROW LEVEL SECURITY;
+--> statement-breakpoint
 INSERT INTO "tenant_modules" (
   "tenant_id", "module_id", "enabled", "enabled_at"
 )
@@ -68,6 +72,10 @@ FROM "tenants" t
 CROSS JOIN "modules" m
 WHERE m.is_core = true
 ON CONFLICT (tenant_id, module_id) DO NOTHING;
+--> statement-breakpoint
+ALTER TABLE IF EXISTS "tenant_modules" ENABLE ROW LEVEL SECURITY;
+--> statement-breakpoint
+ALTER TABLE IF EXISTS "tenant_modules" FORCE ROW LEVEL SECURITY;
 --> statement-breakpoint
 
 ALTER TABLE IF EXISTS "organization_modules" ENABLE ROW LEVEL SECURITY;

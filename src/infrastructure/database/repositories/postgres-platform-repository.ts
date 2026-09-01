@@ -591,6 +591,58 @@ export class PostgresPlatformRepository
     return result.count;
   }
 
+  async replacePermissionsForRole(tenantId: string, roleId: string, permissionKeys: string[]): Promise<number> {
+    const normalized = Array.from(new Set((permissionKeys ?? []).filter(Boolean))).map((key) => key.trim()).filter(Boolean);
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      const roleExists = await client.query(
+        `SELECT 1 FROM roles WHERE tenant_id = $1 AND id = $2 AND is_deleted = false LIMIT 1`,
+        [tenantId, roleId],
+      );
+      if (roleExists.rows.length === 0) {
+        return { count: 0, roleFound: false };
+      }
+
+      const permissionRows = await client.query(
+        `SELECT id, permission_key as "permissionKey" FROM permissions WHERE permission_key = ANY($1)`,
+        [normalized],
+      );
+      const validKeys = new Set(permissionRows.rows.map((row) => row.permissionKey));
+      const invalidKeys = normalized.filter((key) => !validKeys.has(key));
+      if (invalidKeys.length > 0) {
+        throw new Error(`Unknown permission key(s): ${invalidKeys.join(', ')}`);
+      }
+
+      await client.query(
+        `DELETE FROM role_permissions WHERE tenant_id = $1 AND role_id = $2`,
+        [tenantId, roleId],
+      );
+
+      const permissionIds = permissionRows.rows.map((row) => row.id);
+      if (permissionIds.length === 0) {
+        return { count: 0, roleFound: true };
+      }
+
+      let inserted = 0;
+      for (const permissionId of permissionIds) {
+        const insertResult = await client.query(
+          `INSERT INTO role_permissions (tenant_id, role_id, permission_id)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (role_id, permission_id, tenant_id) DO NOTHING`,
+          [tenantId, roleId, permissionId],
+        );
+        inserted += insertResult.rowCount ?? 0;
+      }
+
+      return { count: inserted, roleFound: true };
+    });
+
+    if (!result.roleFound) {
+      return 0;
+    }
+
+    return result.count;
+  }
+
   async getPermissionsForRole(tenantId: string, roleId: string): Promise<PermissionDescriptor[]> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       const rows = await client.query(
@@ -955,6 +1007,22 @@ export class PostgresPlatformRepository
           null,
         ],
       );
+
+      const coreModuleRows = await logQuery('SELECT id, code FROM modules WHERE is_core = true', []);
+      for (const moduleRow of coreModuleRows.rows) {
+        await logQuery(
+          `INSERT INTO tenant_modules (id, tenant_id, module_id, enabled, enabled_at, enabled_by, enabled_reason, disabled_at, disabled_by)
+           VALUES ($1, $2, $3, true, NOW(), NULL, 'bootstrap', NULL, NULL)
+           ON CONFLICT (tenant_id, module_id) DO NOTHING`,
+          [uuidV7(), insertedTenantId, moduleRow.id],
+        );
+        await logQuery(
+          `INSERT INTO organization_modules (id, tenant_id, organization_id, module_id, enabled, enabled_at, enabled_by, disabled_at, disabled_by)
+           VALUES ($1, $2, $3, $4, true, NOW(), NULL, NULL, NULL)
+           ON CONFLICT (organization_id, module_id) DO NOTHING`,
+          [uuidV7(), insertedTenantId, organizationId, moduleRow.id],
+        );
+      }
 
       await logQuery(
         `INSERT INTO branches (id, tenant_id, organization_id, code, name, status, is_head_office, is_default, city, country, timezone, created_at, updated_at, version)

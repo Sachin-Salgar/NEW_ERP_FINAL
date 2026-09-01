@@ -324,4 +324,78 @@ void main() {
 
     expect(find.text('Role removed'), findsOneWidget);
   });
+
+  testWidgets('assign roles screen shows the user context and back navigation', (
+    WidgetTester tester,
+  ) async {
+    final effectivePermissions = <String>['user.manage', 'user.read'];
+    final client = MockClient((request) async {
+      final path = request.url.path;
+
+      if (path.contains('/api/v1/users/user-1')) {
+        return http.Response(
+          jsonEncode({
+            'user': {'id': 'user-1', 'username': 'demo'},
+          }),
+          200,
+        );
+      }
+      if (path.endsWith('/api/v1/rbac/roles') && request.method == 'GET') {
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'roles': [
+              {'id': 'role-1', 'name': 'Reader', 'description': 'Read only'},
+            ],
+          }),
+          200,
+        );
+      }
+      if (path.contains('/api/v1/rbac/roles/role-1/permissions') &&
+          request.method == 'GET') {
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'permissions': [
+              {'permissionKey': 'user.read'},
+            ],
+          }),
+          200,
+        );
+      }
+      if (path.contains('/api/v1/rbac/users/user-1/effective-permissions')) {
+        return http.Response(
+          jsonEncode({'success': true, 'permissions': effectivePermissions}),
+          200,
+        );
+      }
+      return http.Response('not found', 404);
+    });
+
+    final api = ApiClient(baseUrl: 'http://example.com', httpClient: client);
+    GetIt.instance.registerSingleton<ApiClient>(api);
+
+    final authz = AuthZService();
+    final auth = AuthService(
+      secureStorage: _MemorySecureStorage(),
+      apiClientFactory: (_) => api,
+      authzService: authz,
+    );
+    GetIt.instance.registerSingleton<AuthService>(auth);
+    await authz.loadPermissions(api, 'user-1');
+
+    final userService = UserService(apiClient: api);
+    GetIt.instance.registerSingleton<UserService>(userService);
+    final roleService = RoleService(apiClient: api);
+    GetIt.instance.registerSingleton<RoleService>(roleService);
+
+    await tester.pumpWidget(
+      MaterialApp(home: UserRoleAssignmentScreen(userId: 'user-1')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Assign Roles'), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back_outlined), findsOneWidget);
+    expect(find.textContaining('Managing roles for: demo'), findsOneWidget);
+  });
 }

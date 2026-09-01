@@ -205,6 +205,45 @@ class RoleService extends ChangeNotifier {
     return [];
   }
 
+  /// Replace the full permission set for a role in a single atomic backend transaction.
+  Future<int> replacePermissionsForRole(String roleId, List<String> permissionKeys) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      final resp = await apiClient.put('/api/v1/rbac/roles/$roleId/permissions', body: {'permissionKeys': permissionKeys});
+      if (resp.statusCode == 200) {
+        final body = jsonDecode(resp.body) as Map<String, dynamic>;
+        return body['replaced'] as int? ?? permissionKeys.length;
+      }
+
+      if (resp.statusCode == 403) {
+        error = 'Forbidden';
+        return 0;
+      }
+
+      if (resp.statusCode == 404) {
+        error = 'Role not found';
+        return 0;
+      }
+
+      try {
+        final body = jsonDecode(resp.body) as Map<String, dynamic>;
+        error = body['message']?.toString() ?? body['error']?.toString() ?? 'Failed to replace permissions: ${resp.statusCode}';
+      } catch (_) {
+        error = 'Failed to replace permissions: ${resp.statusCode}';
+      }
+    } catch (e) {
+      error = e.toString();
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+
+    return 0;
+  }
+
   /// Assign permission(s) to a role. Returns number assigned on success or 0 on failure.
   Future<int> assignPermissionsToRole(String roleId, List<String> permissionKeys) async {
     isLoading = true;

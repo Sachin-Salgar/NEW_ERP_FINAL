@@ -210,7 +210,7 @@ describe('Authentication vertical slice', () => {
     const badToken = await app.inject({
       method: 'GET',
       url: '/api/v1/auth/me',
-      headers: { authorization: 'Bearer bad.token.here' },
+      headers: { authorization: 'Bearer valid-session-t1' },
     });
     expect(badToken.statusCode).toBe(401);
 
