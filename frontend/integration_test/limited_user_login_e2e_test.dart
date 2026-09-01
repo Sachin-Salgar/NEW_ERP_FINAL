@@ -5,6 +5,7 @@ import 'package:integration_test/integration_test.dart';
 
 import 'package:new_erp_final_frontend/app/app.dart';
 import 'package:new_erp_final_frontend/core/auth/auth_service.dart';
+import 'package:new_erp_final_frontend/modules/dashboard/dashboard_screen.dart';
 
 const _tenantId = '11111111-1111-4111-8111-111111111111';
 const _organizationId = '22222222-2222-4222-8222-222222222222';
@@ -36,11 +37,15 @@ void main() {
     await App.init();
     await tester.pumpWidget(const App());
     await _login(tester);
-    await _waitFor(tester, find.byKey(const ValueKey('dashboard_page')));
+
+    // The shell/sidebar and the dashboard page can both display the text
+    // "Dashboard". Assert the actual page widget instead of ambiguous text.
+    final dashboard = find.byType(DashboardScreen);
+    await _waitFor(tester, dashboard);
+    expect(dashboard, findsOneWidget);
 
     expect(find.text('Select organization'), findsNothing);
     expect(find.text('Select location'), findsNothing);
-    expect(find.byKey(const ValueKey('dashboard_page')), findsOneWidget);
 
     final auth = GetIt.instance.get<AuthService>();
     expect(auth.isAuthenticated, isTrue);
