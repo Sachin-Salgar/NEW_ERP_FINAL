@@ -27,7 +27,13 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 
 ## 2. Current checkpoint
 
-**Current phase:** Core Enterprise foundation implemented; canonical frontend navigation/routing implementation is complete and the final cross-layer verification gate is in progress.
+**Current phase:** Core Enterprise foundation implemented; canonical frontend navigation/routing and identity-based authentication/tenant validation have been merged to `main`, and the remaining gate is final browser-level verification plus any remaining operational cleanup.
+
+### Validation evidence captured
+
+- `npx vitest run tests/integration/authentication-flow.test.ts tests/integration/rbac-role-permissions.test.ts --reporter=basic` → exit code 0 on the current `main` branch.
+- `main` includes the merged Settings/layout work and the authentication fix via the normal merge flow; the branch history remains consistent with the validated UI auth/RBAC work.
+- Remaining unresolved validation item: browser-level E2E verification of the authenticated shell, navigation/sidebar behavior, and route deep-link flows is still not evidenced in the repository.
 
 ### Implemented
 
