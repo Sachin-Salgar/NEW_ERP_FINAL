@@ -36,14 +36,26 @@ Future<void> _login(WidgetTester tester, String email, String password) async {
   await tester.pump();
 }
 
-Future<void> _openRoute(WidgetTester tester, String route) async {
-  final routerFinder = find.byType(Router);
-  await _waitFor(tester, routerFinder);
-  final context = tester.element(routerFinder.first);
+Future<AppRouterDelegate> _routerDelegate(WidgetTester tester) async {
+  // Do not depend on finding Router<T> directly. In the web-server integration
+  // test tree, the Router widget can be absent from Finder traversal even though
+  // MaterialApp.router is active. Obtain a descendant context and walk upward
+  // through Flutter's Router.of lookup instead.
+  Finder contextFinder = find.byType(DashboardScreen);
+  if (contextFinder.evaluate().isEmpty) {
+    contextFinder = find.byType(SettingsSidebar);
+  }
+  await _waitFor(tester, contextFinder);
+  final context = tester.element(contextFinder.first);
   final delegate = Router.of(context).routerDelegate;
   if (delegate is! AppRouterDelegate) {
-    fail('Router delegate is not AppRouterDelegate');
+    fail('Router delegate is not AppRouterDelegate: ${delegate.runtimeType}');
   }
+  return delegate;
+}
+
+Future<void> _openRoute(WidgetTester tester, String route) async {
+  final delegate = await _routerDelegate(tester);
   await delegate.setNewRoutePath(route);
   await tester.pumpAndSettle();
 }
