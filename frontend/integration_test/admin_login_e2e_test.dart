@@ -5,6 +5,7 @@ import 'package:integration_test/integration_test.dart';
 
 import 'package:new_erp_final_frontend/app/app.dart';
 import 'package:new_erp_final_frontend/core/auth/auth_service.dart';
+import 'package:new_erp_final_frontend/routing/route_state.dart';
 
 const _tenantId = '11111111-1111-4111-8111-111111111111';
 const _organizationId = '22222222-2222-4222-8222-222222222222';
@@ -38,9 +39,13 @@ void main() {
     await _login(tester);
     await _waitFor(tester, find.text('Dashboard'));
 
+    // The authenticated shell intentionally renders "Dashboard" both in the
+    // navigation sidebar and as the current page title. Assert the canonical
+    // route instead of requiring a unique text widget.
+    expect(AppRouteState.currentRoute.value, equals('/dashboard'));
     expect(find.text('Select organization'), findsNothing);
     expect(find.text('Select location'), findsNothing);
-    expect(find.text('Dashboard'), findsOneWidget);
+    expect(find.text('Dashboard'), findsNWidgets(2));
 
     final auth = GetIt.instance.get<AuthService>();
     expect(auth.isAuthenticated, isTrue);
