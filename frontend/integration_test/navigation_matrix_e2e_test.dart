@@ -117,7 +117,12 @@ void main() {
     await _waitFor(tester, find.text('Organization information'));
     expect(find.text('E2E Organization'), findsWidgets);
     expect(find.byType(SettingsSidebar), findsOneWidget);
-    await tester.tap(find.widgetWithText(InkWell, 'Branches'));
+    final branchesSidebarTarget = find.descendant(
+      of: find.byType(SettingsSidebar),
+      matching: find.widgetWithText(InkWell, 'Branches'),
+    );
+    expect(branchesSidebarTarget, findsOneWidget);
+    await tester.tap(branchesSidebarTarget);
     await tester.pumpAndSettle();
     expect(AppRouteState.currentRoute.value, equals('/settings/branches'));
     expect(find.text('Branches'), findsWidgets);
