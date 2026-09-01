@@ -3,7 +3,7 @@
 **Status:** Living implementation roadmap  
 **Authority:** Architecture documents and Approved ADRs define the intended system; this document records what is actually implemented and what remains to be validated or built.
 
-**Last reconciled:** 2026-08-29  
+**Last reconciled:** 2026-09-01  
 **Branch:** `main`
 
 ## Status definitions
@@ -27,13 +27,15 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 
 ## 2. Current checkpoint
 
-**Current phase:** Core Enterprise foundation implemented; canonical frontend navigation/routing and identity-based authentication/tenant validation have been merged to `main`, and the remaining gate is final browser-level verification plus any remaining operational cleanup.
+**Current phase:** Core Enterprise foundation implemented; canonical frontend navigation/routing and identity-based authentication/tenant validation have been merged to `main`. The repository now has successful GitHub Actions validation of the deterministic Postgres-backed backend plus the admin and limited-user Flutter Web E2E login/dashboard flows. The remaining release gate is the broader browser navigation matrix, security audit, and final Core Enterprise audit.
 
 ### Validation evidence captured
 
 - `npx vitest run tests/integration/authentication-flow.test.ts tests/integration/rbac-role-permissions.test.ts --reporter=basic` → exit code 0 on the current `main` branch.
-- `main` includes the merged Settings/layout work and the authentication fix via the normal merge flow; the branch history remains consistent with the validated UI auth/RBAC work.
-- Remaining unresolved validation item: browser-level E2E verification of the authenticated shell, navigation/sidebar behavior, and route deep-link flows is still not evidenced in the repository.
+- GitHub Actions run **33486274877**, workflow `CI - Integration Tests (Postgres)`, commit `8dd4d17edd3f050a66c1bd2c25e47597fda21a95` → **success**.
+- The successful CI run completed the Postgres setup/migration/fixture/backend startup path and both Flutter Web E2E steps: **Run admin E2E test → success** and **Run limited-user E2E test → success**.
+- This CI run validates the repository-controlled test environment; it does not use or depend on Vercel/Render production deployment configuration.
+- Remaining unresolved browser validation item: the broader authenticated browser navigation matrix (deep-link, back/forward, refresh/session restoration, responsive widths, shell persistence) is not fully evidenced by the current CI E2E scenarios.
 
 ### Implemented
 
@@ -51,10 +53,11 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 - Project-wide light/dark theme switching.
 - Persistent authenticated application shell with responsive sidebar/top bar.
 - Canonical Flutter Web Router 2.0 navigation implementation with shared route metadata, persistent content navigation, authorization-aware route gates, and controlled not-found handling.
+- Deterministic Postgres-backed CI environment for backend integration and Flutter Web E2E login/dashboard validation.
 
 ### Not yet complete
 
-- Final browser E2E verification of authenticated navigation/routing.
+- Broader browser E2E verification of authenticated navigation/routing, including deep-link, back/forward, refresh/session restoration, and responsive browser matrix.
 - Final security audit.
 - Final Core Enterprise completion audit.
 - Full business-module implementation.
@@ -69,7 +72,7 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 | TenantContext | **IMPLEMENTED — VALIDATION PENDING** | Server derives tenant from authenticated session; DB helper establishes transaction-local context. |
 | PostgreSQL RLS | **COMPLETED** | Integration coverage proves tested tenant visibility/write isolation, rollback and pooled-connection context isolation. |
 | Legacy host/deployment TenantResolver | **DEFERRED / RETIRED** | Replaced by identity-based tenant discovery; do not reintroduce it. |
-| Login/session frontend | **IMPLEMENTED — VALIDATION PENDING** | Flutter authentication/session restoration exists; deployed login works. Full browser E2E remains. |
+| Login/session frontend | **IMPLEMENTED — VALIDATION PENDING** | Flutter authentication/session restoration exists; CI now proves admin and limited-user browser login/dashboard flows. Full browser navigation/session-restoration matrix remains. |
 | Cross-deployment tenancy verification | **PENDING** | Deployment-independent architecture exists, but required representative cross-deployment verification is not yet evidenced. |
 | Ambiguous multi-tenant credential handling | **IMPLEMENTED** | Fail-closed behavior is covered by tests. |
 
@@ -77,8 +80,8 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 
 | Capability | Status | Evidence / remaining work |
 |---|---|---|
-| Authentication | **IMPLEMENTED — VALIDATION PENDING** | Backend authentication, Flutter login and token/session handling exist. |
-| Session management / refresh / logout | **IMPLEMENTED — VALIDATION PENDING** | Lifecycle implementation exists; full E2E evidence remains. |
+| Authentication | **IMPLEMENTED — VALIDATION PENDING** | Backend authentication, Flutter login and token/session handling exist; admin and limited-user browser E2E now pass in CI. |
+| Session management / refresh / logout | **IMPLEMENTED — VALIDATION PENDING** | Lifecycle implementation exists; broader browser refresh/session-restoration evidence remains. |
 | Organization selection | **IMPLEMENTED — VALIDATION PENDING** | Backend access/select flow and Flutter UI exist. |
 | Location/branch selection | **IMPLEMENTED — VALIDATION PENDING** | Backend access/list/select flow and Flutter UI exist. |
 | Active organization/location context | **IMPLEMENTED — VALIDATION PENDING** | Session/request context supports it; cross-layer validation remains. |
@@ -94,11 +97,11 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 | Permission-aware navigation | **IMPLEMENTED — VALIDATION PENDING** | Sidebar and shell consume canonical route metadata; backend remains authoritative. |
 | Permission-aware route guards | **IMPLEMENTED — VALIDATION PENDING** | Flutter guards exist and wait for authorization readiness. |
 | Module enablement/licensing | **IMPLEMENTED — VALIDATION PENDING** | Module access service/middleware exists. |
-| Persistent authenticated shell | **IMPLEMENTED — VALIDATION PENDING** | Router owns one authenticated shell and nested content navigator. |
+| Persistent authenticated shell | **IMPLEMENTED — VALIDATION PENDING** | Router owns one authenticated shell and nested content navigator; login/dashboard shell is exercised by CI E2E, while the broader navigation matrix remains. |
 | Responsive admin UI migration | **IMPLEMENTED — VALIDATION PENDING** | Upstream responsive layout direction, responsive breakpoints, cards/spacing and Material 3 foundation have been adopted; final device/browser verification remains. |
-| Web navigation/routing | **IMPLEMENTED — VALIDATION PENDING** | Router 2.0, route parser/delegate, persistent shell/content navigator, shared route metadata and controlled not-found behavior are implemented; browser matrix validation remains. |
+| Web navigation/routing | **IMPLEMENTED — VALIDATION PENDING** | Router 2.0, route parser/delegate, persistent shell/content navigator, shared route metadata and controlled not-found behavior are implemented; full browser matrix validation remains. |
 | Project-wide theme switching | **COMPLETED** | Shared light/dark theme infrastructure is active across login and authenticated responsive layouts. |
-| Core frontend/backend E2E | **BLOCKED / PENDING VALIDATION** | E2E scenarios exist, but authoritative browser runner evidence remains incomplete. |
+| Core frontend/backend E2E | **IMPLEMENTED — VALIDATION PENDING** | Admin and limited-user Flutter Web E2E scenarios now pass in GitHub Actions against deterministic Postgres-backed CI. Broader browser navigation/deep-link/back-forward/refresh/responsive matrix remains. |
 
 ## 5. Platform foundation
 
@@ -126,9 +129,9 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 | PostgreSQL/Drizzle database layer | **IMPLEMENTED — VALIDATION PENDING** | Current schema, repositories, migrations, connection and RLS infrastructure exist. |
 | Migration system | **IMPLEMENTED** | Migration runner and migration set exist. |
 | Tenant RLS integration tests | **COMPLETED** | Current integration coverage proves tested transaction-local tenant isolation behavior. |
-| Backend unit/integration CI | **IMPLEMENTED** | PostgreSQL CI workflow and repository test coverage exist. |
-| Flutter unit/widget tests | **IMPLEMENTED — VALIDATION PENDING** | Auth/AuthZ, role, user, permission and routing tests exist. |
-| Flutter frontend→backend E2E | **BLOCKED / PENDING VALIDATION** | Scenarios exist, but authoritative runner evidence remains incomplete. |
+| Backend unit/integration CI | **COMPLETED** | GitHub Actions Postgres workflow successfully created Postgres 17, created the non-superuser test role/database, ran migrations, seeded fixtures, started the backend, and completed the E2E stages successfully in run 33486274877. |
+| Flutter unit/widget tests | **IMPLEMENTED — VALIDATION PENDING** | Auth/AuthZ, role, user, permission and routing tests exist; full browser matrix remains separate. |
+| Flutter frontend→backend E2E | **IMPLEMENTED — VALIDATION PENDING** | Admin and limited-user browser E2E scenarios pass in CI; broader navigation/session/responsive matrix remains. |
 | Security audit against authoritative security architecture | **PENDING** | Secure token handling, authorization, tenant context, RLS, audit, secrets/logging and fail-closed behavior require final audit. |
 | CORE final completion audit | **PENDING** | Required after E2E and security validation. |
 | Production deployment validation | **IMPLEMENTED — VALIDATION PENDING** | Vercel → Render backend → PostgreSQL deployment is operational; broader release validation remains. |
@@ -171,6 +174,8 @@ The current verification pass must cover:
 11. Browser route deep-link, back/forward, refresh, and shell-persistence verification.
 12. Final security and Core Enterprise audit after technical verification.
 
+**Current evidence:** GitHub Actions Postgres run `33486274877` on commit `8dd4d17edd3f050a66c1bd2c25e47597fda21a95` passed the deterministic Postgres setup, migrations, E2E fixture seed, backend startup, admin Flutter Web E2E, and limited-user Flutter Web E2E. This closes the CI validation gap for those scenarios.
+
 **Roadmap rule:** a verification item is not marked COMPLETED until actual repository/CI/deployment evidence supports it.
 
 ## 9. Development rules
@@ -188,4 +193,4 @@ The current verification pass must cover:
 
 ## 10. Reconciliation summary
 
-The Core Enterprise frontend now has the planned persistent shell and Router 2.0 implementation with shared navigation metadata and authorization readiness handling. **Implementation is complete for the navigation/routing plan; browser, regression, security, and Core Enterprise validation remain the release gate.**
+The Core Enterprise frontend now has the planned persistent shell and Router 2.0 implementation with shared navigation metadata and authorization readiness handling. **Deterministic Postgres-backed CI now successfully validates the existing admin and limited-user Flutter Web E2E login/dashboard scenarios. Broader browser navigation, security, and Core Enterprise validation remain the release gate.**
