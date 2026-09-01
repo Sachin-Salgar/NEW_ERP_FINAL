@@ -105,6 +105,12 @@ Future<void> _logout(WidgetTester tester) async {
   await _settle(tester);
 }
 
+Future<void> _flushFocusLifecycle(WidgetTester tester) async {
+  FocusManager.instance.primaryFocus?.unfocus(disposition: UnfocusDisposition.scope);
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 100));
+}
+
 Future<void> _browserBack(WidgetTester tester, String expectedRoute) async {
   web.window.history.back();
   await _waitFor(tester, _routeContentFinder(expectedRoute));
@@ -180,6 +186,7 @@ void main() {
     await _waitFor(tester, find.byKey(const ValueKey('login_identifier_field')));
     expect(AppRouteState.currentRoute.value, equals('/login'));
     expect(find.text('Dashboard'), findsNothing);
+    await _flushFocusLifecycle(tester);
   }, timeout: const Timeout(Duration(seconds: 120)));
 
   testWidgets('limited-user browser navigation matrix validates permitted and restricted routes', (tester) async {
@@ -209,5 +216,6 @@ void main() {
     await _openRoute(tester, '/settings/permissions');
     await _waitFor(tester, find.text('Access denied'));
     expect(find.text('Required permission: permission.read.'), findsOneWidget);
+    await _flushFocusLifecycle(tester);
   }, timeout: const Timeout(Duration(seconds: 120)));
 }
