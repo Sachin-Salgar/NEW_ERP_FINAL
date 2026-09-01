@@ -90,8 +90,17 @@ class BranchService extends ChangeNotifier {
         final body = jsonDecode(resp.body) as Map<String, dynamic>;
         return Map<String, dynamic>.from(body['branch'] as Map);
       }
+      if (kDebugMode) {
+        debugPrint(
+          'ERP branch detail failed: HTTP ${resp.statusCode}; '
+          'organizationId=$resolvedOrganizationId; branchId=$branchId; '
+          'body=${resp.body}',
+        );
+      }
     } catch (e) {
-      // ignore
+      if (kDebugMode) {
+        debugPrint('ERP branch detail failed: $e');
+      }
     }
     return null;
   }
