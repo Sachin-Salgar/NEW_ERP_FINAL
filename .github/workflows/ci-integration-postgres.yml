@@ -176,6 +176,14 @@ jobs:
           set -o pipefail
           flutter drive --driver=test_driver/integration_test.dart --target=integration_test/limited_user_login_e2e_test.dart -d web-server --browser-name=chrome --driver-port=4444 --web-port=8081 --dart-define=API_BASE_URL=http://localhost:3000 2>&1 | tee limited-user-e2e-test.log
 
+      - name: Run browser navigation matrix E2E test
+        working-directory: frontend
+        env:
+          CHROME_EXECUTABLE: /usr/bin/google-chrome
+        run: |
+          set -o pipefail
+          flutter drive --driver=test_driver/integration_test.dart --target=integration_test/navigation_matrix_e2e_test.dart -d web-server --browser-name=chrome --driver-port=4444 --web-port=8082 --dart-define=API_BASE_URL=http://localhost:3000 2>&1 | tee navigation-matrix-e2e-test.log
+
       - name: Upload E2E logs
         if: always()
         uses: actions/upload-artifact@v4
