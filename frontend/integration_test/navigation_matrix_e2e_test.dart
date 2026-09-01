@@ -28,6 +28,11 @@ Future<void> _waitFor(WidgetTester tester, Finder finder, {Duration timeout = co
   fail('Timed out waiting for finder: $finder');
 }
 
+Future<void> _resetBrowserTestState() async {
+  web.window.localStorage.clear();
+  web.window.sessionStorage.clear();
+}
+
 Future<void> _login(WidgetTester tester, String email, String password) async {
   await _waitFor(tester, find.byKey(const ValueKey('login_identifier_field')));
   await tester.enterText(find.byKey(const ValueKey('login_identifier_field')), email);
@@ -37,10 +42,6 @@ Future<void> _login(WidgetTester tester, String email, String password) async {
 }
 
 Future<AppRouterDelegate> _routerDelegate(WidgetTester tester) async {
-  // Do not depend on finding Router<T> directly. In the web-server integration
-  // test tree, the Router widget can be absent from Finder traversal even though
-  // MaterialApp.router is active. Obtain a descendant context and walk upward
-  // through Flutter's Router.of lookup instead.
   Finder contextFinder = find.byType(DashboardScreen);
   if (contextFinder.evaluate().isEmpty) {
     contextFinder = find.byType(SettingsSidebar);
@@ -57,6 +58,12 @@ Future<AppRouterDelegate> _routerDelegate(WidgetTester tester) async {
 Future<void> _openRoute(WidgetTester tester, String route) async {
   final delegate = await _routerDelegate(tester);
   await delegate.setNewRoutePath(route);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _navigateRoute(WidgetTester tester, String route) async {
+  final delegate = await _routerDelegate(tester);
+  delegate.navigate(route);
   await tester.pumpAndSettle();
 }
 
@@ -81,6 +88,7 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('admin browser navigation matrix validates shell, settings, detail routes, deep links, refresh and history', (tester) async {
+    await _resetBrowserTestState();
     await GetIt.instance.reset();
     await App.init();
     await tester.pumpWidget(const App());
@@ -118,7 +126,7 @@ void main() {
     await _waitFor(tester, find.text('Branch information'));
     expect(find.text('E2E Main Branch'), findsWidgets);
 
-    await _openRoute(tester, '/settings/organizations/details/$_organizationId');
+    await _navigateRoute(tester, '/settings/organizations/details/$_organizationId');
     await _waitFor(tester, find.text('Organization information'));
     await _browserBack(tester);
     await _waitFor(tester, find.text('Branch information'));
@@ -143,6 +151,7 @@ void main() {
   }, timeout: const Timeout(Duration(seconds: 240)));
 
   testWidgets('limited-user browser navigation matrix validates permitted and restricted routes', (tester) async {
+    await _resetBrowserTestState();
     await GetIt.instance.reset();
     await App.init();
     await tester.pumpWidget(const App());
