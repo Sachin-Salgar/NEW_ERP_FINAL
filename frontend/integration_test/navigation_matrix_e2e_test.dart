@@ -43,10 +43,6 @@ Future<void> _waitFor(WidgetTester tester, Finder finder, {Duration timeout = co
 }
 
 Future<void> _settle(WidgetTester tester) async {
-  // Do not use pumpAndSettle for the browser matrix. Flutter web-server can
-  // keep a frame scheduled while the integration-test SSE channel is active,
-  // causing pumpAndSettle to wait forever. A bounded settle is sufficient
-  // because all meaningful async waits use _waitFor below.
   for (var i = 0; i < 20; i++) {
     await tester.pump(const Duration(milliseconds: 100));
   }
@@ -67,12 +63,8 @@ Future<void> _login(WidgetTester tester, String email, String password) async {
 
 Future<AppRouterDelegate> _routerDelegate(WidgetTester tester) async {
   Finder contextFinder = find.byType(DashboardScreen);
-  if (contextFinder.evaluate().isEmpty) {
-    contextFinder = find.byType(SettingsSidebar);
-  }
-  if (contextFinder.evaluate().isEmpty) {
-    contextFinder = find.byType(LoginScreen);
-  }
+  if (contextFinder.evaluate().isEmpty) contextFinder = find.byType(SettingsSidebar);
+  if (contextFinder.evaluate().isEmpty) contextFinder = find.byType(LoginScreen);
   await _waitFor(tester, contextFinder);
   final context = tester.element(contextFinder.first);
   final delegate = Router.of(context).routerDelegate;
@@ -113,13 +105,17 @@ Future<void> _logout(WidgetTester tester) async {
 }
 
 Future<void> _browserBack(WidgetTester tester) async {
+  final route = AppRouteState.currentRoute.value;
+  if (route == null || route.isEmpty) fail('Current route is null/empty before browser back');
   web.window.history.back();
-  await _waitFor(tester, _routeContentFinder(AppRouteState.currentRoute.value));
+  await _waitFor(tester, _routeContentFinder(route));
 }
 
 Future<void> _browserForward(WidgetTester tester) async {
+  final route = AppRouteState.currentRoute.value;
+  if (route == null || route.isEmpty) fail('Current route is null/empty before browser forward');
   web.window.history.forward();
-  await _waitFor(tester, _routeContentFinder(AppRouteState.currentRoute.value));
+  await _waitFor(tester, _routeContentFinder(route));
 }
 
 void main() {
@@ -130,7 +126,6 @@ void main() {
     await GetIt.instance.reset();
     await App.init();
     await tester.pumpWidget(const App());
-
     await _login(tester, _adminEmail, _adminPassword);
     await _waitFor(tester, find.byType(DashboardScreen));
     expect(AppRouteState.currentRoute.value, equals('/dashboard'));
@@ -146,7 +141,6 @@ void main() {
     await _openRoute(tester, '/settings');
     await _waitFor(tester, find.text('Organizations'));
     expect(find.text('Organizations'), findsWidgets);
-
     await _openRoute(tester, '/settings/organizations');
     await _waitFor(tester, find.text('Organizations'));
     expect(find.text('Organizations'), findsWidgets);
@@ -155,10 +149,7 @@ void main() {
     await _waitFor(tester, find.text('Organization information'));
     expect(find.text('E2E Organization'), findsWidgets);
     expect(find.byType(SettingsSidebar), findsOneWidget);
-    final branchesSidebarTarget = find.descendant(
-      of: find.byType(SettingsSidebar),
-      matching: find.widgetWithText(InkWell, 'Branches'),
-    );
+    final branchesSidebarTarget = find.descendant(of: find.byType(SettingsSidebar), matching: find.widgetWithText(InkWell, 'Branches'));
     expect(branchesSidebarTarget, findsOneWidget);
     await tester.tap(branchesSidebarTarget);
     await _settle(tester);
@@ -202,7 +193,6 @@ void main() {
     await GetIt.instance.reset();
     await App.init();
     await tester.pumpWidget(const App());
-
     await _login(tester, _limitedEmail, _limitedPassword);
     await _waitFor(tester, find.byType(DashboardScreen));
     expect(AppRouteState.currentRoute.value, equals('/dashboard'));
@@ -216,15 +206,12 @@ void main() {
     await _openRoute(tester, '/settings/organizations');
     await _waitFor(tester, find.text('Organizations'));
     expect(find.text('Organizations'), findsWidgets);
-
     await _openRoute(tester, '/settings/users');
     await _waitFor(tester, find.text('Users'));
     expect(find.text('Users'), findsWidgets);
-
     await _openRoute(tester, '/settings/roles');
     await _waitFor(tester, find.text('Access denied'));
     expect(find.text('Required permission: role.read.'), findsOneWidget);
-
     await _openRoute(tester, '/settings/permissions');
     await _waitFor(tester, find.text('Access denied'));
     expect(find.text('Required permission: permission.read.'), findsOneWidget);
