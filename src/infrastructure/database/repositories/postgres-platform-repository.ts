@@ -193,6 +193,9 @@ export class PostgresPlatformRepository
     passwordHash: string;
     status: string;
   }) | null> {
+    if (!tenantId || tenantId.trim() === '') {
+      return null;
+    }
     const normalizedIdentifier = identifier.trim();
     // Run the lookup under tenant context to satisfy RLS
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
@@ -233,6 +236,9 @@ export class PostgresPlatformRepository
     passwordHash: string;
     status: string;
   }) | null> {
+    if (!tenantId || tenantId.trim() === '' || !userId || userId.trim() === '') {
+      return null;
+    }
     // Ensure the query runs under tenant context to satisfy RLS policies
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
@@ -925,12 +931,32 @@ export class PostgresPlatformRepository
   }): Promise<{ id: string; tenantId: string; organizationId?: string | null; defaultBranchId?: string | null; username: string; email: string; status: string }> {
     const id = input.id ?? uuidV7();
     const result = await withTenantContext(this.pool, this.tenantContextKey, input.tenantId, async (client) => {
-      return client.query(
+      const userResult = await client.query(
         `INSERT INTO users (id, tenant_id, organization_id, default_branch_id, username, email, password_hash, status, created_at, updated_at, version)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW(), 1)
          RETURNING id, tenant_id as "tenantId", organization_id as "organizationId", default_branch_id as "defaultBranchId", username, email, status`,
         [id, input.tenantId, input.organizationId ?? null, input.defaultBranchId ?? null, input.username, input.email, input.passwordHash, input.status ?? 'active'],
       );
+
+      if (input.organizationId) {
+        await client.query(
+         `INSERT INTO user_organization_access (tenant_id, user_id, organization_id)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (user_id, organization_id, tenant_id) DO NOTHING`,
+         [input.tenantId, id, input.organizationId],
+        );
+      }
+
+      if (input.defaultBranchId) {
+        await client.query(
+         `INSERT INTO user_branch_access (tenant_id, user_id, branch_id)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (user_id, branch_id, tenant_id) DO NOTHING`,
+         [input.tenantId, id, input.defaultBranchId],
+        );
+      }
+
+      return userResult;
     });
 
     const row = result.rows[0];

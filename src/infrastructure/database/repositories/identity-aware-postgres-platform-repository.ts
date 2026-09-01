@@ -23,15 +23,23 @@ export class IdentityAwarePostgresPlatformRepository extends PostgresPlatformRep
       return [];
     }
 
-    const result = await this.poolForIdentityLookup.query<LoginCandidate>(
-      `SELECT user_id as "userId", tenant_id as "tenantId"
-       FROM auth_login_identifiers
-       WHERE is_active = true
-         AND identifier = $1::citext
-       ORDER BY tenant_id, user_id`,
-      [normalized],
-    );
+    const client = await this.poolForIdentityLookup.connect();
 
-    return result.rows;
+    try {
+      const result = await client.query<LoginCandidate>(
+        `SELECT i.user_id as "userId", i.tenant_id as "tenantId"
+          FROM auth_login_identifiers i
+          WHERE i.is_active = true
+            AND i.tenant_id::text <> ''
+            AND i.user_id::text <> ''
+            AND i.identifier = $1::citext
+          ORDER BY i.tenant_id, i.user_id`,
+        [normalized],
+      );
+
+      return result.rows;
+    } finally {
+      client.release();
+    }
   }
 }

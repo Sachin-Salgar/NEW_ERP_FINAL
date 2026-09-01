@@ -69,6 +69,24 @@ export class PostgresTenantContextProvider implements TenantContextProvider {
   }
 }
 
+export async function clearTenantContextSettings(pool: Pool, tenantContextKey: string): Promise<void> {
+  const client = await pool.connect();
+  try {
+    for (const settingKey of [
+      tenantContextKey,
+      `${tenantContextKey}_context`,
+      `${tenantContextKey}_user_id`,
+      `${tenantContextKey}_organization_id`,
+      `${tenantContextKey}_location_id`,
+    ]) {
+      const safeSettingKey = settingKey.replace(/"/g, '""');
+      await client.query(`SET "${safeSettingKey}" = '00000000-0000-0000-0000-000000000000'`).catch(() => undefined);
+    }
+  } finally {
+    client.release();
+  }
+}
+
 export async function withTenantContext<T>(pool: Pool, tenantContextKey: string, tenantId: string, callback: (client: PoolClient) => Promise<T>, context?: Partial<TenantContext>): Promise<T> {
   if (!isUuid(tenantId)) {
     throw new TenantContextError(`The tenant identifier is not a valid UUID: ${tenantId}`);
@@ -102,6 +120,7 @@ export async function withTenantContext<T>(pool: Pool, tenantContextKey: string,
     await client.query('ROLLBACK').catch(() => undefined);
     throw error;
   } finally {
+    await clearTenantContextSettings(pool, tenantContextKey).catch(() => undefined);
     client.release();
   }
 }

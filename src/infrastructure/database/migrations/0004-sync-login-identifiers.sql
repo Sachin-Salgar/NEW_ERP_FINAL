@@ -9,20 +9,21 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  DELETE FROM auth_login_identifiers
+IF NEW.is_deleted = false AND NEW.status = 'active' THEN
+  INSERT INTO auth_login_identifiers (identifier_type, identifier, tenant_id, user_id, is_active)
+  VALUES
+    ('email', NEW.email::citext, NEW.tenant_id, NEW.id, true),
+    ('username', NEW.username::citext, NEW.tenant_id, NEW.id, true)
+  ON CONFLICT (identifier_type, identifier, tenant_id) DO UPDATE
+    SET user_id = EXCLUDED.user_id,
+        is_active = true;
+ELSE
+  UPDATE auth_login_identifiers
+  SET is_active = false
   WHERE user_id = NEW.id;
+END IF;
 
-  IF NEW.is_deleted = false AND NEW.status = 'active' THEN
-    INSERT INTO auth_login_identifiers (identifier_type, identifier, tenant_id, user_id, is_active)
-    VALUES
-      ('email', NEW.email::citext, NEW.tenant_id, NEW.id, true),
-      ('username', NEW.username::citext, NEW.tenant_id, NEW.id, true)
-    ON CONFLICT (identifier_type, identifier, tenant_id) DO UPDATE
-      SET user_id = EXCLUDED.user_id,
-          is_active = true;
-  END IF;
-
-  RETURN NEW;
+RETURN NEW;
 END;
 $$;
 
