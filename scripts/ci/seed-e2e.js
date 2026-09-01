@@ -9,6 +9,7 @@ const { Client } = pg;
 const TENANT_ID = '11111111-1111-4111-8111-111111111111';
 const ORGANIZATION_ID = '22222222-2222-4222-8222-222222222222';
 const ORGANIZATION_TWO_ID = '77777777-7777-4777-8777-777777777777';
+const BRANCH_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const LOCATION_ONE_ID = '88888888-8888-4888-8888-888888888888';
 const LOCATION_TWO_ID = '99999999-9999-4999-8999-999999999999';
 const ADMIN_ROLE_ID = '33333333-3333-4333-8333-333333333333';
@@ -73,6 +74,19 @@ async function main() {
       [TENANT_ID, CORE_MODULES.map(([code]) => code)]);
 
     await client.query(
+      `INSERT INTO branches (
+         id, tenant_id, organization_id, code, name, status, is_head_office, is_default,
+         city, district, state, country, postal_code, timezone, remarks, created_at
+       )
+       VALUES (
+         $1, $2, $3, 'E2E_BRANCH_1', 'E2E Main Branch', 'active', true, true,
+         'Pune', 'Pune', 'Maharashtra', 'India', '411001', 'Asia/Kolkata', 'E2E branch fixture', NOW()
+       )
+       ON CONFLICT (id) DO NOTHING`,
+      [BRANCH_ID, TENANT_ID, ORGANIZATION_ID],
+    );
+
+    await client.query(
       `INSERT INTO locations (id, tenant_id, organization_id, code, name, status, is_default, timezone, created_at)
        VALUES ($1, $2, $3, 'E2E_LOC_1', 'E2E Main Location', 'active', true, 'UTC', NOW()),
               ($4, $2, $3, 'E2E_LOC_2', 'E2E Secondary Location', 'active', false, 'UTC', NOW())
@@ -98,11 +112,11 @@ async function main() {
        ON CONFLICT (identifier_type, identifier, tenant_id) DO UPDATE SET user_id = EXCLUDED.user_id, is_active = true`,
       [ADMIN_EMAIL, TENANT_ID, ADMIN_USER_ID, LIMITED_EMAIL, LIMITED_USER_ID]);
 
-    const adminPermissions = ['tenant.manage', 'organization.read', 'organization.manage', 'user.read', 'user.manage', 'role.read', 'role.manage', 'permission.read', 'permission.manage'];
+    const adminPermissions = ['tenant.manage', 'organization.read', 'organization.manage', 'branch.read', 'branch.manage', 'user.read', 'user.manage', 'role.read', 'role.manage', 'permission.read', 'permission.manage'];
     const limitedPermissions = ['organization.read', 'user.read'];
     for (const permissionKey of [...new Set([...adminPermissions, ...limitedPermissions])]) {
       const [resource, action] = permissionKey.split('.');
-      const moduleCode = resource === 'tenant' ? 'tenant-configuration' : resource === 'user' ? 'user-management' : 'security';
+      const moduleCode = resource === 'tenant' ? 'tenant-configuration' : resource === 'user' ? 'user-management' : resource === 'branch' ? 'branch' : resource === 'organization' ? 'organization' : 'security';
       await client.query(
         `INSERT INTO permissions (id, module_code, resource, action, scope, permission_key, display_name, description, is_system)
          VALUES ($1, $2, $3, $4, 'tenant', $5, $5, $6, false)
@@ -136,6 +150,7 @@ async function main() {
     console.log('E2E seed completed successfully.');
     console.log(`Seeded admin user: ${ADMIN_EMAIL}`);
     console.log(`Seeded limited user: ${LIMITED_EMAIL}`);
+    console.log(`Seeded branch fixture: ${BRANCH_ID}`);
   } catch (error) {
     await client.query('ROLLBACK').catch(() => undefined);
     console.error('E2E seed failed:', error?.stack ?? error);
