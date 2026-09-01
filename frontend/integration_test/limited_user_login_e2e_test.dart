@@ -36,11 +36,11 @@ void main() {
     await App.init();
     await tester.pumpWidget(const App());
     await _login(tester);
-    await _waitFor(tester, find.text('Dashboard'));
+    await _waitFor(tester, find.byKey(const ValueKey('dashboard_page')));
 
     expect(find.text('Select organization'), findsNothing);
     expect(find.text('Select location'), findsNothing);
-    expect(find.text('Dashboard'), findsOneWidget);
+    expect(find.byKey(const ValueKey('dashboard_page')), findsOneWidget);
 
     final auth = GetIt.instance.get<AuthService>();
     expect(auth.isAuthenticated, isTrue);
