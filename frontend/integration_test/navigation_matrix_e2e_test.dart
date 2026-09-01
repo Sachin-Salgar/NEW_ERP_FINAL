@@ -70,8 +70,23 @@ Future<AppRouterDelegate> _routerDelegate(WidgetTester tester) async {
 
 Future<void> _openRoute(WidgetTester tester, String route) async {
   final delegate = await _routerDelegate(tester);
-  await delegate.setNewRoutePath(route);
+  // Use the application's normal authenticated navigation path for route
+  // transitions. This updates the nested Navigator and browser history via
+  // the existing route observer, avoiding a synthetic RouterDelegate call
+  // that can leave the persistent shell on its previous child route.
+  delegate.navigate(route);
   await tester.pumpAndSettle();
+  await _waitFor(tester, _routeContentFinder(route));
+  expect(AppRouteState.currentRoute.value, equals(route));
+}
+
+Finder _routeContentFinder(String route) {
+  if (route.contains('/organizations/details/')) return find.text('Organization information');
+  if (route.contains('/branches/details/')) return find.text('Branch information');
+  if (route == '/settings/users') return find.text('Users');
+  if (route == '/settings/roles' || route == '/settings/permissions') return find.text('Access denied');
+  if (route == '/settings/branches') return find.text('Branches');
+  return find.text('Organizations');
 }
 
 Future<void> _navigateRoute(WidgetTester tester, String route) async {
