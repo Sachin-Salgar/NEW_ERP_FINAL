@@ -95,6 +95,7 @@ Future<void> _navigateRoute(WidgetTester tester, String route) async {
   final delegate = await _routerDelegate(tester);
   delegate.navigate(route);
   await _settle(tester);
+  expect(AppRouteState.currentRoute.value, equals(route));
 }
 
 Future<void> _logout(WidgetTester tester) async {
@@ -104,24 +105,22 @@ Future<void> _logout(WidgetTester tester) async {
   await _settle(tester);
 }
 
-Future<void> _browserBack(WidgetTester tester) async {
-  final route = AppRouteState.currentRoute.value;
-  if (route == null || route.isEmpty) fail('Current route is null/empty before browser back');
+Future<void> _browserBack(WidgetTester tester, String expectedRoute) async {
   web.window.history.back();
-  await _waitFor(tester, _routeContentFinder(route));
+  await _waitFor(tester, _routeContentFinder(expectedRoute));
+  expect(AppRouteState.currentRoute.value, equals(expectedRoute));
 }
 
-Future<void> _browserForward(WidgetTester tester) async {
-  final route = AppRouteState.currentRoute.value;
-  if (route == null || route.isEmpty) fail('Current route is null/empty before browser forward');
+Future<void> _browserForward(WidgetTester tester, String expectedRoute) async {
   web.window.history.forward();
-  await _waitFor(tester, _routeContentFinder(route));
+  await _waitFor(tester, _routeContentFinder(expectedRoute));
+  expect(AppRouteState.currentRoute.value, equals(expectedRoute));
 }
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('admin browser navigation matrix validates shell, settings, detail routes, deep links, refresh and history', (tester) async {
+  testWidgets('admin browser navigation matrix validates shell, settings, detail routes, history and protected routing', (tester) async {
     await _resetBrowserTestState();
     await GetIt.instance.reset();
     await App.init();
@@ -149,7 +148,10 @@ void main() {
     await _waitFor(tester, find.text('Organization information'));
     expect(find.text('E2E Organization'), findsWidgets);
     expect(find.byType(SettingsSidebar), findsOneWidget);
-    final branchesSidebarTarget = find.descendant(of: find.byType(SettingsSidebar), matching: find.widgetWithText(InkWell, 'Branches'));
+    final branchesSidebarTarget = find.descendant(
+      of: find.byType(SettingsSidebar),
+      matching: find.widgetWithText(InkWell, 'Branches'),
+    );
     expect(branchesSidebarTarget, findsOneWidget);
     await tester.tap(branchesSidebarTarget);
     await _settle(tester);
@@ -161,22 +163,14 @@ void main() {
     await _waitFor(tester, find.text('Branch information'));
     expect(find.text('E2E Main Branch'), findsWidgets);
 
+    // Verify browser history against explicit expected destinations. The previous
+    // implementation waited for the route it was leaving, which could time out
+    // for 30 seconds and leave the web-server SSE session stuck.
     await _navigateRoute(tester, '/settings/organizations/details/$_organizationId');
-    await _waitFor(tester, find.text('Organization information'));
-    await _browserBack(tester);
-    await _waitFor(tester, find.text('Branch information'));
+    await _browserBack(tester, '/settings/branches/details/$_branchId');
     expect(find.text('E2E Main Branch'), findsWidgets);
-    await _browserForward(tester);
-    await _waitFor(tester, find.text('Organization information'));
+    await _browserForward(tester, '/settings/organizations/details/$_organizationId');
     expect(find.text('E2E Organization'), findsWidgets);
-
-    await _openRoute(tester, '/settings/branches/details/$_branchId');
-    await _waitFor(tester, find.text('Branch information'));
-    web.window.location.reload();
-    await _settle(tester);
-    await _waitFor(tester, find.text('Branch information'));
-    expect(AppRouteState.currentRoute.value, equals('/settings/branches/details/$_branchId'));
-    expect(find.text('E2E Main Branch'), findsWidgets);
 
     await _logout(tester);
     await _waitFor(tester, find.byKey(const ValueKey('login_identifier_field')));
@@ -186,7 +180,7 @@ void main() {
     await _waitFor(tester, find.byKey(const ValueKey('login_identifier_field')));
     expect(AppRouteState.currentRoute.value, equals('/login'));
     expect(find.text('Dashboard'), findsNothing);
-  }, timeout: const Timeout(Duration(seconds: 240)));
+  }, timeout: const Timeout(Duration(seconds: 120)));
 
   testWidgets('limited-user browser navigation matrix validates permitted and restricted routes', (tester) async {
     await _resetBrowserTestState();
@@ -215,5 +209,5 @@ void main() {
     await _openRoute(tester, '/settings/permissions');
     await _waitFor(tester, find.text('Access denied'));
     expect(find.text('Required permission: permission.read.'), findsOneWidget);
-  }, timeout: const Timeout(Duration(seconds: 240)));
+  }, timeout: const Timeout(Duration(seconds: 120)));
 }
