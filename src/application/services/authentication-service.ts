@@ -1,4 +1,4 @@
-import { v7 as uuidV7 } from 'uuid';
+import { validate as isUuid, v7 as uuidV7 } from 'uuid';
 
 import type { AuthenticatedUser, AuthenticationResult, SessionRecord } from '../../domain/contracts/authentication.js';
 import type { AuthenticationRepository, PasswordHasher, TokenService } from '../contracts/security.js';
@@ -32,6 +32,10 @@ export class AuthenticationService {
     let matchedTenantId: string | null = null;
 
     for (const candidate of uniqueCandidates) {
+      if (!candidate.tenantId || !isUuid(candidate.tenantId) || !candidate.userId || !isUuid(candidate.userId)) {
+        continue;
+      }
+
       const user = await this.authenticationRepository.findById(candidate.tenantId, candidate.userId);
       if (!user || user.status !== 'active') {
         continue;

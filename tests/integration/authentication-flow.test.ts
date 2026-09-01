@@ -96,6 +96,8 @@ describe('Authentication vertical slice', () => {
     app = await createApplication(config, pool);
 
     const tenantHost = tenantInput.tenant.subdomain;
+    const newUserUsername = `newuser${uniqueSuffix}`;
+    const newUserEmail = `${newUserUsername}@example.com`;
 
     const adminLogin = await app.inject({
       method: 'POST',
@@ -121,15 +123,15 @@ describe('Authentication vertical slice', () => {
         'x-tenant-id': tenantResult.tenantId,
       },
       payload: {
-        username: 'newuser',
-        email: 'newuser@example.com',
+        username: newUserUsername,
+        email: newUserEmail,
         password: 'Password456!',
         roleCode: 'member',
       },
     });
 
     expect(registerResponse.statusCode).toBe(201);
-    expect(registerResponse.json().user.email).toBe('newuser@example.com');
+    expect(registerResponse.json().user.email).toBe(newUserEmail);
 
     const duplicateRegister = await app.inject({
       method: 'POST',
@@ -139,8 +141,8 @@ describe('Authentication vertical slice', () => {
         'x-tenant-id': tenantResult.tenantId,
       },
       payload: {
-        username: 'newuser',
-        email: 'newuser@example.com',
+        username: newUserUsername,
+        email: newUserEmail,
         password: 'Password456!',
       },
     });
@@ -153,12 +155,12 @@ describe('Authentication vertical slice', () => {
         host: tenantHost,
         'x-tenant-id': tenantResult.tenantId,
       },
-      payload: { identifier: 'newuser', password: 'Password456!' },
+      payload: { identifier: newUserUsername, password: 'Password456!' },
     });
 
     expect(loginResponse.statusCode).toBe(200);
     const loginJson = loginResponse.json();
-    expect(loginJson.user.username).toBe('newuser');
+    expect(loginJson.user.username).toBe(newUserUsername);
     expect(loginJson.accessToken).toBeTruthy();
     expect(loginJson.refreshToken).toBeTruthy();
     expect(JSON.stringify(loginJson)).not.toContain('password_hash');
@@ -170,7 +172,7 @@ describe('Authentication vertical slice', () => {
       headers: { authorization: `Bearer ${loginJson.accessToken}` },
     });
     expect(meResponse.statusCode).toBe(200);
-    expect(meResponse.json().user.username).toBe('newuser');
+    expect(meResponse.json().user.username).toBe(newUserUsername);
 
     const protectedResponse = await app.inject({
       method: 'GET',
@@ -221,7 +223,7 @@ describe('Authentication vertical slice', () => {
         host: tenantHost,
         'x-tenant-id': tenantResult.tenantId,
       },
-      payload: { identifier: 'newuser', password: 'WrongPassword!' },
+      payload: { identifier: newUserUsername, password: 'WrongPassword!' },
     });
     expect(wrongPassword.statusCode).toBe(401);
 
@@ -313,13 +315,15 @@ describe('Authentication vertical slice', () => {
 
     // Create a test user
     const testUserId = uuidV7();
+    const inactiveUsername = `inactiveuser${uniqueSuffix}`;
+    const inactiveEmail = `${inactiveUsername}@example.com`;
     const testUser = await repository.createUser({
       id: testUserId,
       tenantId: tenantResult.tenantId,
       organizationId: tenantResult.organizationId,
       defaultBranchId: tenantResult.branchId,
-      username: 'inactiveuser',
-      email: 'inactiveuser@example.com',
+      username: inactiveUsername,
+      email: inactiveEmail,
       passwordHash: await passwordHasher.hash('Password789!'),
       status: 'active',
     });
@@ -431,13 +435,15 @@ describe('Authentication vertical slice', () => {
 
     // Create a test user
     const testUserId = uuidV7();
+    const deletedUsername = `deleteduser${uniqueSuffix}`;
+    const deletedEmail = `${deletedUsername}@example.com`;
     const testUser = await repository.createUser({
       id: testUserId,
       tenantId: tenantResult.tenantId,
       organizationId: tenantResult.organizationId,
       defaultBranchId: tenantResult.branchId,
-      username: 'deleteduser',
-      email: 'deleteduser@example.com',
+      username: deletedUsername,
+      email: deletedEmail,
       passwordHash: await passwordHasher.hash('PasswordDel!'),
       status: 'active',
     });
