@@ -25,7 +25,20 @@ Future<void> _waitFor(WidgetTester tester, Finder finder, {Duration timeout = co
     await tester.pump(const Duration(milliseconds: 100));
     if (finder.evaluate().isNotEmpty) return;
   }
-  fail('Timed out waiting for finder: $finder');
+  final auth = GetIt.instance.isRegistered<AuthService>() ? GetIt.instance.get<AuthService>() : null;
+  final diagnostics = <String>[
+    'currentRoute=${AppRouteState.currentRoute.value}',
+    'authenticated=${auth?.isAuthenticated}',
+    'tenantId=${auth?.currentTenantId}',
+    'organizationId=${auth?.currentOrganizationId}',
+    'selectedOrganizationId=${auth?.selectedOrganizationId}',
+    'branchRead=${auth?.hasPermission('branch.read')}',
+    'branchManage=${auth?.hasPermission('branch.manage')}',
+    'branchNotFound=${find.text('Branch not found').evaluate().length}',
+    'accessDenied=${find.text('Access denied').evaluate().length}',
+    'visibleBranchInfo=${find.text('Branch information').evaluate().length}',
+  ];
+  fail('Timed out waiting for finder: $finder (${diagnostics.join(', ')})');
 }
 
 Future<void> _resetBrowserTestState() async {
