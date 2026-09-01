@@ -115,10 +115,7 @@ class _AppShellState extends State<AppShell> {
                           actions: [if (auth.currentUser != null) const ProfileContextMenu()],
                         ),
                         Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 8),
-                            child: SettingsShell(selectedRoute: route, onSelect: _handleNavigate, child: widget.child),
-                          ),
+                          child: SettingsShell(selectedRoute: route, onSelect: _handleNavigate, child: widget.child),
                         ),
                       ],
                     )

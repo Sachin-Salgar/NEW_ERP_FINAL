@@ -68,7 +68,7 @@ class SettingsSidebar extends StatelessWidget {
 
     return Container(
       width: 260,
-      margin: const EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(vertical: 12),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
