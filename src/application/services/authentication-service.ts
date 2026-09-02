@@ -15,64 +15,88 @@ export class AuthenticationService {
    * The identity lookup returns candidate tenant accounts; password verification then occurs
    * against each candidate through the tenant-scoped repository/RLS path.
    */
-  async authenticate(identifier: string, password: string): Promise<AuthenticationResult> {
-    const candidates = await this.authenticationRepository.findLoginCandidates(identifier);
-    if (candidates.length === 0) {
-      return { success: false, reason: 'INVALID_CREDENTIALS' };
-    }
+  async authenticate(identifierOrTenantId: string, passwordOrIdentifier: string, maybePassword?: string): Promise<AuthenticationResult> {
+    let requestedTenantId: string | null = null;
+    let identifier: string;
+    let password: string;
 
-    // A single account may legitimately have multiple matching identifiers (for example,
-    // its email and username can be identical). Identity lookup therefore operates at the
-    // identifier level, while authentication must operate at the unique tenant/user level.
-    const uniqueCandidates = [...new Map(
-      candidates.map((candidate) => [`${candidate.tenantId}:${candidate.userId}`, candidate]),
-    ).values()];
+    if (maybePassword !== undefined) {
+      requestedTenantId = identifierOrTenantId;
+      identifier = passwordOrIdentifier;
+      password = maybePassword;
+    } else {
+      identifier = identifierOrTenantId;
+      password = passwordOrIdentifier;
+    }
 
     let matchedUser: Awaited<ReturnType<AuthenticationRepository['findById']>> = null;
     let matchedTenantId: string | null = null;
 
-    for (const candidate of uniqueCandidates) {
-      if (!candidate.tenantId || !isUuid(candidate.tenantId) || !candidate.userId || !isUuid(candidate.userId)) {
-        continue;
+    if (requestedTenantId) {
+      const user = await this.authenticationRepository.findByTenantAndIdentifier(requestedTenantId, identifier);
+      if (user && user.status === 'active') {
+        const validPassword = await this.passwordHasher.verify(password, user.passwordHash);
+        if (validPassword) {
+          matchedUser = user;
+          matchedTenantId = requestedTenantId;
+        }
       }
-
-      const user = await this.authenticationRepository.findById(candidate.tenantId, candidate.userId);
-      if (!user || user.status !== 'active') {
-        continue;
-      }
-
-      const validPassword = await this.passwordHasher.verify(password, user.passwordHash);
-      if (!validPassword) {
-        continue;
-      }
-
-      if (matchedUser) {
-        // The same credentials identify multiple active tenant accounts. Do not guess the tenant.
+    } else {
+      const candidates = await this.authenticationRepository.findLoginCandidates(identifier);
+      if (candidates.length === 0) {
         return { success: false, reason: 'INVALID_CREDENTIALS' };
       }
 
-      matchedUser = user;
-      matchedTenantId = candidate.tenantId;
+      // A single account may legitimately have multiple matching identifiers (for example,
+      // its email and username can be identical). Identity lookup therefore operates at the
+      // identifier level, while authentication must operate at the unique tenant/user level.
+      const uniqueCandidates = [...new Map(
+        candidates.map((candidate) => [`${candidate.tenantId}:${candidate.userId}`, candidate]),
+      ).values()];
+
+      for (const candidate of uniqueCandidates) {
+        if (!candidate.tenantId || !isUuid(candidate.tenantId) || !candidate.userId || !isUuid(candidate.userId)) {
+          continue;
+        }
+
+        const user = await this.authenticationRepository.findById(candidate.tenantId, candidate.userId);
+        if (!user || user.status !== 'active') {
+          continue;
+        }
+
+        const validPassword = await this.passwordHasher.verify(password, user.passwordHash);
+        if (!validPassword) {
+          continue;
+        }
+
+        if (matchedUser) {
+          // The same credentials identify multiple active tenant accounts. Do not guess the tenant.
+          return { success: false, reason: 'INVALID_CREDENTIALS' };
+        }
+
+        matchedUser = user;
+        matchedTenantId = candidate.tenantId;
+      }
     }
 
     if (!matchedUser || !matchedTenantId) {
       return { success: false, reason: 'INVALID_CREDENTIALS' };
     }
 
-    const tenantId = matchedTenantId;
-    const user = matchedUser;
+    const user = matchedUser!;
+    const resolvedTenantId = matchedTenantId!;
     const sessionId = uuidV7();
     const sessionExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 8);
     const refreshToken = this.tokenService ? this.tokenService.createRefreshToken({
       userId: user.id,
-      tenantId,
+      tenantId: resolvedTenantId,
       sessionId,
       expiresInSeconds: 60 * 60 * 24 * 14,
     }) : 'internal-session-token';
 
     const session = await this.authenticationRepository.createSession({
       id: sessionId,
-      tenantId,
+      tenantId: resolvedTenantId,
       userId: user.id,
       organizationId: user.organizationId ?? null,
       locationId: null,
@@ -87,7 +111,7 @@ export class AuthenticationService {
 
     const accessToken = this.tokenService ? this.tokenService.createAccessToken({
       userId: user.id,
-      tenantId,
+      tenantId: resolvedTenantId,
       sessionId: session.id,
       expiresInSeconds: 60 * 60,
     }) : undefined;

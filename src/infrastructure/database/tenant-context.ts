@@ -72,18 +72,22 @@ export class PostgresTenantContextProvider implements TenantContextProvider {
 export async function clearTenantContextSettings(pool: Pool, tenantContextKey: string): Promise<void> {
   const client = await pool.connect();
   try {
-    for (const settingKey of [
-      tenantContextKey,
-      `${tenantContextKey}_context`,
-      `${tenantContextKey}_user_id`,
-      `${tenantContextKey}_organization_id`,
-      `${tenantContextKey}_location_id`,
-    ]) {
-      const safeSettingKey = settingKey.replace(/"/g, '""');
-      await client.query(`SET "${safeSettingKey}" = '00000000-0000-0000-0000-000000000000'`).catch(() => undefined);
-    }
+    await clearTenantContextSettingsForClient(client, tenantContextKey);
   } finally {
     client.release();
+  }
+}
+
+export async function clearTenantContextSettingsForClient(client: PoolClient, tenantContextKey: string): Promise<void> {
+  for (const settingKey of [
+    tenantContextKey,
+    `${tenantContextKey}_context`,
+    `${tenantContextKey}_user_id`,
+    `${tenantContextKey}_organization_id`,
+    `${tenantContextKey}_location_id`,
+  ]) {
+    const safeSettingKey = settingKey.replace(/"/g, '""');
+    await client.query(`RESET "${safeSettingKey}"`).catch(() => undefined);
   }
 }
 
@@ -120,7 +124,7 @@ export async function withTenantContext<T>(pool: Pool, tenantContextKey: string,
     await client.query('ROLLBACK').catch(() => undefined);
     throw error;
   } finally {
-    await clearTenantContextSettings(pool, tenantContextKey).catch(() => undefined);
+    await clearTenantContextSettingsForClient(client, tenantContextKey).catch(() => undefined);
     client.release();
   }
 }

@@ -12,7 +12,7 @@ export const appConfigSchema = z.object({
   LOG_LEVEL: z.enum(logLevels).default('info'),
   DATABASE_URL: z.string().trim().min(1),
   DATABASE_POOL_MIN: z.coerce.number().int().min(0).default(1),
-  DATABASE_POOL_MAX: z.coerce.number().int().min(1).default(10),
+  DATABASE_POOL_MAX: z.coerce.number().int().min(1).default(25),
   JWT_SECRET: z.string().trim().min(32).default('development-jwt-secret-change-me'),
   JWT_ISSUER: z.string().trim().min(1).default('new-erp-final'),
   TENANT_CONTEXT_KEY: z.string().trim().min(1).default('app.current_tenant_id'),

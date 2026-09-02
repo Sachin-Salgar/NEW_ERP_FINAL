@@ -203,16 +203,19 @@ export interface UserAdminRecord {
 }
 
 export interface CoreEnterpriseRepository {
-  createOrganization(tenantId: string, input: { code: string; name: string; legalName?: string | null; gstNo?: string | null; panNo?: string | null; cinNo?: string | null; email?: string | null; phone?: string | null; website?: string | null; baseCurrency?: string; fiscalCalendar?: string; status?: 'active' | 'inactive' | 'archived'; isDefault?: boolean; remarks?: string | null }): Promise<OrganizationRecord>;
+  generateOrganizationCode(tenantId: string): Promise<string>;
+  createOrganization(tenantId: string, input: { code?: string | null; name: string; legalName?: string | null; gstNo?: string | null; panNo?: string | null; cinNo?: string | null; email?: string | null; phone?: string | null; website?: string | null; baseCurrency?: string; fiscalCalendar?: string; status?: 'active' | 'inactive' | 'archived'; isDefault?: boolean; remarks?: string | null }): Promise<OrganizationRecord>;
   listOrganizations(tenantId: string): Promise<OrganizationRecord[]>;
   getOrganizationById(tenantId: string, organizationId: string): Promise<OrganizationRecord | null>;
   updateOrganization(tenantId: string, organizationId: string, changes: Partial<Pick<OrganizationRecord, 'code' | 'name' | 'legalName' | 'gstNo' | 'panNo' | 'cinNo' | 'email' | 'phone' | 'website' | 'baseCurrency' | 'fiscalCalendar' | 'status' | 'isDefault' | 'remarks'>>): Promise<OrganizationRecord | null>;
   deactivateOrganization(tenantId: string, organizationId: string): Promise<boolean>;
-  createBranch(tenantId: string, organizationId: string, input: { code: string; name: string; status?: 'active' | 'inactive' | 'archived'; isHeadOffice?: boolean; isDefault?: boolean; addressLine1?: string | null; addressLine2?: string | null; city?: string | null; district?: string | null; state?: string | null; country?: string | null; postalCode?: string | null; timezone?: string; remarks?: string | null }): Promise<BranchRecord>;
+  generateBranchCode(tenantId: string, organizationId: string): Promise<string>;
+  createBranch(tenantId: string, organizationId: string, input: { code?: string | null; name: string; status?: 'active' | 'inactive' | 'archived'; isHeadOffice?: boolean; isDefault?: boolean; addressLine1?: string | null; addressLine2?: string | null; city?: string | null; district?: string | null; state?: string | null; country?: string | null; postalCode?: string | null; timezone?: string; remarks?: string | null }): Promise<BranchRecord>;
   listBranches(tenantId: string, organizationId: string): Promise<BranchRecord[]>;
   getBranchById(tenantId: string, organizationId: string, branchId: string): Promise<BranchRecord | null>;
   updateBranch(tenantId: string, organizationId: string, branchId: string, changes: Partial<Pick<BranchRecord, 'code' | 'name' | 'status' | 'isHeadOffice' | 'isDefault' | 'addressLine1' | 'addressLine2' | 'city' | 'district' | 'state' | 'country' | 'postalCode' | 'timezone' | 'remarks'>>): Promise<BranchRecord | null>;
   deactivateBranch(tenantId: string, organizationId: string, branchId: string): Promise<boolean>;
+  generateLocationCode(tenantId: string, organizationId: string): Promise<string>;
   createLocation(tenantId: string, organizationId: string, input: { code: string; name: string; description?: string | null; status?: 'active' | 'inactive' | 'archived'; isDefault?: boolean; addressLine1?: string | null; addressLine2?: string | null; city?: string | null; state?: string | null; country?: string | null; postalCode?: string | null; timezone?: string }): Promise<LocationRecord>;
   listLocations(tenantId: string, organizationId: string): Promise<LocationRecord[]>;
   listAccessibleLocationsForUser(tenantId: string, userId: string, organizationId?: string | null): Promise<LocationRecord[]>;

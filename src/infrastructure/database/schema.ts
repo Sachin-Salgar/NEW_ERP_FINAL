@@ -179,6 +179,19 @@ export const organizations = pgTable(
   }),
 );
 
+export const codeCounters = pgTable(
+  'code_counters',
+  {
+    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    entityType: varchar('entity_type', { length: 32 }).notNull(),
+    scopeKey: varchar('scope_key', { length: 64 }).notNull(),
+    lastValue: integer('last_value').notNull().default(0),
+  },
+  (table) => ({
+    pkCodeCounter: primaryKey({ columns: [table.tenantId, table.entityType, table.scopeKey], name: 'code_counters_pkey' }),
+  }),
+);
+
 export const branches = pgTable(
   'branches',
   {

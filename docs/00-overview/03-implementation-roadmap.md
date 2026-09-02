@@ -44,6 +44,7 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 - TenantContext and PostgreSQL transaction-local tenant context infrastructure.
 - PostgreSQL RLS integration coverage for tenant isolation/rollback/pool context behavior.
 - Organization, branch/location, and user administration backend/API surfaces.
+- Server-generated immutable Organization and Branch codes with explicit branch/location hierarchy validation.
 - Flutter organization, branch, user, role, permission, dashboard, and authentication surfaces.
 - Backend RBAC and permission enforcement.
 - Flutter permission state, permission-aware navigation and route guards.

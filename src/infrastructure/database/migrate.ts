@@ -74,6 +74,9 @@ const migrationChecks: Record<string, (client: Client) => Promise<boolean>> = {
   '0004-sync-login-identifiers': async (client) =>
     (await functionExists(client, 'sync_auth_login_identifiers')) &&
     (await triggerExists(client, 'trg_sync_auth_login_identifiers', 'users')),
+  '0005-code-counters': async (client) =>
+    (await tableExists(client, 'code_counters')) &&
+    (await policyExists(client, 'code_counters', 'code_counters_tenant_isolation_policy')),
 };
 
 async function tableExists(client: Client, tableName: string): Promise<boolean> {

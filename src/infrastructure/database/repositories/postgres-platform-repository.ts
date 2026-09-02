@@ -118,6 +118,30 @@ export class PostgresPlatformRepository
     };
   }
 
+  private async reserveNextCodeValue(tenantId: string, entityType: 'organization' | 'branch' | 'location', scopeKey: string): Promise<number> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return this.reserveNextCodeValueWithClient(client, tenantId, entityType, scopeKey);
+    });
+
+    return Number(result.rows[0]?.lastValue ?? 0);
+  }
+
+  private async reserveNextCodeValueWithClient(
+    client: { query: (text: string, params?: any[]) => Promise<any> },
+    tenantId: string,
+    entityType: 'organization' | 'branch' | 'location',
+    scopeKey: string,
+  ): Promise<{ rows: Array<{ lastValue: number }> }> {
+    return client.query(
+      `INSERT INTO code_counters (tenant_id, entity_type, scope_key, last_value)
+        VALUES ($1, $2, $3, 1)
+        ON CONFLICT (tenant_id, entity_type, scope_key)
+        DO UPDATE SET last_value = code_counters.last_value + 1
+        RETURNING last_value AS "lastValue"`,
+      [tenantId, entityType, scopeKey],
+    );
+  }
+
   async seedSubscriptionPlans(
     plans: Array<{ name: string; description?: string | null; priceMonthly: number; maxUsers?: number | null; maxStorageGb?: number | null; isActive?: boolean }>,
   ): Promise<void> {
@@ -1013,6 +1037,11 @@ export class PostgresPlatformRepository
       );
 
       const insertedTenantId = tenantResult.rows[0]?.id ?? tenantId;
+      const organizationCodeResult = await this.reserveNextCodeValueWithClient(client, insertedTenantId, 'organization', 'tenant');
+      const branchCodeResult = await this.reserveNextCodeValueWithClient(client, insertedTenantId, 'branch', 'tenant');
+
+      const organizationNumber = Number(organizationCodeResult.rows[0]?.lastValue ?? 0);
+      const branchNumber = Number(branchCodeResult.rows[0]?.lastValue ?? 0);
 
       await logQuery(
         `INSERT INTO organizations (id, tenant_id, code, name, legal_name, email, phone, website, base_currency, fiscal_calendar, status, is_default, remarks, created_at, updated_at, version)
@@ -1020,17 +1049,17 @@ export class PostgresPlatformRepository
         [
           organizationId,
           insertedTenantId,
-          input.organization.code,
-          input.organization.name,
-          input.organization.legalName ?? null,
-          input.organization.email ?? null,
-          input.organization.phone ?? null,
-          input.organization.website ?? null,
-          input.organization.baseCurrency ?? 'USD',
-          input.organization.fiscalCalendar ?? 'standard',
-          input.organization.status ?? 'active',
-          input.organization.isDefault ?? true,
-          null,
+         `ORG${String(organizationNumber).padStart(6, '0')}`,
+         input.organization.name,
+         input.organization.legalName ?? null,
+         input.organization.email ?? null,
+         input.organization.phone ?? null,
+         input.organization.website ?? null,
+         input.organization.baseCurrency ?? 'USD',
+         input.organization.fiscalCalendar ?? 'standard',
+         input.organization.status ?? 'active',
+         input.organization.isDefault ?? true,
+         null,
         ],
       );
 
@@ -1057,14 +1086,14 @@ export class PostgresPlatformRepository
           branchId,
           insertedTenantId,
           organizationId,
-          input.branch.code,
-          input.branch.name,
-          input.branch.status ?? 'active',
-          input.branch.isHeadOffice ?? true,
-          input.branch.isDefault ?? true,
-          input.branch.city ?? null,
-          input.branch.country ?? null,
-          input.branch.timezone ?? 'UTC',
+         `BR${String(branchNumber).padStart(3, '0')}`,
+         input.branch.name,
+         input.branch.status ?? 'active',
+         input.branch.isHeadOffice ?? true,
+         input.branch.isDefault ?? true,
+         input.branch.city ?? null,
+         input.branch.country ?? null,
+         input.branch.timezone ?? 'UTC',
         ],
       );
 
@@ -1183,8 +1212,21 @@ export class PostgresPlatformRepository
     return result;
   }
 
-  async createOrganization(tenantId: string, input: { code: string; name: string; legalName?: string | null; gstNo?: string | null; panNo?: string | null; cinNo?: string | null; email?: string | null; phone?: string | null; website?: string | null; baseCurrency?: string; fiscalCalendar?: string; status?: 'active' | 'inactive' | 'archived'; isDefault?: boolean; remarks?: string | null }): Promise<OrganizationRecord> {
+  private async generateOrganizationCodeWithClient(client: { query: (text: string, params?: any[]) => Promise<any> }, tenantId: string): Promise<string> {
+    const result = await this.reserveNextCodeValueWithClient(client, tenantId, 'organization', 'tenant');
+    const nextNumber = Number(result.rows[0]?.lastValue ?? 0);
+    return `ORG${String(nextNumber).padStart(6, '0')}`;
+  }
+
+  async generateOrganizationCode(tenantId: string): Promise<string> {
+    const nextNumber = await this.reserveNextCodeValue(tenantId, 'organization', 'tenant');
+    return `ORG${String(nextNumber).padStart(6, '0')}`;
+  }
+
+  async createOrganization(tenantId: string, input: { code?: string | null; name: string; legalName?: string | null; gstNo?: string | null; panNo?: string | null; cinNo?: string | null; email?: string | null; phone?: string | null; website?: string | null; baseCurrency?: string; fiscalCalendar?: string; status?: 'active' | 'inactive' | 'archived'; isDefault?: boolean; remarks?: string | null }): Promise<OrganizationRecord> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      const nextCode = await this.generateOrganizationCodeWithClient(client, tenantId);
+
       return client.query(
         `INSERT INTO organizations (
          id, tenant_id, code, name, legal_name, gst_no, pan_no, cin_no, email, phone, website,
@@ -1214,7 +1256,7 @@ export class PostgresPlatformRepository
         [
          uuidV7(),
          tenantId,
-         input.code.trim(),
+         nextCode,
          input.name.trim(),
          input.legalName ?? null,
          input.gstNo ?? null,
@@ -1309,8 +1351,7 @@ export class PostgresPlatformRepository
     let idx = 1;
 
     if (changes.code !== undefined) {
-      fields.push(`code = $${idx++}`);
-      values.push(String(changes.code).trim());
+      throw new Error('Organization code is generated server-side and cannot be modified.');
     }
     if (changes.name !== undefined) {
       fields.push(`name = $${idx++}`);
@@ -1421,7 +1462,20 @@ export class PostgresPlatformRepository
     return (result.rowCount ?? 0) > 0;
   }
 
-  async createBranch(tenantId: string, organizationId: string, input: { code: string; name: string; status?: 'active' | 'inactive' | 'archived'; isHeadOffice?: boolean; isDefault?: boolean; addressLine1?: string | null; addressLine2?: string | null; city?: string | null; district?: string | null; state?: string | null; country?: string | null; postalCode?: string | null; timezone?: string; remarks?: string | null }): Promise<BranchRecord> {
+  private async generateBranchCodeWithClient(client: { query: (text: string, params?: any[]) => Promise<any> }, tenantId: string, organizationId: string): Promise<string> {
+    void organizationId;
+    const result = await this.reserveNextCodeValueWithClient(client, tenantId, 'branch', 'tenant');
+    const nextNumber = Number(result.rows[0]?.lastValue ?? 0);
+    return `BR${String(nextNumber).padStart(3, '0')}`;
+  }
+
+  async generateBranchCode(tenantId: string, organizationId: string): Promise<string> {
+    void organizationId;
+    const nextNumber = await this.reserveNextCodeValue(tenantId, 'branch', 'tenant');
+    return `BR${String(nextNumber).padStart(3, '0')}`;
+  }
+
+  async createBranch(tenantId: string, organizationId: string, input: { code?: string | null; name: string; status?: 'active' | 'inactive' | 'archived'; isHeadOffice?: boolean; isDefault?: boolean; addressLine1?: string | null; addressLine2?: string | null; city?: string | null; district?: string | null; state?: string | null; country?: string | null; postalCode?: string | null; timezone?: string; remarks?: string | null }): Promise<BranchRecord> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       const organization = await client.query(
         `SELECT id FROM organizations WHERE tenant_id = $1 AND id = $2 AND is_deleted = false AND status = 'active' LIMIT 1`,
@@ -1430,6 +1484,8 @@ export class PostgresPlatformRepository
       if (organization.rows.length === 0) {
         throw new Error('Organization not found or inactive.');
       }
+
+      const nextCode = await this.generateBranchCodeWithClient(client, tenantId, organizationId);
 
       return client.query(
         `INSERT INTO branches (
@@ -1462,7 +1518,7 @@ export class PostgresPlatformRepository
          uuidV7(),
          tenantId,
          organizationId,
-         input.code.trim(),
+         nextCode,
          input.name.trim(),
          input.status ?? 'active',
          input.isHeadOffice ?? false,
@@ -1559,8 +1615,7 @@ export class PostgresPlatformRepository
     let idx = 1;
 
     if (changes.code !== undefined) {
-      fields.push(`code = $${idx++}`);
-      values.push(String(changes.code).trim());
+      throw new Error('Branch code is generated server-side and cannot be modified.');
     }
     if (changes.name !== undefined) {
       fields.push(`name = $${idx++}`);
@@ -1670,6 +1725,11 @@ export class PostgresPlatformRepository
     });
 
     return (result.rowCount ?? 0) > 0;
+  }
+
+  async generateLocationCode(tenantId: string, organizationId: string): Promise<string> {
+    const nextNumber = await this.reserveNextCodeValue(tenantId, 'location', organizationId);
+    return `LOC${String(nextNumber).padStart(6, '0')}`;
   }
 
   async createLocation(tenantId: string, organizationId: string, input: { code: string; name: string; description?: string | null; status?: 'active' | 'inactive' | 'archived'; isDefault?: boolean; addressLine1?: string | null; addressLine2?: string | null; city?: string | null; state?: string | null; country?: string | null; postalCode?: string | null; timezone?: string }): Promise<LocationRecord> {
@@ -1795,8 +1855,7 @@ export class PostgresPlatformRepository
     let idx = 1;
 
     if (changes.code !== undefined) {
-      fields.push(`code = $${idx++}`);
-      values.push(String(changes.code).trim());
+      throw new Error('Location code is generated server-side and cannot be modified.');
     }
     if (changes.name !== undefined) {
       fields.push(`name = $${idx++}`);

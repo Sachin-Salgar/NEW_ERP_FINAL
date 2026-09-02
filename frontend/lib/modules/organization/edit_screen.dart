@@ -62,7 +62,6 @@ class _EditOrganizationScreenState extends State<EditOrganizationScreen> {
       _error = null;
     });
     final ok = await service.updateOrganization(widget.id, {
-      'code': _code.text.trim(),
       'name': _name.text.trim(),
       'legalName': _legalName.text.trim(),
     });
@@ -123,14 +122,12 @@ class _EditOrganizationScreenState extends State<EditOrganizationScreen> {
                             const SizedBox(height: 20),
                             LayoutBuilder(
                               builder: (context, c) {
-                                final a = TextFormField(
+                                final codeField = TextFormField(
                                   controller: _code,
+                                  readOnly: true,
                                   decoration: const InputDecoration(labelText: 'Code'),
-                                  validator: (v) => v == null || v.trim().isEmpty
-                                      ? 'Code is required.'
-                                      : null,
                                 );
-                                final b = TextFormField(
+                                final nameField = TextFormField(
                                   controller: _name,
                                   decoration: const InputDecoration(labelText: 'Name'),
                                   validator: (v) => v == null || v.trim().isEmpty
@@ -138,12 +135,12 @@ class _EditOrganizationScreenState extends State<EditOrganizationScreen> {
                                       : null,
                                 );
                                 return c.maxWidth < 600
-                                    ? Column(children: [a, const SizedBox(height: 18), b])
+                                    ? Column(children: [codeField, const SizedBox(height: 18), nameField])
                                     : Row(
                                         children: [
-                                          Expanded(child: a),
+                                          Expanded(child: codeField),
                                           const SizedBox(width: 18),
-                                          Expanded(child: b),
+                                          Expanded(child: nameField),
                                         ],
                                       );
                               },

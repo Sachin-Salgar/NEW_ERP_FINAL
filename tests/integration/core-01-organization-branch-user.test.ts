@@ -3,6 +3,7 @@ import { Pool } from 'pg';
 import { v7 as uuidV7 } from 'uuid';
 
 import { parseAppConfig, resolveDatabaseUrl } from '../../src/config/schema.js';
+import { CoreEnterpriseService } from '../../src/application/services/core-enterprise-service.js';
 import { PlatformBootstrapService } from '../../src/application/services/platform-bootstrap-service.js';
 import { TenantBootstrapService } from '../../src/application/services/tenant-bootstrap-service.js';
 import { BcryptPasswordHasher } from '../../src/infrastructure/security/bcrypt-password-hasher.js';
@@ -379,5 +380,81 @@ describe('CORE-01 organization and branch administration', () => {
       },
     });
     expect(forbiddenResponse.statusCode).toBe(403);
+  });
+
+  runIfDatabase('generates unique organization and branch codes under concurrent creation', async () => {
+    pool = new Pool({ connectionString: databaseUrl! });
+    const repository = new PostgresPlatformRepository(pool);
+    const coreEnterpriseService = new CoreEnterpriseService(repository);
+    const passwordHasher = new BcryptPasswordHasher();
+    const bootstrapService = new PlatformBootstrapService(repository);
+    const tenantBootstrapService = new TenantBootstrapService(repository, passwordHasher);
+
+    await bootstrapService.seedReferenceData();
+
+    const uniqueSuffix = `${Date.now()}-${uuidV7()}`;
+    const tenantResult = await tenantBootstrapService.bootstrapTenant({
+      tenant: {
+        name: `Concurrent Tenant ${uniqueSuffix}`,
+        displayName: `Concurrent Tenant ${uniqueSuffix}`,
+        subdomain: `concurrent-${uniqueSuffix}`,
+        slug: `concurrent-${uniqueSuffix}`,
+        timezone: 'UTC',
+        currency: 'USD',
+        locale: 'en_US',
+      },
+      organization: {
+        name: `Concurrent Org ${uniqueSuffix}`,
+        fiscalCalendar: 'standard',
+      },
+      branch: {
+        name: `Concurrent Branch ${uniqueSuffix}`,
+        city: 'Bengaluru',
+        country: 'IN',
+      },
+      administrator: {
+        username: `concurrentadmin${uniqueSuffix}`,
+        email: `concurrentadmin${uniqueSuffix}@example.com`,
+        password: 'Password123!',
+      },
+      role: {
+        code: `concurrentadmin${uniqueSuffix}`.slice(0, 20),
+        name: `Concurrent Admin ${uniqueSuffix}`,
+      },
+      permissions: ['organization.read', 'organization.manage', 'branch.read', 'branch.manage', 'user.read', 'user.manage'],
+      subscriptionPlanName: 'Starter',
+    });
+
+    const maliciousOrganization = await coreEnterpriseService.createOrganization(tenantResult.tenantId, {
+      code: 'ATTACK001',
+      name: `Malicious Org ${uniqueSuffix}`,
+    });
+    expect(maliciousOrganization.code).not.toBe('ATTACK001');
+    expect(maliciousOrganization.code).toMatch(/^ORG\d{6}$/);
+
+    const organizationResults = await Promise.all(
+      Array.from({ length: 12 }, (_, index) => coreEnterpriseService.createOrganization(tenantResult.tenantId, {
+        name: `Concurrent Org ${index}-${uniqueSuffix}`,
+      })),
+    );
+    const organizationCodes = organizationResults.map((organization) => organization.code);
+    expect(new Set(organizationCodes).size).toBe(organizationCodes.length);
+    expect(organizationCodes.every((code) => /^ORG\d{6}$/.test(code))).toBe(true);
+
+    const maliciousBranch = await coreEnterpriseService.createBranch(tenantResult.tenantId, tenantResult.organizationId, {
+      code: 'ATTACK001',
+      name: `Malicious Branch ${uniqueSuffix}`,
+    });
+    expect(maliciousBranch.code).not.toBe('ATTACK001');
+    expect(maliciousBranch.code).toMatch(/^BR\d{3}$/);
+
+    const branchResults = await Promise.all(
+      Array.from({ length: 12 }, (_, index) => coreEnterpriseService.createBranch(tenantResult.tenantId, tenantResult.organizationId, {
+        name: `Concurrent Branch ${index}-${uniqueSuffix}`,
+      })),
+    );
+    const branchCodes = branchResults.map((branch) => branch.code);
+    expect(new Set(branchCodes).size).toBe(branchCodes.length);
+    expect(branchCodes.every((code) => /^BR\d{3}$/.test(code))).toBe(true);
   });
 });

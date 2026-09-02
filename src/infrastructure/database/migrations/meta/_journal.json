@@ -36,6 +36,13 @@
       "when": 1787850000000,
       "tag": "0004-sync-login-identifiers",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1759990000000,
+      "tag": "0005-code-counters",
+      "breakpoints": true
     }
   ]
 }

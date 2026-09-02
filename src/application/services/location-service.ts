@@ -28,11 +28,11 @@ export class LocationService {
   async createLocation(
     tenantId: string,
     organizationId: string,
-    input: { code: string; name: string; description?: string | null; status?: 'active' | 'inactive' | 'archived'; isDefault?: boolean; addressLine1?: string | null; addressLine2?: string | null; city?: string | null; state?: string | null; country?: string | null; postalCode?: string | null; timezone?: string },
+    input: { code?: string; name: string; description?: string | null; status?: 'active' | 'inactive' | 'archived'; isDefault?: boolean; addressLine1?: string | null; addressLine2?: string | null; city?: string | null; state?: string | null; country?: string | null; postalCode?: string | null; timezone?: string },
   ): Promise<LocationRecord> {
     this.requireContext(tenantId, organizationId);
-    const code = this.normalizeCode(input.code, 'Location code');
     const name = this.normalizeCode(input.name, 'Location name');
+    const code = await this.repository.generateLocationCode(tenantId, organizationId);
 
     return this.repository.createLocation(tenantId, organizationId, {
       code,
@@ -109,7 +109,7 @@ export class LocationService {
     }
     const normalizedChanges = { ...changes };
     if (normalizedChanges.code !== undefined) {
-      normalizedChanges.code = this.normalizeCode(normalizedChanges.code, 'Location code');
+      throw new ValidationError('Location code is generated server-side and cannot be modified.');
     }
     if (normalizedChanges.name !== undefined) {
       normalizedChanges.name = this.normalizeCode(normalizedChanges.name, 'Location name');
