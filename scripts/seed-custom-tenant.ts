@@ -251,13 +251,6 @@ async function main() {
       throw new Error(`Administrator ${provider.administrator.username} was not found after bootstrap/restore.`);
     }
 
-    for (const organization of [primaryOrganization, secondaryOrganization]) {
-      const assigned = await coreEnterprise.assignUserToOrganization(tenantId, admin.id, organization.id);
-      if (!assigned) {
-        throw new Error(`Failed to ensure organization access for ${organization.name}.`);
-      }
-    }
-
     const requiredBranches = [
       await repository.getBranchById(tenantId, organizationId, branchId),
       sambhajiNagarBranch,
@@ -265,23 +258,33 @@ async function main() {
       secondaryMumbaiBranch,
     ];
 
-    for (const branch of requiredBranches) {
-      if (!branch) {
-        throw new Error('A required branch could not be resolved.');
+    for (const [organization, branches] of [
+      [primaryOrganization, requiredBranches.slice(0, 2)],
+      [secondaryOrganization, requiredBranches.slice(2)],
+    ] as const) {
+      const organizationAssigned = await coreEnterprise.assignUserToOrganization(tenantId, admin.id, organization.id);
+      if (!organizationAssigned) {
+        throw new Error(`Failed to ensure organization access for ${organization.name}.`);
       }
-      const assigned = await coreEnterprise.assignUserToBranch(tenantId, admin.id, branch.id);
-      if (!assigned) {
-        throw new Error(`Failed to ensure branch access for ${branch.name}.`);
+
+      for (const branch of branches) {
+        if (!branch) {
+          throw new Error('A required branch could not be resolved.');
+        }
+        const branchAssigned = await coreEnterprise.assignUserToBranch(tenantId, admin.id, branch.id);
+        if (!branchAssigned) {
+          throw new Error(`Failed to ensure branch access for ${branch.name}.`);
+        }
       }
     }
 
     await withTenantContext(pool, 'app.current_tenant_id', tenantId, async (client) => {
       for (const location of [puneLocation, sambhajiNagarLocation, manufacturingPuneLocation, manufacturingMumbaiLocation]) {
         await client.query(
-          `INSERT INTO user_location_access (tenant_id, user_id, location_id)
-           VALUES ($1, $2, $3)
+          `INSERT INTO user_location_access (tenant_id, user_id, organization_id, location_id)
+           VALUES ($1, $2, $3, $4)
            ON CONFLICT (user_id, location_id, tenant_id) DO NOTHING`,
-          [tenantId, admin.id, location.id],
+          [tenantId, admin.id, location.organizationId, location.id],
         );
       }
     });
