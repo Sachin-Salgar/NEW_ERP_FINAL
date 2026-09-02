@@ -33,6 +33,7 @@ export interface UserRepository {
     tenantId: string;
     organizationId?: string | null;
     defaultBranchId?: string | null;
+    defaultLocationId?: string | null;
     username: string;
     email: string;
     passwordHash: string;
@@ -43,6 +44,7 @@ export interface UserRepository {
     tenantId: string;
     organizationId?: string | null;
     defaultBranchId?: string | null;
+    defaultLocationId?: string | null;
     username: string;
     email: string;
     passwordHash: string;
@@ -64,6 +66,7 @@ export interface UserRegistrationInput {
   password: string;
   organizationId?: string | null;
   defaultBranchId?: string | null;
+  defaultLocationId?: string | null;
   roleCode?: string;
 }
 
@@ -72,6 +75,7 @@ export interface UserRegistrationRecord {
   tenantId: string;
   organizationId?: string | null;
   defaultBranchId?: string | null;
+  defaultLocationId?: string | null;
   username: string;
   email: string;
   status: string;
@@ -83,6 +87,7 @@ export interface UserRegistrationRepository {
     tenantId: string;
     organizationId?: string | null;
     defaultBranchId?: string | null;
+    defaultLocationId?: string | null;
     username: string;
     email: string;
     passwordHash: string;
@@ -93,6 +98,7 @@ export interface UserRegistrationRepository {
     tenantId: string;
     organizationId?: string | null;
     defaultBranchId?: string | null;
+    defaultLocationId?: string | null;
     username: string;
     email: string;
     passwordHash: string;
@@ -105,6 +111,7 @@ export interface UserRegistrationRepository {
     tenantId: string;
     organizationId?: string | null;
     defaultBranchId?: string | null;
+    defaultLocationId?: string | null;
     username: string;
     email: string;
     passwordHash: string;
@@ -193,6 +200,7 @@ export interface UserAdminRecord {
   tenantId: string;
   organizationId?: string | null;
   defaultBranchId?: string | null;
+  defaultLocationId?: string | null;
   username: string;
   email: string;
   status: string;
@@ -212,7 +220,10 @@ export interface CoreEnterpriseRepository {
   generateBranchCode(tenantId: string, organizationId: string): Promise<string>;
   createBranch(tenantId: string, organizationId: string, input: { code?: string | null; name: string; status?: 'active' | 'inactive' | 'archived'; isHeadOffice?: boolean; isDefault?: boolean; addressLine1?: string | null; addressLine2?: string | null; city?: string | null; district?: string | null; state?: string | null; country?: string | null; postalCode?: string | null; timezone?: string; remarks?: string | null }): Promise<BranchRecord>;
   listBranches(tenantId: string, organizationId: string): Promise<BranchRecord[]>;
+  listAccessibleBranchesForUser(tenantId: string, userId: string, organizationId?: string | null): Promise<BranchRecord[]>;
   getBranchById(tenantId: string, organizationId: string, branchId: string): Promise<BranchRecord | null>;
+  getAccessibleBranchByIdForUser(tenantId: string, userId: string, branchId: string, organizationId?: string | null): Promise<BranchRecord | null>;
+  validateBranchAccess(tenantId: string, userId: string, branchId: string, organizationId?: string | null): Promise<boolean>;
   updateBranch(tenantId: string, organizationId: string, branchId: string, changes: Partial<Pick<BranchRecord, 'code' | 'name' | 'status' | 'isHeadOffice' | 'isDefault' | 'addressLine1' | 'addressLine2' | 'city' | 'district' | 'state' | 'country' | 'postalCode' | 'timezone' | 'remarks'>>): Promise<BranchRecord | null>;
   deactivateBranch(tenantId: string, organizationId: string, branchId: string): Promise<boolean>;
   generateLocationCode(tenantId: string, organizationId: string): Promise<string>;
@@ -226,7 +237,7 @@ export interface CoreEnterpriseRepository {
   deactivateLocation(tenantId: string, organizationId: string, locationId: string): Promise<boolean>;
   listUsers(tenantId: string): Promise<UserAdminRecord[]>;
   getUserById(tenantId: string, userId: string): Promise<UserAdminRecord | null>;
-  updateUser(tenantId: string, userId: string, changes: Partial<Pick<UserAdminRecord, 'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'status'>>): Promise<UserAdminRecord | null>;
+  updateUser(tenantId: string, userId: string, changes: Partial<Pick<UserAdminRecord, 'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'defaultLocationId' | 'status'>>): Promise<UserAdminRecord | null>;
   assignUserToOrganization(tenantId: string, userId: string, organizationId: string): Promise<boolean>;
   assignUserToBranch(tenantId: string, userId: string, branchId: string): Promise<boolean>;
   activateUser(tenantId: string, userId: string): Promise<boolean>;

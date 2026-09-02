@@ -5,6 +5,7 @@ import cors from '@fastify/cors';
 import { isCorsOriginAllowed, type AppConfig } from '../../config/schema.js';
 import { AuthenticationService } from '../../application/services/authentication-service.js';
 import { AuthorizationService } from '../../application/services/authorization-service.js';
+import { BranchService } from '../../application/services/branch-service.js';
 import { CoreEnterpriseService } from '../../application/services/core-enterprise-service.js';
 import { LocationService } from '../../application/services/location-service.js';
 import { ModuleAccessService } from '../../application/services/module-access-service.js';
@@ -18,6 +19,7 @@ import { JwtTokenService } from '../../infrastructure/security/jwt-token-service
 import { createLogger } from '../../infrastructure/logging/logger.js';
 import healthRoutes from './routes/health.js';
 import authRoutes from './routes/auth.js';
+import branchRoutes from './routes/branch.js';
 import coreEnterpriseRoutes from './routes/core-enterprise.js';
 import locationRoutes from './routes/location.js';
 import rbacRoutes from './routes/rbac.js';
@@ -43,6 +45,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   const jwtTokenService = new JwtTokenService(config);
   const authService = new AuthenticationService(repository, passwordHasher, jwtTokenService);
   const authorizationService = new AuthorizationService(repository);
+  const branchService = new BranchService(repository);
   const coreEnterpriseService = new CoreEnterpriseService(repository);
   const locationService = new LocationService(repository);
   const moduleAccessService = new ModuleAccessService(pool);
@@ -52,6 +55,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('appConfig', config);
   app.decorate('authService', authService);
   app.decorate('authorizationService', authorizationService);
+  app.decorate('branchService', branchService);
   app.decorate('coreEnterpriseService', coreEnterpriseService);
   app.decorate('locationService', locationService);
   app.decorate('moduleAccessService', moduleAccessService);
@@ -74,6 +78,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(healthRoutes, { prefix: config.API_PREFIX });
   await app.register(authRoutes, { prefix: config.API_PREFIX });
   await app.register(rbacRoutes, { prefix: config.API_PREFIX });
+  await app.register(branchRoutes, { prefix: config.API_PREFIX });
   await app.register(coreEnterpriseRoutes, { prefix: config.API_PREFIX });
   await app.register(locationRoutes, { prefix: config.API_PREFIX });
 

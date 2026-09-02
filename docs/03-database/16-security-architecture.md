@@ -9,11 +9,11 @@ The tenant model is a single shared PostgreSQL database with tenant isolation en
 ```text
 Authenticated identity
   ↓
-Tenant resolver (hostname/custom domain or installation config)
+Tenant-scoped session / authenticated user context
   ↓
-Authorized organization membership
+Authorized organization / branch / location membership
   ↓
-Resolved tenant + organization context
+Resolved tenant + organization + branch + location context
   ↓
 TenantContext
   ↓
@@ -24,7 +24,7 @@ SET LOCAL app.current_tenant_id
 PostgreSQL RLS
 ```
 
-This ordering is mandatory. `tenant_id` and `organization_id` must not be accepted from an unauthenticated client as proof of authorization. A client-provided tenant value must never override the deployment-resolved tenant or the backend-validated membership.
+This ordering is mandatory. Tenant authority comes from the authenticated session and backend-validated user membership. Client-supplied `tenant_id`, `organization_id`, `branch_id`, or `location_id` values do not become the security boundary. The backend validates the full context tuple before it becomes active and fails closed when a combination is invalid.
 
 ## 23.7 Encryption
 - **In Transit**: Mandatory TLS 1.3 for all database connections.
@@ -43,15 +43,16 @@ Passwords must **never** be stored in the database. Use `argon2id` or `bcrypt` h
 - No shared accounts.
 - Audit logging enabled for all `SUPERUSER` actions.
 
-## 23.14 Tenant, Organization, and Location Context
+## 23.14 Tenant, Organization, Branch, and Location Context
 The project architecture requires the following domain boundaries:
 
 - **Tenant**: primary security and data-isolation boundary.
 - **Organization**: legal/business entity within the tenant.
-- **Location / Plant / Branch**: operational unit under the organization.
+- **Branch**: operational business unit under the organization.
+- **Location**: physical operating site or plant under the organization.
 - **Membership**: user-to-tenant or user-to-organization authorization relationship.
-- **Location access**: user permission to operate within specific locations.
+- **Branch access** and **Location access**: user permission to operate within specific operational contexts.
 
-Location data and location access are authorization context, not tenant replacement. A user changing working location remains within the same tenant and business organization unless the backend explicitly resolves a new organization context.
+Branch and Location are siblings under Organization. They are not parent/child and are not interchangeable. The effective working context is the complete tuple `tenantId + organizationId + branchId + locationId`. A user changing working context remains within the same tenant unless the backend explicitly resolves a different authorized tenant-scoped session. The backend is authoritative for authorization and context switching; a failed switch preserves the previous valid context.
 
-No default tenant, fallback tenant, or hardcoded tenant identifier is permitted for standard business operations. Recovery from a missing or invalid tenant context must fail closed.
+No default tenant, fallback tenant, or hardcoded tenant identifier is permitted for standard business operations. Recovery from a missing or invalid tenant context must fail closed. The migration `0006-default-location-context.sql` adds persisted default location support using `users.default_location_id` and retains a tenant-safe relationship for authorization.

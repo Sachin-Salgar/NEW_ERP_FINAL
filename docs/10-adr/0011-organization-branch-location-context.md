@@ -34,11 +34,32 @@ This is the authoritative interpretation for the current ERP:
 - A Branch is an operational business unit belonging to an Organization.
 - A Location is a physical operating site or site-level context within an Organization.
 - Branch and Location are distinct operational dimensions and are not interchangeable.
-- A Branch may represent a physical operating office or unit, but it is not a child of a Location. The ERP current data model keeps Branch and Location as sibling operational entities under Organization.
+- Branch and Location are siblings under Organization; neither is a child of the other.
 - An Organization may have multiple Branches.
 - An Organization may have multiple Locations.
 - A Location does not exist as a stand-alone root record without an Organization.
 - A Branch must belong to exactly one Organization.
+
+### Current implemented state
+
+The repository implements the working context as the four-part context tuple:
+
+```text
+tenantId
+organizationId
+branchId
+locationId
+```
+
+This is the active working context used by the authenticated session and backend-validated authorization flow. The backend is authoritative for the effective values. The client updates its session/context only after backend validation succeeds. Failed context switches preserve the previous valid context.
+
+The persisted user defaults in the current schema are:
+
+- `users.organization_id` → default Organization
+- `users.default_branch_id` → default Branch
+- `users.default_location_id` → default Location
+
+There is no `users.default_organization_id` field; `users.organization_id` already serves as the default Organization for the user and the effective organization context.
 
 ## Ownership Matrix
 
@@ -68,7 +89,7 @@ The exact numeric width is a repository implementation detail, but the format is
 
 ## Session and Authorization Context
 
-Operational business logic and transactions resolve the effective working context from the authenticated session and authorized organization/branch access:
+Operational business logic and transactions resolve the effective working context from the authenticated session and backend-validated organization/branch/location access:
 
 ```text
 Authenticated User
@@ -79,12 +100,14 @@ Authorized Organization context
   ↓
 Authorized Branch context
   ↓
+Authorized Location context
+  ↓
 Business operation
   ↓
 PostgreSQL RLS
 ```
 
-The active organization and branch context must be resolved from trusted session state and validated against the user’s access records. Client-provided `organization_id` or `branch_id` values are never accepted as the security boundary.
+The effective working context is the complete tuple `tenantId + organizationId + branchId + locationId`. The backend checks tenant membership, organization membership, branch authorization, and location authorization before the context becomes active. Client-provided tenant or context identifiers are never accepted as the security boundary. Organization selection changes which Branch and Location values are valid; Branch and Location must both belong to the selected Organization. Invalid combinations cannot become the active context.
 
 ## Consequences
 

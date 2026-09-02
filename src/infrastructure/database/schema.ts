@@ -288,6 +288,7 @@ export const users = pgTable(
     tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
     organizationId: uuid('organization_id'),
     defaultBranchId: uuid('default_branch_id'),
+    defaultLocationId: uuid('default_location_id'),
     username: varchar('username', { length: 150 }).notNull(),
     // The PostgreSQL `citext` extension is created in the migration and is required by V1.1.0.
     // Drizzle does not expose a native `citext` column builder in this version, so the app schema
@@ -323,6 +324,11 @@ export const users = pgTable(
       columns: [table.defaultBranchId, table.tenantId],
       foreignColumns: [branches.id, branches.tenantId],
       name: 'fk_user_branch_tenant',
+    }),
+    fkUserLocationTenant: foreignKey({
+      columns: [table.defaultLocationId, table.tenantId],
+      foreignColumns: [locations.id, locations.tenantId],
+      name: 'fk_user_location_tenant',
     }),
     uqUserIdTenant: uniqueIndex('uq_user_id_tenant').on(table.id, table.tenantId),
     uqTenantEmailActive: uniqueIndex('uq_tenant_email_active').on(table.tenantId, table.email).where(sql`${table.isDeleted} = false`),

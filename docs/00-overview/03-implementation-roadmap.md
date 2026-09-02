@@ -45,6 +45,9 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 - PostgreSQL RLS integration coverage for tenant isolation/rollback/pool context behavior.
 - Organization, branch/location, and user administration backend/API surfaces.
 - Server-generated immutable Organization and Branch codes with explicit branch/location hierarchy validation.
+- Organization → Branch → Location working context is implemented as the canonical active context tuple: `tenantId`, `organizationId`, `branchId`, `locationId`.
+- User defaults are persisted as `users.organization_id`, `users.default_branch_id`, and `users.default_location_id` with no separate `default_organization_id` field.
+- Branch and Location are implemented as sibling operational contexts under Organization; neither is a child of the other.
 - Flutter organization, branch, user, role, permission, dashboard, and authentication surfaces.
 - Backend RBAC and permission enforcement.
 - Flutter permission state, permission-aware navigation and route guards.
@@ -83,9 +86,10 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 |---|---|---|
 | Authentication | **IMPLEMENTED — VALIDATION PENDING** | Backend authentication, Flutter login and token/session handling exist; admin and limited-user browser E2E now pass in CI. |
 | Session management / refresh / logout | **IMPLEMENTED — VALIDATION PENDING** | Lifecycle implementation exists; broader browser refresh/session-restoration evidence remains. |
-| Organization selection | **IMPLEMENTED — VALIDATION PENDING** | Backend access/select flow and Flutter UI exist. |
-| Location/branch selection | **IMPLEMENTED — VALIDATION PENDING** | Backend access/list/select flow and Flutter UI exist. |
-| Active organization/location context | **IMPLEMENTED — VALIDATION PENDING** | Session/request context supports it; cross-layer validation remains. |
+| Organization selection | **COMPLETED** | Backend access/select flow, default user context, and Flutter working-context UI are implemented and validated in scope. |
+| Branch selection | **COMPLETED** | Branch belongs to the active Organization; branch defaults and switching are validated in backend and UI flow. |
+| Location selection | **COMPLETED** | Location belongs to the active Organization; persisted default location and selection validation are implemented. |
+| Active organization/branch/location context | **COMPLETED** | Session/request context supports the complete `tenantId + organizationId + branchId + locationId` tuple and preserves prior valid context on failed switches. |
 | Organization administration | **IMPLEMENTED — VALIDATION PENDING** | Backend lifecycle operations and Flutter module exist. |
 | Branch administration | **IMPLEMENTED — VALIDATION PENDING** | Backend lifecycle operations and Flutter module exist. |
 | User administration | **IMPLEMENTED — VALIDATION PENDING** | Backend administration and Flutter list/create/edit/details/access surfaces exist. |

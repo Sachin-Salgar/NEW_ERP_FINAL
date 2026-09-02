@@ -1,4 +1,4 @@
-import { validate as isUuid, v7 as uuidV7 } from 'uuid';
+import { v7 as uuidV7 } from 'uuid';
 
 import type { AuthenticatedUser, AuthenticationResult, SessionRecord } from '../../domain/contracts/authentication.js';
 import type { AuthenticationRepository, PasswordHasher, TokenService } from '../contracts/security.js';
@@ -55,7 +55,7 @@ export class AuthenticationService {
       ).values()];
 
       for (const candidate of uniqueCandidates) {
-        if (!candidate.tenantId || !isUuid(candidate.tenantId) || !candidate.userId || !isUuid(candidate.userId)) {
+        if (!candidate.tenantId || !candidate.userId) {
           continue;
         }
 
@@ -99,7 +99,7 @@ export class AuthenticationService {
       tenantId: resolvedTenantId,
       userId: user.id,
       organizationId: user.organizationId ?? null,
-      locationId: null,
+      locationId: user.defaultLocationId ?? null,
       branchId: user.defaultBranchId ?? null,
       accessTokenId: null,
       expiresAt: sessionExpiresAt,
@@ -122,6 +122,7 @@ export class AuthenticationService {
         id: user.id,
         tenantId: user.tenantId,
         organizationId: user.organizationId,
+        defaultLocationId: user.defaultLocationId ?? null,
         defaultBranchId: user.defaultBranchId,
         username: user.username,
         email: user.email,
@@ -133,7 +134,7 @@ export class AuthenticationService {
     };
   }
 
-  async createSessionForUser(tenantId: string, userId: string, organizationId?: string | null, locationId?: string | null): Promise<AuthenticationResult> {
+  async createSessionForUser(tenantId: string, userId: string, organizationId?: string | null, locationId?: string | null, branchId?: string | null): Promise<AuthenticationResult> {
     const user = await this.authenticationRepository.findById(tenantId, userId);
     if (!user) {
       return { success: false, reason: 'USER_NOT_FOUND' };
@@ -153,13 +154,15 @@ export class AuthenticationService {
     }) : 'internal-session-token';
 
     const effectiveOrganizationId = organizationId === undefined ? user.organizationId ?? null : organizationId;
+    const effectiveLocationId = locationId ?? user.defaultLocationId ?? null;
+    const effectiveBranchId = branchId ?? user.defaultBranchId ?? null;
     const session = await this.authenticationRepository.createSession({
       id: sessionId,
       tenantId,
       userId: user.id,
       organizationId: effectiveOrganizationId,
-      locationId: locationId ?? null,
-      branchId: user.defaultBranchId ?? null,
+      locationId: effectiveLocationId,
+      branchId: effectiveBranchId,
       accessTokenId: null,
       expiresAt: sessionExpiresAt,
       userAgent: 'erp-client',
@@ -181,13 +184,17 @@ export class AuthenticationService {
         id: user.id,
         tenantId: user.tenantId,
         organizationId: effectiveOrganizationId,
-        activeLocationId: locationId ?? session.locationId ?? null,
-        defaultBranchId: user.defaultBranchId,
+        activeLocationId: effectiveLocationId,
+        defaultLocationId: user.defaultLocationId ?? null,
+        defaultBranchId: effectiveBranchId ?? user.defaultBranchId ?? null,
         username: user.username,
         email: user.email,
         status: user.status,
       },
-      session,
+      session: {
+        ...session,
+        branchId: effectiveBranchId,
+      },
       accessToken,
       refreshToken: this.tokenService ? refreshToken : undefined,
     };
@@ -217,6 +224,7 @@ export class AuthenticationService {
       tenantId: user.tenantId,
       organizationId: session.organizationId ?? null,
       activeLocationId: session.locationId ?? null,
+      defaultLocationId: user.defaultLocationId ?? null,
       defaultBranchId: user.defaultBranchId,
       username: user.username,
       email: user.email,
@@ -229,7 +237,7 @@ export class AuthenticationService {
   }
 }
 
-export const createAuthenticatedUser = (user: { id: string; tenantId: string; organizationId?: string | null; defaultBranchId?: string | null; username: string; email: string; status: string }): AuthenticatedUser => ({
+export const createAuthenticatedUser = (user: { id: string; tenantId: string; organizationId?: string | null; defaultLocationId?: string | null; defaultBranchId?: string | null; username: string; email: string; status: string }): AuthenticatedUser => ({
   ...user,
 });
 

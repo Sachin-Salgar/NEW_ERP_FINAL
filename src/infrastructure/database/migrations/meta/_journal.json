@@ -43,6 +43,13 @@
       "when": 1759990000000,
       "tag": "0005-code-counters",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1760000000000,
+      "tag": "0006-default-location-context",
+      "breakpoints": true
     }
   ]
 }

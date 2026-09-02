@@ -17,6 +17,7 @@ declare module 'fastify' {
     appConfig: AppConfig;
     authService: AuthenticationService;
     authorizationService: AuthorizationService;
+    branchService: import('../../../application/services/branch-service.js').BranchService;
     coreEnterpriseService: CoreEnterpriseService;
     locationService: LocationService;
     moduleAccessService: ModuleAccessService;

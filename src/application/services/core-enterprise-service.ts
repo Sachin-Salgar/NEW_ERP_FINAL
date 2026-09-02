@@ -179,7 +179,7 @@ export class CoreEnterpriseService {
     return this.repository.getUserById(tenantId, userId.trim());
   }
 
-  async updateUser(tenantId: string, userId: string, changes: Partial<Pick<UserAdminRecord, 'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'status'>>): Promise<UserAdminRecord | null> {
+  async updateUser(tenantId: string, userId: string, changes: Partial<Pick<UserAdminRecord, 'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'defaultLocationId' | 'status'>>): Promise<UserAdminRecord | null> {
     this.ensureTenantContext(tenantId);
     if (!userId || !userId.trim()) {
       throw new ValidationError('User ID is required.');
@@ -204,8 +204,11 @@ export class CoreEnterpriseService {
     if (typeof payload.defaultBranchId === 'string' && !payload.defaultBranchId.trim()) {
       payload.defaultBranchId = null;
     }
+    if (typeof payload.defaultLocationId === 'string' && !payload.defaultLocationId.trim()) {
+      payload.defaultLocationId = null;
+    }
 
-    return this.repository.updateUser(tenantId, userId.trim(), payload as Partial<Pick<UserAdminRecord, 'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'status'>>);
+    return this.repository.updateUser(tenantId, userId.trim(), payload as Partial<Pick<UserAdminRecord, 'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'defaultLocationId' | 'status'>>);
   }
 
   async assignUserToOrganization(tenantId: string, userId: string, organizationId: string): Promise<boolean> {

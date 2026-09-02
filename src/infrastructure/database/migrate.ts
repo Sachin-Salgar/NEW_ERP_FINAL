@@ -77,6 +77,9 @@ const migrationChecks: Record<string, (client: Client) => Promise<boolean>> = {
   '0005-code-counters': async (client) =>
     (await tableExists(client, 'code_counters')) &&
     (await policyExists(client, 'code_counters', 'code_counters_tenant_isolation_policy')),
+  '0006-default-location-context': async (client) =>
+    (await columnExists(client, 'users', 'default_location_id')) &&
+    (await constraintExists(client, 'users', 'fk_user_location_tenant')),
 };
 
 async function tableExists(client: Client, tableName: string): Promise<boolean> {
@@ -147,6 +150,20 @@ async function policyExists(client: Client, tableName: string, policyName: strin
          AND policyname = $2
      ) AS exists;`,
     [tableName, policyName],
+  );
+  return result.rows[0]?.exists ?? false;
+}
+
+async function constraintExists(client: Client, tableName: string, constraintName: string): Promise<boolean> {
+  const result = await client.query<{ exists: boolean }>(
+    `SELECT EXISTS (
+       SELECT 1
+       FROM information_schema.table_constraints
+       WHERE table_schema = 'public'
+         AND table_name = $1
+         AND constraint_name = $2
+     ) AS exists;`,
+    [tableName, constraintName],
   );
   return result.rows[0]?.exists ?? false;
 }

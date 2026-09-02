@@ -15,6 +15,12 @@ async function buildAuthApp(overrides: { tenantMembershipService?: any; authServ
   app.decorate('tenantMembershipService', overrides.tenantMembershipService ?? {
     resolveOrganizationMemberships: vi.fn(async () => ({ organizations: [], activeOrganizationId: null, requiresOrganizationSelection: false })),
   });
+  app.decorate('branchService', {
+    getAccessibleBranchByIdForUser: vi.fn(async () => null),
+  } as any);
+  app.decorate('locationService', {
+    getAccessibleLocationByIdForUser: vi.fn(async () => null),
+  } as any);
   app.decorate('authService', overrides.authService ?? {
     validateSession: vi.fn(async () => null),
     createSessionForUser: vi.fn(),

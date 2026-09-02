@@ -340,6 +340,94 @@ void main() {
       expect(auth.requiresOrganizationSelection, isFalse);
     });
 
+    test('AuthService validates a consistent organization branch location context before updating session state', () async {
+      final storage = _MemorySecureStorage();
+      final client = MockClient((request) {
+        if (request.url.path == '/api/v1/auth/login') {
+          return Future.value(
+            http.Response(
+              jsonEncode({
+                'accessToken': 'test-access-token',
+                'refreshToken': 'refresh-token',
+                'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
+                'user': {'id': 'user-1', 'tenantId': 'tenant-1'},
+                'session': {'tenantId': 'tenant-1', 'organizationId': 'org-1', 'branchId': 'branch-1', 'locationId': 'loc-1'},
+              }),
+              200,
+            ),
+          );
+        }
+        if (request.url.path == '/api/v1/auth/organizations') {
+          return Future.value(
+            http.Response(
+              jsonEncode({
+                'organizations': [
+                  {'id': 'org-1', 'name': 'Org 1', 'code': 'ORG1'},
+                ],
+                'activeOrganizationId': 'org-1',
+                'requiresOrganizationSelection': false,
+              }),
+              200,
+            ),
+          );
+        }
+        if (request.url.path == '/api/v1/auth/context/select') {
+          final body = jsonDecode(request.body);
+          expect(body['organizationId'], 'org-1');
+          expect(['branch-1', 'branch-2'].contains(body['branchId']), isTrue);
+          expect(['loc-1', 'loc-2'].contains(body['locationId']), isTrue);
+          return Future.value(
+            http.Response(
+              jsonEncode({
+                'success': true,
+                'user': {'id': 'user-1', 'tenantId': 'tenant-1', 'organizationId': body['organizationId'], 'defaultBranchId': body['branchId'], 'defaultLocationId': body['locationId']},
+                'session': {'tenantId': 'tenant-1', 'organizationId': body['organizationId'], 'branchId': body['branchId'], 'locationId': body['locationId']},
+                'accessToken': 'context-token',
+                'refreshToken': 'context-refresh',
+                'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
+              }),
+              200,
+            ),
+          );
+        }
+        if (request.url.path == '/api/v1/auth/modules') {
+          return Future.value(http.Response(jsonEncode({'modules': []}), 200));
+        }
+        return Future.value(http.Response('ok', 200));
+      });
+
+      late final AuthService auth;
+      auth = AuthService(
+        secureStorage: storage,
+        apiClientFactory: (baseUrl) => ApiClient(baseUrl: baseUrl, httpClient: client, authOverride: auth),
+      );
+
+      final loginOk = await auth.login('http://example.com', 'user@example.com', 'Password123');
+      expect(loginOk, isTrue);
+
+      auth.availableBranches = [
+        {'id': 'branch-1', 'name': 'Branch 1', 'code': 'BR1'},
+        {'id': 'branch-2', 'name': 'Branch 2', 'code': 'BR2'},
+      ];
+      auth.availableLocations = [
+        {'id': 'loc-1', 'name': 'Location 1', 'code': 'L1'},
+        {'id': 'loc-2', 'name': 'Location 2', 'code': 'L2'},
+      ];
+      auth.currentBranchId = 'branch-1';
+      auth.selectedBranchId = 'branch-1';
+      auth.currentLocationId = 'loc-1';
+      auth.selectedLocationId = 'loc-1';
+
+      final branchOk = await auth.selectBranch('branch-2');
+      expect(branchOk, isTrue);
+      expect(auth.currentBranchId, 'branch-2');
+
+      final locationOk = await auth.selectLocation('loc-2');
+      expect(locationOk, isTrue);
+      expect(auth.currentLocationId, 'loc-2');
+      expect(auth.currentOrganizationId, 'org-1');
+    });
+
     testWidgets('AppRouter redirects authenticated users to the correct selection flow', (tester) async {
       final storage = _MemorySecureStorage();
       final client = MockClient((request) {
