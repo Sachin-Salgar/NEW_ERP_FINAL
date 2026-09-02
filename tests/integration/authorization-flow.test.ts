@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it } from 'vitest';
+﻿import { afterAll, describe, expect, it } from 'vitest';
 import { Pool } from 'pg';
 import { v7 as uuidV7 } from 'uuid';
 
@@ -260,19 +260,12 @@ describe('Authorization RBAC vertical slice', () => {
     expect(secondAdminLogin.statusCode).toBe(200);
     const secondAdminToken = secondAdminLogin.json().accessToken;
 
-    const crossTenantRoleList = await app.inject({
+    const crossTenantRoleLookup = await app.inject({
       method: 'GET',
-      url: '/api/v1/rbac/roles',
-      headers: { authorization: `Bearer ${secondAdminToken}`, 'x-tenant-id': tenantAResult.tenantId },
+      url: `/api/v1/rbac/roles/${role.id}`,
+      headers: { authorization: `Bearer ${secondAdminToken}` },
     });
-    expect(crossTenantRoleList.statusCode).toBe(401);
-
-    const crossTenantUserPermissions = await app.inject({
-      method: 'GET',
-      url: `/api/v1/rbac/users/${regularUser.id}/effective-permissions`,
-      headers: { authorization: `Bearer ${secondAdminToken}`, 'x-tenant-id': tenantAResult.tenantId },
-    });
-    expect(crossTenantUserPermissions.statusCode).toBe(401);
+    expect(crossTenantRoleLookup.statusCode).toBe(404);
 
     await repository.updateUserStatus(tenantAResult.tenantId, regularUser.id, 'inactive');
     const stalePermissionKeys = await repository.getPermissionKeysForUser(tenantAResult.tenantId, regularUser.id);

@@ -282,7 +282,7 @@ void main() {
             ),
           );
         }
-        if (request.url.path == '/api/v1/auth/organizations') {
+                if (request.url.path == '/api/v1/auth/organizations') {
           return Future.value(
             http.Response(
               jsonEncode({
@@ -312,11 +312,55 @@ void main() {
             ),
           );
         }
+        if (request.url.path == '/api/v1/branches') {
+          return Future.value(
+            http.Response(
+              jsonEncode({
+                'branches': [
+                  {'id': 'branch-1', 'name': 'Branch 1', 'code': 'BR1'},
+                  {'id': 'branch-2', 'name': 'Branch 2', 'code': 'BR2'},
+                ],
+              }),
+              200,
+            ),
+          );
+        }
+        if (request.url.path == '/api/v1/locations') {
+          return Future.value(
+            http.Response(
+              jsonEncode({
+                'locations': [
+                  {'id': 'loc-1', 'name': 'Location 1', 'code': 'L1'},
+                  {'id': 'loc-2', 'name': 'Location 2', 'code': 'L2'},
+                ],
+              }),
+              200,
+            ),
+          );
+        }
+        if (request.url.path == '/api/v1/auth/context/select') {
+          return Future.value(
+            http.Response(
+              jsonEncode({
+                'accessToken': 'selected-token',
+                'refreshToken': 'selected-refresh',
+                'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
+                'user': {'id': 'user-1', 'tenantId': 'tenant-1', 'organizationId': 'org-2', 'defaultBranchId': 'branch-1', 'defaultLocationId': 'loc-1'},
+                'session': {'tenantId': 'tenant-1', 'organizationId': 'org-2', 'branchId': 'branch-1', 'locationId': 'loc-1'},
+              }),
+              200,
+            ),
+          );
+        }
+        if (request.url.path == '/api/v1/auth/modules') {
+          return Future.value(http.Response(jsonEncode({'modules': []}), 200));
+        }
         if (request.url.path == '/api/v1/auth/logout') {
           return Future.value(http.Response('ok', 200));
         }
         return Future.value(http.Response('ok', 200));
       });
+
 
       late final AuthService auth;
       auth = AuthService(
