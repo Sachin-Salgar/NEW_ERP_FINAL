@@ -26,10 +26,15 @@ class ProfileContextMenu extends StatelessWidget {
                 .toString();
         final email = (user['email'] ?? '').toString();
         final currentOrg = auth.currentOrganizationId;
+        final currentBranch = auth.currentBranchId;
         final currentLocation = auth.currentLocationId;
         final orgLabel = auth.availableOrganizations
             .where((o) => (o['id'] ?? '').toString() == currentOrg)
             .map((o) => (o['name'] ?? o['code'] ?? currentOrg).toString())
+            .firstOrNull;
+        final branchLabel = auth.availableBranches
+            .where((b) => (b['id'] ?? '').toString() == currentBranch)
+            .map((b) => (b['name'] ?? b['code'] ?? currentBranch).toString())
             .firstOrNull;
         final locationLabel = auth.availableLocations
             .where((l) => (l['id'] ?? '').toString() == currentLocation)
@@ -42,6 +47,8 @@ class ProfileContextMenu extends StatelessWidget {
           onSelected: (value) async {
             if (value.startsWith('org:')) {
               await auth.selectOrganization(value.substring(4));
+            } else if (value.startsWith('branch:')) {
+              await auth.selectBranch(value.substring(6));
             } else if (value.startsWith('location:')) {
               await auth.selectLocation(value.substring(9));
             } else if (value == 'theme') {
@@ -96,7 +103,7 @@ class ProfileContextMenu extends StatelessWidget {
             if (auth.availableOrganizations.isNotEmpty)
               PopupMenuItem<String>(
                 enabled: false,
-                child: Text('Organisation: ${orgLabel ?? 'Not selected'}'),
+                child: Text('Organization: ${orgLabel ?? 'Not selected'}'),
               ),
             ...auth.availableOrganizations.map((org) {
               final id = (org['id'] ?? '').toString();
@@ -107,6 +114,31 @@ class ProfileContextMenu extends StatelessWidget {
                   children: [
                     Icon(
                       id == currentOrg ? Icons.check : Icons.business_outlined,
+                      size: 19,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(label, overflow: TextOverflow.ellipsis),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            const PopupMenuDivider(),
+            if (auth.availableBranches.isNotEmpty)
+              PopupMenuItem<String>(
+                enabled: false,
+                child: Text('Branch: ${branchLabel ?? 'Not selected'}'),
+              ),
+            ...auth.availableBranches.map((branch) {
+              final id = (branch['id'] ?? '').toString();
+              final label = (branch['name'] ?? branch['code'] ?? id).toString();
+              return PopupMenuItem<String>(
+                value: 'branch:$id',
+                child: Row(
+                  children: [
+                    Icon(
+                      id == currentBranch ? Icons.check : Icons.account_tree_outlined,
                       size: 19,
                     ),
                     const SizedBox(width: 10),

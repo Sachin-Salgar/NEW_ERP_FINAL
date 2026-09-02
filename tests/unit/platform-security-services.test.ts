@@ -21,6 +21,10 @@ class FakeTenantBootstrapRepository {
 }
 
 class FakeAuthRepository {
+  async findLoginCandidates() {
+    return [{ tenantId: 'tenant-1', userId: 'user-1' }];
+  }
+
   async findByTenantAndIdentifier() {
     return {
       id: 'user-1',
@@ -132,6 +136,10 @@ class FakeAuthRepository {
   async invalidateSession() {
     return undefined;
   }
+
+  async assignUserToOrganization() {
+    return true;
+  }
 }
 
 class FakeAuthorizationRepository {
@@ -149,10 +157,12 @@ class FakeAuthorizationRepository {
   async listPermissions() { return []; }
   async assignPermissionsToRole() { return 0; }
   async removePermissionsFromRole() { return 0; }
+  async replacePermissionsForRole() { return 0; }
   async getPermissionsForRole() { return []; }
   async assignRoleToUser() { return false; }
   async revokeRoleFromUser() { return false; }
   async getUserEffectivePermissions() { return []; }
+  async assignUserToOrganization() { return true; }
 }
 
 describe('Phase 2 platform security services', () => {

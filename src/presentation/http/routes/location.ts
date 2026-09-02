@@ -61,7 +61,7 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
     const organizationId = asString(body?.organizationId) ?? request.user.organizationId ?? '';
     if (!organizationId) throw new ValidationError('Organization context is required.');
     const location = await request.server.locationService.createLocation(request.tenantId, organizationId, {
-      code: asString(body?.code) ?? '', name: asString(body?.name) ?? '', description: typeof body?.description === 'string' ? body.description : null,
+      name: asString(body?.name) ?? '', description: typeof body?.description === 'string' ? body.description : null,
       status: typeof body?.status === 'string' ? (body.status as 'active' | 'inactive' | 'archived') : 'active', isDefault: typeof body?.isDefault === 'boolean' ? body.isDefault : false,
       addressLine1: typeof body?.addressLine1 === 'string' ? body.addressLine1 : null, addressLine2: typeof body?.addressLine2 === 'string' ? body.addressLine2 : null,
       city: typeof body?.city === 'string' ? body.city : null, state: typeof body?.state === 'string' ? body.state : null, country: typeof body?.country === 'string' ? body.country : null,
@@ -78,7 +78,7 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
     const currentLocation = await request.server.locationService.getAccessibleLocationByIdForUser(request.tenantId, request.user.id, locationId, request.user.organizationId ?? null);
     if (!currentLocation) throw new NotFoundError('Location not found or access denied.');
     const location = await request.server.locationService.updateLocation(request.tenantId, currentLocation.organizationId, locationId, {
-      code: typeof body?.code === 'string' ? body.code : undefined, name: typeof body?.name === 'string' ? body.name : undefined,
+      name: typeof body?.name === 'string' ? body.name : undefined,
       description: typeof body?.description === 'string' ? body.description : body?.description === null ? null : undefined,
       status: typeof body?.status === 'string' ? (body.status as 'active' | 'inactive' | 'archived') : undefined,
       isDefault: typeof body?.isDefault === 'boolean' ? body.isDefault : undefined,

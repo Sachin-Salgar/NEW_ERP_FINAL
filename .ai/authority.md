@@ -32,7 +32,7 @@ Tenant-scoped Session
   ↓
 TenantContext
   ↓
-Working Context: Organisation → Location
+Working Context: Tenant + Organization + Branch + Location
   ↓
 Authorization
   ↓
@@ -43,20 +43,21 @@ SET LOCAL app.current_tenant_id
 PostgreSQL RLS
 ```
 
-The tenant is established by authenticated identity and remains fixed for the session. Organisation and location are post-login working context within that tenant.
+The tenant is established by authenticated identity and remains fixed for the session. Organization, Branch, and Location are post-login working context within that tenant. Branch and Location are siblings under Organization; they are not parent/child.
 
 ### Authentication / working-context UX contract
 
 - The configured API URL is connectivity configuration only and is never tenant authority.
 - Successful login goes directly to Dashboard.
-- The user's configured default organisation and default location are applied when available.
+- The user's configured default organization, branch, and location are applied when available.
 - Missing defaults do not block login and do not cause a selection-screen gate.
-- Organisation and location are switched from the authenticated Profile / Working Context menu.
-- No standalone organisation-selection or location-selection screen is part of the login flow.
-- Switching organisation reloads authorized locations and effective permissions for the new organisation.
-- A selected location must belong to / be authorized within the active organisation.
+- Organization, Branch, and Location are switched from the authenticated Profile / Working Context menu.
+- No standalone organization-selection, branch-selection, or location-selection screen is part of the login flow.
+- Switching organization reloads valid branches and locations and effective permissions for the new organization.
+- A selected branch and location must both belong to and be authorized within the active organization.
 - Working-context changes can never change the authenticated tenant.
 - Web and mobile clients connect to the configured ERP backend endpoint and never directly to PostgreSQL.
+- There is no `default_organization_id` field; `users.organization_id` already serves as the user's default Organization.
 
 Deployment URL/API endpoint is connectivity configuration only. Hostname, custom domain, deployment configuration, or client-supplied tenant identifiers must not be treated as authoritative tenant identity.
 

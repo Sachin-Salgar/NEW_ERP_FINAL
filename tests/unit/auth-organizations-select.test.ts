@@ -15,16 +15,59 @@ async function buildAuthApp(overrides: { tenantMembershipService?: any; authServ
   app.decorate('tenantMembershipService', overrides.tenantMembershipService ?? {
     resolveOrganizationMemberships: vi.fn(async () => ({ organizations: [], activeOrganizationId: null, requiresOrganizationSelection: false })),
   });
+  app.decorate('branchService', {
+    getAccessibleBranchByIdForUser: vi.fn(async () => null),
+  } as any);
+  app.decorate('locationService', {
+    getAccessibleLocationByIdForUser: vi.fn(async () => null),
+  } as any);
   app.decorate('authService', overrides.authService ?? {
     validateSession: vi.fn(async () => null),
     createSessionForUser: vi.fn(),
   });
   app.decorate('jwtTokenService', {
+    config: { JWT_SECRET: 'test-jwt-secret-1234567890abcd', JWT_ISSUER: 'new-erp-final' },
+    createAccessToken: vi.fn(() => 'access-token'),
+    createRefreshToken: vi.fn(() => 'refresh-token'),
     verifyAccessToken: vi.fn((token: string) => {
-      if (token === 'valid-session-t1') return { sessionId: 'session-1', tenantId: 'tenant-1', userId: 'user-1' };
+      if (token === 'valid-session-t1') {
+        return {
+          sub: 'user-1',
+          tenantId: 'tenant-1',
+          sessionId: 'session-1',
+          tokenType: 'access' as const,
+          iss: 'new-erp-final',
+          iat: Math.floor(Date.now() / 1000),
+          exp: Math.floor(Date.now() / 1000) + 3600,
+        } as any;
+      }
       throw new UnauthorizedError('Invalid token.');
     }),
-  });
+    verifyRefreshToken: vi.fn(() => ({
+      sub: 'user-1',
+      tenantId: 'tenant-1',
+      sessionId: 'session-1',
+      tokenType: 'refresh' as const,
+      iss: 'new-erp-final',
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    })),
+    verifyToken: vi.fn((token: string) => {
+      if (token === 'valid-session-t1') {
+        return {
+          sub: 'user-1',
+          tenantId: 'tenant-1',
+          sessionId: 'session-1',
+          tokenType: 'access' as const,
+          iss: 'new-erp-final',
+          iat: Math.floor(Date.now() / 1000),
+          exp: Math.floor(Date.now() / 1000) + 3600,
+        } as any;
+      }
+      throw new UnauthorizedError('Invalid token.');
+    }),
+    hashTokenValue: vi.fn((token: string) => `hash:${token}`),
+  } as any);
   await app.register(authRoutes, { prefix: '/api/v1' });
   await app.ready();
   return app;

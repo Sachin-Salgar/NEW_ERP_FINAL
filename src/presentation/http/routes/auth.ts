@@ -1,13 +1,14 @@
 import { FastifyPluginAsync } from 'fastify';
 
-import { ValidationError, UnauthorizedError } from '../../../domain/errors.js';
+import { ValidationError, UnauthorizedError, ForbiddenError } from '../../../domain/errors.js';
 import { requireAuth, requirePermission } from '../middleware/auth.js';
 
-const sanitizeUser = (user: { id: string; tenantId: string; organizationId?: string | null; activeLocationId?: string | null; defaultBranchId?: string | null; username: string; email: string; status: string }) => ({
+const sanitizeUser = (user: { id: string; tenantId: string; organizationId?: string | null; activeLocationId?: string | null; defaultLocationId?: string | null; defaultBranchId?: string | null; username: string; email: string; status: string }) => ({
   id: user.id,
   tenantId: user.tenantId,
   organizationId: user.organizationId ?? null,
   activeLocationId: user.activeLocationId ?? null,
+  defaultLocationId: user.defaultLocationId ?? null,
   defaultBranchId: user.defaultBranchId ?? null,
   username: user.username,
   email: user.email,
@@ -45,6 +46,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       password: typeof body?.password === 'string' ? body.password : '',
       organizationId: typeof body?.organizationId === 'string' ? body.organizationId : request.user?.organizationId ?? null,
       defaultBranchId: typeof body?.defaultBranchId === 'string' ? body.defaultBranchId : request.user?.defaultBranchId ?? null,
+      defaultLocationId: typeof body?.defaultLocationId === 'string' ? body.defaultLocationId : request.user?.defaultLocationId ?? null,
       roleCode: typeof body?.roleCode === 'string' ? body.roleCode : 'member',
     });
     reply.code(201);
@@ -121,6 +123,40 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     if (!result.success || !result.user || !result.session) throw new UnauthorizedError('Failed to create organization session.');
     reply.code(200);
     return { success: true, user: sanitizeUser(result.user), session: sanitizeSession(result.session), accessToken: result.accessToken, refreshToken: result.refreshToken, expiresAt: result.session.expiresAt, tokenType: 'bearer' };
+  });
+
+  fastify.post('/auth/context/select', { preHandler: requireAuth }, async (request, reply) => {
+    if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication required.');
+    const body = request.body as Record<string, unknown> | undefined;
+    const organizationId = typeof body?.organizationId === 'string' ? body.organizationId.trim() : request.user.organizationId ?? '';
+    const branchId = typeof body?.branchId === 'string' ? body.branchId.trim() : request.user.defaultBranchId ?? '';
+    const locationId = typeof body?.locationId === 'string' ? body.locationId.trim() : request.user.activeLocationId ?? request.user.defaultLocationId ?? '';
+
+    if (!organizationId) return reply.code(400).send({ success: false, message: 'organizationId is required' });
+    if (!branchId) return reply.code(400).send({ success: false, message: 'branchId is required' });
+    if (!locationId) return reply.code(400).send({ success: false, message: 'locationId is required' });
+
+    await request.server.tenantMembershipService.resolveOrganizationMemberships(request.tenantId, request.user.id, organizationId);
+    const branch = await request.server.branchService.getAccessibleBranchByIdForUser(request.tenantId, request.user.id, branchId, organizationId);
+    if (!branch) throw new ForbiddenError('Branch is not available for the selected organization.');
+    const location = await request.server.locationService.getAccessibleLocationByIdForUser(request.tenantId, request.user.id, locationId, organizationId);
+    if (!location) throw new ForbiddenError('Location is not available for the selected organization.');
+
+    const result = await request.server.authService.createSessionForUser(request.tenantId, request.user.id, organizationId, location.id, branch.id);
+    if (!result.success || !result.user || !result.session) throw new UnauthorizedError('Failed to establish the selected working context.');
+
+    reply.code(200);
+    return {
+      success: true,
+      user: sanitizeUser(result.user),
+      session: sanitizeSession(result.session),
+      branch,
+      location,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      expiresAt: result.session.expiresAt,
+      tokenType: 'bearer',
+    };
   });
 
   fastify.get('/auth/modules', { preHandler: requireAuth }, async (request) => {

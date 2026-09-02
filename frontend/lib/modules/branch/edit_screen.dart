@@ -57,7 +57,6 @@ class _EditBranchScreenState extends State<EditBranchScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
     final ok = await service.updateBranch(widget.organizationId, widget.branchId, {
-      'code': _code.text.trim(),
       'name': _name.text.trim(),
       'city': _city.text.trim(),
     });

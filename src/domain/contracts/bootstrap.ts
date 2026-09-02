@@ -44,7 +44,7 @@ export interface TenantBootstrapInput {
   };
   organization: {
     id?: string;
-    code: string;
+    code?: string;
     name: string;
     legalName?: string | null;
     email?: string | null;
@@ -57,7 +57,7 @@ export interface TenantBootstrapInput {
   };
   branch: {
     id?: string;
-    code: string;
+    code?: string;
     name: string;
     status?: 'active' | 'inactive' | 'archived';
     isHeadOffice?: boolean;

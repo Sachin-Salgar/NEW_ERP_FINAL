@@ -16,7 +16,6 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
 
     const body = request.body as Record<string, unknown> | undefined;
     const organization = await request.server.coreEnterpriseService.createOrganization(tenantId, {
-      code: asString(body?.code) ?? undefined,
       name: asString(body?.name) ?? undefined,
       legalName: asString(body?.legalName) ?? undefined,
       gstNo: asString(body?.gstNo) ?? undefined,
@@ -117,7 +116,6 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
     const body = request.body as Record<string, unknown> | undefined;
     const organizationId = asString((request.params as { organizationId?: string }).organizationId) ?? '';
     const branch = await request.server.coreEnterpriseService.createBranch(tenantId, organizationId, {
-      code: asString(body?.code) ?? undefined,
       name: asString(body?.name) ?? undefined,
       status: typeof body?.status === 'string' ? (body.status as 'active' | 'inactive' | 'archived') : 'active',
       isHeadOffice: typeof body?.isHeadOffice === 'boolean' ? body.isHeadOffice : false,

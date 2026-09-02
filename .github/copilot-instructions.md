@@ -61,13 +61,15 @@ For tenancy/authentication work, follow ADR-0006 and the roadmap's current tenan
 - The configured API URL identifies the ERP backend only; it is never tenant authority.
 - Successful authentication establishes the tenant from the authenticated tenant-scoped user account/session.
 - Login MUST go directly to Dashboard after successful authentication.
-- Organisation and Location are post-login working context, not authentication gates.
-- A user's configured default organisation and default location are applied when available; missing defaults must not block login or create a selection-screen gate.
-- Organisation and Location are changed from the authenticated Profile / Working Context menu.
-- There must be no standalone organisation-selection or location-selection screen in the login flow.
-- Organisation switching must reload valid locations and effective permissions for the newly active organisation.
-- A location must be authorized for the active organisation.
-- Switching organisation or location must never change the authenticated tenant.
+- Organization, Branch, and Location are post-login working context, not authentication gates.
+- A user's configured default organization, default branch, and default location are applied when available; missing defaults must not block login or create a selection-screen gate.
+- Organization, Branch, and Location are changed from the authenticated Profile / Working Context menu.
+- There must be no standalone organization-selection, branch-selection, or location-selection screen in the login flow.
+- Organization switching must reload valid branches and locations and effective permissions for the newly active organization.
+- A branch and location must both be authorized for the active organization.
+- Switching organization, branch, or location must never change the authenticated tenant.
+- Branch and Location are siblings under Organization; they are not parent/child.
+- There is no `default_organization_id` field; `users.organization_id` already serves as the user's default Organization.
 - Mobile and on-premises web clients connect to the configured ERP backend endpoint; they never connect directly to PostgreSQL.
 - PostgreSQL RLS remains the final tenant-isolation boundary.
 

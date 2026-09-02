@@ -31,11 +31,10 @@ export class CoreEnterpriseService {
   async createOrganization(tenantId: string, input: Partial<Pick<OrganizationRecord, 'code' | 'name' | 'legalName' | 'gstNo' | 'panNo' | 'cinNo' | 'email' | 'phone' | 'website' | 'baseCurrency' | 'fiscalCalendar' | 'status' | 'isDefault' | 'remarks'>>): Promise<OrganizationRecord> {
     this.ensureTenantContext(tenantId);
 
-    const code = this.normalizeCode(input.code ?? null, 'Organization code');
     const name = this.normalizeName(input.name ?? null, 'Organization name');
 
     return this.repository.createOrganization(tenantId, {
-      code,
+      code: input.code ?? undefined,
       name,
       legalName: input.legalName ?? null,
       gstNo: input.gstNo ?? null,
@@ -73,7 +72,7 @@ export class CoreEnterpriseService {
 
     const payload: Record<string, unknown> = { ...changes };
     if (typeof payload.code === 'string') {
-      payload.code = this.normalizeCode(payload.code, 'Organization code');
+      throw new ValidationError('Organization code is generated server-side and cannot be modified.');
     }
     if (typeof payload.name === 'string') {
       payload.name = this.normalizeName(payload.name, 'Organization name');
@@ -97,11 +96,10 @@ export class CoreEnterpriseService {
       throw new ValidationError('Organization ID is required.');
     }
 
-    const code = this.normalizeCode(input.code ?? null, 'Branch code');
     const name = this.normalizeName(input.name ?? null, 'Branch name');
 
     return this.repository.createBranch(tenantId, normalizedOrganizationId, {
-      code,
+      code: input.code ?? undefined,
       name,
       status: input.status ?? 'active',
       isHeadOffice: input.isHeadOffice ?? false,
@@ -148,7 +146,7 @@ export class CoreEnterpriseService {
 
     const payload: Record<string, unknown> = { ...changes };
     if (typeof payload.code === 'string') {
-      payload.code = this.normalizeCode(payload.code, 'Branch code');
+      throw new ValidationError('Branch code is generated server-side and cannot be modified.');
     }
     if (typeof payload.name === 'string') {
       payload.name = this.normalizeName(payload.name, 'Branch name');
@@ -181,7 +179,7 @@ export class CoreEnterpriseService {
     return this.repository.getUserById(tenantId, userId.trim());
   }
 
-  async updateUser(tenantId: string, userId: string, changes: Partial<Pick<UserAdminRecord, 'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'status'>>): Promise<UserAdminRecord | null> {
+  async updateUser(tenantId: string, userId: string, changes: Partial<Pick<UserAdminRecord, 'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'defaultLocationId' | 'status'>>): Promise<UserAdminRecord | null> {
     this.ensureTenantContext(tenantId);
     if (!userId || !userId.trim()) {
       throw new ValidationError('User ID is required.');
@@ -206,8 +204,11 @@ export class CoreEnterpriseService {
     if (typeof payload.defaultBranchId === 'string' && !payload.defaultBranchId.trim()) {
       payload.defaultBranchId = null;
     }
+    if (typeof payload.defaultLocationId === 'string' && !payload.defaultLocationId.trim()) {
+      payload.defaultLocationId = null;
+    }
 
-    return this.repository.updateUser(tenantId, userId.trim(), payload as Partial<Pick<UserAdminRecord, 'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'status'>>);
+    return this.repository.updateUser(tenantId, userId.trim(), payload as Partial<Pick<UserAdminRecord, 'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'defaultLocationId' | 'status'>>);
   }
 
   async assignUserToOrganization(tenantId: string, userId: string, organizationId: string): Promise<boolean> {
@@ -261,6 +262,9 @@ export class CoreEnterpriseService {
   }
 
   generateCode(prefix: string): string {
-    return `${prefix}-${uuidV7().slice(0, 8)}`;
+    const normalizedPrefix = (prefix ?? '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6) || 'CODE';
+    const next = Math.max(1, Math.floor((Date.now() % 999999) + 1));
+    const width = normalizedPrefix.startsWith('BR') ? 3 : 6;
+    return `${normalizedPrefix}${String(next).padStart(width, '0')}`;
   }
 }

@@ -5,6 +5,7 @@ export interface AuthenticatedUser {
   tenantId: string;
   organizationId?: string | null;
   activeLocationId?: string | null;
+  defaultLocationId?: string | null;
   defaultBranchId?: string | null;
   username: string;
   email: string;

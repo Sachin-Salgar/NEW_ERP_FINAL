@@ -13,7 +13,6 @@ class CreateOrganizationScreen extends StatefulWidget {
 
 class _CreateOrganizationScreenState extends State<CreateOrganizationScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _code = TextEditingController();
   final _name = TextEditingController();
   final _legalName = TextEditingController();
 
@@ -32,7 +31,6 @@ class _CreateOrganizationScreenState extends State<CreateOrganizationScreen> {
 
   @override
   void dispose() {
-    _code.dispose();
     _name.dispose();
     _legalName.dispose();
     super.dispose();
@@ -47,7 +45,6 @@ class _CreateOrganizationScreenState extends State<CreateOrganizationScreen> {
     });
 
     final success = await service.createOrganization({
-      'code': _code.text.trim(),
       'name': _name.text.trim(),
       'legalName': _legalName.text.trim(),
     });
@@ -111,14 +108,6 @@ class _CreateOrganizationScreenState extends State<CreateOrganizationScreen> {
                             const SizedBox(height: 20),
                             LayoutBuilder(
                               builder: (context, constraints) {
-                                final codeField = TextFormField(
-                                  controller: _code,
-                                  decoration: const InputDecoration(labelText: 'Code'),
-                                  validator: (value) =>
-                                      value == null || value.trim().isEmpty
-                                          ? 'Code is required.'
-                                          : null,
-                                );
                                 final nameField = TextFormField(
                                   controller: _name,
                                   decoration: const InputDecoration(labelText: 'Name'),
@@ -131,8 +120,6 @@ class _CreateOrganizationScreenState extends State<CreateOrganizationScreen> {
                                 if (constraints.maxWidth < 600) {
                                   return Column(
                                     children: [
-                                      codeField,
-                                      const SizedBox(height: 18),
                                       nameField,
                                     ],
                                   );
@@ -140,8 +127,6 @@ class _CreateOrganizationScreenState extends State<CreateOrganizationScreen> {
 
                                 return Row(
                                   children: [
-                                    Expanded(child: codeField),
-                                    const SizedBox(width: 18),
                                     Expanded(child: nameField),
                                   ],
                                 );

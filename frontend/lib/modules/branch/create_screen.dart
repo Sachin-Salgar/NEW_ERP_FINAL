@@ -14,7 +14,6 @@ class CreateBranchScreen extends StatefulWidget {
 
 class _CreateBranchScreenState extends State<CreateBranchScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _code = TextEditingController();
   final _name = TextEditingController();
   final _city = TextEditingController();
   late final BranchService service;
@@ -31,7 +30,6 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
 
   @override
   void dispose() {
-    _code.dispose();
     _name.dispose();
     _city.dispose();
     super.dispose();
@@ -41,7 +39,6 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
     final ok = await service.createBranch(widget.organizationId, {
-      'code': _code.text.trim(),
       'name': _name.text.trim(),
       'city': _city.text.trim(),
     });
@@ -99,14 +96,7 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
                             const SizedBox(height: 20),
                             LayoutBuilder(
                               builder: (context, c) {
-                                final a = TextFormField(
-                                  controller: _code,
-                                  decoration: const InputDecoration(labelText: 'Code'),
-                                  validator: (v) => v == null || v.trim().isEmpty
-                                      ? 'Code is required.'
-                                      : null,
-                                );
-                                final b = TextFormField(
+                                final nameField = TextFormField(
                                   controller: _name,
                                   decoration: const InputDecoration(labelText: 'Name'),
                                   validator: (v) => v == null || v.trim().isEmpty
@@ -114,12 +104,10 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
                                       : null,
                                 );
                                 return c.maxWidth < 600
-                                    ? Column(children: [a, const SizedBox(height: 18), b])
+                                    ? Column(children: [nameField])
                                     : Row(
                                         children: [
-                                          Expanded(child: a),
-                                          const SizedBox(width: 18),
-                                          Expanded(child: b),
+                                          Expanded(child: nameField),
                                         ],
                                       );
                               },
