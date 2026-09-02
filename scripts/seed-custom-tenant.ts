@@ -229,18 +229,16 @@ async function main() {
 
       const hasDefault = locations.some((location) => location.isDefault && !location.isDeleted);
       const code = await repository.generateLocationCode(tenantId, targetOrganizationId);
-      return coreEnterprise.createLocation
-        ? await repository.createLocation(tenantId, targetOrganizationId, {
-            code,
-            name,
-            status: 'active',
-            isDefault: makeDefaultIfMissing && !hasDefault,
-            city,
-            state: 'Maharashtra',
-            country: 'IN',
-            timezone: 'Asia/Kolkata',
-          })
-        : (() => { throw new Error('Location creation is unavailable in the current CoreEnterpriseRepository.'); })();
+      return repository.createLocation(tenantId, targetOrganizationId, {
+        code,
+        name,
+        status: 'active',
+        isDefault: makeDefaultIfMissing && !hasDefault,
+        city,
+        state: 'Maharashtra',
+        country: 'IN',
+        timezone: 'Asia/Kolkata',
+      });
     }
 
     const puneLocation = await ensureLocation(organizationId, 'Pune Plant', 'Pune', true);
@@ -260,12 +258,14 @@ async function main() {
       }
     }
 
-    for (const branch of [
+    const requiredBranches = [
       await repository.getBranchById(tenantId, organizationId, branchId),
       sambhajiNagarBranch,
       secondaryPuneBranch,
       secondaryMumbaiBranch,
-    ]) {
+    ];
+
+    for (const branch of requiredBranches) {
       if (!branch) {
         throw new Error('A required branch could not be resolved.');
       }
@@ -305,14 +305,8 @@ async function main() {
     const accessiblePrimaryLocations = await repository.listAccessibleLocationsForUser(tenantId, admin.id, organizationId);
     const accessibleSecondaryLocations = await repository.listAccessibleLocationsForUser(tenantId, admin.id, secondaryOrganization.id);
 
-    const allBranches = [
-      ...accessiblePrimaryBranches,
-      ...accessibleSecondaryBranches,
-    ];
-    const allLocations = [
-      ...accessiblePrimaryLocations,
-      ...accessibleSecondaryLocations,
-    ];
+    const allBranches = [...accessiblePrimaryBranches, ...accessibleSecondaryBranches];
+    const allLocations = [...accessiblePrimaryLocations, ...accessibleSecondaryLocations];
 
     if (organizationMemberships.length < 2) {
       throw new Error(`Seed validation failed: expected at least 2 organization memberships, found ${organizationMemberships.length}.`);
