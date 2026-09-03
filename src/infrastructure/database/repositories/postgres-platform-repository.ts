@@ -724,14 +724,14 @@ export class PostgresPlatformRepository
         return false;
       }
 
-      const insertResult = await client.query(
+      await client.query(
         `INSERT INTO user_roles (tenant_id, user_id, role_id)
          VALUES ($1, $2, $3)
          ON CONFLICT (user_id, role_id, tenant_id) DO NOTHING`,
         [tenantId, userId, roleId],
       );
 
-      return (insertResult.rowCount ?? 0) > 0;
+      return true;
     });
 
     return result;
@@ -748,6 +748,35 @@ export class PostgresPlatformRepository
     });
 
     return result;
+  }
+
+  async getRolesForUser(tenantId: string, userId: string): Promise<Array<{ id: string; tenantId: string; code: string; name: string; description?: string | null; isSystem: boolean; sortOrder: number; createdAt?: Date | string | null; updatedAt?: Date | string | null }>> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT r.id, r.tenant_id as "tenantId", r.code, r.name, r.description,
+                r.is_system as "isSystem", r.sort_order as "sortOrder",
+                r.created_at as "createdAt", r.updated_at as "updatedAt"
+         FROM user_roles ur
+         INNER JOIN roles r ON r.id = ur.role_id AND r.tenant_id = ur.tenant_id
+         INNER JOIN users u ON u.id = ur.user_id AND u.tenant_id = ur.tenant_id
+         WHERE ur.tenant_id = $1 AND ur.user_id = $2
+           AND u.is_deleted = false AND u.status = 'active' AND r.is_deleted = false
+         ORDER BY r.sort_order, r.name`,
+        [tenantId, userId],
+      );
+    });
+
+    return result.rows.map((row) => ({
+      id: row.id,
+      tenantId: row.tenantId,
+      code: row.code,
+      name: row.name,
+      description: row.description ?? null,
+      isSystem: row.isSystem,
+      sortOrder: row.sortOrder,
+      createdAt: row.createdAt ? new Date(row.createdAt) : null,
+      updatedAt: row.updatedAt ? new Date(row.updatedAt) : null,
+    }));
   }
 
   async getUserEffectivePermissions(tenantId: string, userId: string): Promise<PermissionDescriptor[]> {

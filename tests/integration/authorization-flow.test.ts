@@ -204,6 +204,23 @@ describe('Authorization RBAC vertical slice', () => {
     expect(userRoleAssignment.statusCode).toBe(200);
     expect(userRoleAssignment.json().assigned).toBe(true);
 
+    const repeatedUserRoleAssignment = await app.inject({
+      method: 'POST',
+      url: `/api/v1/rbac/users/${regularUser.id}/roles`,
+      headers: { authorization: `Bearer ${adminAToken}`, 'x-tenant-id': tenantAResult.tenantId },
+      payload: { roleId: role.id },
+    });
+    expect(repeatedUserRoleAssignment.statusCode).toBe(200);
+    expect(repeatedUserRoleAssignment.json().assigned).toBe(true);
+
+    const assignedRoles = await app.inject({
+      method: 'GET',
+      url: `/api/v1/rbac/users/${regularUser.id}/roles`,
+      headers: { authorization: `Bearer ${adminAToken}`, 'x-tenant-id': tenantAResult.tenantId },
+    });
+    expect(assignedRoles.statusCode).toBe(200);
+    expect(assignedRoles.json().roles.map((assignedRole: { id: string }) => assignedRole.id)).toContain(role.id);
+
     const regularUserLogin = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
@@ -266,6 +283,22 @@ describe('Authorization RBAC vertical slice', () => {
       headers: { authorization: `Bearer ${secondAdminToken}` },
     });
     expect(crossTenantRoleLookup.statusCode).toBe(404);
+
+    const crossTenantAssignedRoles = await app.inject({
+      method: 'GET',
+      url: `/api/v1/rbac/users/${regularUser.id}/roles`,
+      headers: { authorization: `Bearer ${secondAdminToken}`, 'x-tenant-id': tenantBResult.tenantId },
+    });
+    expect(crossTenantAssignedRoles.statusCode).toBe(200);
+    expect(crossTenantAssignedRoles.json().roles).toEqual([]);
+
+    const revokedRole = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/rbac/users/${regularUser.id}/roles/${role.id}`,
+      headers: { authorization: `Bearer ${adminAToken}`, 'x-tenant-id': tenantAResult.tenantId },
+    });
+    expect(revokedRole.statusCode).toBe(200);
+    expect(revokedRole.json().revoked).toBe(true);
 
     await repository.updateUserStatus(tenantAResult.tenantId, regularUser.id, 'inactive');
     const stalePermissionKeys = await repository.getPermissionKeysForUser(tenantAResult.tenantId, regularUser.id);

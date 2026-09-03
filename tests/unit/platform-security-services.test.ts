@@ -161,6 +161,7 @@ class FakeAuthorizationRepository {
   async getPermissionsForRole() { return []; }
   async assignRoleToUser() { return false; }
   async revokeRoleFromUser() { return false; }
+  async getRolesForUser() { return []; }
   async getUserEffectivePermissions() { return []; }
   async assignUserToOrganization() { return true; }
 }

@@ -1,10 +1,7 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
 import '../../core/auth/auth_service.dart';
-import '../../core/network/api_client.dart';
 import '../role/role_service.dart';
 import 'user_service.dart';
 
@@ -23,10 +20,8 @@ class _UserRoleAssignmentScreenState extends State<UserRoleAssignmentScreen> {
   final auth = GetIt.instance.get<AuthService>();
   final userService = GetIt.instance.get<UserService>();
   final roleService = GetIt.instance.get<RoleService>();
-  final apiClient = GetIt.instance.get<ApiClient>();
 
   Map<String, dynamic>? user;
-  final Map<String, Set<String>> _rolePermissions = {};
   Set<String> assignedRoleIds = {};
   bool loading = true;
   bool submitting = false;
@@ -43,46 +38,17 @@ class _UserRoleAssignmentScreenState extends State<UserRoleAssignmentScreen> {
       loading = true;
       error = null;
       assignedRoleIds = {};
-      _rolePermissions.clear();
     });
 
     try {
       final loadedUser = await userService.getUser(widget.userId);
       await roleService.fetchRoles();
 
-      final effectivePermissionsResponse = await apiClient.get(
-        '/api/v1/rbac/users/${widget.userId}/effective-permissions',
-      );
-
-      final effectivePermissionSet = <String>{};
-      if (effectivePermissionsResponse.statusCode == 200) {
-        final body = jsonDecode(
-          effectivePermissionsResponse.body,
-        ) as Map<String, dynamic>;
-        final permissions = (body['permissions'] as List<dynamic>? ?? const []);
-        effectivePermissionSet.addAll(
-          permissions.map((value) => value.toString()),
-        );
-      }
-
-      final assigned = <String>{};
-      for (final role in roleService.roles) {
-        final roleId = role['id']?.toString() ?? '';
-        if (roleId.isEmpty) continue;
-
-        final permissions = await roleService.getRolePermissions(roleId);
-        final permissionKeys = permissions
-            .map((entry) => entry['permissionKey']?.toString() ?? '')
-            .where((key) => key.isNotEmpty)
-            .toSet();
-
-        _rolePermissions[roleId] = permissionKeys;
-
-        if (permissionKeys.isNotEmpty &&
-            permissionKeys.every(effectivePermissionSet.contains)) {
-          assigned.add(roleId);
-        }
-      }
+      final assignedRoles = await userService.getAssignedRoles(widget.userId);
+      final assigned = assignedRoles
+          .map((role) => role['id']?.toString() ?? '')
+          .where((roleId) => roleId.isNotEmpty)
+          .toSet();
 
       if (!mounted) return;
       setState(() {
@@ -152,13 +118,13 @@ class _UserRoleAssignmentScreenState extends State<UserRoleAssignmentScreen> {
       );
     }
 
-    final availableRoles = roleService.roles;
-    final assignedRoleNames = availableRoles
-        .where((role) => assignedRoleIds.contains(role['id']?.toString() ?? ''))
-        .map(
-          (role) =>
-              role['name']?.toString() ?? role['code']?.toString() ?? 'Unnamed',
+    final availableRoles = roleService.roles
+        .where(
+          (role) => !assignedRoleIds.contains(role['id']?.toString() ?? ''),
         )
+        .toList();
+    final assignedRoles = roleService.roles
+        .where((role) => assignedRoleIds.contains(role['id']?.toString() ?? ''))
         .toList();
 
     return Scaffold(
@@ -196,14 +162,31 @@ class _UserRoleAssignmentScreenState extends State<UserRoleAssignmentScreen> {
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                   const SizedBox(height: 8),
-                  if (assignedRoleNames.isEmpty)
+                  if (error == null && assignedRoles.isEmpty)
                     const Text('No roles assigned.')
                   else
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: assignedRoleNames
-                          .map((name) => Chip(label: Text(name)))
+                      children: assignedRoles
+                          .map(
+                            (role) => Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  role['name']?.toString() ??
+                                      role['code']?.toString() ??
+                                      'Unnamed',
+                                ),
+                                ElevatedButton(
+                                  onPressed: submitting
+                                      ? null
+                                      : () => _toggleRole(role, true),
+                                  child: const Text('Remove'),
+                                ),
+                              ],
+                            ),
+                          )
                           .toList(),
                     ),
                   const SizedBox(height: 24),
@@ -221,15 +204,12 @@ class _UserRoleAssignmentScreenState extends State<UserRoleAssignmentScreen> {
                         separatorBuilder: (_, __) => const Divider(height: 1),
                         itemBuilder: (context, index) {
                           final role = availableRoles[index];
-                          final roleId = role['id']?.toString() ?? '';
                           final name =
                               role['name']?.toString() ??
                               role['code']?.toString() ??
                               'Unnamed';
                           final description =
                               role['description']?.toString() ?? '';
-                          final isAssigned = assignedRoleIds.contains(roleId);
-
                           return ListTile(
                             title: Text(name),
                             subtitle: description.isNotEmpty
@@ -244,11 +224,8 @@ class _UserRoleAssignmentScreenState extends State<UserRoleAssignmentScreen> {
                                     ),
                                   )
                                 : ElevatedButton(
-                                    onPressed: () =>
-                                        _toggleRole(role, isAssigned),
-                                    child: Text(
-                                      isAssigned ? 'Remove' : 'Assign',
-                                    ),
+                                    onPressed: () => _toggleRole(role, false),
+                                    child: const Text('Assign'),
                                   ),
                           );
                         },

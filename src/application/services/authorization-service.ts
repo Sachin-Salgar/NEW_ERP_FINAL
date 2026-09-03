@@ -48,6 +48,10 @@ export class AuthorizationService {
     return this.authorizationRepository.revokeRoleFromUser(tenantId, userId, roleId);
   }
 
+  async getRolesForUser(tenantId: string, userId: string): Promise<RoleDescriptor[]> {
+    return this.authorizationRepository.getRolesForUser(tenantId, userId);
+  }
+
   async getEffectivePermissions(tenantId: string, userId: string): Promise<PermissionDescriptor[]> {
     return this.authorizationRepository.getUserEffectivePermissions(tenantId, userId);
   }

@@ -124,10 +124,36 @@ class UserService extends ChangeNotifier {
       );
       if (resp.statusCode == 200) {
         final body = jsonDecode(resp.body) as Map<String, dynamic>;
-        return (body['assigned'] as bool?) ?? false;
+        return (body['assigned'] as bool?) ?? body['success'] == true;
       }
     } catch (e) {}
     return false;
+  }
+
+  Future<List<Map<String, dynamic>>> getAssignedRoles(String userId) async {
+    final resp = await apiClient.get('/api/v1/rbac/users/$userId/roles');
+    if (resp.statusCode != 200) {
+      throw StateError('Failed to load assigned roles: ${resp.statusCode}');
+    }
+
+    final body = jsonDecode(resp.body);
+    if (body is! Map<String, dynamic> ||
+        body['success'] is! bool ||
+        body['success'] != true ||
+        body['userId'] is! String ||
+        body['userId'] != userId ||
+        body['roles'] is! List<dynamic>) {
+      throw const FormatException('Invalid assigned roles response');
+    }
+
+    final list = body['roles'] as List<dynamic>;
+    return list.map((entry) {
+      final roleId = entry is Map ? entry['id'] : null;
+      if (entry is! Map || roleId is! String || roleId.isEmpty) {
+        throw const FormatException('Invalid assigned role entry');
+      }
+      return Map<String, dynamic>.from(entry);
+    }).toList();
   }
 
   Future<bool> revokeRoleFromUser(String userId, String roleId) async {

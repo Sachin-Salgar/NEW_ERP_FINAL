@@ -1,4 +1,4 @@
-import type { PermissionDescriptor, UserPermissionRecord } from '../../domain/contracts/authorization.js';
+import type { PermissionDescriptor, RoleDescriptor, UserPermissionRecord } from '../../domain/contracts/authorization.js';
 import type { AuthenticatedUser, AuthenticationResult, SessionRecord, CreateSessionInput } from '../../domain/contracts/authentication.js';
 import type { TenantBootstrapInput, TenantBootstrapResult } from '../../domain/contracts/bootstrap.js';
 
@@ -257,6 +257,7 @@ export interface AuthorizationRepository {
   getPermissionsForRole(tenantId: string, roleId: string): Promise<PermissionDescriptor[]>;
   assignRoleToUser(tenantId: string, userId: string, roleId: string): Promise<boolean>;
   revokeRoleFromUser(tenantId: string, userId: string, roleId: string): Promise<boolean>;
+  getRolesForUser(tenantId: string, userId: string): Promise<RoleDescriptor[]>;
   getUserEffectivePermissions(tenantId: string, userId: string): Promise<PermissionDescriptor[]>;
 }
 

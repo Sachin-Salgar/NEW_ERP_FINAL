@@ -30,6 +30,31 @@ class _MemorySecureStorage implements SecureStorageLike {
   }
 }
 
+Future<void> _pumpRoleAssignmentScreen(
+  WidgetTester tester,
+  MockClient client,
+) async {
+  final api = ApiClient(baseUrl: 'http://example.com', httpClient: client);
+  GetIt.instance.registerSingleton<ApiClient>(api);
+
+  final authz = AuthZService();
+  final auth = AuthService(
+    secureStorage: _MemorySecureStorage(),
+    apiClientFactory: (_) => api,
+    authzService: authz,
+  );
+  GetIt.instance.registerSingleton<AuthService>(auth);
+  await authz.loadPermissions(api, 'user-1');
+
+  GetIt.instance.registerSingleton<UserService>(UserService(apiClient: api));
+  GetIt.instance.registerSingleton<RoleService>(RoleService(apiClient: api));
+
+  await tester.pumpWidget(
+    MaterialApp(home: UserRoleAssignmentScreen(userId: 'user-1')),
+  );
+  await tester.pumpAndSettle();
+}
+
 void main() {
   setUp(() {
     GetIt.instance.reset();
@@ -132,6 +157,7 @@ void main() {
     WidgetTester tester,
   ) async {
     final effectivePermissions = <String>['user.manage', 'user.read'];
+    var roleAssigned = false;
     final client = MockClient((request) async {
       final path = request.url.path;
 
@@ -152,6 +178,18 @@ void main() {
               {'id': 'role-2', 'name': 'Editor', 'description': 'Can edit'},
             ],
           }),
+          200,
+        );
+      }
+      if (path.endsWith('/api/v1/rbac/users/user-1/roles') &&
+          request.method == 'GET') {
+        final roles = roleAssigned
+            ? [
+                {'id': 'role-2', 'name': 'Editor', 'description': 'Can edit'},
+              ]
+            : <Map<String, dynamic>>[];
+        return http.Response(
+          jsonEncode({'success': true, 'userId': 'user-1', 'roles': roles}),
           200,
         );
       }
@@ -187,7 +225,7 @@ void main() {
       }
       if (path.contains('/api/v1/rbac/users/user-1/roles') &&
           request.method == 'POST') {
-        effectivePermissions.add('role.write');
+        roleAssigned = true;
         return http.Response(
           jsonEncode({'success': true, 'assigned': true}),
           200,
@@ -219,19 +257,25 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Reader'), findsWidgets);
-    expect(find.text('Editor'), findsWidgets);
+    expect(find.text('Editor'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(ElevatedButton, 'Assign').first);
     await tester.pumpAndSettle();
 
     expect(find.text('Role assigned'), findsOneWidget);
-    expect(find.text('Editor'), findsWidgets);
+    expect(find.text('Editor'), findsOneWidget);
+    expect(find.widgetWithText(ElevatedButton, 'Assign'), findsOneWidget);
+    expect(find.widgetWithText(ElevatedButton, 'Remove'), findsOneWidget);
   });
 
   testWidgets('removing an assigned role updates the current roles list', (
     WidgetTester tester,
   ) async {
-    final effectivePermissions = <String>['user.manage', 'user.read', 'role.write'];
+    final effectivePermissions = <String>[
+      'user.manage',
+      'user.read',
+      'role.write',
+    ];
     final client = MockClient((request) async {
       final path = request.url.path;
       if (path.contains('/api/v1/users/user-1')) {
@@ -246,6 +290,7 @@ void main() {
         return http.Response(
           jsonEncode({
             'success': true,
+            'userId': 'user-1',
             'roles': [
               {'id': 'role-1', 'name': 'Reader', 'description': 'Read only'},
               {'id': 'role-2', 'name': 'Editor', 'description': 'Can edit'},
@@ -273,6 +318,19 @@ void main() {
             'success': true,
             'permissions': [
               {'permissionKey': 'role.write'},
+            ],
+          }),
+          200,
+        );
+      }
+      if (path.endsWith('/api/v1/rbac/users/user-1/roles') &&
+          request.method == 'GET') {
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'userId': 'user-1',
+            'roles': [
+              {'id': 'role-2', 'name': 'Editor', 'description': 'Can edit'},
             ],
           }),
           200,
@@ -317,7 +375,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Editor'), findsWidgets);
+    expect(find.text('Editor'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(ElevatedButton, 'Remove').last);
     await tester.pumpAndSettle();
@@ -325,13 +383,93 @@ void main() {
     expect(find.text('Role removed'), findsOneWidget);
   });
 
-  testWidgets('assign roles screen shows the user context and back navigation', (
+  testWidgets(
+    'assign roles screen shows the user context and back navigation',
+    (WidgetTester tester) async {
+      final effectivePermissions = <String>['user.manage', 'user.read'];
+      final client = MockClient((request) async {
+        final path = request.url.path;
+
+        if (path.contains('/api/v1/users/user-1')) {
+          return http.Response(
+            jsonEncode({
+              'user': {'id': 'user-1', 'username': 'demo'},
+            }),
+            200,
+          );
+        }
+        if (path.endsWith('/api/v1/rbac/roles') && request.method == 'GET') {
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'roles': [
+                {'id': 'role-1', 'name': 'Reader', 'description': 'Read only'},
+              ],
+            }),
+            200,
+          );
+        }
+        if (path.contains('/api/v1/rbac/roles/role-1/permissions') &&
+            request.method == 'GET') {
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'permissions': [
+                {'permissionKey': 'user.read'},
+              ],
+            }),
+            200,
+          );
+        }
+        if (path.endsWith('/api/v1/rbac/users/user-1/roles') &&
+            request.method == 'GET') {
+          return http.Response(
+            jsonEncode({'success': true, 'userId': 'user-1', 'roles': []}),
+            200,
+          );
+        }
+        if (path.contains('/api/v1/rbac/users/user-1/effective-permissions')) {
+          return http.Response(
+            jsonEncode({'success': true, 'permissions': effectivePermissions}),
+            200,
+          );
+        }
+        return http.Response('not found', 404);
+      });
+
+      final api = ApiClient(baseUrl: 'http://example.com', httpClient: client);
+      GetIt.instance.registerSingleton<ApiClient>(api);
+
+      final authz = AuthZService();
+      final auth = AuthService(
+        secureStorage: _MemorySecureStorage(),
+        apiClientFactory: (_) => api,
+        authzService: authz,
+      );
+      GetIt.instance.registerSingleton<AuthService>(auth);
+      await authz.loadPermissions(api, 'user-1');
+
+      final userService = UserService(apiClient: api);
+      GetIt.instance.registerSingleton<UserService>(userService);
+      final roleService = RoleService(apiClient: api);
+      GetIt.instance.registerSingleton<RoleService>(roleService);
+
+      await tester.pumpWidget(
+        MaterialApp(home: UserRoleAssignmentScreen(userId: 'user-1')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Assign Roles'), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_back_outlined), findsOneWidget);
+      expect(find.textContaining('Managing roles for: demo'), findsOneWidget);
+    },
+  );
+
+  testWidgets('empty assigned roles display the empty state', (
     WidgetTester tester,
   ) async {
-    final effectivePermissions = <String>['user.manage', 'user.read'];
     final client = MockClient((request) async {
       final path = request.url.path;
-
       if (path.contains('/api/v1/users/user-1')) {
         return http.Response(
           jsonEncode({
@@ -340,62 +478,235 @@ void main() {
           200,
         );
       }
-      if (path.endsWith('/api/v1/rbac/roles') && request.method == 'GET') {
-        return http.Response(
-          jsonEncode({
-            'success': true,
-            'roles': [
-              {'id': 'role-1', 'name': 'Reader', 'description': 'Read only'},
-            ],
-          }),
-          200,
-        );
+      if (path.endsWith('/api/v1/rbac/roles')) {
+        return http.Response(jsonEncode({'success': true, 'roles': []}), 200);
       }
-      if (path.contains('/api/v1/rbac/roles/role-1/permissions') &&
-          request.method == 'GET') {
+      if (path.endsWith('/api/v1/rbac/users/user-1/roles')) {
         return http.Response(
-          jsonEncode({
-            'success': true,
-            'permissions': [
-              {'permissionKey': 'user.read'},
-            ],
-          }),
+          jsonEncode({'success': true, 'userId': 'user-1', 'roles': []}),
           200,
         );
       }
       if (path.contains('/api/v1/rbac/users/user-1/effective-permissions')) {
         return http.Response(
-          jsonEncode({'success': true, 'permissions': effectivePermissions}),
+          jsonEncode({
+            'success': true,
+            'permissions': ['user.manage'],
+          }),
           200,
         );
       }
       return http.Response('not found', 404);
     });
 
-    final api = ApiClient(baseUrl: 'http://example.com', httpClient: client);
-    GetIt.instance.registerSingleton<ApiClient>(api);
+    await _pumpRoleAssignmentScreen(tester, client);
 
-    final authz = AuthZService();
-    final auth = AuthService(
-      secureStorage: _MemorySecureStorage(),
-      apiClientFactory: (_) => api,
-      authzService: authz,
+    expect(find.text('No roles assigned.'), findsOneWidget);
+  });
+
+  testWidgets('role retrieval HTTP failures show an error state', (
+    WidgetTester tester,
+  ) async {
+    final client = MockClient((request) async {
+      final path = request.url.path;
+      if (path.contains('/api/v1/users/user-1')) {
+        return http.Response(
+          jsonEncode({
+            'user': {'id': 'user-1', 'username': 'demo'},
+          }),
+          200,
+        );
+      }
+      if (path.endsWith('/api/v1/rbac/roles')) {
+        return http.Response(jsonEncode({'success': true, 'roles': []}), 200);
+      }
+      if (path.endsWith('/api/v1/rbac/users/user-1/roles')) {
+        return http.Response('server error', 500);
+      }
+      if (path.contains('/api/v1/rbac/users/user-1/effective-permissions')) {
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'permissions': ['user.manage'],
+          }),
+          200,
+        );
+      }
+      return http.Response('not found', 404);
+    });
+
+    await _pumpRoleAssignmentScreen(tester, client);
+
+    expect(
+      find.textContaining('Failed to load assigned roles: 500'),
+      findsOneWidget,
     );
-    GetIt.instance.registerSingleton<AuthService>(auth);
-    await authz.loadPermissions(api, 'user-1');
+    expect(find.text('No roles assigned.'), findsNothing);
+  });
 
-    final userService = UserService(apiClient: api);
-    GetIt.instance.registerSingleton<UserService>(userService);
-    final roleService = RoleService(apiClient: api);
-    GetIt.instance.registerSingleton<RoleService>(roleService);
+  testWidgets('unsuccessful role responses show an error state', (
+    WidgetTester tester,
+  ) async {
+    final client = MockClient((request) async {
+      final path = request.url.path;
+      if (path.contains('/api/v1/users/user-1')) {
+        return http.Response(
+          jsonEncode({
+            'user': {'id': 'user-1', 'username': 'demo'},
+          }),
+          200,
+        );
+      }
+      if (path.endsWith('/api/v1/rbac/roles')) {
+        return http.Response(jsonEncode({'success': true, 'roles': []}), 200);
+      }
+      if (path.endsWith('/api/v1/rbac/users/user-1/roles')) {
+        return http.Response(
+          jsonEncode({'success': false, 'userId': 'user-1', 'roles': []}),
+          200,
+        );
+      }
+      if (path.contains('/api/v1/rbac/users/user-1/effective-permissions')) {
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'permissions': ['user.manage'],
+          }),
+          200,
+        );
+      }
+      return http.Response('not found', 404);
+    });
 
-    await tester.pumpWidget(
-      MaterialApp(home: UserRoleAssignmentScreen(userId: 'user-1')),
+    await _pumpRoleAssignmentScreen(tester, client);
+
+    expect(
+      find.textContaining('Invalid assigned roles response'),
+      findsOneWidget,
     );
-    await tester.pumpAndSettle();
+    expect(find.text('No roles assigned.'), findsNothing);
+  });
 
-    expect(find.text('Assign Roles'), findsOneWidget);
-    expect(find.byIcon(Icons.arrow_back_outlined), findsOneWidget);
-    expect(find.textContaining('Managing roles for: demo'), findsOneWidget);
+  testWidgets('mismatched role response user IDs show an error state', (
+    WidgetTester tester,
+  ) async {
+    final client = MockClient((request) async {
+      final path = request.url.path;
+      if (path.contains('/api/v1/users/user-1')) {
+        return http.Response(
+          jsonEncode({
+            'user': {'id': 'user-1', 'username': 'demo'},
+          }),
+          200,
+        );
+      }
+      if (path.endsWith('/api/v1/rbac/roles')) {
+        return http.Response(jsonEncode({'success': true, 'roles': []}), 200);
+      }
+      if (path.endsWith('/api/v1/rbac/users/user-1/roles')) {
+        return http.Response(
+          jsonEncode({'success': true, 'userId': 'user-2', 'roles': []}),
+          200,
+        );
+      }
+      if (path.contains('/api/v1/rbac/users/user-1/effective-permissions')) {
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'permissions': ['user.manage'],
+          }),
+          200,
+        );
+      }
+      return http.Response('not found', 404);
+    });
+
+    await _pumpRoleAssignmentScreen(tester, client);
+
+    expect(
+      find.textContaining('Invalid assigned roles response'),
+      findsOneWidget,
+    );
+    expect(find.text('No roles assigned.'), findsNothing);
+  });
+
+  testWidgets('role retrieval network failures show an error state', (
+    WidgetTester tester,
+  ) async {
+    final client = MockClient((request) async {
+      final path = request.url.path;
+      if (path.contains('/api/v1/users/user-1')) {
+        return http.Response(
+          jsonEncode({
+            'user': {'id': 'user-1', 'username': 'demo'},
+          }),
+          200,
+        );
+      }
+      if (path.endsWith('/api/v1/rbac/roles')) {
+        return http.Response(jsonEncode({'success': true, 'roles': []}), 200);
+      }
+      if (path.endsWith('/api/v1/rbac/users/user-1/roles')) {
+        throw Exception('network failure');
+      }
+      if (path.contains('/api/v1/rbac/users/user-1/effective-permissions')) {
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'permissions': ['user.manage'],
+          }),
+          200,
+        );
+      }
+      return http.Response('not found', 404);
+    });
+
+    await _pumpRoleAssignmentScreen(tester, client);
+
+    expect(find.textContaining('network failure'), findsOneWidget);
+    expect(find.text('No roles assigned.'), findsNothing);
+  });
+
+  testWidgets('malformed role retrieval responses show an error state', (
+    WidgetTester tester,
+  ) async {
+    final client = MockClient((request) async {
+      final path = request.url.path;
+      if (path.contains('/api/v1/users/user-1')) {
+        return http.Response(
+          jsonEncode({
+            'user': {'id': 'user-1', 'username': 'demo'},
+          }),
+          200,
+        );
+      }
+      if (path.endsWith('/api/v1/rbac/roles')) {
+        return http.Response(jsonEncode({'success': true, 'roles': []}), 200);
+      }
+      if (path.endsWith('/api/v1/rbac/users/user-1/roles')) {
+        return http.Response(
+          jsonEncode({'success': true, 'roles': 'not-a-list'}),
+          200,
+        );
+      }
+      if (path.contains('/api/v1/rbac/users/user-1/effective-permissions')) {
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'permissions': ['user.manage'],
+          }),
+          200,
+        );
+      }
+      return http.Response('not found', 404);
+    });
+
+    await _pumpRoleAssignmentScreen(tester, client);
+
+    expect(
+      find.textContaining('Invalid assigned roles response'),
+      findsOneWidget,
+    );
+    expect(find.text('No roles assigned.'), findsNothing);
   });
 }
