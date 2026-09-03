@@ -24,6 +24,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
   String? error;
   bool _rolesExpanded = true;
   bool _accessExpanded = true;
+  List<String>? _assignedRoleNames;
 
   @override
   void didChangeDependencies() {
@@ -91,6 +92,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                   const SizedBox(height: 16),
                   _SectionCard(
                     title: 'Roles',
+                    summary: _roleSummary,
                     actionLabel: _rolesExpanded ? 'Hide Roles' : 'Manage Roles',
                     onAction: () =>
                         setState(() => _rolesExpanded = !_rolesExpanded),
@@ -99,7 +101,11 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                       maintainState: true,
                       child: SizedBox(
                         height: 520,
-                        child: UserRolesSection(userId: user!['id'].toString()),
+                        child: UserRolesSection(
+                          userId: user!['id'].toString(),
+                          onAssignedRoleNamesChanged: (roleNames) =>
+                              setState(() => _assignedRoleNames = roleNames),
+                        ),
                       ),
                     ),
                   ),
@@ -125,6 +131,14 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
         ),
       ),
     );
+  }
+
+  String get _roleSummary {
+    final roleNames = _assignedRoleNames;
+    if (roleNames == null) return 'Loading roles...';
+    if (roleNames.isEmpty) return 'No roles assigned';
+    final count = '${roleNames.length} role${roleNames.length == 1 ? '' : 's'} assigned';
+    return '$count: ${roleNames.join(' • ')}';
   }
 }
 
@@ -174,6 +188,7 @@ class _UserSummary extends StatelessWidget {
 class _SectionCard extends StatelessWidget {
   final String title;
   final String? subtitle;
+  final String? summary;
   final String? actionLabel;
   final VoidCallback? onAction;
   final Widget child;
@@ -181,6 +196,7 @@ class _SectionCard extends StatelessWidget {
   const _SectionCard({
     required this.title,
     this.subtitle,
+    this.summary,
     this.actionLabel,
     this.onAction,
     required this.child,
@@ -211,6 +227,10 @@ class _SectionCard extends StatelessWidget {
                       if (subtitle != null) ...[
                         const SizedBox(height: 4),
                         Text(subtitle!, style: theme.textTheme.bodySmall),
+                      ],
+                      if (summary != null) ...[
+                        const SizedBox(height: 4),
+                        Text(summary!, style: theme.textTheme.bodySmall),
                       ],
                     ],
                   ),

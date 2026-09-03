@@ -7,8 +7,13 @@ import '../user_service.dart';
 
 class UserRolesSection extends StatefulWidget {
   final String userId;
+  final ValueChanged<List<String>>? onAssignedRoleNamesChanged;
 
-  const UserRolesSection({super.key, required this.userId});
+  const UserRolesSection({
+    super.key,
+    required this.userId,
+    this.onAssignedRoleNamesChanged,
+  });
 
   @override
   State<UserRolesSection> createState() => _UserRolesSectionState();
@@ -40,6 +45,23 @@ class _UserRolesSectionState extends State<UserRolesSection> {
       await roleService.fetchRoles();
       final assignedRoles = await userService.getAssignedRoles(widget.userId);
       if (!mounted) return;
+      final roleNames = assignedRoles.map((role) {
+        final roleId = role['id']?.toString();
+        final roleName = role['name']?.toString().trim();
+        if (roleName != null && roleName.isNotEmpty) return roleName;
+        final roleCode = role['code']?.toString().trim();
+        if (roleCode != null && roleCode.isNotEmpty) return roleCode;
+        Map<String, dynamic>? matchingRole;
+        for (final availableRole in roleService.roles) {
+          if (availableRole['id']?.toString() == roleId) {
+            matchingRole = availableRole;
+            break;
+          }
+        }
+        return matchingRole?['name']?.toString() ??
+            matchingRole?['code']?.toString() ??
+            'Unnamed';
+      }).toList();
       setState(() {
         assignedRoleIds = assignedRoles
             .map((role) => role['id']?.toString() ?? '')
@@ -47,6 +69,7 @@ class _UserRolesSectionState extends State<UserRolesSection> {
             .toSet();
         loading = false;
       });
+      widget.onAssignedRoleNamesChanged?.call(roleNames);
     } catch (e) {
       if (!mounted) return;
       setState(() {

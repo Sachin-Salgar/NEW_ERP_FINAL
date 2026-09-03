@@ -162,6 +162,7 @@ void main() {
   ) async {
     final effectivePermissions = <String>['user.manage', 'user.read'];
     var roleAssigned = false;
+    List<String>? assignedRoleNames;
     final client = MockClient((request) async {
       final path = request.url.path;
 
@@ -257,11 +258,17 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(body: UserRolesSection(userId: 'user-1')),
+        home: Scaffold(
+          body: UserRolesSection(
+            userId: 'user-1',
+            onAssignedRoleNamesChanged: (names) => assignedRoleNames = names,
+          ),
+        ),
       ),
     );
     await tester.pumpAndSettle();
 
+    expect(assignedRoleNames, isEmpty);
     expect(find.text('Reader'), findsWidgets);
     expect(find.text('Editor'), findsOneWidget);
 
@@ -269,6 +276,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Role assigned'), findsOneWidget);
+    expect(assignedRoleNames, ['Editor']);
     expect(find.text('Editor'), findsOneWidget);
     expect(find.widgetWithText(ElevatedButton, 'Assign'), findsOneWidget);
     expect(find.widgetWithText(ElevatedButton, 'Remove'), findsOneWidget);
@@ -282,6 +290,8 @@ void main() {
       'user.read',
       'role.write',
     ];
+    var roleRemoved = false;
+    List<String>? assignedRoleNames;
     final client = MockClient((request) async {
       final path = request.url.path;
       if (path.contains('/api/v1/users/user-1')) {
@@ -335,9 +345,15 @@ void main() {
           jsonEncode({
             'success': true,
             'userId': 'user-1',
-            'roles': [
-              {'id': 'role-2', 'name': 'Editor', 'description': 'Can edit'},
-            ],
+            'roles': roleRemoved
+                ? <Map<String, String>>[]
+                : [
+                    {
+                      'id': 'role-2',
+                      'name': 'Editor',
+                      'description': 'Can edit',
+                    },
+                  ],
           }),
           200,
         );
@@ -350,6 +366,7 @@ void main() {
       }
       if (path.contains('/api/v1/rbac/users/user-1/roles/role-2') &&
           request.method == 'DELETE') {
+        roleRemoved = true;
         effectivePermissions.remove('role.write');
         return http.Response(
           jsonEncode({'success': true, 'revoked': true}),
@@ -378,17 +395,24 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(body: UserRolesSection(userId: 'user-1')),
+        home: Scaffold(
+          body: UserRolesSection(
+            userId: 'user-1',
+            onAssignedRoleNamesChanged: (names) => assignedRoleNames = names,
+          ),
+        ),
       ),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('Editor'), findsOneWidget);
+    expect(assignedRoleNames, ['Editor']);
 
     await tester.tap(find.widgetWithText(ElevatedButton, 'Remove').last);
     await tester.pumpAndSettle();
 
     expect(find.text('Role removed'), findsOneWidget);
+    expect(assignedRoleNames, isEmpty);
   });
 
   testWidgets('roles section shows available roles', (
