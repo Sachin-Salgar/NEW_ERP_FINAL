@@ -67,7 +67,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     origin: (origin, callback) => {
       callback(null, isCorsOriginAllowed(config, origin));
     },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id'],
     credentials: true,
     optionsSuccessStatus: 204,
