@@ -114,6 +114,13 @@ Every configuration option shall include:
 
 Documentation shall remain synchronized with implementation.
 
+The database connection policy uses the environment-provided `DATABASE_SSL_MODE`:
+
+- Local development uses the Render External PostgreSQL URL with `require` (the default), enabling TLS and certificate validation.
+- Render production uses the Render Internal PostgreSQL URL with `disable`, relying on Render's private network rather than forcing external TLS configuration.
+
+The setting must not be inferred from the database hostname or provider.
+
 ## 18.10 Summary
 
 Configuration management enables secure, predictable, and maintainable deployments while reducing operational complexity and preventing environment-specific values from being embedded in application code.

@@ -20,10 +20,11 @@ PostgreSQL connection creation remains centralized in `src/infrastructure/databa
 
 The configured `DATABASE_URL` determines the endpoint consumed by the application without requiring the application to distinguish Internal from External URLs:
 
-* Local development uses the Render External Database URL because the developer machine is outside Render's private network.
-* The Render production service uses the Render Internal Database URL for same-region private-network connectivity.
+* Local development uses the Render External Database URL because the developer machine is outside Render's private network. TLS is enabled and certificate validation is required.
+* The Render production service uses the Render Internal Database URL for same-region private-network connectivity. The application must not require external PostgreSQL connectivity when running inside Render.
+* The configured environment selects the connection behavior; the application does not infer it from a hostname or provider.
 
-For any connection that uses TLS, certificate validation remains mandatory with `rejectUnauthorized: true`. Certificate verification must never be disabled. Render documents TLS requirements and Render-managed certificates for External URL connections; its documented Internal URL guidance establishes same-region private-network connectivity but does not state that Internal connections require TLS, cannot use TLS, or provide a specific Internal CA. The centralized factory must therefore apply the approved transport policy for the configured deployment path without inferring policy from a hostname.
+For any connection where TLS is configured, certificate validation remains mandatory with `rejectUnauthorized: true`. Certificate verification must never be disabled for a TLS connection. The centralized factory applies the configured transport policy without inferring policy from a hostname.
 
 The current repository security requirement for TLS on all database connections is refined by this decision to distinguish the connection/security boundary and the provider-documented endpoint model rather than treating every non-loopback hostname identically. This refinement does not authorize disabling certificate validation where TLS is used.
 
@@ -67,12 +68,13 @@ This decision changes connection configuration only. It does not alter database 
 - Operational scripts that connect to PostgreSQL must use that centralized factory rather than constructing an independent pool.
 - Application code must not detect Render hostnames or branch between Internal and External URLs based on hostname.
 - Commit `1a62d12` is implementation evidence for the overly broad `non-localhost hostname -> force validated TLS` behavior, not part of the architectural rule.
-- `src/infrastructure/database/migrate.ts` currently constructs a separate `pg.Client` path rather than using the centralized factory. Aligning migrations with this policy is a follow-up implementation item and is not changed by this ADR amendment.
+- `src/infrastructure/database/migrate.ts` uses the shared connection-policy helper for its `pg.Client` options. The migration path remains a separate client lifecycle, but it no longer defines an independent TLS policy.
 
 ## Validation Evidence
 
 - TLS certificate validation succeeded against the controlled Render External PostgreSQL endpoint.
 - The application runtime and `scripts/seed-custom-tenant.ts` use the centralized connection factory.
+- The application runtime, migrations, and operational seed tooling use the shared database transport policy.
 - Render documentation confirms separate Internal and External URLs, recommends Internal URLs for same-region Render services, and documents Render-managed TLS for External connections.
 - No migration or schema change is required by this decision.
 

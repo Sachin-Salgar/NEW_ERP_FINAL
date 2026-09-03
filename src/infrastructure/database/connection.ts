@@ -4,14 +4,15 @@ import type { AppConfig } from '../../config/schema.js';
 
 export type DatabasePool = Pool;
 
-function isLocalDatabaseUrl(databaseUrl: string): boolean {
-  const hostname = new URL(databaseUrl).hostname;
-  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+export type DatabaseSslMode = 'disable' | 'require';
+
+export function getDatabaseSslOptions(sslMode: DatabaseSslMode): { rejectUnauthorized: true } | undefined {
+  return sslMode === 'require' ? { rejectUnauthorized: true } : undefined;
 }
 
 export function createDatabasePoolFromUrl(
   databaseUrl: string,
-  options: { min?: number; max?: number; applicationName?: string } = {},
+  options: { min?: number; max?: number; applicationName?: string; sslMode?: DatabaseSslMode } = {},
 ): Pool {
   return new Pool({
     connectionString: databaseUrl,
@@ -21,7 +22,7 @@ export function createDatabasePoolFromUrl(
     idleTimeoutMillis: 30000,
     statement_timeout: 30000,
     application_name: options.applicationName,
-    ssl: isLocalDatabaseUrl(databaseUrl) ? undefined : { rejectUnauthorized: true },
+    ssl: getDatabaseSslOptions(options.sslMode ?? 'require'),
   });
 }
 
@@ -30,7 +31,15 @@ export function createDatabasePool(config: AppConfig): Pool {
     min: config.DATABASE_POOL_MIN,
     max: config.DATABASE_POOL_MAX,
     applicationName: config.APP_NAME,
+    sslMode: config.DATABASE_SSL_MODE,
   });
+}
+
+export function createDatabaseClientOptions(databaseUrl: string, sslMode: DatabaseSslMode = 'require') {
+  return {
+    connectionString: databaseUrl,
+    ssl: getDatabaseSslOptions(sslMode),
+  };
 }
 
 export async function pingDatabase(pool: Pool): Promise<void> {

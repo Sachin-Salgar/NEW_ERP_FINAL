@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import { z } from 'zod';
 
 export const logLevels = ['fatal', 'error', 'warn', 'info', 'debug', 'trace'] as const;
+export const databaseSslModes = ['disable', 'require'] as const;
 
 export const appConfigSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -11,6 +12,7 @@ export const appConfigSchema = z.object({
   API_PREFIX: z.string().trim().default('/api/v1'),
   LOG_LEVEL: z.enum(logLevels).default('info'),
   DATABASE_URL: z.string().trim().min(1),
+  DATABASE_SSL_MODE: z.enum(databaseSslModes).default('require'),
   DATABASE_POOL_MIN: z.coerce.number().int().min(0).default(1),
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).default(25),
   JWT_SECRET: z.string().trim().min(32).default('development-jwt-secret-change-me'),
@@ -90,6 +92,16 @@ export function resolveDatabaseUrl(
   }
 
   return value;
+}
+
+export function resolveDatabaseSslMode(env: NodeJS.ProcessEnv = process.env): (typeof databaseSslModes)[number] {
+  const value = env.DATABASE_SSL_MODE?.trim() || 'require';
+
+  if (!databaseSslModes.includes(value as (typeof databaseSslModes)[number])) {
+    throw new Error(`Invalid DATABASE_SSL_MODE: ${value}. Expected disable or require.`);
+  }
+
+  return value as (typeof databaseSslModes)[number];
 }
 
 export function parseAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {

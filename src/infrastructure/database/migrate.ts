@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { Client } from 'pg';
 
 import { loadConfig } from '../../config/index.js';
+import { createDatabaseClientOptions, type DatabaseSslMode } from './connection.js';
 
 const MIGRATION_TABLE = '__drizzle_migrations';
 
@@ -225,9 +226,10 @@ async function applyMigrationFile(client: Client, filePath: string): Promise<voi
   }
 }
 
-export async function runMigrations(databaseUrl?: string): Promise<void> {
-  const resolvedUrl = databaseUrl ?? loadConfig().DATABASE_URL;
-  const client = new Client({ connectionString: resolvedUrl });
+export async function runMigrations(databaseUrl?: string, sslMode?: DatabaseSslMode): Promise<void> {
+  const config = databaseUrl ? undefined : loadConfig();
+  const resolvedUrl = databaseUrl ?? config!.DATABASE_URL;
+  const client = new Client(createDatabaseClientOptions(resolvedUrl, sslMode ?? config?.DATABASE_SSL_MODE ?? 'require'));
 
   try {
     await client.connect();

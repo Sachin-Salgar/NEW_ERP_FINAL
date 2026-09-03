@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isCorsOriginAllowed, parseAppConfig, resolveDatabaseUrl } from '../../src/config/schema.js';
+import { isCorsOriginAllowed, parseAppConfig, resolveDatabaseSslMode, resolveDatabaseUrl } from '../../src/config/schema.js';
 
 describe('parseAppConfig', () => {
   it('loads valid development defaults', () => {
@@ -17,6 +17,13 @@ describe('parseAppConfig', () => {
     expect(config.NODE_ENV).toBe('development');
     expect(config.isDevelopment).toBe(true);
     expect(config.API_PREFIX).toBe('/api/v1');
+    expect(config.DATABASE_SSL_MODE).toBe('require');
+  });
+
+  it('requires an explicit supported database SSL mode', () => {
+    expect(resolveDatabaseSslMode({ DATABASE_SSL_MODE: 'disable' })).toBe('disable');
+    expect(resolveDatabaseSslMode({ DATABASE_SSL_MODE: 'require' })).toBe('require');
+    expect(() => resolveDatabaseSslMode({ DATABASE_SSL_MODE: 'plaintext' })).toThrow('Invalid DATABASE_SSL_MODE');
   });
 
   it('requires DATABASE_URL from the configured local environment', () => {

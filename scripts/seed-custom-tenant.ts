@@ -1,6 +1,6 @@
 import { v7 as uuidV7 } from 'uuid';
 
-import { resolveDatabaseUrl } from '../src/config/schema.ts';
+import { resolveDatabaseUrl, resolveDatabaseSslMode } from '../src/config/schema.ts';
 import { PlatformBootstrapService } from '../src/application/services/platform-bootstrap-service.ts';
 import { TenantBootstrapService } from '../src/application/services/tenant-bootstrap-service.ts';
 import { CoreEnterpriseService } from '../src/application/services/core-enterprise-service.ts';
@@ -22,7 +22,7 @@ async function main() {
   const databaseUrl = resolveDatabaseUrl(process.env);
   const password = 'Password123!';
 
-  const pool = createDatabasePoolFromUrl(databaseUrl);
+  const pool = createDatabasePoolFromUrl(databaseUrl, { sslMode: resolveDatabaseSslMode(process.env) });
   const passwordHasher = new BcryptPasswordHasher();
   const repository = new PostgresPlatformRepository(pool);
   const platformBootstrap = new PlatformBootstrapService(repository);
