@@ -49,7 +49,6 @@ async function main() {
     },
     organization: {
       id: organizationId,
-      code: 'MAGOD',
       name: 'Magod Fusion Technologies Pvt. Ltd.',
       email: 'administrator@magodfusion.in',
       baseCurrency: 'INR',
@@ -59,7 +58,6 @@ async function main() {
     },
     branch: {
       id: branchId,
-      code: 'PUNE',
       name: 'Pune',
       status: 'active' as const,
       isHeadOffice: true,
@@ -126,21 +124,11 @@ async function main() {
     if (!primaryOrganization) {
       throw new Error(`Primary organization ${organizationId} is missing after bootstrap.`);
     }
-    await coreEnterprise.updateOrganization(tenantId, organizationId, {
-      name: 'Magod Fusion Technologies Pvt. Ltd.',
-      code: 'MAGOD',
-      email: 'administrator@magodfusion.in',
-      baseCurrency: 'INR',
-      fiscalCalendar: 'standard',
-      status: 'active',
-      isDefault: true,
-    });
 
     const primaryBranches = await repository.listBranches(tenantId, organizationId);
     let magodPune = primaryBranches.find((branch) => branch.id === branchId) ?? primaryBranches.find((branch) => branch.name === 'Pune');
     if (!magodPune) {
       magodPune = await coreEnterprise.createBranch(tenantId, organizationId, {
-        code: 'PUNE',
         name: 'Pune',
         status: 'active',
         isHeadOffice: true,
@@ -152,7 +140,6 @@ async function main() {
       });
     } else {
       magodPune = await coreEnterprise.updateBranch(tenantId, organizationId, magodPune.id, {
-        code: 'PUNE',
         name: 'Pune',
         status: 'active',
         isHeadOffice: true,
@@ -202,7 +189,6 @@ async function main() {
       const legacy = organizations.find((organization) => organization.name === 'Magod Fusion Manufacturing' && !organization.isDeleted);
       trimill = legacy
         ? await coreEnterprise.updateOrganization(tenantId, legacy.id, {
-            code: 'TRIMILL',
             name: 'Trimill Industries Pvt. Ltd.',
             email: 'admin@trimill.in',
             baseCurrency: 'INR',
@@ -212,7 +198,6 @@ async function main() {
             remarks: 'Controlled working-context test organization.',
           })
         : await coreEnterprise.createOrganization(tenantId, {
-            code: 'TRIMILL',
             name: 'Trimill Industries Pvt. Ltd.',
             email: 'admin@trimill.in',
             baseCurrency: 'INR',
