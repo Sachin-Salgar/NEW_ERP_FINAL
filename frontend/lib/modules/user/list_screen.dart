@@ -124,18 +124,6 @@ class _UserListScreenState extends State<UserListScreen> {
                                       subtitle: Text(u['email'] ?? ''),
                                       trailing: Wrap(
                                         children: [
-                                          if (auth.hasPermission('user.manage'))
-                                            IconButton(
-                                              icon: const Icon(
-                                                Icons.edit_outlined,
-                                              ),
-                                              onPressed: () =>
-                                                  Navigator.pushNamed(
-                                                    context,
-                                                    '/settings/users/edit',
-                                                    arguments: u['id'],
-                                                  ),
-                                            ),
                                           IconButton(
                                             icon: const Icon(
                                               Icons.chevron_right,
@@ -143,8 +131,7 @@ class _UserListScreenState extends State<UserListScreen> {
                                             onPressed: () =>
                                                 Navigator.pushNamed(
                                                   context,
-                                                  '/settings/users/details',
-                                                  arguments: u['id'],
+                                                  '/settings/users/${u['id']}',
                                                 ),
                                           ),
                                         ],
@@ -189,20 +176,6 @@ class _UserListScreenState extends State<UserListScreen> {
                                         Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            if (auth.hasPermission(
-                                              'user.manage',
-                                            ))
-                                              IconButton(
-                                                icon: const Icon(
-                                                  Icons.edit_outlined,
-                                                ),
-                                                onPressed: () =>
-                                                    Navigator.pushNamed(
-                                                      context,
-                                                      '/settings/users/edit',
-                                                      arguments: u['id'],
-                                                    ),
-                                              ),
                                             IconButton(
                                               icon: const Icon(
                                                 Icons.chevron_right,
@@ -210,8 +183,7 @@ class _UserListScreenState extends State<UserListScreen> {
                                               onPressed: () =>
                                                   Navigator.pushNamed(
                                                     context,
-                                                    '/settings/users/details',
-                                                    arguments: u['id'],
+                                                    '/settings/users/${u['id']}',
                                                   ),
                                             ),
                                           ],

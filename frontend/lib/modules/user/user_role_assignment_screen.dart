@@ -7,8 +7,13 @@ import 'user_service.dart';
 
 class UserRoleAssignmentScreen extends StatefulWidget {
   final String userId;
+  final bool embedded;
 
-  const UserRoleAssignmentScreen({Key? key, required this.userId})
+  const UserRoleAssignmentScreen({
+    Key? key,
+    required this.userId,
+    this.embedded = false,
+  })
     : super(key: key);
 
   @override
@@ -34,6 +39,7 @@ class _UserRoleAssignmentScreenState extends State<UserRoleAssignmentScreen> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() {
       loading = true;
       error = null;
@@ -104,6 +110,11 @@ class _UserRoleAssignmentScreenState extends State<UserRoleAssignmentScreen> {
   @override
   Widget build(BuildContext context) {
     if (!auth.hasPermission('user.manage')) {
+      if (widget.embedded) {
+        return const Center(
+          child: Text('You do not have permission to manage user roles.'),
+        );
+      }
       return Scaffold(
         appBar: AppBar(
           leading: IconButton(
@@ -127,15 +138,7 @@ class _UserRoleAssignmentScreenState extends State<UserRoleAssignmentScreen> {
         .where((role) => assignedRoleIds.contains(role['id']?.toString() ?? ''))
         .toList();
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          onPressed: () => Navigator.of(context).maybePop(),
-          icon: const Icon(Icons.arrow_back_outlined),
-        ),
-        title: const Text('Assign Roles'),
-      ),
-      body: loading
+    final content = loading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
               padding: const EdgeInsets.all(16),
@@ -233,7 +236,17 @@ class _UserRoleAssignmentScreenState extends State<UserRoleAssignmentScreen> {
                     ),
                 ],
               ),
-            ),
+            );
+    if (widget.embedded) return content;
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const Icon(Icons.arrow_back_outlined),
+        ),
+        title: const Text('Assign Roles'),
+      ),
+      body: content,
     );
   }
 }
