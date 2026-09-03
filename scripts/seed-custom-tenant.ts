@@ -140,7 +140,6 @@ async function main() {
     let magodPune = primaryBranches.find((branch) => branch.id === branchId) ?? primaryBranches.find((branch) => branch.name === 'Pune');
     if (!magodPune) {
       magodPune = await coreEnterprise.createBranch(tenantId, organizationId, {
-        id: undefined,
         code: 'PUNE',
         name: 'Pune',
         status: 'active',
@@ -374,6 +373,14 @@ async function main() {
       throw new Error('Failed to ensure administrator user.');
     }
 
+    const administratorPasswordHash = await passwordHasher.hash(password);
+    await withTenantContext(pool, 'app.current_tenant_id', tenantId, async (client) => {
+      await client.query(
+        'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE tenant_id = $2 AND id = $3',
+        [administratorPasswordHash, tenantId, administratorUser!.id],
+      );
+    });
+
     async function ensureUser(username: string, email: string, organizationIdForUser: string, defaultBranchId: string, defaultLocationId: string) {
       let user = await repository.findByTenantAndIdentifier(tenantId, username);
       const passwordHash = await passwordHasher.hash(password);
@@ -419,16 +426,12 @@ async function main() {
     const manager = await ensureUser('manager', 'manager@magodfusion.in', organizationId, magodPune.id, magodPuneLocation.id);
 
     await withTenantContext(pool, 'app.current_tenant_id', tenantId, async (client) => {
-      for (const user of [administratorUser!, admin]) {
+      for (const user of [administratorUser!, admin, manager]) {
         await client.query('DELETE FROM user_organization_access WHERE tenant_id = $1 AND user_id = $2', [tenantId, user.id]);
         await client.query('DELETE FROM user_branch_access WHERE tenant_id = $1 AND user_id = $2', [tenantId, user.id]);
         await client.query('DELETE FROM user_location_access WHERE tenant_id = $1 AND user_id = $2', [tenantId, user.id]);
         await client.query('DELETE FROM user_roles WHERE tenant_id = $1 AND user_id = $2', [tenantId, user.id]);
       }
-      await client.query('DELETE FROM user_organization_access WHERE tenant_id = $1 AND user_id = $2', [tenantId, manager.id]);
-      await client.query('DELETE FROM user_branch_access WHERE tenant_id = $1 AND user_id = $2', [tenantId, manager.id]);
-      await client.query('DELETE FROM user_location_access WHERE tenant_id = $1 AND user_id = $2', [tenantId, manager.id]);
-      await client.query('DELETE FROM user_roles WHERE tenant_id = $1 AND user_id = $2', [tenantId, manager.id]);
     });
 
     const allOrgIds = [organizationId, trimill.id];
@@ -491,23 +494,23 @@ async function main() {
     const administratorOrganizations = await repository.findUserOrganizationMemberships(tenantId, administratorUser.id);
     const adminOrganizations = await repository.findUserOrganizationMemberships(tenantId, admin.id);
     const managerOrganizations = await repository.findUserOrganizationMemberships(tenantId, manager.id);
-    const administratorBranches = allBranchIds.length === (await Promise.all(allOrgIds.map((id) => repository.listAccessibleBranchesForUser(tenantId, administratorUser.id, id)))).flat().length;
-    const adminBranches = allBranchIds.length === (await Promise.all(allOrgIds.map((id) => repository.listAccessibleBranchesForUser(tenantId, admin.id, id)))).flat().length;
-    const managerBranches = (await repository.listAccessibleBranchesForUser(tenantId, manager.id, organizationId)).length;
-    const managerTrimillBranches = (await repository.listAccessibleBranchesForUser(tenantId, manager.id, trimill.id)).length;
-    const managerLocations = (await repository.listAccessibleLocationsForUser(tenantId, manager.id, organizationId)).length;
-    const managerTrimillLocations = (await repository.listAccessibleLocationsForUser(tenantId, manager.id, trimill.id)).length;
+    const administratorBranches = (await Promise.all(allOrgIds.map((id) => repository.listAccessibleBranchesForUser(tenantId, administratorUser.id, id)))).flat();
+    const adminBranches = (await Promise.all(allOrgIds.map((id) => repository.listAccessibleBranchesForUser(tenantId, admin.id, id)))).flat();
+    const managerBranches = await repository.listAccessibleBranchesForUser(tenantId, manager.id, organizationId);
+    const managerTrimillBranches = await repository.listAccessibleBranchesForUser(tenantId, manager.id, trimill.id);
+    const managerLocations = await repository.listAccessibleLocationsForUser(tenantId, manager.id, organizationId);
+    const managerTrimillLocations = await repository.listAccessibleLocationsForUser(tenantId, manager.id, trimill.id);
 
     if (administratorOrganizations.length !== 2 || adminOrganizations.length !== 2) {
       throw new Error('Seed validation failed: Administrator and Admin must have both organizations.');
     }
-    if (!administratorBranches || !adminBranches) {
+    if (administratorBranches.length !== 4 || adminBranches.length !== 4) {
       throw new Error('Seed validation failed: Administrator and Admin must have all four branches.');
     }
     if (managerOrganizations.length !== 1 || managerOrganizations[0].id !== organizationId) {
       throw new Error('Seed validation failed: Manager must have only Magod Fusion organization access.');
     }
-    if (managerBranches !== 2 || managerTrimillBranches !== 0 || managerLocations !== 2 || managerTrimillLocations !== 0) {
+    if (managerBranches.length !== 2 || managerTrimillBranches.length !== 0 || managerLocations.length !== 2 || managerTrimillLocations.length !== 0) {
       throw new Error('Seed validation failed: Manager must have only Magod Fusion branches and locations.');
     }
 
