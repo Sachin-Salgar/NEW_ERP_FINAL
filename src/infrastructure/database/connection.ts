@@ -4,15 +4,32 @@ import type { AppConfig } from '../../config/schema.js';
 
 export type DatabasePool = Pool;
 
-export function createDatabasePool(config: AppConfig): Pool {
+function isLocalDatabaseUrl(databaseUrl: string): boolean {
+  const hostname = new URL(databaseUrl).hostname;
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+}
+
+export function createDatabasePoolFromUrl(
+  databaseUrl: string,
+  options: { min?: number; max?: number; applicationName?: string } = {},
+): Pool {
   return new Pool({
-    connectionString: config.DATABASE_URL,
-    min: config.DATABASE_POOL_MIN,
-    max: config.DATABASE_POOL_MAX,
+    connectionString: databaseUrl,
+    min: options.min,
+    max: options.max,
     connectionTimeoutMillis: 5000,
     idleTimeoutMillis: 30000,
     statement_timeout: 30000,
-    application_name: config.APP_NAME,
+    application_name: options.applicationName,
+    ssl: isLocalDatabaseUrl(databaseUrl) ? undefined : { rejectUnauthorized: true },
+  });
+}
+
+export function createDatabasePool(config: AppConfig): Pool {
+  return createDatabasePoolFromUrl(config.DATABASE_URL, {
+    min: config.DATABASE_POOL_MIN,
+    max: config.DATABASE_POOL_MAX,
+    applicationName: config.APP_NAME,
   });
 }
 

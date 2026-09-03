@@ -1,4 +1,3 @@
-import { Pool } from 'pg';
 import { v7 as uuidV7 } from 'uuid';
 
 import { resolveDatabaseUrl } from '../src/config/schema.ts';
@@ -6,6 +5,7 @@ import { PlatformBootstrapService } from '../src/application/services/platform-b
 import { TenantBootstrapService } from '../src/application/services/tenant-bootstrap-service.ts';
 import { CoreEnterpriseService } from '../src/application/services/core-enterprise-service.ts';
 import { BcryptPasswordHasher } from '../src/infrastructure/security/bcrypt-password-hasher.ts';
+import { createDatabasePoolFromUrl } from '../src/infrastructure/database/connection.ts';
 import { PostgresPlatformRepository } from '../src/infrastructure/database/repositories/postgres-platform-repository.ts';
 import { withTenantContext } from '../src/infrastructure/database/tenant-context.ts';
 
@@ -27,7 +27,7 @@ async function main() {
     throw new Error('ADMIN_PASSWORD is required. Set it in the environment; do not put it in source control.');
   }
 
-  const pool = new Pool({ connectionString: databaseUrl });
+  const pool = createDatabasePoolFromUrl(databaseUrl);
   const repository = new PostgresPlatformRepository(pool);
   const platformBootstrap = new PlatformBootstrapService(repository);
   const tenantBootstrap = new TenantBootstrapService(repository, new BcryptPasswordHasher());
