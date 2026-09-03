@@ -420,37 +420,53 @@ async function main() {
     });
 
     const allOrgIds = [organizationId, trimill.id];
-    const allBranchIds = [magodPune.id, magodCSN.id, trimillPune.id, trimillIndapur.id];
-    const allLocations = [
-      [organizationId, magodPuneLocation.id],
-      [organizationId, magodCSNLocation.id],
-      [trimill.id, trimillPuneLocation.id],
-      [trimill.id, trimillIndapurLocation.id],
+    const accessByOrganization = [
+      {
+        organizationId,
+        branchIds: [magodPune.id, magodCSN.id],
+        locations: [
+          [organizationId, magodPuneLocation.id],
+          [organizationId, magodCSNLocation.id],
+        ] as const,
+      },
+      {
+        organizationId: trimill.id,
+        branchIds: [trimillPune.id, trimillIndapur.id],
+        locations: [
+          [trimill.id, trimillPuneLocation.id],
+          [trimill.id, trimillIndapurLocation.id],
+        ] as const,
+      },
     ] as const;
 
     for (const user of [administratorUser, admin]) {
-      for (const organizationIdForUser of allOrgIds) {
-        if (!(await coreEnterprise.assignUserToOrganization(tenantId, user.id, organizationIdForUser))) {
-          throw new Error(`Failed to assign ${user.username} to organization ${organizationIdForUser}.`);
+      for (const access of accessByOrganization) {
+        if (!(await coreEnterprise.assignUserToOrganization(tenantId, user.id, access.organizationId))) {
+          throw new Error(`Failed to assign ${user.username} to organization ${access.organizationId}.`);
         }
+        for (const branchIdForUser of access.branchIds) {
+          if (!(await coreEnterprise.assignUserToBranch(tenantId, user.id, branchIdForUser))) {
+            throw new Error(`Failed to assign ${user.username} to branch ${branchIdForUser}.`);
+          }
+        }
+        await withTenantContext(pool, 'app.current_tenant_id', tenantId, async (client) => {
+          for (const [locationOrganizationId, locationId] of access.locations) {
+            await client.query(
+              `INSERT INTO user_location_access (tenant_id, user_id, organization_id, location_id)
+               VALUES ($1, $2, $3, $4)
+               ON CONFLICT (user_id, location_id, tenant_id) DO NOTHING`,
+              [tenantId, user.id, locationOrganizationId, locationId],
+            );
+          }
+        });
       }
-      for (const branchIdForUser of allBranchIds) {
-        if (!(await coreEnterprise.assignUserToBranch(tenantId, user.id, branchIdForUser))) {
-          throw new Error(`Failed to assign ${user.username} to branch ${branchIdForUser}.`);
-        }
-      }
-      await withTenantContext(pool, 'app.current_tenant_id', tenantId, async (client) => {
-        for (const [locationOrganizationId, locationId] of allLocations) {
-          await client.query(
-            `INSERT INTO user_location_access (tenant_id, user_id, organization_id, location_id)
-             VALUES ($1, $2, $3, $4)
-             ON CONFLICT (user_id, location_id, tenant_id) DO NOTHING`,
-            [tenantId, user.id, locationOrganizationId, locationId],
-          );
-        }
+      const restored = await coreEnterprise.updateUser(tenantId, user.id, {
+        organizationId,
+        defaultBranchId: magodPune.id,
+        defaultLocationId: magodPuneLocation.id,
       });
-      if (!(await repository.assignRoleToUser(tenantId, user.id, tenantAdminRole.id))) {
-        throw new Error(`Failed to assign Tenant Administrator role to ${user.username}.`);
+      if (!restored) {
+        throw new Error(`Failed to restore ${user.username} default context.`);
       }
     }
 
