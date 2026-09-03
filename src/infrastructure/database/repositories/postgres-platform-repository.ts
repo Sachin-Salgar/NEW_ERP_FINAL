@@ -1624,7 +1624,6 @@ export class PostgresPlatformRepository
              WHERE uba.tenant_id = b.tenant_id
                AND uba.branch_id = b.id
                AND uba.user_id = $2
-               AND uba.is_active = true
            )
            AND ($3::uuid IS NULL OR b.organization_id = $3)
          ORDER BY b.name`,
@@ -1705,7 +1704,6 @@ export class PostgresPlatformRepository
              WHERE uba.tenant_id = b.tenant_id
                AND uba.branch_id = b.id
                AND uba.user_id = $3
-               AND uba.is_active = true
            )
            AND ($4::uuid IS NULL OR b.organization_id = $4)
          LIMIT 1`,
@@ -1724,9 +1722,17 @@ export class PostgresPlatformRepository
          WHERE uba.tenant_id = $1
            AND uba.user_id = $2
            AND uba.branch_id = $3
-           AND uba.is_active = true
+           AND ($4::uuid IS NULL OR EXISTS (
+             SELECT 1
+             FROM branches b
+             WHERE b.tenant_id = uba.tenant_id
+               AND b.id = uba.branch_id
+               AND b.organization_id = $4
+               AND b.is_deleted = false
+               AND b.status = 'active'
+           ))
          LIMIT 1`,
-        [tenantId, userId, branchId],
+        [tenantId, userId, branchId, organizationId ?? null],
       );
     });
 
