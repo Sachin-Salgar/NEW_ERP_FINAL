@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../core/auth/auth_service.dart';
 import '../modules/branch/branch_service.dart';
 import '../modules/organization/organization_service.dart';
+import '../modules/role/role_service.dart';
 import '../modules/user/user_service.dart';
 import '../routing/app_router_delegate.dart';
 import '../themes/app_theme.dart';
@@ -31,6 +32,7 @@ class App extends StatefulWidget {
       () => BranchService(apiClient: di.get<ApiClient>()),
     );
     di.registerLazySingleton(() => UserService(apiClient: di.get<ApiClient>()));
+    di.registerLazySingleton(() => RoleService(apiClient: di.get<ApiClient>()));
 
     final auth = di.get<AuthService>();
     final theme = di.get<ThemeController>();
