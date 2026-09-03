@@ -64,7 +64,7 @@ If an ADR conflicts with another authoritative document and the scope cannot be 
 | [0010](./0010-organization-module-access.md) | Organization Module Access Boundary | Approved | 2026-08-26 | Tenant entitlement, organization module enablement, and effective permission access |
 | [0011](./0011-organization-branch-location-context.md) | Organization, Branch, and Location Context Model | Approved | 2026-09-01 | Core enterprise context, business hierarchy, operational authorization, transaction scoping |
 | [0012](./0012-branch-access-representation.md) | Branch Access Representation | Approved | 2026-09-03 | Tenant-scoped user authorization for Branch records |
-| [0013](./0013-centralized-tls-managed-postgresql.md) | Centralized TLS for Managed PostgreSQL Connections | Approved | 2026-09-03 | PostgreSQL connection configuration for application runtime and operational tooling |
+| [0013](./0013-centralized-tls-managed-postgresql.md) | Centralized PostgreSQL Connection Policy for Managed Endpoints | Approved | 2026-09-03 | Centralized PostgreSQL connection configuration, endpoint selection, and transport security |
 
 This table is the authoritative status index for the ADRs listed above. Each ADR's `Status` field must agree with this table.
 
