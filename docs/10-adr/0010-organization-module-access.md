@@ -1,6 +1,6 @@
 # ADR-0010 — Organization Module Access Boundary
 
-- **Status:** Accepted
+- **Status:** Approved
 - **Date:** 2026-08-26
 - **Decision:** Separate tenant module entitlement from organization module enablement and combine both with effective user permissions for runtime access.
 

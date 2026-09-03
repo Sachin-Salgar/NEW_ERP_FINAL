@@ -61,6 +61,10 @@ If an ADR conflicts with another authoritative document and the scope cannot be 
 | [0007](./0007-zero-downtime-migrations.md) | Zero-Downtime Migration Strategy | Approved | 2026-08-07 | Production database migrations |
 | [0008](./0008-event-contracts-versioning.md) | Event Contracts & Versioning | Proposed | 2026-08-07 | Cross-module/integration event contract versioning |
 | [0009](./0009-token-refresh-rotation.md) | Token Strategy — Refresh Token Rotation | Proposed | 2026-08-07 | Refresh-token lifecycle |
+| [0010](./0010-organization-module-access.md) | Organization Module Access Boundary | Approved | 2026-08-26 | Tenant entitlement, organization module enablement, and effective permission access |
+| [0011](./0011-organization-branch-location-context.md) | Organization, Branch, and Location Context Model | Approved | 2026-09-01 | Core enterprise context, business hierarchy, operational authorization, transaction scoping |
+| [0012](./0012-branch-access-representation.md) | Branch Access Representation | Approved | 2026-09-03 | Tenant-scoped user authorization for Branch records |
+| [0013](./0013-centralized-tls-managed-postgresql.md) | Centralized TLS for Managed PostgreSQL Connections | Approved | 2026-09-03 | PostgreSQL connection configuration for application runtime and operational tooling |
 
 This table is the authoritative status index for the ADRs listed above. Each ADR's `Status` field must agree with this table.
 
@@ -84,7 +88,7 @@ Implementation must not rely on a Proposed ADR.
 
 ADRs use sequential identifiers: `ADR-0001`, `ADR-0002`, etc.
 
-The next available identifier after the current index is **ADR-0010**.
+The next available identifier after the current index is **ADR-0014**.
 
 ## Related Documentation
 
