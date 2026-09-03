@@ -11,16 +11,12 @@ void main() {
     });
 
     test('maps child routes to their top-level navigation item', () {
-      expect(
-        AppRoutes.canonicalTopLevel('/organizations/create'),
-        '/settings',
-      );
+      expect(AppRoutes.canonicalTopLevel('/organizations/create'), '/settings');
       expect(
         AppRoutes.canonicalTopLevel('/organizations/branches/edit'),
         '/settings',
       );
       expect(AppRoutes.canonicalTopLevel('/settings/branches'), '/settings');
-      expect(AppRoutes.canonicalTopLevel('/settings/users/roles'), '/settings');
       expect(AppRoutes.canonicalTopLevel('/settings/roles/edit'), '/settings');
       expect(
         AppRoutes.canonicalTopLevel('/settings/roles/permissions'),
@@ -56,9 +52,7 @@ void main() {
       expect(settingsRoles.permissionKey, 'role.read');
       expect(settingsRoles.moduleCode, 'security');
 
-      final rolePermissions = AppRoutes.forRoute(
-        '/settings/roles/permissions',
-      );
+      final rolePermissions = AppRoutes.forRoute('/settings/roles/permissions');
       expect(rolePermissions.title, 'Roles');
       expect(rolePermissions.permissionKey, 'role.read');
       expect(rolePermissions.moduleCode, 'security');
@@ -92,9 +86,6 @@ void main() {
       expect(AppRoutes.isSettingsRoute('/settings/branches/abc/edit'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/users'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/users/create'), isTrue);
-      expect(AppRoutes.isSettingsRoute('/settings/users/123/edit'), isTrue);
-      expect(AppRoutes.isSettingsRoute('/settings/users/roles'), isTrue);
-      expect(AppRoutes.isSettingsRoute('/settings/users/access'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/roles'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/roles/create'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/roles/edit'), isTrue);
@@ -108,6 +99,23 @@ void main() {
         AppRoutes.routePermissions['/settings/roles/permissions'],
         'role.manage',
       );
+    });
+
+    test('does not map obsolete user routes to a user details path', () {
+      for (final route in [
+        '/settings/users/edit',
+        '/settings/users/roles',
+        '/settings/users/access',
+      ]) {
+        expect(AppRoutes.normalize(route), route);
+        expect(AppRoutes.routePermissions[route], isNull);
+      }
+    });
+
+    test('preserves canonical user details paths', () {
+      const route = '/settings/users/user-123';
+      expect(AppRoutes.normalize(route), route);
+      expect(AppRoutes.isSettingsRoute(route), isTrue);
     });
 
     test('unknown routes resolve to a safe navigation metadata entry', () {

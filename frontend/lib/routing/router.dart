@@ -18,12 +18,9 @@ import '../modules/permission/role_permission_screen.dart';
 import '../modules/role/create_screen.dart';
 import '../modules/role/edit_screen.dart';
 import '../modules/role/list_screen.dart';
-import '../modules/user/access_screen.dart';
 import '../modules/user/create_screen.dart';
 import '../modules/user/details_screen.dart';
-import '../modules/user/edit_screen.dart';
 import '../modules/user/list_screen.dart';
-import '../modules/user/user_role_assignment_screen.dart';
 import 'route_config.dart';
 
 class AppRouter {
@@ -155,46 +152,17 @@ class AppRouter {
       );
     }
 
-    if (path.startsWith('/settings/users/edit/')) {
-      return MaterialPageRoute(
-        settings: settings,
-        builder: (context) => _protected(
-          context,
-          routeName: path,
-          child: UserEditScreen(
-            id: _extractDetailId(path, settings.arguments) ?? '',
-          ),
-        ),
-      );
-    }
-
-    if (path.startsWith('/settings/users/roles/')) {
-      return MaterialPageRoute(
-        settings: settings,
-        builder: (context) => _protected(
-          context,
-          routeName: path,
-          child: UserRoleAssignmentScreen(
-            userId: _extractDetailId(path, settings.arguments) ?? '',
-          ),
-        ),
-      );
-    }
-
-    if (path.startsWith('/settings/users/access/')) {
-      return MaterialPageRoute(
-        settings: settings,
-        builder: (context) => _protected(
-          context,
-          routeName: path,
-          child: UserAccessScreen(
-            userId: _extractDetailId(path, settings.arguments) ?? '',
-          ),
-        ),
-      );
-    }
-
-    if (path.startsWith('/settings/users/')) {
+    final userPathSegments =
+        path.split('/').where((segment) => segment.isNotEmpty).toList();
+    const obsoleteUserRoutes = {
+      '/settings/users/edit',
+      '/settings/users/roles',
+      '/settings/users/access',
+    };
+    if (path.startsWith('/settings/users/') &&
+        userPathSegments.length == 3 &&
+        path != '/settings/users/create' &&
+        !obsoleteUserRoutes.contains(path)) {
       return MaterialPageRoute(
         settings: settings,
         builder: (context) => _protected(
@@ -406,35 +374,6 @@ class AppRouter {
             child: UserDetailsScreen(),
           ),
         );
-      case '/settings/users/edit':
-        return MaterialPageRoute(
-          settings: settings,
-          builder: (context) => _protected(
-            context,
-            routeName: '/settings/users/edit',
-            child: UserEditScreen(),
-          ),
-        );
-      case '/settings/users/roles':
-        return MaterialPageRoute(
-          settings: settings,
-          builder: (context) => _protected(
-            context,
-            routeName: '/settings/users/roles',
-            child: UserRoleAssignmentScreen(
-              userId: settings.arguments as String? ?? '',
-            ),
-          ),
-        );
-      case '/settings/users/access':
-        return MaterialPageRoute(
-          settings: settings,
-          builder: (context) => _protected(
-            context,
-            routeName: '/settings/users/access',
-            child: const UserAccessScreen(),
-          ),
-        );
       case '/settings/roles':
         return MaterialPageRoute(
           settings: settings,
@@ -634,35 +573,6 @@ class AppRouter {
             context,
             routeName: '/users/details',
             child: const UserDetailsScreen(),
-          ),
-        );
-      case '/users/edit':
-        return MaterialPageRoute(
-          settings: settings,
-          builder: (context) => _protected(
-            context,
-            routeName: '/users/edit',
-            child: const UserEditScreen(),
-          ),
-        );
-      case '/users/roles':
-        return MaterialPageRoute(
-          settings: settings,
-          builder: (context) => _protected(
-            context,
-            routeName: '/users/roles',
-            child: UserRoleAssignmentScreen(
-              userId: settings.arguments as String? ?? '',
-            ),
-          ),
-        );
-      case '/users/access':
-        return MaterialPageRoute(
-          settings: settings,
-          builder: (context) => _protected(
-            context,
-            routeName: '/users/access',
-            child: const UserAccessScreen(),
           ),
         );
       case '/roles':
