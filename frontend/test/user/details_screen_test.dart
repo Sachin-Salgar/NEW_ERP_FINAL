@@ -50,94 +50,28 @@ void main() {
       if (request.url.path == '/api/v1/organizations') {
         return http.Response(jsonEncode({'organizations': []}), 200);
       }
-      return http.Response('{}', 200);
-    });
-    final api = ApiClient(baseUrl: 'http://example.com', httpClient: client);
-    GetIt.instance.registerSingleton<ApiClient>(api);
-    GetIt.instance.registerSingleton<AuthService>(
-      AuthService(
-        secureStorage: _MemorySecureStorage(),
-        apiClientFactory: (_) => api,
-      ),
-    );
-    GetIt.instance.registerSingleton<UserService>(UserService(apiClient: api));
-    GetIt.instance.registerSingleton<RoleService>(RoleService(apiClient: api));
-    GetIt.instance.registerSingleton<OrganizationService>(
-      OrganizationService(apiClient: api),
-    );
-    GetIt.instance.registerSingleton<BranchService>(
-      BranchService(apiClient: api),
-    );
-
-    await tester.pumpWidget(
-      const MaterialApp(home: UserDetailsScreen(id: 'user-1')),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('demo'), findsWidgets);
-    expect(find.text('Profile'), findsOneWidget);
-    expect(find.text('Roles'), findsOneWidget);
-    expect(find.text('Access'), findsOneWidget);
-    expect(find.text('Account details'), findsOneWidget);
-    expect(find.byType(TabBar), findsNothing);
-
-    await tester.ensureVisible(find.text('Hide Roles'));
-    await tester.tap(find.text('Hide Roles'));
-    await tester.pump();
-    expect(find.text('Manage Roles'), findsOneWidget);
-
-    await tester.tap(find.text('Manage Roles'));
-    await tester.pump();
-    expect(find.text('Hide Roles'), findsOneWidget);
-  });
-
-  testWidgets('shows the current assigned roles when the Roles card is collapsed', (
-    WidgetTester tester,
-  ) async {
-    final client = MockClient((request) async {
-      final path = request.url.path;
-      if (path == '/api/v1/users/user-1') {
-        return http.Response(
-          jsonEncode({
-            'user': {
-              'id': 'user-1',
-              'username': 'demo',
-              'email': 'demo@example.com',
-              'status': 'active',
-            },
-          }),
-          200,
-        );
-      }
-      if (path == '/api/v1/organizations') {
-        return http.Response(jsonEncode({'organizations': []}), 200);
-      }
-      if (path == '/api/v1/rbac/roles') {
-        return http.Response(
-          jsonEncode({
-            'success': true,
-            'roles': [
-              {'id': 'role-1', 'name': 'Administrator'},
-              {'id': 'role-2', 'name': 'Manager'},
-            ],
-          }),
-          200,
-        );
-      }
-      if (path == '/api/v1/rbac/users/user-1/roles') {
+      if (request.url.path == '/api/v1/users/user-1/access') {
         return http.Response(
           jsonEncode({
             'success': true,
             'userId': 'user-1',
-            'roles': [
-              {'id': 'role-1', 'name': 'Administrator'},
-              {'id': 'role-2', 'name': 'Manager'},
+            'organizations': [
+              {'id': 'org-1', 'name': 'Assigned Org'},
+            ],
+            'branches': [
+              {
+                'id': 'branch-1',
+                'name': 'Assigned Branch',
+                'organizationId': 'org-1',
+                'organizationName': 'Assigned Org',
+              },
             ],
           }),
           200,
         );
       }
-      if (path == '/api/v1/rbac/users/user-1/effective-permissions') {
+      if (request.url.path ==
+          '/api/v1/rbac/users/user-1/effective-permissions') {
         return http.Response(
           jsonEncode({
             'success': true,
@@ -172,12 +106,125 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('demo'), findsWidgets);
+    expect(find.text('Profile'), findsOneWidget);
+    expect(find.text('Roles'), findsOneWidget);
+    expect(find.text('Access'), findsOneWidget);
+    expect(find.text('1 organization • 1 branch'), findsOneWidget);
+    await tester.ensureVisible(find.text('Hide Access'));
+    await tester.tap(find.text('Hide Access'));
+    await tester.pump();
+    expect(find.text('Manage Access'), findsOneWidget);
+    expect(find.text('1 organization • 1 branch'), findsOneWidget);
+    await tester.tap(find.text('Manage Access'));
+    await tester.pump();
+    expect(find.text('Hide Access'), findsOneWidget);
+    expect(find.text('Assign Organization'), findsOneWidget);
+    expect(find.text('Account details'), findsOneWidget);
+    expect(find.byType(TabBar), findsNothing);
+
     await tester.ensureVisible(find.text('Hide Roles'));
     await tester.tap(find.text('Hide Roles'));
     await tester.pump();
-
-    expect(find.textContaining('2 roles assigned'), findsOneWidget);
-    expect(find.textContaining('Administrator • Manager'), findsOneWidget);
     expect(find.text('Manage Roles'), findsOneWidget);
+
+    await tester.tap(find.text('Manage Roles'));
+    await tester.pump();
+    expect(find.text('Hide Roles'), findsOneWidget);
   });
+
+  testWidgets(
+    'shows the current assigned roles when the Roles card is collapsed',
+    (WidgetTester tester) async {
+      final client = MockClient((request) async {
+        final path = request.url.path;
+        if (path == '/api/v1/users/user-1') {
+          return http.Response(
+            jsonEncode({
+              'user': {
+                'id': 'user-1',
+                'username': 'demo',
+                'email': 'demo@example.com',
+                'status': 'active',
+              },
+            }),
+            200,
+          );
+        }
+        if (path == '/api/v1/organizations') {
+          return http.Response(jsonEncode({'organizations': []}), 200);
+        }
+        if (path == '/api/v1/rbac/roles') {
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'roles': [
+                {'id': 'role-1', 'name': 'Administrator'},
+                {'id': 'role-2', 'name': 'Manager'},
+              ],
+            }),
+            200,
+          );
+        }
+        if (path == '/api/v1/rbac/users/user-1/roles') {
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'userId': 'user-1',
+              'roles': [
+                {'id': 'role-1', 'name': 'Administrator'},
+                {'id': 'role-2', 'name': 'Manager'},
+              ],
+            }),
+            200,
+          );
+        }
+        if (path == '/api/v1/rbac/users/user-1/effective-permissions') {
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'permissions': ['user.manage'],
+            }),
+            200,
+          );
+        }
+        return http.Response('{}', 200);
+      });
+      final api = ApiClient(baseUrl: 'http://example.com', httpClient: client);
+      GetIt.instance.registerSingleton<ApiClient>(api);
+      final authz = AuthZService();
+      final auth = AuthService(
+        secureStorage: _MemorySecureStorage(),
+        apiClientFactory: (_) => api,
+        authzService: authz,
+      );
+      GetIt.instance.registerSingleton<AuthService>(auth);
+      await authz.loadPermissions(api, 'user-1');
+      GetIt.instance.registerSingleton<UserService>(
+        UserService(apiClient: api),
+      );
+      GetIt.instance.registerSingleton<RoleService>(
+        RoleService(apiClient: api),
+      );
+      GetIt.instance.registerSingleton<OrganizationService>(
+        OrganizationService(apiClient: api),
+      );
+      GetIt.instance.registerSingleton<BranchService>(
+        BranchService(apiClient: api),
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(home: UserDetailsScreen(id: 'user-1')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Hide Roles'));
+      await tester.tap(find.text('Hide Roles'));
+      await tester.pump();
+
+      expect(find.textContaining('2 roles assigned'), findsOneWidget);
+      expect(find.textContaining('Administrator • Manager'), findsOneWidget);
+      expect(find.text('Manage Roles'), findsOneWidget);
+    },
+  );
 }

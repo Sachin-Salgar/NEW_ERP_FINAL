@@ -15,6 +15,8 @@ import type {
   SessionRepository,
   TenantBootstrapRepository,
   UserAdminRecord,
+  UserBranchAccessRecord,
+  UserOrganizationAccessRecord,
   UserRepository,
 } from '../../../application/contracts/security.js';
 import { withTenantContext } from '../tenant-context.js';
@@ -2271,6 +2273,66 @@ export class PostgresPlatformRepository
     });
 
     return result.rows.length > 0 ? this.mapUserAdminRow(result.rows[0]) : null;
+  }
+
+  async listUserOrganizationAccess(tenantId: string, userId: string): Promise<UserOrganizationAccessRecord[]> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT o.id,
+                o.tenant_id as "tenantId",
+                o.code,
+                o.name,
+                o.status,
+                o.is_default as "isDefault"
+         FROM user_organization_access uoa
+         INNER JOIN organizations o
+           ON o.id = uoa.organization_id AND o.tenant_id = uoa.tenant_id
+         WHERE uoa.tenant_id = $1 AND uoa.user_id = $2
+         ORDER BY o.name ASC`,
+        [tenantId, userId],
+      );
+    });
+
+    return result.rows.map((row) => ({
+      id: row.id,
+      tenantId: row.tenantId,
+      code: row.code,
+      name: row.name,
+      status: row.status,
+      isDefault: row.isDefault,
+    }));
+  }
+
+  async listUserBranchAccess(tenantId: string, userId: string): Promise<UserBranchAccessRecord[]> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT b.id,
+                b.tenant_id as "tenantId",
+                b.organization_id as "organizationId",
+                o.name as "organizationName",
+                b.code,
+                b.name,
+                b.status
+         FROM user_branch_access uba
+         INNER JOIN branches b
+           ON b.id = uba.branch_id AND b.tenant_id = uba.tenant_id
+         INNER JOIN organizations o
+           ON o.id = b.organization_id AND o.tenant_id = b.tenant_id
+         WHERE uba.tenant_id = $1 AND uba.user_id = $2
+         ORDER BY o.name ASC, b.name ASC`,
+        [tenantId, userId],
+      );
+    });
+
+    return result.rows.map((row) => ({
+      id: row.id,
+      tenantId: row.tenantId,
+      organizationId: row.organizationId,
+      organizationName: row.organizationName,
+      code: row.code,
+      name: row.name,
+      status: row.status,
+    }));
   }
 
   async updateUser(tenantId: string, userId: string, changes: Partial<Pick<UserAdminRecord, 'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'defaultLocationId' | 'status'>>): Promise<UserAdminRecord | null> {

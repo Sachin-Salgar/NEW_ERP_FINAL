@@ -25,6 +25,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
   bool _rolesExpanded = true;
   bool _accessExpanded = true;
   List<String>? _assignedRoleNames;
+  String? _accessSummary;
 
   @override
   void didChangeDependencies() {
@@ -113,6 +114,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                   _SectionCard(
                     title: 'Access',
                     subtitle: 'Organization and branch access',
+                    summary: _accessSummary ?? 'Loading access...',
                     actionLabel: _accessExpanded
                         ? 'Hide Access'
                         : 'Manage Access',
@@ -121,7 +123,14 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                     child: Visibility(
                       visible: _accessExpanded,
                       maintainState: true,
-                      child: UserAccessSection(userId: user!['id'].toString()),
+                      child: UserAccessSection(
+                        userId: user!['id'].toString(),
+                        onAccessSummaryChanged: (summary) {
+                          if (mounted) {
+                            setState(() => _accessSummary = summary);
+                          }
+                        },
+                      ),
                     ),
                   ),
                 ],
@@ -137,7 +146,8 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
     final roleNames = _assignedRoleNames;
     if (roleNames == null) return 'Loading roles...';
     if (roleNames.isEmpty) return 'No roles assigned';
-    final count = '${roleNames.length} role${roleNames.length == 1 ? '' : 's'} assigned';
+    final count =
+        '${roleNames.length} role${roleNames.length == 1 ? '' : 's'} assigned';
     return '$count: ${roleNames.join(' • ')}';
   }
 }

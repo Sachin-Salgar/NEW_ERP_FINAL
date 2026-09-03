@@ -116,6 +116,49 @@ class UserService extends ChangeNotifier {
     return false;
   }
 
+  Future<Map<String, List<Map<String, dynamic>>>> getUserAccess(
+    String userId,
+  ) async {
+    final resp = await apiClient.get('/api/v1/users/$userId/access');
+    if (resp.statusCode != 200) {
+      throw StateError('Failed to load user access: ${resp.statusCode}');
+    }
+
+    final body = jsonDecode(resp.body);
+    if (body is! Map<String, dynamic> ||
+        body['success'] != true ||
+        body['userId'] != userId ||
+        body['organizations'] is! List<dynamic> ||
+        body['branches'] is! List<dynamic>) {
+      throw const FormatException('Invalid user access response');
+    }
+
+    List<Map<String, dynamic>> parseEntries(
+      Object? value,
+      String entryType,
+    ) {
+      final entries = value as List<dynamic>;
+      return entries.map((entry) {
+        if (entry is! Map) {
+          throw FormatException('Invalid $entryType access entry');
+        }
+        final map = Map<String, dynamic>.from(entry);
+        if (map['id'] is! String ||
+            map['id'].toString().isEmpty ||
+            map['name'] is! String ||
+            map['name'].toString().isEmpty) {
+          throw FormatException('Invalid $entryType access entry');
+        }
+        return map;
+      }).toList();
+    }
+
+    return {
+      'organizations': parseEntries(body['organizations'], 'organization'),
+      'branches': parseEntries(body['branches'], 'branch'),
+    };
+  }
+
   Future<bool> assignRoleToUser(String userId, String roleId) async {
     try {
       final resp = await apiClient.post(

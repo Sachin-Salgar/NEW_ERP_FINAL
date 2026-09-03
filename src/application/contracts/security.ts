@@ -210,6 +210,25 @@ export interface UserAdminRecord {
   isDeleted?: boolean;
 }
 
+export interface UserOrganizationAccessRecord {
+  id: string;
+  tenantId: string;
+  code: string;
+  name: string;
+  status: 'active' | 'inactive' | 'archived';
+  isDefault: boolean;
+}
+
+export interface UserBranchAccessRecord {
+  id: string;
+  tenantId: string;
+  organizationId: string;
+  organizationName: string;
+  code: string;
+  name: string;
+  status: string;
+}
+
 export interface CoreEnterpriseRepository {
   generateOrganizationCode(tenantId: string): Promise<string>;
   createOrganization(tenantId: string, input: { code?: string | null; name: string; legalName?: string | null; gstNo?: string | null; panNo?: string | null; cinNo?: string | null; email?: string | null; phone?: string | null; website?: string | null; baseCurrency?: string; fiscalCalendar?: string; status?: 'active' | 'inactive' | 'archived'; isDefault?: boolean; remarks?: string | null }): Promise<OrganizationRecord>;
@@ -237,6 +256,8 @@ export interface CoreEnterpriseRepository {
   deactivateLocation(tenantId: string, organizationId: string, locationId: string): Promise<boolean>;
   listUsers(tenantId: string): Promise<UserAdminRecord[]>;
   getUserById(tenantId: string, userId: string): Promise<UserAdminRecord | null>;
+  listUserOrganizationAccess(tenantId: string, userId: string): Promise<UserOrganizationAccessRecord[]>;
+  listUserBranchAccess(tenantId: string, userId: string): Promise<UserBranchAccessRecord[]>;
   updateUser(tenantId: string, userId: string, changes: Partial<Pick<UserAdminRecord, 'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'defaultLocationId' | 'status'>>): Promise<UserAdminRecord | null>;
   assignUserToOrganization(tenantId: string, userId: string, organizationId: string): Promise<boolean>;
   assignUserToBranch(tenantId: string, userId: string, branchId: string): Promise<boolean>;

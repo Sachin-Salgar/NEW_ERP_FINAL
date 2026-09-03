@@ -235,6 +235,22 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
     return { success: true, user };
   });
 
+  fastify.get('/users/:id/access', { preHandler: [requireAuth, requirePermission('user.manage')] }, async (request) => {
+    const tenantId = request.tenantId ?? getTenantIdFromRequest(request);
+    if (!tenantId) {
+      throw new ValidationError('Tenant context is required.');
+    }
+
+    const userId = asString((request.params as { id?: string }).id) ?? '';
+    const user = await request.server.coreEnterpriseService.getUser(tenantId, userId);
+    if (!user) {
+      throw new NotFoundError('User not found.');
+    }
+
+    const access = await request.server.coreEnterpriseService.getUserAccess(tenantId, userId);
+    return { success: true, userId, organizations: access.organizations, branches: access.branches };
+  });
+
   fastify.patch('/users/:id', { preHandler: [requireAuth, requirePermission('user.manage')] }, async (request) => {
     const tenantId = request.tenantId ?? getTenantIdFromRequest(request);
     if (!tenantId) {

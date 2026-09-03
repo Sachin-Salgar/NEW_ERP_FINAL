@@ -8,6 +8,7 @@ import { PlatformBootstrapService } from '../../src/application/services/platfor
 import { TenantBootstrapService } from '../../src/application/services/tenant-bootstrap-service.js';
 import { BcryptPasswordHasher } from '../../src/infrastructure/security/bcrypt-password-hasher.js';
 import { PostgresPlatformRepository } from '../../src/infrastructure/database/repositories/postgres-platform-repository.js';
+import { withTenantContext } from '../../src/infrastructure/database/tenant-context.js';
 import { createApplication } from '../../src/presentation/http/app.js';
 
 const databaseUrl = resolveDatabaseUrl(process.env, { forTest: true });
@@ -216,6 +217,29 @@ describe('CORE-01 organization and branch administration', () => {
     });
     expect(userAssignBranchResponse.statusCode).toBe(200);
 
+    const userAccessResponse = await app.inject({
+      method: 'GET',
+      url: `/api/v1/users/${memberUser.id}/access`,
+      headers: adminHeaders,
+    });
+    expect(userAccessResponse.statusCode).toBe(200);
+    expect(userAccessResponse.json()).toMatchObject({
+      success: true,
+      userId: memberUser.id,
+    });
+    expect(userAccessResponse.json().organizations).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: createdOrg.id, name: expect.any(String) })]),
+    );
+    expect(userAccessResponse.json().branches).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: createdBranch.id,
+          organizationId: createdOrg.id,
+          organizationName: expect.any(String),
+        }),
+      ]),
+    );
+
     const limitedUserRegister = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/register',
@@ -231,6 +255,17 @@ describe('CORE-01 organization and branch administration', () => {
     });
     expect(limitedUserRegister.statusCode).toBe(201);
     const limitedUser = limitedUserRegister.json().user;
+    const limitedUserRow = await withTenantContext(
+      pool,
+      'app.current_tenant_id',
+      tenantResult.tenantId,
+      (client) =>
+        client.query(
+          'SELECT id FROM users WHERE tenant_id = $1 AND username = $2',
+          [tenantResult.tenantId, `limited${uniqueSuffix}`],
+        ),
+    );
+    limitedUser.id = limitedUserRow.rows[0].id;
 
     const limitedLogin = await app.inject({
       method: 'POST',
@@ -244,6 +279,39 @@ describe('CORE-01 organization and branch administration', () => {
     expect(limitedLogin.statusCode).toBe(200);
     const limitedToken = limitedLogin.json().accessToken as string;
 
+    await withTenantContext(
+      pool,
+      'app.current_tenant_id',
+      tenantResult.tenantId,
+      (client) =>
+        client
+          .query(
+            'DELETE FROM user_organization_access WHERE tenant_id = $1 AND user_id = $2',
+            [tenantResult.tenantId, limitedUser.id],
+          )
+          .then(() =>
+            client.query(
+              'DELETE FROM user_branch_access WHERE tenant_id = $1 AND user_id = $2',
+              [tenantResult.tenantId, limitedUser.id],
+            ),
+          )
+          .then(() =>
+            client.query(
+              'UPDATE users SET organization_id = $1, default_branch_id = $2 WHERE id = $3 AND tenant_id = $4',
+              [createdOrg.id, createdBranch.id, limitedUser.id, tenantResult.tenantId],
+            ),
+          ),
+    );
+
+    const emptyUserAccessResponse = await app.inject({
+      method: 'GET',
+      url: `/api/v1/users/${limitedUser.id}/access`,
+      headers: adminHeaders,
+    });
+    expect(emptyUserAccessResponse.statusCode).toBe(200);
+    expect(emptyUserAccessResponse.json().organizations).toEqual([]);
+    expect(emptyUserAccessResponse.json().branches).toEqual([]);
+
     const forbiddenOrganizationList = await app.inject({
       method: 'GET',
       url: '/api/v1/organizations',
@@ -251,12 +319,29 @@ describe('CORE-01 organization and branch administration', () => {
     });
     expect(forbiddenOrganizationList.statusCode).toBe(403);
 
+    const forbiddenUserAccess = await app.inject({
+      method: 'GET',
+      url: `/api/v1/users/${memberUser.id}/access`,
+      headers: {
+        authorization: ['Bearer', limitedToken].join(' '),
+        'x-tenant-id': tenantResult.tenantId,
+      },
+    });
+    expect(forbiddenUserAccess.statusCode).toBe(403);
+
     const deactivateUserResponse = await app.inject({
       method: 'POST',
       url: `/api/v1/users/${memberUser.id}/deactivate`,
       headers: adminHeaders,
     });
     expect(deactivateUserResponse.statusCode).toBe(200);
+
+    const deactivatedUserAccess = await app.inject({
+      method: 'GET',
+      url: `/api/v1/users/${memberUser.id}/access`,
+      headers: adminHeaders,
+    });
+    expect(deactivatedUserAccess.statusCode).toBe(200);
 
     const memberLogin = await app.inject({
       method: 'POST',
@@ -336,6 +421,20 @@ describe('CORE-01 organization and branch administration', () => {
       headers: { authorization: `Bearer ${adminAccessToken}`, 'x-tenant-id': tenantResult.tenantId },
     });
     expect(crossTenantUser.statusCode).toBe(404);
+
+    const crossTenantUserAccess = await app.inject({
+      method: 'GET',
+      url: `/api/v1/users/${otherTenantResult.userId}/access`,
+      headers: adminHeaders,
+    });
+    expect(crossTenantUserAccess.statusCode).toBe(404);
+
+    const invalidUserAccess = await app.inject({
+      method: 'GET',
+      url: `/api/v1/users/${uuidV7()}/access`,
+      headers: adminHeaders,
+    });
+    expect(invalidUserAccess.statusCode).toBe(404);
 
     const deactivatedOrg = await app.inject({
       method: 'POST',

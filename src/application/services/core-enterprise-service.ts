@@ -1,7 +1,7 @@
 import { v7 as uuidV7 } from 'uuid';
 
 import { ValidationError } from '../../domain/errors.js';
-import type { BranchRecord, CoreEnterpriseRepository, OrganizationRecord, UserAdminRecord } from '../contracts/security.js';
+import type { BranchRecord, CoreEnterpriseRepository, OrganizationRecord, UserAdminRecord, UserBranchAccessRecord, UserOrganizationAccessRecord } from '../contracts/security.js';
 
 export class CoreEnterpriseService {
   constructor(private readonly repository: CoreEnterpriseRepository) {}
@@ -177,6 +177,24 @@ export class CoreEnterpriseService {
       throw new ValidationError('User ID is required.');
     }
     return this.repository.getUserById(tenantId, userId.trim());
+  }
+
+  async getUserAccess(tenantId: string, userId: string): Promise<{
+    organizations: UserOrganizationAccessRecord[];
+    branches: UserBranchAccessRecord[];
+  }> {
+    this.ensureTenantContext(tenantId);
+    if (!userId || !userId.trim()) {
+      throw new ValidationError('User ID is required.');
+    }
+
+    const normalizedUserId = userId.trim();
+
+    const [organizations, branches] = await Promise.all([
+      this.repository.listUserOrganizationAccess(tenantId, normalizedUserId),
+      this.repository.listUserBranchAccess(tenantId, normalizedUserId),
+    ]);
+    return { organizations, branches };
   }
 
   async updateUser(tenantId: string, userId: string, changes: Partial<Pick<UserAdminRecord, 'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'defaultLocationId' | 'status'>>): Promise<UserAdminRecord | null> {
