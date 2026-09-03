@@ -7,6 +7,7 @@ import { PlatformBootstrapService } from '../../src/application/services/platfor
 import { TenantBootstrapService } from '../../src/application/services/tenant-bootstrap-service.js';
 import { BcryptPasswordHasher } from '../../src/infrastructure/security/bcrypt-password-hasher.js';
 import { PostgresPlatformRepository } from '../../src/infrastructure/database/repositories/postgres-platform-repository.js';
+import { withTenantContext } from '../../src/infrastructure/database/tenant-context.js';
 
 const databaseUrl = resolveDatabaseUrl(process.env, { forTest: true });
 
@@ -101,6 +102,70 @@ describe('Location foundation', () => {
     const fetchedLocation = await repository.getLocationById(bootstrapResult.tenantId, bootstrapResult.organizationId, location.id);
     expect(fetchedLocation?.id).toBe(location.id);
     expect(fetchedLocation?.tenantId).toBe(bootstrapResult.tenantId);
+  });
+
+  it('creates user location access with the user organization and preserves tenant isolation', async () => {
+    if (!databaseUrl) {
+      return;
+    }
+
+    pool = new Pool({ connectionString: databaseUrl });
+    const suffix = `${Date.now()}-${uuidV7()}`;
+    const firstTenant = await seedTenant(pool, `user-location-${suffix}`);
+    const secondTenant = await seedTenant(pool, `user-location-other-${suffix}`);
+    const passwordHasher = new BcryptPasswordHasher();
+    const location = await firstTenant.repository.createLocation(firstTenant.bootstrapResult.tenantId, firstTenant.bootstrapResult.organizationId, {
+      code: `ULA-${suffix}`.slice(0, 15),
+      name: `User Location ${suffix}`,
+      status: 'active',
+    });
+    const userId = uuidV7();
+    const user = await firstTenant.repository.createUser({
+      id: userId,
+      tenantId: firstTenant.bootstrapResult.tenantId,
+      organizationId: firstTenant.bootstrapResult.organizationId,
+      defaultBranchId: firstTenant.bootstrapResult.branchId,
+      defaultLocationId: location.id,
+      username: `userlocation${suffix}`,
+      email: `userlocation${suffix}@example.com`,
+      passwordHash: await passwordHasher.hash('Password123!'),
+      status: 'active',
+    });
+
+    const ownTenantAccess = await withTenantContext(
+      pool,
+      'app.current_tenant_id',
+      firstTenant.bootstrapResult.tenantId,
+      async (client) =>
+        client.query(
+          `SELECT tenant_id as "tenantId", user_id as "userId", organization_id as "organizationId", location_id as "locationId"
+           FROM user_location_access
+           WHERE tenant_id = $1 AND user_id = $2`,
+          [firstTenant.bootstrapResult.tenantId, user.id],
+        ),
+    );
+    expect(ownTenantAccess.rows).toEqual([
+      {
+        tenantId: firstTenant.bootstrapResult.tenantId,
+        userId: user.id,
+        organizationId: firstTenant.bootstrapResult.organizationId,
+        locationId: location.id,
+      },
+    ]);
+
+    const otherTenantAccess = await withTenantContext(
+      pool,
+      'app.current_tenant_id',
+      secondTenant.bootstrapResult.tenantId,
+      async (client) =>
+        client.query(
+          `SELECT user_id as "userId"
+           FROM user_location_access
+           WHERE user_id = $1`,
+          [user.id],
+        ),
+    );
+    expect(otherTenantAccess.rows).toHaveLength(0);
   });
 
   it('rejects location records that pair an organization from a different tenant', async () => {

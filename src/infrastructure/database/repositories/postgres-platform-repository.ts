@@ -988,10 +988,10 @@ export class PostgresPlatformRepository
 
       if (input.defaultLocationId) {
         await client.query(
-         `INSERT INTO user_location_access (tenant_id, user_id, location_id)
-           VALUES ($1, $2, $3)
+         `INSERT INTO user_location_access (tenant_id, user_id, organization_id, location_id)
+           VALUES ($1, $2, $3, $4)
            ON CONFLICT (user_id, location_id, tenant_id) DO NOTHING`,
-         [input.tenantId, id, input.defaultLocationId],
+         [input.tenantId, id, input.organizationId, input.defaultLocationId],
         );
       }
 
