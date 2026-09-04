@@ -17,7 +17,7 @@ const resetPasswordSchema = z.object({
 const okResponse = toJsonSchema(z.object({ success: z.literal(true) }));
 
 const accountSecurityRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.post('/auth/email-verification/request', {
+  fastify.post<{ Body: z.infer<typeof requestVerificationSchema> }>('/auth/email-verification/request', {
     schema: {
       tags: ['Authentication'],
       summary: 'Request email verification',
@@ -35,7 +35,7 @@ const accountSecurityRoutes: FastifyPluginAsync = async (fastify) => {
     return { success: true as const };
   });
 
-  fastify.post('/auth/email-verification/confirm', {
+  fastify.post<{ Body: z.infer<typeof verifyEmailSchema> }>('/auth/email-verification/confirm', {
     schema: {
       tags: ['Authentication'],
       summary: 'Confirm email verification token',
@@ -53,7 +53,7 @@ const accountSecurityRoutes: FastifyPluginAsync = async (fastify) => {
     return { success: true as const };
   });
 
-  fastify.post('/auth/password-recovery/request', {
+  fastify.post<{ Body: z.infer<typeof requestResetSchema> }>('/auth/password-recovery/request', {
     schema: {
       tags: ['Authentication'],
       summary: 'Request password recovery',
@@ -68,7 +68,7 @@ const accountSecurityRoutes: FastifyPluginAsync = async (fastify) => {
     return { success: true as const };
   });
 
-  fastify.post('/auth/password-recovery/reset', {
+  fastify.post<{ Body: z.infer<typeof resetPasswordSchema> }>('/auth/password-recovery/reset', {
     schema: {
       tags: ['Authentication'],
       summary: 'Reset password with a single-use recovery token',
