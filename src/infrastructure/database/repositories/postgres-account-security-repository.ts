@@ -1,6 +1,7 @@
 import type { Pool, PoolClient } from 'pg';
 
 import type {
+  AccountSecurityAccount,
   AccountSecurityRepository,
   AccountSecurityTokenRecord,
 } from '../../../application/contracts/account-security.js';
@@ -12,7 +13,49 @@ export class PostgresAccountSecurityRepository implements AccountSecurityReposit
     private readonly tenantContextKey: string,
   ) {}
 
-  async findUserByIdentifier(tenantId: string, identifier: string): Promise<{ id: string; tenantId: string; email: string; status: string } | null> {
+  async findAccountCandidates(identifier: string): Promise<AccountSecurityAccount[]> {
+    const normalized = identifier.trim();
+    if (!normalized) return [];
+
+    const identityResult = await this.pool.query<{ user_id: string; tenant_id: string }>(
+      `SELECT DISTINCT i.user_id, i.tenant_id
+       FROM auth_login_identifiers i
+       WHERE i.is_active = true
+         AND i.identifier = $1::citext
+       ORDER BY i.tenant_id, i.user_id`,
+      [normalized],
+    );
+
+    const accounts: AccountSecurityAccount[] = [];
+    for (const candidate of identityResult.rows) {
+      const account = await withTenantContext(
+        this.pool,
+        this.tenantContextKey,
+        candidate.tenant_id,
+        async (client) => {
+          const result = await client.query<{
+            id: string;
+            tenant_id: string;
+            email: string;
+            status: string;
+          }>(
+            `SELECT id, tenant_id, email, status
+             FROM users
+             WHERE tenant_id = $1 AND id = $2 AND is_deleted = false
+             LIMIT 1`,
+            [candidate.tenant_id, candidate.user_id],
+          );
+          const row = result.rows[0];
+          return row ? { id: row.id, tenantId: row.tenant_id, email: row.email, status: row.status } : null;
+        },
+      );
+      if (account) accounts.push(account);
+    }
+
+    return accounts;
+  }
+
+  async findUserByIdentifier(tenantId: string, identifier: string): Promise<AccountSecurityAccount | null> {
     return withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       const result = await client.query<{
         id: string;
@@ -110,7 +153,12 @@ export class PostgresAccountSecurityRepository implements AccountSecurityReposit
 
       await client.query(
         `UPDATE user_sessions
-         SET is_active = false, logout_at = COALESCE(logout_at, $3)
+         SET is_active = false,
+             revoked_at = COALESCE(revoked_at, $3),
+             logout_at = COALESCE(logout_at, $3),
+             termination_reason = COALESCE(termination_reason, 'password_reset'),
+             updated_at = $3,
+             version = version + 1
          WHERE tenant_id = $1 AND user_id = $2 AND is_active = true`,
         [tenantId, userId, consumedAt],
       );
