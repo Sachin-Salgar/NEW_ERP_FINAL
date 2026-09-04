@@ -2,9 +2,30 @@ import type { PlatformBootstrapRepository, ReferenceDataSummary } from '../../do
 import type { PlatformModuleSeed, PlatformPermissionSeed, PlatformSubscriptionPlanSeed } from '../../domain/contracts/bootstrap.js';
 
 const DEFAULT_SUBSCRIPTION_PLANS: PlatformSubscriptionPlanSeed[] = [
-  { name: 'Starter', description: 'For small teams and initial deployments.', priceMonthly: 29, maxUsers: 25, maxStorageGb: 50, isActive: true },
-  { name: 'Growth', description: 'For growing organizations with shared operations.', priceMonthly: 79, maxUsers: 200, maxStorageGb: 250, isActive: true },
-  { name: 'Enterprise', description: 'For large enterprises with full platform coverage.', priceMonthly: 199, maxUsers: null, maxStorageGb: null, isActive: true },
+  {
+    name: 'Starter',
+    description: 'For small teams and initial deployments.',
+    priceMonthly: 29,
+    maxUsers: 25,
+    maxStorageGb: 50,
+    isActive: true,
+  },
+  {
+    name: 'Growth',
+    description: 'For growing organizations with shared operations.',
+    priceMonthly: 79,
+    maxUsers: 200,
+    maxStorageGb: 250,
+    isActive: true,
+  },
+  {
+    name: 'Enterprise',
+    description: 'For large enterprises with full platform coverage.',
+    priceMonthly: 199,
+    maxUsers: null,
+    maxStorageGb: null,
+    isActive: true,
+  },
 ];
 
 const DEFAULT_MODULES: PlatformModuleSeed[] = [
@@ -22,7 +43,7 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
   { moduleCode: 'organization', resource: 'organization', action: 'read', scope: 'organization', permissionKey: 'organization.read', displayName: 'View organizations' },
   { moduleCode: 'organization', resource: 'organization', action: 'manage', scope: 'organization', permissionKey: 'organization.manage', displayName: 'Manage organizations' },
   { moduleCode: 'branch', resource: 'branch', action: 'read', scope: 'branch', permissionKey: 'branch.read', displayName: 'View branches' },
-  { moduleCode: 'branch', resource: 'branch', action: 'manage', scope: 'branch', permissionKey: 'branch.manage' , displayName: 'Manage branches' },
+  { moduleCode: 'branch', resource: 'branch', action: 'manage', scope: 'branch', permissionKey: 'branch.manage', displayName: 'Manage branches' },
   { moduleCode: 'user-management', resource: 'user', action: 'read', scope: 'organization', permissionKey: 'user.read', displayName: 'View users' },
   { moduleCode: 'user-management', resource: 'user', action: 'manage', scope: 'organization', permissionKey: 'user.manage', displayName: 'Manage users' },
   { moduleCode: 'security', resource: 'role', action: 'read', scope: 'tenant', permissionKey: 'role.read', displayName: 'View roles' },
@@ -39,7 +60,12 @@ export class PlatformBootstrapService {
     await this.repository.seedSubscriptionPlans(DEFAULT_SUBSCRIPTION_PLANS);
     await this.repository.seedModules(DEFAULT_MODULES);
     await this.repository.seedPermissions(DEFAULT_PERMISSIONS);
-    return { subscriptionPlans: DEFAULT_SUBSCRIPTION_PLANS.length, modules: DEFAULT_MODULES.length, permissions: DEFAULT_PERMISSIONS.length };
+
+    return {
+      subscriptionPlans: DEFAULT_SUBSCRIPTION_PLANS.length,
+      modules: DEFAULT_MODULES.length,
+      permissions: DEFAULT_PERMISSIONS.length,
+    };
   }
 }
 
