@@ -2,7 +2,7 @@
 
 **Generated**: 2026-09-04  
 **Source**: Architectural analysis against `docs/` authoritative documentation  
-**Status**: Living document — update as items are completed or reprioritized
+**Status**: Living document — synchronized with implementation state on `feat/improvements`
 
 ---
 
@@ -10,9 +10,16 @@
 
 This document catalogs all identified improvements for the NEW_ERP_FINAL ERP backend, categorized by priority and mapped to architectural principles from `docs/00-overview/01-architectural-principles.md` and governance rules from `docs/00-overview/02-governance.md`.
 
-**Current State**: Modular monolith with Fastify, TypeScript, PostgreSQL (Drizzle), JWT auth, RLS multi-tenancy. Strong foundation; missing key platform services, observability, and developer experience tooling.
+**Current State**: Modular monolith with Fastify, TypeScript, PostgreSQL (Drizzle), JWT auth, and RLS multi-tenancy. The branch now contains substantial security, transaction, platform-service, migration-governance, API, and operational foundations. The remaining gaps are primarily runtime validation, incomplete HTTP/provider wiring, developer-experience tooling, CI/release completion, and evidence-driven future work.
 
 **Validation model**: Implementation work may be completed directly on `feat/improvements`; runtime validation is explicitly tracked as **VALIDATION PENDING** when it must be executed from the user's VS Code/Copilot environment. An item is not considered fully verified until the prescribed validation evidence is available.
+
+**Important status rule**:
+- **COMPLETED** = implementation and available verification evidence are sufficient for the backlog item.
+- **IMPLEMENTED — VALIDATION PENDING** = implementation is present, but runtime/full validation evidence is still required.
+- **PARTIAL** = meaningful implementation exists, but a defined portion of the original scope remains.
+- **PENDING** = implementation has not yet been completed.
+- **FUTURE / EVIDENCE REQUIRED** = intentionally deferred by an approved architectural decision until objective evidence justifies it.
 
 ---
 
@@ -35,214 +42,178 @@ This document catalogs all identified improvements for the NEW_ERP_FINAL ERP bac
 **Principle**: API-First Development (Principle 4)  
 **Gap**: No machine-readable API contract; frontend consumers rely on manual inspection  
 **Implementation**:
-- Add `@fastify/swagger` + `@fastify/swagger-ui`
-- Generate from Zod schemas (already used in config)
-- Expose at `/docs` (UI) and `/docs/json` (spec)
-- Include auth flows, error responses, pagination
-**Files**: New `src/presentation/http/swagger.ts`, modify `app.ts`
-**Effort**: Medium (2-3 days)
+- Added `@fastify/swagger` + `@fastify/swagger-ui`
+- Generates the OpenAPI contract from the runtime schemas
+- Exposes `/docs` and `/docs/json`
+- Includes authentication, error responses, pagination, organization/branch/location/RBAC/core-enterprise routes
+**Verification**: Runtime documentation endpoint was previously validated with OpenAPI 3.0.3 and 43 runtime paths.
+**Files**: `src/presentation/http/swagger.ts`, `src/presentation/http/app.ts`
 
 ### 2. Rate Limiting on Auth Endpoints
 **Status**: COMPLETED  
 **Principle**: Security by Design (Principle 7)  
-**Gap**: `/auth/login`, `/auth/register`, `/auth/refresh` have no rate limits — vulnerable to brute force  
 **Implementation**:
-- Add `@fastify/rate-limit`
-- Config: 5 req/min for login/register, 10 req/min for refresh
-- Per-IP + per-tenant keys
-- Return `Retry-After` header
+- Added `@fastify/rate-limit`
+- Login/register: 5 requests/minute
+- Refresh: 10 requests/minute
+- Retry-After handling
 **File**: `src/presentation/http/app.ts`
-**Effort**: Low (0.5 day)
 
 ### 3. Request Validation Pipeline
 **Status**: COMPLETED  
 **Principle**: Consistency Over Convenience (Principle 9)  
-**Gap**: Routes manually parse `request.body as Record<string, unknown>` — no schema validation  
 **Implementation**:
-- Add `fastify-type-provider-zod` (or `@fastify/zod-provider`)
-- Define Zod schemas for all route bodies/query/params
-- Automatic 400 responses with field-level errors
-- Type-safe `request.body` inference
-**Files**: All route files in `src/presentation/http/routes/`, new `src/presentation/http/schemas/`
-**Effort**: Medium (2-3 days)
+- Centralized Fastify runtime validation using Zod-derived JSON schemas
+- Bodies, path parameters, query parameters and headers covered for applicable routes
+- Invalid requests return standardized 400 responses before handlers
+- Unsafe request-body/params/query/header casts were removed from route files
+**Verification**: Runtime validation was previously exercised against real DB/application startup; 9/9 invalid probes returned 400 and the full prior suite/typecheck/build/diff checks were green.
 
 ### 4. Audit Logging Foundation
-**Status**: BLOCKED — ADR REQUIRED  
+**Status**: IMPLEMENTED — VALIDATION PENDING  
 **Principle**: Audit Everything Important (Principle 8)  
-**Gap**: No audit trail for create/update/delete/approval operations — compliance risk  
 **Implementation**:
-- **Migration**: Add `audit_log` table (actor, tenant, timestamp, operation, entity_type, entity_id, before_json, after_json, correlation_id, ip_address, user_agent, status)
-- **Domain**: `AuditEvent` type, `AuditRepository` interface
-- **Infrastructure**: `PostgresAuditRepository` with batch insert
-- **Service**: `AuditService.emit(event)` — call from application services
-- **Middleware**: Auto-capture correlation_id, IP, user-agent
-**ADR Required**: Yes (cross-cutting)
-**Files**: Migration, `src/domain/contracts/audit.ts`, `src/application/services/audit-service.ts`, `src/infrastructure/database/repositories/postgres-audit-repository.ts`
-**Effort**: High (5-7 days)
+- Added audit contract/domain model and PostgreSQL implementation
+- Audit persistence reuses the active transaction and tenant RLS context
+- Transactional audit calls require an active transaction
+- Added migration and append-only/RLS protection
+- Allowlisted audit metadata includes correlation information
+**ADR**: ADR-0014 Audit Logging Foundation — Approved 2026-09-04
+**Validation**: Runtime integration and end-to-end application-service audit coverage remain pending.
 
 ---
 
 ## P1 — High (Next Sprint)
 
 ### 5. Email Verification Flow
-**Status**: BLOCKED — ADR REQUIRED  
+**Status**: PARTIAL — FOUNDATION IMPLEMENTED, HTTP WIRING PENDING  
 **Principle**: Backend Owns Business Logic (Principle 1)  
-**Gap**: Schema has `emailVerifiedAt`, `passwordResetTokenHash`, `passwordResetExpiresAt` — no API routes  
 **Implementation**:
-- Routes: `POST /auth/verify-email`, `POST /auth/resend-verification`, `POST /auth/forgot-password`, `POST /auth/reset-password`
-- Service: `EmailVerificationService`, `PasswordResetService`
-- Token generation: crypto-random, hashed storage, 24h expiry
-- Email abstraction: `EmailService` interface + stub (real provider later)
-**Governance Note**: This changes authentication/recovery flow and depends on a notification/email platform decision. The current governance document requires an approved decision before changing authentication flow or introducing cross-cutting platform services.
-**Files**: New routes, services, email abstraction
-**Effort**: Medium (3-4 days)
+- Dedicated cryptographically random, hashed, single-use token persistence
+- Email-verification/password-recovery service foundation
+- Password-reset consumption invalidates active sessions inside a tenant-scoped transaction
+- Pre-auth recovery uses identity-based global lookup rather than trusting client-supplied tenant authority
+- Notification/email integration is intentionally not implemented as unsafe raw-token persistence
+**ADR**: ADR-0015 Email Verification and Password Recovery — Approved 2026-09-04
+**Remaining**: Complete and validate the HTTP routes and provider-neutral notification/email delivery wiring.
 
 ### 6. MFA (TOTP) Implementation
-**Status**: BLOCKED — ADR REQUIRED  
+**Status**: PARTIAL — FOUNDATION IMPLEMENTED, HTTP WIRING PENDING  
 **Principle**: Security by Design (Principle 7)  
-**Gap**: Schema has `mfaEnabled`, `encryptedMfaSecret` — no enrollment/verification  
 **Implementation**:
-- Routes: `POST /auth/mfa/enroll` (returns QR code), `POST /auth/mfa/verify`, `POST /auth/mfa/disable`
-- Service: `TotpService` using `otplib` (RFC 6238)
-- Encryption: AES-GCM for secret at rest (use `crypto` built-in)
-- Recovery codes: generate 10, store hashed
-**Governance Note**: MFA/session/authentication strategy is explicitly ADR-governed in `docs/00-overview/02-governance.md`.
-**Files**: New routes, `src/infrastructure/security/totp-service.ts`
-**Effort**: Medium (3-4 days)
+- RFC 6238 TOTP implementation and test vectors
+- AES-256-GCM protection for TOTP secrets
+- Enrollment confirmation before activation
+- Hashed one-time recovery codes
+- PostgreSQL persistence/migration
+**ADR**: ADR-0016 Multi-Factor Authentication with TOTP — Approved 2026-09-04
+**Remaining**: Complete HTTP routes and production configuration/injection for the MFA encryption key; perform runtime validation.
 
 ### 7. Soft Delete Consistency Audit
 **Status**: COMPLETED  
 **Principle**: Database Is the Single Source of Truth (Principle 3)  
-**Gap**: Some repository methods don't filter `is_deleted = false` (e.g., `listRoles`, `listPermissions`)  
-**Implementation**:
-- Audit all 50+ repository methods in `PostgresPlatformRepository`
-- Add `.where(sql\`${table.isDeleted} = false\`)` where missing
-- Add unit test verifying soft-delete filtering
-**File**: `src/infrastructure/database/repositories/postgres-platform-repository.ts`
-**Effort**: Low (1 day)
+**Implementation**: Repository soft-delete filtering and regression coverage completed.
 
 ### 8. Enhanced Health Check Endpoint
 **Status**: COMPLETED  
 **Principle**: Observability (DevOps)  
-**Gap**: `/health` returns only `{ status: 'ok' }` — no DB, migration, dependency status  
-**Implementation**:
-- Extend `GET /health` with:
-  - `database`: `{ connected: boolean, latencyMs: number, pool: { used, free, pending } }`
-  - `migrations`: `{ applied: string[], pending: string[] }`
-  - `uptime`: seconds
-  - `memory`: RSS, heap used
-- Add `GET /health/live` (k8s liveness) and `GET /health/ready` (readiness)
-**File**: `src/presentation/http/routes/health.ts`
-**Effort**: Low (0.5 day)
+**Implementation**: Database connectivity/latency, pool snapshot, readiness/liveness, uptime and health details are implemented and covered by tests.
 
 ---
 
 ## P2 — Medium (Within 2 Sprints)
 
 ### 9. Transaction Support (Unit of Work)
-**Status**: PARTIAL  
+**Status**: IMPLEMENTED — VALIDATION PENDING  
 **Principle**: Backend Owns Business Logic (Principle 1)  
-**Gap**: Multi-table operations (e.g., `bootstrapTenant`) lack explicit transaction boundaries  
 **Implementation**:
-- `UnitOfWork` class: `begin()`, `commit()`, `rollback()`, `runInTransaction(fn)`
-- Repository methods accept optional `client` parameter (already partially supported via `withTenantContext`)
-- Use in `TenantBootstrapService`, `UserRegistrationService`, future business modules
-**Current Note**: `withTenantContext` already provides BEGIN/COMMIT/ROLLBACK and tenant-local RLS context, and critical repository operations such as tenant bootstrap are atomic. The remaining work is to move transaction coordination to the application/service boundary without weakening RLS or creating nested/competing transactions.
-**File**: New `src/infrastructure/database/unit-of-work.ts`
-**Effort**: Medium (2-3 days)
+- Added `UnitOfWork` with `begin`, `commit`, `rollback`, and `runInTransaction`
+- Added AsyncLocalStorage transaction context
+- Reuses active transaction clients in tenant context
+- Rejects cross-tenant transaction-context switching
+- Integrated transaction runners into `UserRegistrationService` and `TenantBootstrapService` where applicable
+- Added unit coverage for transaction lifecycle/context/service boundaries
+**Remaining**: Run the full integration/runtime validation in VS Code/Copilot and complete any remaining caller migration without weakening RLS or introducing nested competing transactions.
 
 ### 10. RFC 7807 Problem Details Error Format
 **Status**: IMPLEMENTED — VALIDATION PENDING  
 **Principle**: Consistency Over Convenience (Principle 9)  
-**Gap**: Custom error format; not interoperable  
 **Implementation**:
-- Response: `application/problem+json` with `type`, `title`, `status`, `detail`, `instance`, `errors[]`
-- Map existing `AppError` subclasses to standard types
-- Keep backward compatibility via `Accept` header negotiation
-**Implementation Note**: RFC 7807 negotiation is opt-in for an explicit `Accept: application/problem+json`; absent/wildcard `Accept` preserves the existing error envelope. Unit coverage was added for both representations. Runtime validation remains pending in VS Code/Copilot.
-**Validation Required**:
-- Run unit tests covering the error handler.
-- Start the backend and verify a normal error response remains the existing envelope.
-- Send `Accept: application/problem+json` and verify `Content-Type`, `type`, `title`, `status`, `detail`, `instance`, and `errors`.
-- Verify 5xx responses do not expose internal error details.
-**File**: `src/infrastructure/http/error-handler.ts`, `tests/unit/error-handler.test.ts`
-**Effort**: Low (1 day)
+- Supports `application/problem+json` with `type`, `title`, `status`, `detail`, `instance`, and `errors`
+- Explicit `Accept: application/problem+json` opts into the representation
+- Existing error envelope is preserved for absent/wildcard Accept headers
+- 5xx responses avoid exposing internal details
+**Validation**: Unit coverage exists; runtime validation remains pending.
+**Files**: `src/infrastructure/http/error-handler.ts`, `tests/unit/error-handler.test.ts`
 
 ### 11. Correlation ID Propagation
 **Status**: COMPLETED  
 **Principle**: Audit Everything Important (Principle 8)  
-**Gap**: Request ID generated but not propagated across async boundaries (DB queries, external calls)  
-**Implementation**:
-- Middleware: Generate/extract `x-correlation-id`, store in `AsyncLocalStorage`
-- Logger: Auto-include correlation ID in all log lines
-- HTTP client: Forward header to downstream services
-- DB: Include in audit log
-**Files**: `src/infrastructure/logging/logger.ts`, new middleware, `src/infrastructure/http/client.ts`
-**Effort**: Medium (2 days)
+**Implementation**: Correlation ID generation/extraction and AsyncLocalStorage propagation are implemented and integrated with the application logging/audit path.
 
 ### 12. Fix `organization_modules` Schema Gap
 **Status**: COMPLETED  
 **Principle**: Database First Philosophy (Principle 5)  
-**Gap**: `bootstrapTenant` inserts into `organization_modules` (line 1122) but table missing from `schema.ts`  
-**Implementation**:
-- Add `organizationModules` table to `schema.ts` (mirror `tenant_modules` with `organization_id`)
-- Generate migration `0007_organization_modules.sql`
-- Verify bootstrap works
-**Files**: `src/infrastructure/database/schema.ts`, new migration
-**Effort**: Low (0.5 day)
+**Implementation**: `organization_modules` schema/migration is present and migration registration/recovery handling is in place.
 
 ### 13. Pagination on List Endpoints
-**Status**: PENDING — SPEC ALIGNMENT REQUIRED  
+**Status**: IMPLEMENTED — VALIDATION PENDING  
 **Principle**: Consistency Over Convenience (Principle 9)  
-**Gap**: No pagination on `/auth/modules`, `/rbac/roles`, `/rbac/permissions`, etc.  
 **Implementation**:
-- Standard params: `page` (1-based), `limit` (max 100), `cursor` (opaque string for keyset)
-- Response envelope: `{ data: T[], meta: { page, limit, total, nextCursor } }`
-- Apply to all `GET` list routes
-**Authoritative Documentation Note**: `docs/04-backend/06-api-design-standards.md` currently defines `page`, `page_size`, `sort`, `order`, and `search`; implementation must follow or formally reconcile that API contract rather than introducing a conflicting `limit`/`cursor` convention silently.
-**Files**: Route files, shared pagination helper
-**Effort**: Low (1 day)
+- Authoritative contract uses `page`, `page_size`, `sort`, `order`, and `search`
+- Added shared pagination parser/meta/response helpers
+- RBAC roles/permissions use the pagination helpers explicitly
+- Application response pagination covers organization, branch, location, user, and auth-module list endpoints while preserving legacy responses when pagination parameters are absent
+**Important limitation**: Pagination is currently response-level after repository retrieval; SQL LIMIT/OFFSET or keyset pagination is not yet implemented. Swagger wording should remain aligned with the authoritative API standard.
+**Validation**: Runtime/list-contract validation remains pending.
 
 ---
 
-## P3 — Platform Services (Require ADR)
+## P3 — Platform Services
 
-> **Governance Note**: Per `docs/00-overview/02-governance.md` § "Architectural Governance" and Principle 5 (Platform Before Features), these foundational services require Architecture Review Board approval and an approved ADR before implementation.
+> ADRs for all originally ADR-gated P3 platform items have now been approved. Implementation may proceed under those decisions; remaining work must still respect tenant isolation, RLS, authorization, provider abstraction, and modular-monolith boundaries.
 
 ### 14. Notification Service
-**Status**: BLOCKED — ADR REQUIRED  
+**Status**: IMPLEMENTED — FOUNDATION / VALIDATION PENDING  
 **Principle**: Platform Before Features (Principle 5)  
-**Scope**: Email, SMS, push, in-app notifications  
-**Interface**: `NotificationService.send({ tenantId, userId, channel, templateId, params })`  
-**Providers**: SendGrid, Twilio, Firebase (pluggable)  
-**ADR**: Define channel abstraction, template system, delivery guarantees  
-**Effort**: High (2 weeks)
+**ADR**: ADR-0017 Notification Service — Approved 2026-09-04  
+**Implementation**:
+- Provider-neutral notification contracts
+- PostgreSQL notification queue/history persistence with tenant RLS
+- Leasing, delivery-worker, retry and backoff foundation
+**Remaining**: Concrete provider integration and runtime operational validation.
 
 ### 15. File Storage Service
-**Status**: BLOCKED — ADR REQUIRED  
+**Status**: IMPLEMENTED — FOUNDATION / PROVIDER PENDING  
 **Principle**: Platform Before Features (Principle 5)  
-**Scope**: Upload, download, signed URLs, metadata, virus scan  
-**Interface**: `FileStorageService.put(key, stream)`, `get(key)`, `signUrl(key, ttl)`  
-**Providers**: S3, MinIO, Azure Blob, local FS  
-**ADR**: Define path structure, tenant isolation, retention policy  
-**Effort**: High (2 weeks)
+**ADR**: ADR-0018 File Storage Service — Approved 2026-09-04  
+**Implementation**:
+- Provider-neutral storage contracts
+- Tenant-scoped metadata persistence
+- Storage orchestration with injected provider and authorization controls
+**Remaining**: Deployment-specific provider implementation/configuration and runtime validation.
 
 ### 16. Scheduler Service
-**Status**: BLOCKED — ADR REQUIRED  
+**Status**: IMPLEMENTED — FOUNDATION / VALIDATION PENDING  
 **Principle**: Platform Before Features (Principle 5)  
-**Scope**: Recurring jobs (FY closure, session cleanup, audit retention, report generation)  
-**Interface**: `SchedulerService.schedule(cron, jobId, handler)`, `trigger(jobId)`  
-**Backend**: In-memory (dev), Redis + BullMQ (prod)  
-**ADR**: Define job idempotency, monitoring, failure handling  
-**Effort**: Medium (1 week)
+**ADR**: ADR-0019 Scheduler Service — Approved 2026-09-04  
+**Implementation**:
+- Durable job persistence
+- Leasing/retry foundation
+- Injected job-handler model
+**Remaining**: Runtime worker validation and deployment operations.
 
 ### 17. Event-Driven Architecture (Domain Events)
-**Status**: BLOCKED — ADR REQUIRED  
-**Principle**: Modular Monolith (Principle 4) — explicit in `docs/02-architecture/README.md` as "Deferred where explicitly marked TBD/Proposed"  
-**Scope**: Cross-module communication without direct dependencies  
-**Interface**: `EventBus.publish(event)`, `subscribe(eventType, handler)`  
-**ADR**: Define event schema, ordering, exactly-once vs at-least-once, saga patterns  
-**Effort**: High (3 weeks)
+**Status**: IMPLEMENTED — FOUNDATION / VALIDATION PENDING  
+**Principle**: Modular Monolith (Principle 4)  
+**ADR**: ADR-0008 Event Contracts & Versioning and ADR-0020 Event-Driven Architecture — Approved 2026-09-04  
+**Implementation**:
+- Versioned event-contract foundation
+- PostgreSQL outbox persistence with tenant RLS
+- Dispatcher/worker foundation
+- Explicit outbox lease/claim state prevents duplicate concurrent delivery after transaction completion
+- No external broker was introduced, consistent with the approved modular-monolith architecture
+**Remaining**: Runtime validation and further module adoption.
 
 ---
 
@@ -250,49 +221,29 @@ This document catalogs all identified improvements for the NEW_ERP_FINAL ERP bac
 
 ### 18. Account Lockout After Failed Attempts
 **Status**: COMPLETED  
-**Principle**: Security by Design (Principle 7)  
-**Gap**: Schema has `failedLoginCount`, `lockedUntil` — no enforcement logic  
-**Implementation**:
-- Config: `MAX_FAILED_ATTEMPTS=5`, `LOCKOUT_DURATION_MINUTES=15`
-- Increment on failed login, reset on success
-- Return `423 Locked` with `Retry-After`
-**File**: `src/application/services/authentication-service.ts`
-**Effort**: Low (0.5 day)
+**Implementation**: Failed-login counting, lockout duration, reset-on-success, `423 Locked`, `Retry-After`, contracts and regression coverage are implemented.
 
 ### 19. Password Policy Enforcement
 **Status**: COMPLETED  
-**Principle**: Security by Design (Principle 7)  
-**Gap**: No complexity requirements on registration/password change  
-**Implementation**:
-- Configurable policy: `minLength`, `requireUppercase`, `requireLowercase`, `requireNumber`, `requireSymbol`, `maxAgeDays`, `historyCount`
-- Validate in `UserRegistrationService`, `AuthenticationService.changePassword`
-- Return field-level errors
-**File**: `src/application/services/user-registration-service.ts`, new `password-policy.ts`
-**Effort**: Low (1 day)
+**Implementation**: Configurable password policy is enforced in registration/password-change paths; configuration boolean parsing was hardened so explicit `false` values remain false.
 
 ### 20. JWT Key Rotation (JWKS)
-**Status**: BLOCKED — ADR REQUIRED  
+**Status**: IMPLEMENTED — VALIDATION PENDING  
 **Principle**: Security by Design (Principle 7)  
-**Gap**: Single `JWT_SECRET` — no rotation, no `kid` in header  
+**ADR**: ADR-0021 JWT Signing-Key Rotation and JWKS — Approved 2026-09-04  
+**Selected algorithm**: **RS256**  
 **Implementation**:
-- Generate RSA key pair (RS256) on startup or load from vault
-- Store active + previous key for rotation window
-- Expose `GET /.well-known/jwks.json`
-- Sign with `kid` header; verify against JWKS
-**Governance Note**: Changing token signing mechanism, verification flow, and key-management strategy is an authentication/security architecture decision and requires an approved ADR.
-**File**: `src/infrastructure/security/jwt-token-service.ts`, new route
-**Effort**: Medium (2 days)
+- Key-ring lifecycle with active, verification-only and retired states
+- `kid` support
+- JWKS endpoint at `/.well-known/jwks.json`
+- RS256 signing/verification support
+- Legacy HS256 verification is opt-in through `JWT_ACCEPT_LEGACY_HS256`
+- Configuration/schema/documentation updated for the new key strategy
+**Remaining**: Runtime validation and production key provisioning/rotation procedure validation.
 
 ### 21. Request Size Limits
 **Status**: COMPLETED  
-**Principle**: Security by Design (Principle 7)  
-**Gap**: No body size limit — DoS risk  
-**Implementation**:
-- Global: 1MB (Fastify default)
-- Per-route: 10KB for auth, 5MB for file upload (future)
-- Return `413 Payload Too Large`
-**File**: `src/presentation/http/app.ts`
-**Effort**: Low (0.5 day)
+**Implementation**: Global Fastify body limit plus tighter auth-route limits and `413` handling are implemented.
 
 ---
 
@@ -301,132 +252,90 @@ This document catalogs all identified improvements for the NEW_ERP_FINAL ERP bac
 ### 22. ESLint + Prettier
 **Status**: PENDING  
 **Principle**: Consistency Over Convenience (Principle 9)  
-**Gap**: No linting/formatting enforcement  
-**Implementation**:
-- `eslint.config.js` with `@typescript-eslint`, `prettier`
-- `.prettierrc` matching project style
-- `npm run lint`, `npm run format`
-- Pre-commit hook via `husky` (optional)
-**Files**: Config files at root
-**Effort**: Low (0.5 day)
+**Remaining**: Establish project ESLint/Prettier configuration and scripts, then wire linting into CI.
 
 ### 23. Type-Safe Route Definitions
 **Status**: PARTIAL  
 **Principle**: Consistency Over Convenience (Principle 9)  
-**Gap**: Manual body parsing loses type safety  
-**Implementation**:
-- Use `fastify-type-provider-zod` for end-to-end inference
-- Define schemas in `src/presentation/http/schemas/*.ts`
-- Routes import schemas; `request.body` fully typed
-**Current Note**: Runtime validation and unsafe route casts have been substantially removed by IMP-003, but end-to-end Fastify type-provider inference is not yet implemented.
-**Files**: Route files, new schema files
-**Effort**: Medium (2 days) — overlaps with P0 #3
+**Implementation**: Runtime schemas and unsafe casts were substantially removed by IMP-003.  
+**Remaining**: End-to-end Fastify type-provider inference is not yet implemented.
 
 ### 24. Test Infrastructure Improvements
 **Status**: PARTIAL  
-**Principle**: Documentation Is Part of the Product (Principle 10) — tests are executable documentation  
-**Gap**: Duplicated bootstrap logic, hardcoded ports/secrets, no testcontainers  
+**Principle**: Documentation Is Part of the Product (Principle 10)  
 **Implementation**:
-- `tests/fixtures/`: Reusable tenant/org/user factories
-- `tests/helpers/`: `createTestApp()`, `bootstrapTestTenant()`, `cleanupTestData()`
-- `vitest.config.ts`: Global setup/teardown, testcontainers for PostgreSQL
-- Separate unit vs integration test configs
-**Current Note**: Unit and integration Vitest configurations are now separate, `npm test` executes both explicitly, and plain `vitest` defaults to database-independent unit tests. Shared factories/helpers and optional testcontainers remain.
-**Files**: `tests/`, `vitest.config.ts`
-**Effort**: Medium (2-3 days)
+- Separate unit/integration Vitest configurations
+- `npm test` executes both explicitly
+- Plain `vitest` defaults to database-independent unit tests
+- Shared fixtures/helpers improved
+**Remaining**: Fully standardize reusable factories and optional testcontainers/global integration setup.
 
 ### 25. CI/CD Pipeline
 **Status**: PARTIAL  
-**Principle**: DevOps (Documentation Domain)  
-**Gap**: No automated validation  
+**Principle**: DevOps  
 **Implementation**:
-- GitHub Actions workflow: `.github/workflows/ci.yml`
-- Jobs: `typecheck` → `lint` → `test:unit` → `test:integration` → `build` → `docker`
-- Integration tests spin up PostgreSQL via service container
-- Publish Docker image on tag
-**Current Note**: `.github/workflows/backend-ci.yml` now runs generated-config drift verification, typecheck, unit tests, backend build, Docker build, and PostgreSQL 17 integration tests using a non-superuser `NOBYPASSRLS` role. Lint awaits IMP-022 and image publishing on tags remains to be added when registry/release policy is defined.
-**File**: `.github/workflows/backend-ci.yml`
-**Effort**: Medium (1-2 days)
+- `.github/workflows/backend-ci.yml` runs generated-config drift verification, typecheck, unit tests, backend build, Docker build and PostgreSQL 17 integration tests using a non-superuser `NOBYPASSRLS` role
+**Remaining**: Lint job after IMP-022, release/image publishing policy, and any final CI hardening.
 
 ### 26. Production Dockerfile
 **Status**: COMPLETED  
-**Principle**: DevOps (Documentation Domain)  
-**Gap**: No containerization  
-**Implementation**:
-- Multi-stage: `builder` (npm ci, build) → `runtime` (node:alpine, non-root user, dist only)
-- Health check endpoint
-- `.dockerignore`
-**Verification Note**: Backend CI successfully built the production Docker image on `feat/improvements`.
-**Files**: `Dockerfile`, `.dockerignore`
-**Effort**: Low (0.5 day)
+**Implementation**: Multi-stage production image, non-root runtime, dist-only runtime contents, health check and `.dockerignore` are present. Backend CI previously built the image successfully.
 
 ---
 
 ## Database & Migration Improvements
 
 ### 27. Migration Rollback Strategy
-**Status**: PARTIAL  
+**Status**: PARTIAL — GOVERNANCE IMPLEMENTED  
 **Principle**: Database First Philosophy (Principle 5)  
-**Gap**: `drizzle-kit generate` + up-only migrations  
 **Implementation**:
-- Document rollback procedure per migration
-- Add `down` SQL where feasible (non-destructive)
-- Test rollback in CI
-**Current Note**: `docs/03-database/20-migration-recovery-procedure.md` now operationalizes approved ADR-0007 with recovery classification, required review records, application rollback vs compensating migration guidance, RLS/security verification, and CI/staging expectations. Existing migrations have not been given unsafe synthetic `down` scripts; per-migration automated recovery tests remain future work where genuinely non-destructive.
-**Files**: Migration files, `docs/03-database/20-migration-recovery-procedure.md`
-**Effort**: Medium (ongoing)
+- Recovery classification/procedure documented in `docs/03-database/20-migration-recovery-procedure.md`
+- Machine-enforced recovery manifest added
+- Verification script and package command `db:verify-recovery` added
+- Existing migrations were not given unsafe synthetic `down` SQL
+**Remaining**: Per-migration automated recovery tests where genuinely non-destructive, plus CI/staging evidence.
 
 ### 28. Query Performance Monitoring
-**Status**: BLOCKED — ADR REQUIRED  
+**Status**: IMPLEMENTED — VALIDATION PENDING  
 **Principle**: Observability (DevOps)  
-**Gap**: No `pg_stat_statements`, no slow query logging  
+**ADR**: ADR-0022 Query Performance Monitoring — Approved 2026-09-04  
 **Implementation**:
-- Enable `pg_stat_statements` extension in migration
-- Log queries > 100ms with correlation ID
-- Add `/admin/queries/slow` endpoint (admin only)
-**Governance Note**: Observability standards and cross-cutting logging/monitoring architecture are explicitly governance-controlled and currently unresolved. Do not add a platform-wide query-observability mechanism without an approved decision.
-**Files**: Migration, logging middleware
-**Effort**: Low (1 day)
+- Query-performance service foundation using `pg_stat_statements` aggregates
+- Slow-query threshold concept
+- Does not expose raw query text/parameters as an application API
+**Remaining**: Runtime/database-extension validation and final operational exposure/monitoring integration.
 
 ### 29. Table Partitioning Strategy (Future)
-**Status**: BLOCKED — ADR REQUIRED  
+**Status**: FUTURE — EVIDENCE REQUIRED  
 **Principle**: Database First Philosophy (Principle 5)  
-**Target Tables**: `user_sessions`, `audit_log` (when added)  
-**Strategy**: Partition by `tenant_id` + time (monthly) via `pg_partman`  
-**ADR Required**: Yes  
-**Effort**: High (when data volume justifies)
+**ADR**: ADR-0023 Table Partitioning Strategy — Approved 2026-09-04  
+**Decision**: Evidence-driven partitioning; no blanket partitioning is implemented now. 
+**Assessment**: Partitioning assessment/tooling is present, but actual partitioning remains intentionally deferred until workload/data evidence justifies it.
 
 ---
 
 ## Cross-Cutting Concerns
 
 ### 30. API Versioning Strategy
-**Status**: BLOCKED — ADR REQUIRED  
+**Status**: IMPLEMENTED — VALIDATION PENDING  
 **Principle**: API-First Development (Principle 4)  
-**Current**: `/api/v1` hardcoded  
-**Decision Needed**: URL versioning (`/api/v2`) vs header (`Accept: application/vnd.erp.v2+json`)  
-**Policy**: Deprecation timeline, sunset headers, migration guide  
-**ADR Required**: Yes  
-**Effort**: Low (documentation)
+**ADR**: ADR-0024 API Versioning Strategy — Approved 2026-09-04  
+**Decision**: Explicit `/api/v1` versioning policy with compatibility/deprecation guidance rather than an undocumented header-only versioning convention.
+**Implementation**: Versioning policy and implementation documentation added; migration/compatibility validation remains pending.
 
 ### 31. Repository Interfaces in Domain Layer
 **Status**: PARTIAL  
 **Principle**: Separation of Concerns (Principle 7)  
-**Current**: Repository interfaces historically lived in `src/application/contracts/security.ts` (application layer)  
-**Better**: Move to `src/domain/contracts/` — repositories are domain contracts  
-**Current Note**: Repository interfaces and records now have their source of truth in `src/domain/contracts/repositories.ts`; `src/application/contracts/security.ts` retains compatibility re-exports while remaining import sites are migrated incrementally. Typecheck/build have validated the new domain contract boundary.
-**Files**: `src/domain/contracts/repositories.ts`, update remaining imports across codebase
-**Effort**: Low (1 day)
+**Implementation**:
+- Repository interfaces/records now have their source of truth in `src/domain/contracts/repositories.ts`
+- Compatibility re-exports remain in `src/application/contracts/security.ts`
+- Branch/location/enterprise/authorization/platform bootstrap service imports have been migrated where identified
+**Remaining**: Complete remaining imports and remove compatibility exports when no longer required.
 
 ### 32. Configuration Documentation
 **Status**: COMPLETED  
 **Principle**: Documentation Is Part of the Product (Principle 10)  
-**Gap**: No generated config reference  
-**Implementation**:
-- Script to extract Zod schema → Markdown table
-- Include in `docs/07-devops/` or `docs/04-backend/`
-**Verification Note**: `npm run docs:config` generates `docs/04-backend/configuration-reference.md` from `src/config/schema.ts`; CI fails on generated-document drift. `.env.example` is synchronized with the current schema/security configuration.
-**Effort**: Low (0.5 day)
+**Implementation**: Generated configuration reference, `.env.example` synchronization, boolean parsing hardening, and CI drift verification are implemented.
 
 ---
 
@@ -437,33 +346,33 @@ This document catalogs all identified improvements for the NEW_ERP_FINAL ERP bac
 | IMP-001 | OpenAPI/Swagger Documentation | P0 | **Completed** | — | Sprint 1 | No |
 | IMP-002 | Rate Limiting on Auth | P0 | **Completed** | — | Sprint 1 | No |
 | IMP-003 | Request Validation (Zod) | P0 | **Completed** | — | Sprint 1 | No |
-| IMP-004 | Audit Logging Foundation | P0 | **Blocked — ADR Required** | — | Sprint 2 | **Yes** |
-| IMP-005 | Email Verification Flow | P1 | **Blocked — ADR Required** | — | Sprint 2 | **Yes** |
-| IMP-006 | MFA (TOTP) | P1 | **Blocked — ADR Required** | — | Sprint 2 | **Yes** |
+| IMP-004 | Audit Logging Foundation | P0 | **Implemented — Validation Pending** | — | Sprint 2 | **Approved ADR-0014** |
+| IMP-005 | Email Verification Flow | P1 | **Partial — HTTP Wiring Pending** | — | Sprint 2 | **Approved ADR-0015** |
+| IMP-006 | MFA (TOTP) | P1 | **Partial — HTTP Wiring Pending** | — | Sprint 2 | **Approved ADR-0016** |
 | IMP-007 | Soft Delete Consistency | P1 | **Completed** | — | Sprint 2 | No |
 | IMP-008 | Enhanced Health Check | P1 | **Completed** | — | Sprint 1 | No |
-| IMP-009 | Unit of Work / Transactions | P2 | **Partial** | — | Sprint 3 | No |
+| IMP-009 | Unit of Work / Transactions | P2 | **Implemented — Validation Pending** | — | Sprint 3 | No |
 | IMP-010 | RFC 7807 Error Format | P2 | **Implemented — Validation Pending** | — | Sprint 3 | No |
 | IMP-011 | Correlation ID Propagation | P2 | **Completed** | — | Sprint 3 | No |
 | IMP-012 | Fix organization_modules Schema | P2 | **Completed** | — | Sprint 2 | No |
-| IMP-013 | Pagination on List Endpoints | P2 | **Pending — Spec Alignment Required** | — | Sprint 3 | No |
-| IMP-014 | Notification Service | P3 | **Blocked — ADR Required** | — | TBD | **Yes** |
-| IMP-015 | File Storage Service | P3 | **Blocked — ADR Required** | — | TBD | **Yes** |
-| IMP-016 | Scheduler Service | P3 | **Blocked — ADR Required** | — | TBD | **Yes** |
-| IMP-017 | Event-Driven Architecture | P3 | **Blocked — ADR Required** | — | TBD | **Yes** |
+| IMP-013 | Pagination on List Endpoints | P2 | **Implemented — Validation Pending** | — | Sprint 3 | No |
+| IMP-014 | Notification Service | P3 | **Implemented — Foundation / Validation Pending** | — | TBD | **Approved ADR-0017** |
+| IMP-015 | File Storage Service | P3 | **Implemented — Foundation / Provider Pending** | — | TBD | **Approved ADR-0018** |
+| IMP-016 | Scheduler Service | P3 | **Implemented — Foundation / Validation Pending** | — | TBD | **Approved ADR-0019** |
+| IMP-017 | Event-Driven Architecture | P3 | **Implemented — Foundation / Validation Pending** | — | TBD | **Approved ADR-0008 + ADR-0020** |
 | IMP-018 | Account Lockout | P4 | **Completed** | — | Sprint 3 | No |
 | IMP-019 | Password Policy | P4 | **Completed** | — | Sprint 3 | No |
-| IMP-020 | JWT Key Rotation (JWKS) | P4 | **Blocked — ADR Required** | — | Sprint 4 | **Yes** |
+| IMP-020 | JWT Key Rotation (JWKS) | P4 | **Implemented — Validation Pending** | — | Sprint 4 | **Approved ADR-0021** |
 | IMP-021 | Request Size Limits | P4 | **Completed** | — | Sprint 2 | No |
 | IMP-022 | ESLint + Prettier | P3 | **Pending** | — | Sprint 2 | No |
 | IMP-023 | Type-Safe Routes | P3 | **Partial** | — | Sprint 3 | No |
 | IMP-024 | Test Infrastructure | P3 | **Partial** | — | Sprint 2 | No |
 | IMP-025 | CI/CD Pipeline | P3 | **Partial** | — | Sprint 2 | No |
 | IMP-026 | Production Dockerfile | P3 | **Completed** | — | Sprint 2 | No |
-| IMP-027 | Migration Rollback Strategy | P4 | **Partial** | — | Ongoing | No |
-| IMP-028 | Query Performance Monitoring | P4 | **Blocked — ADR Required** | — | Sprint 3 | **Yes** |
-| IMP-029 | Table Partitioning | P4 | **Blocked — ADR Required** | — | Future | **Yes** |
-| IMP-030 | API Versioning Strategy | P4 | **Blocked — ADR Required** | — | TBD | **Yes** |
+| IMP-027 | Migration Rollback Strategy | P4 | **Partial — Governance Implemented** | — | Ongoing | No |
+| IMP-028 | Query Performance Monitoring | P4 | **Implemented — Validation Pending** | — | Sprint 3 | **Approved ADR-0022** |
+| IMP-029 | Table Partitioning | P4 | **Future — Evidence Required** | — | Future | **Approved ADR-0023** |
+| IMP-030 | API Versioning Strategy | P4 | **Implemented — Validation Pending** | — | TBD | **Approved ADR-0024** |
 | IMP-031 | Domain Layer Repository Interfaces | P2 | **Partial** | — | Sprint 3 | No |
 | IMP-032 | Configuration Documentation | P4 | **Completed** | — | Sprint 3 | No |
 
@@ -471,10 +380,10 @@ This document catalogs all identified improvements for the NEW_ERP_FINAL ERP bac
 
 ## Governance Compliance Checklist
 
-- [ ] All P3 items have ADR drafted and submitted to Architecture Review Board
-- [x] No implementation begins on ADR-gated items without approved ADR
+- [x] All ADR-gated items have approved ADRs before implementation proceeded
+- [x] No implementation began on ADR-gated items before an approved ADR
 - [x] P0/P1 implementation is checked against approved ADRs and authoritative governance before changes
-- [ ] Security changes (P0, P1, P4) reviewed by Security Architect
+- [ ] Security changes (P0, P1, P4) have not yet received a separately recorded formal Security Architect review
 - [x] Database changes (migrations) follow `docs/03-database/` standards
 - [x] Documentation updated alongside implementation (Principle 10)
 
@@ -482,12 +391,14 @@ This document catalogs all identified improvements for the NEW_ERP_FINAL ERP bac
 
 ## Next Steps
 
-1. Validate IMP-010 RFC 7807 from VS Code/Copilot and record the runtime/test evidence here.
-2. Complete IMP-009 by moving transaction ownership to the application/service boundary without weakening `SET LOCAL` tenant context or PostgreSQL RLS.
-3. Reconcile IMP-013 pagination wording with the authoritative API standard before changing public list contracts.
-4. Complete remaining non-governed DX work (IMP-022, IMP-023, IMP-024, IMP-025, IMP-031) in small verified batches.
-5. Draft/approve ADRs for items marked `Blocked — ADR Required` before implementation.
-6. Update this document after each implementation and again after validation.
+1. Run the prescribed runtime/full validation for IMP-004, IMP-005, IMP-006, IMP-009, IMP-010, IMP-013, IMP-014, IMP-016, IMP-017, IMP-020, IMP-028 and IMP-030 from VS Code/Copilot and record evidence.
+2. Complete the remaining HTTP/provider wiring for IMP-005 and IMP-006.
+3. Complete IMP-022 ESLint/Prettier and then finish the remaining CI/CD lint/release work in IMP-025.
+4. Complete Fastify type-provider inference for IMP-023 and remaining repository-interface migrations for IMP-031.
+5. Finish the remaining test-infrastructure standardization for IMP-024.
+6. Complete migration recovery automation/CI evidence for IMP-027.
+7. Keep IMP-029 intentionally deferred until measurable workload/data evidence supports partitioning.
+8. Keep this document synchronized whenever implementation or validation status changes.
 
 ---
 
