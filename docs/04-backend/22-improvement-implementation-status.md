@@ -51,21 +51,41 @@ Testcontainers remains optional future infrastructure rather than being introduc
 
 Migrated the repository contract imports for branch, location, enterprise, authorization, and platform bootstrap application services to `src/domain/contracts/repositories.ts`. The compatibility exports in `src/application/contracts/security.ts` remain for unmigrated consumers.
 
+## ADR drafts created — implementation remains gated
+
+The remaining architecture-governed improvements now have explicit ADR drafts on `feat/improvements`:
+
+| Improvement | ADR | Status |
+|---|---|---|
+| IMP-004 Audit Logging Foundation | ADR-0014 | Proposed |
+| IMP-005 Email Verification / Password Recovery | ADR-0015 | Proposed |
+| IMP-006 MFA (TOTP) | ADR-0016 | Proposed |
+| IMP-014 Notification Service | ADR-0017 | Proposed |
+| IMP-015 File Storage Service | ADR-0018 | Proposed |
+| IMP-016 Scheduler Service | ADR-0019 | Proposed |
+| IMP-017 Event-Driven Architecture | ADR-0020 | Proposed |
+| IMP-020 JWT Key Rotation / JWKS | ADR-0021 | Proposed |
+| IMP-028 Query Performance Monitoring | ADR-0022 | Proposed |
+| IMP-029 Table Partitioning | ADR-0023 | Proposed |
+| IMP-030 API Versioning Strategy | ADR-0024 | Proposed |
+
+These ADRs are deliberately **Proposed**, not Approved. Under ADR governance, implementation must not rely on a Proposed ADR. They therefore define the intended decision for architecture review without bypassing the approval gate.
+
 ## Still governed / intentionally not implemented
 
-The following remain blocked until their required ADR/architecture decisions are approved:
+The following remain blocked until the corresponding ADR is approved:
 
-- IMP-004 Audit Logging Foundation
-- IMP-005 Email Verification / Password Recovery
-- IMP-006 MFA (TOTP)
-- IMP-014 Notification Service
-- IMP-015 File Storage Service
-- IMP-016 Scheduler Service
-- IMP-017 Event-Driven Architecture
-- IMP-020 JWT Key Rotation / JWKS
-- IMP-028 Query Performance Monitoring
-- IMP-029 Table Partitioning
-- IMP-030 API Versioning Strategy
+- IMP-004 Audit Logging Foundation — ADR-0014
+- IMP-005 Email Verification / Password Recovery — ADR-0015
+- IMP-006 MFA (TOTP) — ADR-0016
+- IMP-014 Notification Service — ADR-0017
+- IMP-015 File Storage Service — ADR-0018
+- IMP-016 Scheduler Service — ADR-0019
+- IMP-017 Event-Driven Architecture — ADR-0020
+- IMP-020 JWT Key Rotation / JWKS — ADR-0021
+- IMP-028 Query Performance Monitoring — ADR-0022
+- IMP-029 Table Partitioning — ADR-0023
+- IMP-030 API Versioning Strategy — ADR-0024
 
 No implementation bypasses these governance gates.
 
