@@ -75,12 +75,12 @@ export class UnitOfWork {
     }
   }
 
-  async runInTransaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
+  async runInTransaction<T>(callback: () => Promise<T>): Promise<T> {
     const client = await this.begin();
 
     try {
       return await runInTransactionContext(client, async () => {
-        const result = await callback(client);
+        const result = await callback();
         await this.commit();
         return result;
       });
