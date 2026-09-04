@@ -2,6 +2,14 @@ import type { PermissionDescriptor } from '../../domain/contracts/authorization.
 import type { AuthenticatedUser, AuthenticationResult, CreateSessionInput, SessionRecord } from '../../domain/contracts/authentication.js';
 import type { TenantBootstrapInput, TenantBootstrapResult } from '../../domain/contracts/bootstrap.js';
 
+/**
+ * @deprecated Repository contracts are owned by the domain layer. New code must
+ * import them directly from `../../domain/contracts/repositories.js`.
+ *
+ * These type-only re-exports are retained as a bounded compatibility bridge for
+ * legacy consumers while preserving a single source of truth in the domain.
+ * No repository interface may be declared in this application-layer module.
+ */
 export type {
   AuthenticationRepository,
   AuthorizationRepository,
