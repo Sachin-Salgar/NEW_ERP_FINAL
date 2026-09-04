@@ -1,0 +1,131 @@
+name: Backend Release Image
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Optional image tag for a manual release candidate build
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: backend-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-image:
+    name: Validate and publish backend image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres-release-ci-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run quality gate
+        run: npm run quality
+
+      - name: Verify generated configuration reference
+        run: |
+          npm run docs:config
+          git diff --exit-code -- docs/04-backend/configuration-reference.md
+
+      - name: Verify migration recovery manifest
+        run: npm run db:verify-recovery
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Build backend
+        run: npm run build
+
+      - name: Create isolated integration-test database
+        env:
+          PGPASSWORD: postgres-release-ci-only
+        run: |
+          set -euo pipefail
+          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE newerp_release_test_runner WITH LOGIN PASSWORD 'newerp-release-test-runner-ci-only' NOSUPERUSER NOBYPASSRLS;
+          CREATE DATABASE newerp_release_test OWNER newerp_release_test_runner;
+          SQL
+          psql -h 127.0.0.1 -U postgres -d newerp_release_test -v ON_ERROR_STOP=1 <<'SQL'
+          ALTER SCHEMA public OWNER TO newerp_release_test_runner;
+          GRANT ALL ON SCHEMA public TO newerp_release_test_runner;
+          SQL
+
+      - name: Integration tests
+        env:
+          NODE_ENV: test
+          TEST_DATABASE_URL: postgresql://newerp_release_test_runner:newerp-release-test-runner-ci-only@127.0.0.1:5432/newerp_release_test
+          DATABASE_SSL_MODE: disable
+          JWT_SECRET: release-integration-jwt-secret-change-me-123456789
+        run: npm run test:integration
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags
+        id: image
+        shell: bash
+        run: |
+          set -euo pipefail
+          repository="ghcr.io/${GITHUB_REPOSITORY,,}/backend"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            release_tag="${GITHUB_REF_NAME}"
+          elif [[ -n "${{ inputs.image_tag }}" ]]; then
+            release_tag="${{ inputs.image_tag }}"
+          else
+            release_tag="manual-${GITHUB_SHA::12}"
+          fi
+          echo "repository=${repository}" >> "$GITHUB_OUTPUT"
+          echo "release_tag=${release_tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and publish immutable backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.image.outputs.repository }}:${{ steps.image.outputs.release_tag }}
+            ${{ steps.image.outputs.repository }}:sha-${{ github.sha }}
+          provenance: mode=max
+          sbom: true
