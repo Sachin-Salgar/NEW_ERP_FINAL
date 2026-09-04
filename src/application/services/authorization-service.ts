@@ -1,5 +1,5 @@
 import type { PermissionDescriptor, PermissionCheckResult, RoleDescriptor } from '../../domain/contracts/authorization.js';
-import type { AuthorizationRepository } from '../contracts/security.js';
+import type { AuthorizationRepository } from '../../domain/contracts/repositories.js';
 
 export class AuthorizationService {
   constructor(private readonly authorizationRepository: AuthorizationRepository) {}
