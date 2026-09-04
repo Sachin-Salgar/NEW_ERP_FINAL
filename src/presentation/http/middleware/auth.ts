@@ -13,6 +13,7 @@ import type { AccountSecurityService } from '../../../application/services/accou
 import type { MfaService } from '../../../application/services/mfa-service.js';
 import type { JwtTokenService } from '../../../infrastructure/security/jwt-token-service.js';
 import type { AppConfig } from '../../../config/schema.js';
+import type { AuditLogger } from '../../../application/contracts/audit.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -29,6 +30,7 @@ declare module 'fastify' {
     tenantMembershipService: TenantMembershipService;
     accountSecurityService: AccountSecurityService;
     mfaService: MfaService;
+    auditLogger: AuditLogger;
   }
 
   interface FastifyRequest {

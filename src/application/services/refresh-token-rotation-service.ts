@@ -89,12 +89,26 @@ export class RefreshTokenRotationService {
         const replacementHash = this.tokenService.hashTokenValue(refreshTokenReplacement);
         const consumedAt = new Date();
 
-        await client.query(
+        const historyInsert = await client.query(
           `INSERT INTO refresh_token_history (
              tenant_id, session_id, user_id, token_hash, replaced_by_hash, consumed_at
-           ) VALUES ($1, $2, $3, $4, $5, $6)`,
+           ) VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (tenant_id, token_hash) DO NOTHING`,
           [claims.tenantId, session.id, session.user_id, oldHash, replacementHash, consumedAt],
         );
+        if ((historyInsert.rowCount ?? 0) !== 1) {
+          await client.query(
+            `UPDATE user_sessions
+             SET is_active = false,
+                 revoked_at = COALESCE(revoked_at, NOW()),
+                 termination_reason = 'refresh_token_reuse',
+                 updated_at = NOW(),
+                 version = version + 1
+             WHERE tenant_id = $1 AND id = $2`,
+            [claims.tenantId, session.id],
+          );
+          return { kind: 'reused' };
+        }
 
         const update = await client.query(
           `UPDATE user_sessions

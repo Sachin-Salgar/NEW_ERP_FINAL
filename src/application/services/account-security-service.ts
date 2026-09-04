@@ -8,6 +8,11 @@ export interface AccountSecurityOptions {
   passwordResetTtlMinutes?: number;
 }
 
+export interface PasswordRecoveryAuditTarget {
+  tenantId: string;
+  userId: string;
+}
+
 export class AccountSecurityService {
   private readonly emailVerificationTtlMinutes: number;
   private readonly passwordResetTtlMinutes: number;
@@ -52,8 +57,9 @@ export class AccountSecurityService {
    * as login. No client-supplied tenant ID becomes an authority. The method is
    * intentionally silent when zero or multiple tenant accounts match.
    */
-  async requestPasswordReset(identifier: string): Promise<void> {
+  async requestPasswordReset(identifier: string): Promise<PasswordRecoveryAuditTarget[]> {
     const candidates = await this.repository.findAccountCandidates(identifier.trim());
+    const auditTargets: PasswordRecoveryAuditTarget[] = [];
 
     for (const user of candidates) {
       const token = createOpaqueToken();
@@ -71,7 +77,10 @@ export class AccountSecurityService {
         token,
         expiresAt,
       });
+      auditTargets.push({ tenantId: user.tenantId, userId: user.id });
     }
+
+    return auditTargets;
   }
 
   async resetPassword(tenantId: string, token: string, newPassword: string): Promise<boolean> {

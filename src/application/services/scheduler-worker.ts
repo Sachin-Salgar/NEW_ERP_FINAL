@@ -1,4 +1,4 @@
-import type { ClaimedScheduledJob, ScheduledJobStore } from '../contracts/operational-workers.js';
+import type { ClaimedScheduledJob, ScheduledJobStore, TrustedWorkerScope } from '../contracts/operational-workers.js';
 
 export interface ScheduledJobHandler {
   readonly jobType: string;
@@ -21,7 +21,8 @@ export class SchedulerWorker {
     this.handlers = new Map(handlers.map((handler) => [handler.jobType, handler]));
   }
 
-  async runNext(tenantId: string, workerId: string): Promise<boolean> {
+  async runNext(scope: TrustedWorkerScope, workerId: string): Promise<boolean> {
+    const tenantId = scope.tenantId;
     const job = await this.store.claimDue(tenantId, workerId, this.options.leaseSeconds ?? 60);
     if (!job) return false;
 

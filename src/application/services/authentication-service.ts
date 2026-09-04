@@ -39,9 +39,15 @@ export class AuthenticationService {
   private async handleFailedAuthentication(
     tenantId: string,
     userId: string,
-  ): Promise<{ success: false; reason: string; retryAfterSeconds?: number } | null> {
+  ): Promise<{
+    success: false;
+    reason: string;
+    retryAfterSeconds?: number;
+    failureTenantId: string;
+    failureUserId: string;
+  } | null> {
     if (!this.authenticationRepository.recordFailedLoginAttempt) {
-      return { success: false, reason: 'INVALID_CREDENTIALS' };
+      return { success: false, reason: 'INVALID_CREDENTIALS', failureTenantId: tenantId, failureUserId: userId };
     }
 
     const state = await this.authenticationRepository.recordFailedLoginAttempt(tenantId, userId, {
@@ -53,15 +59,27 @@ export class AuthenticationService {
 
     if (lockedUntil && lockedUntil.getTime() > Date.now()) {
       const retryAfterSeconds = Math.max(1, Math.ceil((lockedUntil.getTime() - Date.now()) / 1000));
-      return { success: false, reason: 'ACCOUNT_LOCKED', retryAfterSeconds };
+      return {
+        success: false,
+        reason: 'ACCOUNT_LOCKED',
+        retryAfterSeconds,
+        failureTenantId: tenantId,
+        failureUserId: userId,
+      };
     }
 
     if (failedLoginCount >= this.maxFailedAttempts) {
       const retryAfterSeconds = this.lockoutMinutes * 60;
-      return { success: false, reason: 'ACCOUNT_LOCKED', retryAfterSeconds };
+      return {
+        success: false,
+        reason: 'ACCOUNT_LOCKED',
+        retryAfterSeconds,
+        failureTenantId: tenantId,
+        failureUserId: userId,
+      };
     }
 
-    return { success: false, reason: 'INVALID_CREDENTIALS' };
+    return { success: false, reason: 'INVALID_CREDENTIALS', failureTenantId: tenantId, failureUserId: userId };
   }
 
   async authenticate(

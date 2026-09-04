@@ -30,6 +30,7 @@ import { Rfc6238TotpProvider } from '../../infrastructure/security/totp.js';
 import { JwtTokenService } from '../../infrastructure/security/jwt-token-service.js';
 import { UnitOfWork } from '../../infrastructure/database/unit-of-work.js';
 import { createLogger } from '../../infrastructure/logging/logger.js';
+import { PostgresAuditLogger } from '../../infrastructure/audit/postgres-audit-logger.js';
 import healthRoutes from './routes/health.js';
 import authRoutes from './routes/auth.js';
 import accountSecurityRoutes from './routes/account-security.js';
@@ -42,6 +43,7 @@ import rbacRoutes from './routes/rbac.js';
 import { paginateListResponse } from './pagination.js';
 import { requestObject } from './request-input.js';
 import { schemaForRoute, setupSwagger } from './swagger.js';
+import { recordSecurityEvent } from './security-audit.js';
 
 const rotatedRefreshResponseSchema = {
   type: 'object',
@@ -128,6 +130,19 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   applyCorrelationIdHooks(app);
   const pool = providedPool ?? createDatabasePool(config);
   const queryPerformanceMonitor = new PostgresQueryPerformanceMonitor(pool);
+  const auditLogger = new PostgresAuditLogger(pool, {
+    tenantContextKey: config.TENANT_CONTEXT_KEY,
+    allowedMetadataKeys: [
+      'reason',
+      'identifierType',
+      'failureCount',
+      'retryAfterSeconds',
+      'sessionId',
+      'provider',
+      'tokenPurpose',
+      'operation',
+    ],
+  });
   const repository = new IdentityAwarePostgresPlatformRepository(pool);
   const passwordHasher = new BcryptPasswordHasher();
   const jwtTokenService = new JwtTokenService(config);
@@ -184,6 +199,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('tenantMembershipService', tenantMembershipService);
   app.decorate('accountSecurityService', accountSecurityService);
   app.decorate('mfaService', mfaService);
+  app.decorate('auditLogger', auditLogger);
 
   app.addHook('onReady', async () => {
     const snapshot = await queryPerformanceMonitor.snapshot({ minimumMeanExecMs: 100, limit: 25 });
@@ -205,9 +221,35 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     const body = requestObject(request.body);
     const refreshToken = body.refreshToken;
     if (typeof refreshToken !== 'string' || refreshToken.length === 0) return;
-    const rotated = await refreshTokenRotationService.rotate(refreshToken);
+    let rotated;
+    try {
+      rotated = await refreshTokenRotationService.rotate(refreshToken);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('reuse detected')) {
+        const claims = jwtTokenService.verifyRefreshToken(refreshToken);
+        await recordSecurityEvent(request, {
+          tenantId: claims.tenantId,
+          actorUserId: claims.sub,
+          action: 'auth.refresh.replay',
+          resourceType: 'session',
+          resourceId: claims.sessionId,
+          outcome: 'failure',
+          metadata: { reason: 'refresh_token_reuse', sessionId: claims.sessionId },
+        });
+      }
+      throw error;
+    }
     const user = await authService.validateSession(rotated.sessionId, rotated.tenantId);
     if (!user) throw new Error('Rotated session could not be resolved');
+    await recordSecurityEvent(request, {
+      tenantId: rotated.tenantId,
+      actorUserId: rotated.userId,
+      action: 'auth.session.refresh',
+      resourceType: 'session',
+      resourceId: rotated.sessionId,
+      outcome: 'success',
+      metadata: { sessionId: rotated.sessionId },
+    });
     return reply.code(200).send({
       success: true,
       accessToken: rotated.accessToken,

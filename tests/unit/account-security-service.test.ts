@@ -62,7 +62,7 @@ describe('AccountSecurityService', () => {
     const notifications = makeNotifications();
     const service = new AccountSecurityService(repository, makeHasher(), notifications);
 
-    await expect(service.requestPasswordReset('missing@example.com')).resolves.toBeUndefined();
+    await expect(service.requestPasswordReset('missing@example.com')).resolves.toEqual([]);
     expect(notifications.sendPasswordReset).not.toHaveBeenCalled();
   });
 

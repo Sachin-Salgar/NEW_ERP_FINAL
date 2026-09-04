@@ -3,6 +3,7 @@ import type {
   NotificationDeliveryStore,
   NotificationTemplateRenderer,
 } from '../contracts/notification-delivery.js';
+import type { TrustedWorkerScope } from '../contracts/operational-workers.js';
 
 export class NotificationDeliveryWorker {
   private readonly providers: Map<string, NotificationChannelProvider>;
@@ -16,7 +17,8 @@ export class NotificationDeliveryWorker {
     this.providers = new Map(providers.map((provider) => [provider.channel, provider]));
   }
 
-  async runNext(tenantId: string, workerId: string): Promise<boolean> {
+  async runNext(scope: TrustedWorkerScope, workerId: string): Promise<boolean> {
+    const tenantId = scope.tenantId;
     const notification = await this.store.claimNext(tenantId, workerId, this.options.leaseSeconds ?? 60);
     if (!notification) return false;
 

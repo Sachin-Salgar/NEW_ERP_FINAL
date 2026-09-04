@@ -51,6 +51,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit npm dependencies
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Run quality gate
         run: npm run quality
 
@@ -129,3 +132,13 @@ jobs:
             ${{ steps.image.outputs.repository }}:sha-${{ github.sha }}
           provenance: mode=max
           sbom: true
+
+      - name: Scan published backend image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.image.outputs.repository }}:${{ steps.image.outputs.release_tag }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: HIGH,CRITICAL

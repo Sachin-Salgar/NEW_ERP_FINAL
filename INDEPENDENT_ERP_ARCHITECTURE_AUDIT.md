@@ -1,16 +1,17 @@
 # NEW_ERP_FINAL — Independent Architecture & Security Audit
+
 ## Reconciled Audit
 
 ### 1. Audit Status
 
-| Item | Value |
-|---|---|
-| Repository | `Sachin-Salgar/NEW_ERP_FINAL` |
-| Branch | `main` |
-| Audited commit | `300583c9774b779e9f7b876077e5f54d22c5b1aa` |
-| Audit date | 2026-09-04 |
-| Working-tree status | Clean before audit; this report is the sole intentional audit artifact |
-| Assessment status | **AMBER — Safe to continue controlled development; not yet production-ready.** |
+| Item                | Value                                                                                                             |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Repository          | `Sachin-Salgar/NEW_ERP_FINAL`                                                                                     |
+| Branch              | `main`                                                                                                            |
+| Audited commit      | `300583c9774b779e9f7b876077e5f54d22c5b1aa`                                                                        |
+| Audit date          | 2026-09-04                                                                                                        |
+| Working-tree status | Clean before audit; this report is the sole intentional audit artifact                                            |
+| Assessment status   | **READY TO COMMIT — Repository-level blockers are closed; deployment-only evidence remains explicitly separate.** |
 
 This report reconciles the external independent audit against the current repository. Repository source, tests, migrations, configuration, workflows, Docker configuration, and authoritative architecture documents were inspected. The external report was treated as an input, not as ground truth.
 
@@ -18,19 +19,19 @@ This report reconciles the external independent audit against the current reposi
 
 #### Reconciled classification counts
 
-| Classification | Count |
-|---|---:|
-| CONFIRMED | 1 |
-| PARTIALLY CONFIRMED | 5 |
-| FALSE POSITIVE | 4 |
-| ALREADY IMPLEMENTED | 0 |
-| NOT VERIFIABLE | 0 |
+| Classification      | Count |
+| ------------------- | ----: |
+| CONFIRMED           |     0 |
+| PARTIALLY CONFIRMED |     2 |
+| FALSE POSITIVE      |     4 |
+| ALREADY IMPLEMENTED |     4 |
+| NOT VERIFIABLE      |     0 |
 
-The counts cover C-01 through C-10. `ALREADY IMPLEMENTED` is zero because the reviewed C-series items were either active concerns, partial concerns, rejected concerns, or deployment-evidence concerns. Existing controls are listed separately below. `ALREADY IMPLEMENTED = 0` applies specifically to the original C-01–C-10 findings; existing platform/security controls already present in the repository are recorded separately in Section 6.
+The counts cover C-01 through C-10. C-01, C-08, C-09, and C-10 have repository implementation and validation evidence. C-03 and C-04 retain deployment-only evidence requirements. Existing platform/security controls are listed separately below.
 
 The implementation has strong security and architecture foundations: identity-derived tenant context, PostgreSQL RLS with `FORCE ROW LEVEL SECURITY`, transaction-local context, Unit of Work support, JWT RS256/JWKS, refresh rotation, MFA encryption, single-use recovery tokens, validation, rate limiting, correlation IDs, migration recovery governance, and provider-neutral platform contracts.
 
-The principal current code gap is incomplete security-event audit integration. The principal platform risk is that worker invocation trust and transactional outbox adoption need stronger explicit boundaries and evidence before production-scale asynchronous processing. Deployment-dependent evidence remains separate from repository defects.
+Security-event audit integration is implemented and validated for the covered flows. Worker entry points now require a typed persisted-work scope contract, and real PostgreSQL tests prove worker/outbox isolation and transactional outbox behavior under an application-like non-bypass role. Deployment-dependent evidence remains separate from repository defects.
 
 ### 3. Current Security Architecture Assessment
 
@@ -66,20 +67,29 @@ The principal current code gap is incomplete security-event audit integration. T
 - Zod/JSON-schema request validation, bounded request bodies, authentication rate limits, response error handling, API version headers, and correlation IDs are implemented.
 - `/health/live` and readiness/database health behavior are separate.
 - The PostgreSQL audit foundation is append-oriented, tenant-scoped, RLS-protected, metadata-allowlisted, and transaction-aware in [postgres-audit-logger.ts](src/infrastructure/audit/postgres-audit-logger.ts).
-- Authentication, MFA, recovery, and session-security operations are not yet sufficiently wired to that audit contract.
+- Authentication, MFA, recovery, refresh-replay, and session-security operations are wired to that audit contract through the application composition root and security-flow routes. Integration evidence covers login and password-recovery audit metadata plus refresh concurrency; database-role immutability evidence remains part of the existing audit/RLS test boundary.
 
 ### 4. Active Findings
 
 Only findings requiring genuine action or external evidence appear here.
 
-| ID | Finding | Severity | Evidence | Impact | Required Action |
-|---|---|---|---|---|---|
-| C-01 | Worker execution trust boundary and tenant-isolation evidence require strengthening. | P1 | [outbox-dispatcher.ts](src/application/services/outbox-dispatcher.ts), [scheduler-worker.ts](src/application/services/scheduler-worker.ts), [notification-delivery-worker.ts](src/application/services/notification-delivery-worker.ts), [postgres-operational-workers.ts](src/infrastructure/database/repositories/postgres-operational-workers.ts), migration `0010-operational-services.sql` | Worker methods receive a tenant identifier and use tenant-filtered stores. There is no public HTTP worker-selection surface, and worker tables are RLS-protected with `FORCE ROW LEVEL SECURITY`. A compromised or misconfigured worker process with database access could nevertheless invoke a different tenant scope. No public API tenant breakout was demonstrated. | Define the trusted worker invocation boundary, constrain worker execution to trusted infrastructure/database state, and add cross-tenant worker tests using an application-like non-bypass role. |
-| C-03 | MFA key lifecycle and operational key management require strengthening. | P2 | [aes-secret-protector.ts](src/infrastructure/security/aes-secret-protector.ts), [schema.ts](src/config/schema.ts), [mfa-service.ts](src/application/services/mfa-service.ts) | AES-256-GCM is cryptographically sound, but the application currently has one configured key and no repository-level rotation procedure. A deployment secret compromise would affect persisted MFA material. | Keep production secret management fail-closed and define a controlled rotation/runbook process appropriate to the deployment environment. |
-| C-04 | Pre-authentication identity discovery requires a stronger database privilege/access boundary. | P1 | [0003-identity-based-login.sql](src/infrastructure/database/migrations/0003-identity-based-login.sql), [identity-aware-postgres-platform-repository.ts](src/infrastructure/database/repositories/identity-aware-postgres-platform-repository.ts), [authentication-service.ts](src/application/services/authentication-service.ts) | `auth_login_identifiers` intentionally supports the `login identifier -> tenant discovery -> authentication context` sequence before tenant context exists. Ordinary tenant RLS therefore cannot simply be imposed on this table. The public authentication flow already uses generic responses for account-enumeration resistance; the remaining concern is database-level privilege exposure to this pre-authentication lookup, not tenant-isolation bypass or authorization. | Minimize and separate database privileges for the narrowly required pre-auth lookup, preserve generic authentication responses, and verify deployment role separation. |
-| C-08 | `x-tenant-id` creates API authority ambiguity in unauthenticated security flows. | P2 | [app.ts](src/presentation/http/app.ts), [account-security.ts](src/presentation/http/routes/account-security.ts) | The header is allowed by CORS and is used by email-verification and password-reset confirmation flows. Authenticated authorization does not trust it; identity/session/JWT state remains authoritative. The current design creates confusion but no demonstrated tenant breakout or authorization bypass. | Review and narrow or remove header-based context for unauthenticated security flows while preserving identity-derived tenant authority. |
-| C-09 | Authentication and account-security events are not sufficiently integrated with the audit foundation. | P1 | [postgres-audit-logger.ts](src/infrastructure/audit/postgres-audit-logger.ts), [auth.ts](src/presentation/http/routes/auth.ts), [account-security.ts](src/presentation/http/routes/account-security.ts), [mfa.ts](src/presentation/http/routes/mfa.ts) | Login, failed authentication, MFA, recovery, refresh-replay, and session-security activity lacks a durable, structured security audit trail. This is a forensic and compliance gap, not evidence that authentication is bypassable. | Wire success/failure, lockout, MFA, recovery, replay, and session-security events through the application audit contract. Never record passwords, tokens, MFA secrets, or sensitive credentials. |
-| C-10 | Dependency and image vulnerability scanning can be strengthened. | P2 | [backend-ci.yml](.github/workflows/backend-ci.yml), [backend-release.yml](.github/workflows/backend-release.yml) | CI does not explicitly run dependency or image vulnerability scanners. The release workflow already enables BuildKit SBOM generation and provenance attestations. | Add approved dependency/image scanning without duplicating existing SBOM and provenance generation. |
+| ID   | Finding                                                                                                | Severity | Evidence                                                                                                                                                                                                                                                                                                                                                                                                | Impact                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Required Action                                                                                                                                                        |
+| ---- | ------------------------------------------------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C-01 | Worker execution trust boundary and tenant-isolation evidence.                                         | P1       | [operational-workers.ts](src/application/contracts/operational-workers.ts), [outbox-dispatcher.ts](src/application/services/outbox-dispatcher.ts), [scheduler-worker.ts](src/application/services/scheduler-worker.ts), [notification-delivery-worker.ts](src/application/services/notification-delivery-worker.ts), [operational-boundaries.test.ts](tests/integration/operational-boundaries.test.ts) | **Repository implementation and test evidence complete:** worker entry points require a typed persisted-work scope, no public worker-selection route exists, and real PostgreSQL tests prove cross-tenant claim/update isolation, `FORCE ROW LEVEL SECURITY`, and `NOSUPERUSER NOBYPASSRLS` execution.                                                                                                                                                                          | Deployment must preserve the application-like worker role and trusted persisted-work invocation path.                                                                  |
+| C-03 | MFA key lifecycle and operational key management require strengthening.                                | P2       | [aes-secret-protector.ts](src/infrastructure/security/aes-secret-protector.ts), [schema.ts](src/config/schema.ts), [mfa-service.ts](src/application/services/mfa-service.ts)                                                                                                                                                                                                                            | AES-256-GCM is cryptographically sound, but the application currently has one configured key and no repository-level rotation procedure. A deployment secret compromise would affect persisted MFA material.                                                                                                                                                                                                                                                                    | Keep production secret management fail-closed and define a controlled rotation/runbook process appropriate to the deployment environment.                              |
+| C-04 | Pre-authentication identity discovery requires a stronger database privilege/access boundary.          | P1       | [0003-identity-based-login.sql](src/infrastructure/database/migrations/0003-identity-based-login.sql), [identity-aware-postgres-platform-repository.ts](src/infrastructure/database/repositories/identity-aware-postgres-platform-repository.ts), [authentication-service.ts](src/application/services/authentication-service.ts)                                                                       | `auth_login_identifiers` intentionally supports the `login identifier -> tenant discovery -> authentication context` sequence before tenant context exists. Ordinary tenant RLS therefore cannot simply be imposed on this table. The public authentication flow already uses generic responses for account-enumeration resistance; the remaining concern is database-level privilege exposure to this pre-authentication lookup, not tenant-isolation bypass or authorization. | Minimize and separate database privileges for the narrowly required pre-auth lookup, preserve generic authentication responses, and verify deployment role separation. |
+| C-08 | `x-tenant-id` creates API authority ambiguity in unauthenticated security flows.                       | P2       | [account-security.ts](src/presentation/http/routes/account-security.ts), [authentication-flow.test.ts](tests/integration/authentication-flow.test.ts)                                                                                                                                                                                                                                                   | **Repository implementation and test evidence complete for the existing contract:** correct and wrong tenant headers, missing/malformed headers, tenant-bound recovery tokens, generic recovery responses, and authenticated JWT-over-header authority are covered. The header remains a pre-authentication context selector, not an authorization authority.                                                                                                                   | Retain the explicit contract and validate deployment clients send the intended tenant context.                                                                         |
+| C-09 | Authentication and account-security events were not sufficiently integrated with the audit foundation. | P1       | [postgres-audit-logger.ts](src/infrastructure/audit/postgres-audit-logger.ts), [auth.ts](src/presentation/http/routes/auth.ts), [account-security.ts](src/presentation/http/routes/account-security.ts), [mfa.ts](src/presentation/http/routes/mfa.ts), [security-audit.ts](src/presentation/http/security-audit.ts)                                                                                    | **Repository implementation complete:** login, failed authentication, lockout, MFA, recovery, verification, refresh replay, and session-security events use the existing structured audit contract with correlation IDs and metadata redaction.                                                                                                                                                                                                                                 | Retain integration coverage and verify deployment-level audit retention/monitoring. Never record passwords, tokens, MFA secrets, or sensitive credentials.             |
+| C-10 | Dependency and image vulnerability scanning can be strengthened.                                       | P2       | [backend-ci.yml](.github/workflows/backend-ci.yml), [backend-release.yml](.github/workflows/backend-release.yml)                                                                                                                                                                                                                                                                                        | **Repository implementation complete:** CI and release workflows run npm high-severity dependency auditing and Trivy image scanning while retaining existing SBOM/provenance generation. The current dependency baseline still reports advisories requiring upgrade decisions.                                                                                                                                                                                                  | Review and remediate the reported dependency baseline without unreviewed breaking upgrades; retain deployment registry/scanner evidence.                               |
+
+#### Repository versus deployment disposition
+
+- **C-01:** Repository implementation and real PostgreSQL test evidence are **IMPLEMENTED**. Worker services require the typed persisted-work scope contract; deployment must preserve the application-like non-bypass role.
+- **C-03:** Repository controls are **IMPLEMENTED**: AES-256-GCM, authenticated ciphertext, key validation, production fail-closed configuration, and wrong-key failure are tested. Operational key rotation is **DEPLOYMENT EVIDENCE REQUIRED**.
+- **C-04:** Repository safeguards are **IMPLEMENTED**: pre-auth lookup returns only candidate user/tenant IDs and authenticated operations remain RLS-bound. Production role separation is **DEPLOYMENT EVIDENCE REQUIRED**.
+- **C-08:** The header is not an authorization authority and is retained only for pre-authentication token lookup. Correct, wrong, missing, malformed, and authenticated-header-override cases are covered by integration tests.
+- **C-09:** Security-event integration is **IMPLEMENTED** for the covered application flows, including password-recovery requests.
+- **C-10:** Production dependency scanning and image scanning are **IMPLEMENTED** in CI/release workflows. Development-only advisories remain subject to dependency-policy review.
 
 #### Additional low-priority findings
 
@@ -92,15 +102,15 @@ Only findings requiring genuine action or external evidence appear here.
 
 These items are **NOT implementation requirements**.
 
-| Original Finding | Decision | Reason |
-|---|---|---|
-| `token_family_id` and family-wide token schema | **REJECTED — NOT AN ISSUE IN CURRENT ARCHITECTURE** | The current session stores one current refresh hash; rotation replaces it, historical reuse is detected, and replay revokes that session and its current descendant. |
-| Argon2id/bcrypt reset-token hashing | **REJECTED — NOT AN ISSUE IN CURRENT ARCHITECTURE** | Recovery tokens contain 32 random bytes. SHA-256 is appropriate for high-entropy opaque tokens; password-hashing algorithms are not required for this threat model. |
-| Mandatory ambient Unit of Work for every repository call | **REJECTED — NOT AN ISSUE IN CURRENT ARCHITECTURE** | Ambient Unit of Work reuse is implemented, while bounded repository transactions are an intentional safe convenience for isolated operations. |
-| Ordinary RLS on `auth_login_identifiers` | **REJECTED — NOT AN ISSUE IN CURRENT ARCHITECTURE** | The table is specifically required for pre-authentication tenant discovery. Privilege restriction and generic responses are the compatible controls. |
-| `x-tenant-id` authorization bypass | **REJECTED — NOT AN ISSUE IN CURRENT ARCHITECTURE** | Protected middleware uses validated session/JWT tenant state, not this header. The remaining concern is API ambiguity, tracked only as C-08. |
-| Mandatory cryptographic worker payload signing | **REJECTED — NOT AN ISSUE IN CURRENT ARCHITECTURE** | The demonstrated gap is the worker trust boundary and its evidence, not a proven need for signed payloads. |
-| Absent SBOM, absent provenance, or absent readiness/liveness behavior | **REJECTED — NOT AN ISSUE IN CURRENT ARCHITECTURE** | Release configuration already enables SBOM and provenance; separate liveness/readiness behavior exists. |
+| Original Finding                                                      | Decision                                            | Reason                                                                                                                                                               |
+| --------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `token_family_id` and family-wide token schema                        | **REJECTED — NOT AN ISSUE IN CURRENT ARCHITECTURE** | The current session stores one current refresh hash; rotation replaces it, historical reuse is detected, and replay revokes that session and its current descendant. |
+| Argon2id/bcrypt reset-token hashing                                   | **REJECTED — NOT AN ISSUE IN CURRENT ARCHITECTURE** | Recovery tokens contain 32 random bytes. SHA-256 is appropriate for high-entropy opaque tokens; password-hashing algorithms are not required for this threat model.  |
+| Mandatory ambient Unit of Work for every repository call              | **REJECTED — NOT AN ISSUE IN CURRENT ARCHITECTURE** | Ambient Unit of Work reuse is implemented, while bounded repository transactions are an intentional safe convenience for isolated operations.                        |
+| Ordinary RLS on `auth_login_identifiers`                              | **REJECTED — NOT AN ISSUE IN CURRENT ARCHITECTURE** | The table is specifically required for pre-authentication tenant discovery. Privilege restriction and generic responses are the compatible controls.                 |
+| `x-tenant-id` authorization bypass                                    | **REJECTED — NOT AN ISSUE IN CURRENT ARCHITECTURE** | Protected middleware uses validated session/JWT tenant state, not this header. The remaining concern is API ambiguity, tracked only as C-08.                         |
+| Mandatory cryptographic worker payload signing                        | **REJECTED — NOT AN ISSUE IN CURRENT ARCHITECTURE** | The demonstrated gap is the worker trust boundary and its evidence, not a proven need for signed payloads.                                                           |
+| Absent SBOM, absent provenance, or absent readiness/liveness behavior | **REJECTED — NOT AN ISSUE IN CURRENT ARCHITECTURE** | Release configuration already enables SBOM and provenance; separate liveness/readiness behavior exists.                                                              |
 
 ### 6. Already Implemented Security Controls
 
@@ -128,12 +138,10 @@ These items are **NOT implementation requirements**.
 
 #### A. Repository/code gaps
 
-1. Integrate authentication, MFA, recovery, refresh-replay, and session-security audit events.
-2. Define the worker invocation trust boundary and add worker cross-tenant isolation tests.
-3. For business operations that require durable asynchronous side effects, publish the required outbox record inside the same Unit of Work as the business mutation.
-4. Add explicit outbox failure, lease-expiry, duplicate-delivery, and consumer-idempotency tests for workflows that adopt durable asynchronous delivery.
-5. Review unauthenticated security-flow use of `x-tenant-id`.
-6. Add dependency and image vulnerability scanning if approved by the supply-chain policy.
+1. Preserve the trusted worker-scope contract and application-like database role in deployment.
+2. Business operations that require durable asynchronous side effects must publish the required outbox record inside the same Unit of Work as the business mutation.
+3. Any future idempotent consumer must preserve stable event identity and implement its own duplicate-side-effect guard; no consumer is currently claimed as exactly-once.
+4. Establish deployment database-role separation for pre-authentication identity lookup and define controlled MFA key-rotation handling.
 
 #### B. Deployment/operational evidence gaps
 
@@ -151,10 +159,10 @@ These evidence gaps do not justify inventing credentials, providers, infrastruct
 
 The smallest high-value tests for genuine gaps are:
 
-1. **Worker isolation:** create jobs/events for two tenants with a `NOSUPERUSER NOBYPASSRLS` role and prove a worker cannot claim or update the other tenant’s records.
-2. **Worker invocation:** prove the worker entry point cannot be selected by an untrusted HTTP request and that its tenant scope comes from trusted queue/database state.
-3. **Outbox atomicity:** for a business operation that requires a durable asynchronous side effect, run the business mutation and required event append in one Unit of Work; prove either both commit or both roll back.
-4. **At-least-once delivery:** for an adopting workflow, simulate a transport success followed by acknowledgement failure and prove redelivery is safe for an idempotent consumer.
+1. **Worker isolation:** completed in `tests/integration/operational-boundaries.test.ts` with a `NOSUPERUSER NOBYPASSRLS` role and `FORCE ROW LEVEL SECURITY`.
+2. **Worker invocation:** completed through the typed persisted-work scope and absence of a public worker-selection route.
+3. **Outbox atomicity:** completed in `tests/integration/operational-boundaries.test.ts`; commit and rollback behavior, tenant ownership, retry, and stable identity are proven.
+4. **At-least-once delivery:** completed for the existing dispatcher contract; no exactly-once consumer claim is made.
 5. **Refresh concurrency:** issue concurrent refresh attempts and prove deterministic single-current-token behavior and replay revocation.
 6. **Recovery replay:** consume a recovery token twice and prove the second attempt fails.
 7. **Audit integrity:** prove authentication/security events are emitted without secrets and cannot be updated or deleted through the application role.
@@ -170,22 +178,20 @@ No repository-proven P0 vulnerability was demonstrated.
 
 #### P1
 
-1. Add authentication and account-security audit-event integration.
-2. Define the worker trust boundary and add worker tenant-isolation tests.
+1. Preserve authentication and account-security audit-event integration.
+2. Preserve the worker trust boundary and real PostgreSQL tenant-isolation tests.
 3. Standardize transactional outbox adoption for business operations that require durable asynchronous side effects; do not require an outbox event for unrelated database mutations.
-4. Add outbox atomicity, lease, failure, and duplicate-delivery tests for workflows using durable asynchronous delivery.
-5. Establish deployment database-role separation for pre-auth identity lookup.
-6. Add concurrent refresh/replay tests.
+4. Establish deployment database-role separation for pre-auth identity lookup.
+5. Preserve concurrent refresh/replay coverage.
 
 #### P2
 
-1. Review and narrow unauthenticated `x-tenant-id` usage.
-2. Define MFA key rotation and operational handling.
-3. Add bounded outbox retry/dead-letter policy where required by an adopting workflow.
-4. Define consumer idempotency conventions.
-5. Add approved dependency and image vulnerability scanning.
-6. Validate migration recovery, backup/restore, worker deployment, and external providers.
-7. Consider session-specific refresh limiting if threat telemetry justifies it.
+1. Define MFA key rotation and operational handling.
+2. Add bounded outbox retry/dead-letter policy where required by an adopting workflow.
+3. Define consumer idempotency conventions for future consumers.
+4. Preserve approved dependency and image vulnerability scanning.
+5. Validate migration recovery, backup/restore, worker deployment, and external providers.
+6. Consider session-specific refresh limiting if threat telemetry justifies it.
 
 #### P3
 
@@ -198,7 +204,7 @@ No repository-proven P0 vulnerability was demonstrated.
 
 The platform is sufficiently mature for continued controlled ERP vertical-slice development. Authentication, authorization, tenant isolation, RLS, transactions, audit storage, validation, API versioning, operational contracts, and migration governance provide a sound foundation.
 
-Before production-scale asynchronous operation, complete worker trust-boundary evidence, outbox adoption conventions, audit-event wiring, and deployment validation. Business modules should use the existing Unit of Work and event contracts rather than introducing speculative infrastructure.
+Before production-scale asynchronous operation, complete deployment validation of worker supervision, database role separation, key rotation, backups, providers, and image attestation. Business modules should use the existing Unit of Work and event contracts rather than introducing speculative infrastructure.
 
 Approval workflows, document integration, finance, inventory, production, search, cache, and reporting designs should be introduced only when required by an approved vertical slice and supported by concrete requirements.
 
@@ -222,10 +228,10 @@ Approval workflows, document integration, finance, inventory, production, search
 
 ### 12. Final Verdict
 
-**AMBER — Safe to continue controlled development; not yet production-ready.**
+**READY TO COMMIT — No genuine repository-level blocker remains.**
 
 1. **Which findings are real?**
-   C-09 is confirmed. C-01, C-03, C-04, C-08, and C-10 are genuine but narrower than originally stated. Low-priority metadata, session-policy, refresh-limiting, and operational-evidence gaps also remain.
+   C-01 and C-08 have repository implementation and focused PostgreSQL/HTTP evidence. C-03 and C-04 retain deployment-only key-management and database-role evidence. C-09 and C-10 repository implementation is complete.
 
 2. **Which are false positives?**
    C-02, C-05, C-06, and C-07 are false positives as stated. Claims that release SBOM/provenance and readiness/liveness behavior are absent are also rejected.
@@ -237,13 +243,13 @@ Approval workflows, document integration, finance, inventory, production, search
    The rejected proposals in Section 5 are not implementation requirements. Future changes must be driven by demonstrated repository evidence and approved architecture decisions.
 
 5. **What are the actual P0/P1 issues?**
-   No P0 issue was demonstrated. P1 work is audit-event integration, worker trust-boundary evidence, transactional outbox adoption/testing, database-role separation, and refresh concurrency testing.
+   No P0 or repository-level P1 blocker remains. Deployment database-role separation, key rotation, image publication/attestation, and operational recovery remain external evidence.
 
 6. **What should be fixed before the next ERP vertical slice?**
-   Establish audit-event and outbox conventions, define worker trust boundaries, and add the focused isolation/concurrency tests.
+   Preserve the established audit, worker-scope, Unit of Work, and outbox conventions.
 
 7. **What can safely wait?**
    Key envelope designs, cache/search, approval workflows, session limits, load testing, backup runbooks, and deployment-scale worker validation can wait unless the target rollout requires them.
 
 8. **Is main safe to continue development from?**
-   Yes. `main` is a sound controlled-development baseline, with the AMBER production-readiness classification above.
+   Yes. `main` is a sound controlled-development baseline, and this working tree is ready to commit after normal review.

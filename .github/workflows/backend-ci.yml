@@ -35,6 +35,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit npm dependencies
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Lint backend and tests
         run: npm run quality
 
@@ -57,6 +60,16 @@ jobs:
 
       - name: Build production container
         run: docker build --tag newerp-backend:ci .
+
+      - name: Scan production container
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: newerp-backend:ci
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
 
   integration:
     name: PostgreSQL integration tests

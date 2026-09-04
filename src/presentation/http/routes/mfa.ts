@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { UnauthorizedError, ValidationError } from '../../../domain/errors.js';
 import { requireAuth } from '../middleware/auth.js';
 import { errorResponseSchema, toJsonSchema } from '../swagger.js';
+import { recordSecurityEvent } from '../security-audit.js';
 
 const beginSchema = z.object({ accountLabel: z.string().trim().min(1).max(254).optional() });
 const codeSchema = z.object({
@@ -45,6 +46,14 @@ const mfaRoutes: FastifyPluginAsync = async (fastify) => {
         request.user.id,
         body.accountLabel ?? request.user.email,
       );
+      await recordSecurityEvent(request, {
+        tenantId: request.tenantId,
+        actorUserId: request.user.id,
+        action: 'auth.mfa.enrollment.begin',
+        resourceType: 'mfa',
+        resourceId: request.user.id,
+        outcome: 'success',
+      });
       return {
         success: true as const,
         secret: result.secret,
@@ -79,8 +88,26 @@ const mfaRoutes: FastifyPluginAsync = async (fastify) => {
           request.user.id,
           body.token,
         );
+        await recordSecurityEvent(request, {
+          tenantId: request.tenantId,
+          actorUserId: request.user.id,
+          action: 'auth.mfa.enrollment.confirm',
+          resourceType: 'mfa',
+          resourceId: request.user.id,
+          outcome: 'success',
+        });
         return { success: true as const, recoveryCodes };
-      } catch {
+      } catch (error) {
+        await recordSecurityEvent(request, {
+          tenantId: request.tenantId,
+          actorUserId: request.user.id,
+          action: 'auth.mfa.enrollment.confirm',
+          resourceType: 'mfa',
+          resourceId: request.user.id,
+          outcome: 'failure',
+          metadata: { reason: 'invalid_or_expired' },
+        });
+        if (error instanceof ValidationError) throw error;
         throw new ValidationError('MFA enrollment code is invalid or the enrollment has expired.');
       }
     },
@@ -105,6 +132,15 @@ const mfaRoutes: FastifyPluginAsync = async (fastify) => {
       if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication required.');
       const body = recoveryOrCodeSchema.parse(request.body);
       const verified = await request.server.mfaService.verify(request.tenantId, request.user.id, body.token);
+      await recordSecurityEvent(request, {
+        tenantId: request.tenantId,
+        actorUserId: request.user.id,
+        action: 'auth.mfa.verify',
+        resourceType: 'mfa',
+        resourceId: request.user.id,
+        outcome: verified ? 'success' : 'failure',
+        metadata: { reason: verified ? null : 'invalid_code_or_recovery_code' },
+      });
       return { success: true as const, verified };
     },
   );
@@ -123,6 +159,14 @@ const mfaRoutes: FastifyPluginAsync = async (fastify) => {
     async (request) => {
       if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication required.');
       await request.server.mfaService.disable(request.tenantId, request.user.id);
+      await recordSecurityEvent(request, {
+        tenantId: request.tenantId,
+        actorUserId: request.user.id,
+        action: 'auth.mfa.disable',
+        resourceType: 'mfa',
+        resourceId: request.user.id,
+        outcome: 'success',
+      });
       return { success: true as const };
     },
   );

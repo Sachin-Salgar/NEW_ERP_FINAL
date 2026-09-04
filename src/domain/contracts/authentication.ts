@@ -37,6 +37,9 @@ export interface AuthenticationResult {
   accessToken?: string;
   refreshToken?: string;
   reason?: string;
+  failureTenantId?: string;
+  failureUserId?: string;
+  retryAfterSeconds?: number;
 }
 
 export interface CreateSessionInput {

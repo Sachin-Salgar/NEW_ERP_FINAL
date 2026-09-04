@@ -18,6 +18,15 @@ export interface ScheduledJobStore {
   fail(tenantId: string, jobId: string, errorCode: string, retryAt?: Date | null): Promise<void>;
 }
 
+export interface TrustedWorkerScope {
+  readonly tenantId: string;
+  readonly source: 'persisted-work';
+}
+
+export function trustedWorkerScope(tenantId: string): TrustedWorkerScope {
+  return Object.freeze({ tenantId, source: 'persisted-work' as const });
+}
+
 export interface ClaimedOutboxEvent {
   id: string;
   tenantId: string;

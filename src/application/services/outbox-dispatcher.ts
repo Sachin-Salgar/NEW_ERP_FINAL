@@ -1,4 +1,5 @@
 import type { ClaimedOutboxEvent, OutboxStore } from '../contracts/operational-workers.js';
+import type { TrustedWorkerScope } from '../contracts/operational-workers.js';
 
 export interface ExternalEventTransport {
   readonly transportName: string;
@@ -16,7 +17,8 @@ export class OutboxDispatcher {
     } = {},
   ) {}
 
-  async dispatchBatch(tenantId: string, workerId: string): Promise<number> {
+  async dispatchBatch(scope: TrustedWorkerScope, workerId: string): Promise<number> {
+    const tenantId = scope.tenantId;
     const events = await this.store.claimPending(
       tenantId,
       workerId,

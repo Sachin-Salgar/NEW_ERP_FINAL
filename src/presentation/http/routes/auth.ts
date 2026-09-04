@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { ValidationError, UnauthorizedError, ForbiddenError } from '../../../domain/errors.js';
 import { requireAuth, requirePermission } from '../middleware/auth.js';
 import { authSchemas, errorResponseSchema, toJsonSchema } from '../swagger.js';
+import { recordSecurityEvent } from '../security-audit.js';
 
 interface ModuleCodeParams {
   code: string;
@@ -153,8 +154,31 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       const body = authSchemas.loginRequest.parse(request.body);
       const result = await request.server.authService.authenticate(body.identifier.trim(), body.password);
       if (!result.success || !result.user || !result.session || !result.accessToken || !result.refreshToken) {
+        if (result.failureTenantId) {
+          await recordSecurityEvent(request, {
+            tenantId: result.failureTenantId,
+            actorUserId: result.failureUserId ?? null,
+            action: result.reason === 'ACCOUNT_LOCKED' ? 'auth.account.lockout' : 'auth.login.failure',
+            resourceType: 'authentication',
+            resourceId: result.failureUserId ?? null,
+            outcome: 'failure',
+            metadata: {
+              reason: result.reason ?? 'INVALID_CREDENTIALS',
+              retryAfterSeconds: result.retryAfterSeconds ?? null,
+            },
+          });
+        }
         throw new UnauthorizedError('Invalid credentials.');
       }
+      await recordSecurityEvent(request, {
+        tenantId: result.user.tenantId,
+        actorUserId: result.user.id,
+        action: 'auth.login.success',
+        resourceType: 'session',
+        resourceId: result.session.id,
+        outcome: 'success',
+        metadata: { sessionId: result.session.id },
+      });
 
       const memberships = await request.server.tenantMembershipService.resolveOrganizationMemberships(
         result.user.tenantId,
@@ -526,6 +550,15 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       if (!request.user || !request.sessionId || !request.tenantId)
         throw new UnauthorizedError('Authentication required.');
       await request.server.authService.invalidateSession(request.sessionId, request.tenantId);
+      await recordSecurityEvent(request, {
+        tenantId: request.tenantId,
+        actorUserId: request.user.id,
+        action: 'auth.session.logout',
+        resourceType: 'session',
+        resourceId: request.sessionId,
+        outcome: 'success',
+        metadata: { sessionId: request.sessionId },
+      });
       return { success: true, message: 'Session invalidated.' };
     },
   );

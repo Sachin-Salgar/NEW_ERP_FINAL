@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { Pool } from 'pg';
 import { v7 as uuidV7 } from 'uuid';
+import { createHash, randomBytes } from 'node:crypto';
 
 import { parseAppConfig, resolveDatabaseUrl } from '../../src/config/schema.js';
 import { PlatformBootstrapService } from '../../src/application/services/platform-bootstrap-service.js';
@@ -8,6 +9,7 @@ import { TenantBootstrapService } from '../../src/application/services/tenant-bo
 import { BcryptPasswordHasher } from '../../src/infrastructure/security/bcrypt-password-hasher.js';
 import { PostgresPlatformRepository } from '../../src/infrastructure/database/repositories/postgres-platform-repository.js';
 import { createApplication } from '../../src/presentation/http/app.js';
+import { withTenantContext } from '../../src/infrastructure/database/tenant-context.js';
 
 const databaseUrl = resolveDatabaseUrl(process.env, { forTest: true });
 const runIfDatabase = it;
@@ -114,6 +116,19 @@ describe('Authentication vertical slice', () => {
     expect(adminJson.accessToken).toBeTruthy();
     expect(adminJson.refreshToken).toBeTruthy();
     expect(adminJson.user.email).toBe(tenantInput.administrator.email);
+    const loginAudit = await withTenantContext(pool, 'app.current_tenant_id', tenantResult.tenantId, (client) =>
+      client.query(
+        `SELECT action, outcome, correlation_id, metadata
+         FROM audit_events
+         WHERE tenant_id = $1 AND action = 'auth.login.success'
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [tenantResult.tenantId],
+      ),
+    );
+    expect(loginAudit.rows[0]).toMatchObject({ action: 'auth.login.success', outcome: 'success' });
+    expect(loginAudit.rows[0].metadata).not.toHaveProperty('password');
+    expect(loginAudit.rows[0].metadata).not.toHaveProperty('refreshToken');
 
     const registerResponse = await app.inject({
       method: 'POST',
@@ -189,6 +204,128 @@ describe('Authentication vertical slice', () => {
     expect(refreshResponse.statusCode).toBe(200);
     expect(refreshResponse.json().accessToken).toBeTruthy();
 
+    const recoveryRequest = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/password-recovery/request',
+      headers: { 'x-correlation-id': 'recovery-correlation' },
+      payload: { identifier: newUserEmail },
+    });
+    expect(recoveryRequest.statusCode).toBe(200);
+    const recoveryAudit = await withTenantContext(pool, 'app.current_tenant_id', tenantResult.tenantId, (client) =>
+      client.query(
+        `SELECT action, outcome, actor_user_id, correlation_id, metadata
+         FROM audit_events
+         WHERE tenant_id = $1 AND action = 'auth.password_recovery.request'
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [tenantResult.tenantId],
+      ),
+    );
+    expect(recoveryAudit.rows[0]).toMatchObject({
+      action: 'auth.password_recovery.request',
+      outcome: 'success',
+      actor_user_id: expect.any(String),
+      correlation_id: 'recovery-correlation',
+    });
+    expect(JSON.stringify(recoveryAudit.rows[0].metadata)).not.toMatch(/password|token|secret|credential/i);
+
+    const tenantBInput = {
+      tenant: {
+        name: `Header Boundary Tenant ${uniqueSuffix}`,
+        displayName: `Header Boundary Tenant ${uniqueSuffix}`,
+        subdomain: `header-boundary-${uniqueSuffix}`,
+        slug: `header-boundary-${uniqueSuffix}`,
+        timezone: 'UTC',
+        currency: 'USD',
+        locale: 'en_US',
+      },
+      organization: { code: `HB${uniqueSuffix}`.slice(0, 18), name: 'Header Boundary Org' },
+      branch: { code: `HBB${uniqueSuffix}`.slice(0, 15), name: 'Header Boundary Branch' },
+      administrator: {
+        username: `header-boundary-${uniqueSuffix}`,
+        email: `header-boundary-${uniqueSuffix}@example.com`,
+        password: 'Password123!',
+      },
+      role: { code: `hbadmin${uniqueSuffix}`.slice(0, 20), name: 'Header Boundary Admin' },
+      permissions: ['user.manage'],
+    };
+    const tenantBResult = await tenantBootstrapService.bootstrapTenant(tenantBInput);
+    const wrongHeaderToken = `wrong-header-${randomBytes(24).toString('base64url')}`;
+    await withTenantContext(pool, 'app.current_tenant_id', tenantResult.tenantId, (client) =>
+      client.query(
+        `INSERT INTO password_reset_tokens (tenant_id, user_id, token_hash, expires_at)
+         VALUES ($1, $2, $3, NOW() + INTERVAL '10 minutes')`,
+        [tenantResult.tenantId, tenantResult.userId, createHash('sha256').update(wrongHeaderToken).digest('hex')],
+      ),
+    );
+    const wrongHeaderReset = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/password-recovery/reset',
+      headers: { 'x-tenant-id': tenantBResult.tenantId },
+      payload: { token: wrongHeaderToken, newPassword: 'Password789!' },
+    });
+    expect(wrongHeaderReset.statusCode).toBe(401);
+
+    const correctHeaderToken = `correct-header-${randomBytes(24).toString('base64url')}`;
+    await withTenantContext(pool, 'app.current_tenant_id', tenantResult.tenantId, (client) =>
+      client.query(
+        `INSERT INTO password_reset_tokens (tenant_id, user_id, token_hash, expires_at)
+         VALUES ($1, $2, $3, NOW() + INTERVAL '10 minutes')`,
+        [tenantResult.tenantId, tenantResult.userId, createHash('sha256').update(correctHeaderToken).digest('hex')],
+      ),
+    );
+    const correctHeaderReset = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/password-recovery/reset',
+      headers: { 'x-tenant-id': tenantResult.tenantId },
+      payload: { token: correctHeaderToken, newPassword: 'Password789!' },
+    });
+    expect(correctHeaderReset.statusCode).toBe(200);
+
+    const missingHeader = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/password-recovery/reset',
+      payload: { token: correctHeaderToken, newPassword: 'Password789!' },
+    });
+    expect(missingHeader.statusCode).toBe(400);
+    const malformedHeader = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/password-recovery/reset',
+      headers: { 'x-tenant-id': 'not-a-uuid' },
+      payload: { token: correctHeaderToken, newPassword: 'Password789!' },
+    });
+    expect(malformedHeader.statusCode).toBe(400);
+
+    const authenticatedHeaderOverride = await app.inject({
+      method: 'GET',
+      url: '/api/v1/auth/me',
+      headers: {
+        authorization: `Bearer ${loginJson.accessToken}`,
+        'x-tenant-id': tenantBResult.tenantId,
+      },
+    });
+    expect(authenticatedHeaderOverride.statusCode).toBe(200);
+    expect(authenticatedHeaderOverride.json().user.tenantId).toBe(tenantResult.tenantId);
+
+    const concurrentLogin = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { identifier: newUserEmail, password: 'Password456!' },
+    });
+    expect(concurrentLogin.statusCode).toBe(200);
+    const concurrentLoginJson = concurrentLogin.json();
+    const concurrentRefresh = await Promise.all(
+      [1, 2].map(() =>
+        app!.inject({
+          method: 'POST',
+          url: '/api/v1/auth/refresh',
+          payload: { refreshToken: concurrentLoginJson.refreshToken },
+        }),
+      ),
+    );
+    expect(concurrentRefresh.filter((response) => response.statusCode === 200)).toHaveLength(1);
+    expect(concurrentRefresh.filter((response) => response.statusCode === 401)).toHaveLength(1);
+
     const logoutResponse = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/logout',
@@ -226,6 +363,18 @@ describe('Authentication vertical slice', () => {
       payload: { identifier: newUserUsername, password: 'WrongPassword!' },
     });
     expect(wrongPassword.statusCode).toBe(401);
+    const failureAudit = await withTenantContext(pool, 'app.current_tenant_id', tenantResult.tenantId, (client) =>
+      client.query(
+        `SELECT action, outcome, metadata
+         FROM audit_events
+         WHERE tenant_id = $1 AND action = 'auth.login.failure'
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [tenantResult.tenantId],
+      ),
+    );
+    expect(failureAudit.rows[0]).toMatchObject({ action: 'auth.login.failure', outcome: 'failure' });
+    expect(JSON.stringify(failureAudit.rows[0].metadata)).not.toMatch(/WrongPassword|password|token|secret/i);
 
     const unknownUser = await app.inject({
       method: 'POST',
