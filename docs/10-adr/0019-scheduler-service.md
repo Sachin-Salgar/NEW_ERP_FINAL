@@ -1,7 +1,9 @@
 # ADR-0019: Scheduler Service
 
 **Date**: 2026-09-04  
-**Status**: Proposed  
+**Status**: Approved  
+**Approval Date**: 2026-09-04  
+**Approved By**: Project Owner following architecture review  
 **Scope**: Durable scheduled and recurring background work
 
 ## Context
