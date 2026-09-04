@@ -1,6 +1,6 @@
 # NEW_ERP_FINAL — Improvement Backlog
 
-**Generated**: 2026-09-03  
+**Generated**: 2026-09-04  
 **Source**: Architectural analysis against `docs/` authoritative documentation  
 **Status**: Living document — update as items are completed or reprioritized
 
@@ -11,6 +11,8 @@
 This document catalogs all identified improvements for the NEW_ERP_FINAL ERP backend, categorized by priority and mapped to architectural principles from `docs/00-overview/01-architectural-principles.md` and governance rules from `docs/00-overview/02-governance.md`.
 
 **Current State**: Modular monolith with Fastify, TypeScript, PostgreSQL (Drizzle), JWT auth, RLS multi-tenancy. Strong foundation; missing key platform services, observability, and developer experience tooling.
+
+**Validation model**: Implementation work may be completed directly on `feat/improvements`; runtime validation is explicitly tracked as **VALIDATION PENDING** when it must be executed from the user's VS Code/Copilot environment. An item is not considered fully verified until the prescribed validation evidence is available.
 
 ---
 
@@ -150,15 +152,20 @@ This document catalogs all identified improvements for the NEW_ERP_FINAL ERP bac
 **Effort**: Medium (2-3 days)
 
 ### 10. RFC 7807 Problem Details Error Format
-**Status**: COMPLETED  
+**Status**: IMPLEMENTED — VALIDATION PENDING  
 **Principle**: Consistency Over Convenience (Principle 9)  
 **Gap**: Custom error format; not interoperable  
 **Implementation**:
 - Response: `application/problem+json` with `type`, `title`, `status`, `detail`, `instance`, `errors[]`
 - Map existing `AppError` subclasses to standard types
 - Keep backward compatibility via `Accept` header negotiation
-**Verification Note**: Problem Details is opt-in only for explicit `Accept: application/problem+json`; absent or wildcard `Accept` preserves the existing error envelope for backward compatibility. Unit coverage protects both representations.
-**File**: `src/infrastructure/http/error-handler.ts`
+**Implementation Note**: RFC 7807 negotiation is opt-in for an explicit `Accept: application/problem+json`; absent/wildcard `Accept` preserves the existing error envelope. Unit coverage was added for both representations. Runtime validation remains pending in VS Code/Copilot.
+**Validation Required**:
+- Run unit tests covering the error handler.
+- Start the backend and verify a normal error response remains the existing envelope.
+- Send `Accept: application/problem+json` and verify `Content-Type`, `type`, `title`, `status`, `detail`, `instance`, and `errors`.
+- Verify 5xx responses do not expose internal error details.
+**File**: `src/infrastructure/http/error-handler.ts`, `tests/unit/error-handler.test.ts`
 **Effort**: Low (1 day)
 
 ### 11. Correlation ID Propagation
@@ -436,7 +443,7 @@ This document catalogs all identified improvements for the NEW_ERP_FINAL ERP bac
 | IMP-007 | Soft Delete Consistency | P1 | **Completed** | — | Sprint 2 | No |
 | IMP-008 | Enhanced Health Check | P1 | **Completed** | — | Sprint 1 | No |
 | IMP-009 | Unit of Work / Transactions | P2 | **Partial** | — | Sprint 3 | No |
-| IMP-010 | RFC 7807 Error Format | P2 | **Completed** | — | Sprint 3 | No |
+| IMP-010 | RFC 7807 Error Format | P2 | **Implemented — Validation Pending** | — | Sprint 3 | No |
 | IMP-011 | Correlation ID Propagation | P2 | **Completed** | — | Sprint 3 | No |
 | IMP-012 | Fix organization_modules Schema | P2 | **Completed** | — | Sprint 2 | No |
 | IMP-013 | Pagination on List Endpoints | P2 | **Pending — Spec Alignment Required** | — | Sprint 3 | No |
@@ -448,7 +455,7 @@ This document catalogs all identified improvements for the NEW_ERP_FINAL ERP bac
 | IMP-019 | Password Policy | P4 | **Completed** | — | Sprint 3 | No |
 | IMP-020 | JWT Key Rotation (JWKS) | P4 | **Blocked — ADR Required** | — | Sprint 4 | **Yes** |
 | IMP-021 | Request Size Limits | P4 | **Completed** | — | Sprint 2 | No |
-| IMP-022 | ESLint + Prettier | P3 | Pending | — | Sprint 2 | No |
+| IMP-022 | ESLint + Prettier | P3 | **Pending** | — | Sprint 2 | No |
 | IMP-023 | Type-Safe Routes | P3 | **Partial** | — | Sprint 3 | No |
 | IMP-024 | Test Infrastructure | P3 | **Partial** | — | Sprint 2 | No |
 | IMP-025 | CI/CD Pipeline | P3 | **Partial** | — | Sprint 2 | No |
@@ -475,11 +482,12 @@ This document catalogs all identified improvements for the NEW_ERP_FINAL ERP bac
 
 ## Next Steps
 
-1. Complete IMP-009 by moving transaction ownership to the application/service boundary without weakening `SET LOCAL` tenant context or PostgreSQL RLS.
-2. Reconcile IMP-013 pagination wording with the authoritative API standard before changing public list contracts.
-3. Complete remaining non-governed DX work (IMP-022, IMP-023, IMP-024, IMP-025, IMP-031) in small verified batches.
-4. Draft/approve ADRs for items marked `Blocked — ADR Required` before implementation.
-5. Update this document after each completion.
+1. Validate IMP-010 RFC 7807 from VS Code/Copilot and record the runtime/test evidence here.
+2. Complete IMP-009 by moving transaction ownership to the application/service boundary without weakening `SET LOCAL` tenant context or PostgreSQL RLS.
+3. Reconcile IMP-013 pagination wording with the authoritative API standard before changing public list contracts.
+4. Complete remaining non-governed DX work (IMP-022, IMP-023, IMP-024, IMP-025, IMP-031) in small verified batches.
+5. Draft/approve ADRs for items marked `Blocked — ADR Required` before implementation.
+6. Update this document after each implementation and again after validation.
 
 ---
 
