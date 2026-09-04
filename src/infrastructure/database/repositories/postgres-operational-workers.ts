@@ -107,7 +107,12 @@ export class PostgresOutboxStore implements OutboxStore {
     private readonly tenantContextKey: string,
   ) {}
 
-  async claimPending(tenantId: string, batchSize = 50): Promise<ClaimedOutboxEvent[]> {
+  async claimPending(
+    tenantId: string,
+    workerId: string,
+    batchSize = 50,
+    leaseSeconds = 60,
+  ): Promise<ClaimedOutboxEvent[]> {
     const safeBatchSize = Math.max(1, Math.min(batchSize, 200));
     return withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       const result = await client.query<{
@@ -120,16 +125,25 @@ export class PostgresOutboxStore implements OutboxStore {
         payload: ClaimedOutboxEvent['payload'];
         correlation_id: string | null;
       }>(
-        `SELECT id, tenant_id, aggregate_type, aggregate_id, event_name,
-                event_version, payload, correlation_id
-         FROM outbox_events
-         WHERE tenant_id = $1
-           AND published_at IS NULL
-           AND available_at <= NOW()
-         ORDER BY occurred_at, id
-         FOR UPDATE SKIP LOCKED
-         LIMIT $2`,
-        [tenantId, safeBatchSize],
+        `WITH candidates AS (
+           SELECT id
+           FROM outbox_events
+           WHERE tenant_id = $1
+             AND published_at IS NULL
+             AND available_at <= NOW()
+             AND (lease_expires_at IS NULL OR lease_expires_at <= NOW())
+           ORDER BY occurred_at, id
+           FOR UPDATE SKIP LOCKED
+           LIMIT $2
+         )
+         UPDATE outbox_events e
+         SET lease_owner = $3,
+             lease_expires_at = NOW() + ($4 * INTERVAL '1 second')
+         FROM candidates
+         WHERE e.id = candidates.id
+         RETURNING e.id, e.tenant_id, e.aggregate_type, e.aggregate_id,
+                   e.event_name, e.event_version, e.payload, e.correlation_id`,
+        [tenantId, safeBatchSize, workerId, leaseSeconds],
       );
       return result.rows.map((row) => ({
         id: row.id,
@@ -144,26 +158,31 @@ export class PostgresOutboxStore implements OutboxStore {
     });
   }
 
-  async markPublished(tenantId: string, eventId: string, publishedAt = new Date()): Promise<void> {
+  async markPublished(tenantId: string, eventId: string, workerId: string, publishedAt = new Date()): Promise<void> {
     await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       await client.query(
         `UPDATE outbox_events
-         SET published_at = $3, last_error = NULL
-         WHERE tenant_id = $1 AND id = $2 AND published_at IS NULL`,
-        [tenantId, eventId, publishedAt],
+         SET published_at = $4,
+             last_error = NULL,
+             lease_owner = NULL,
+             lease_expires_at = NULL
+         WHERE tenant_id = $1 AND id = $2 AND lease_owner = $3 AND published_at IS NULL`,
+        [tenantId, eventId, workerId, publishedAt],
       );
     });
   }
 
-  async markFailed(tenantId: string, eventId: string, errorCode: string, retryAt: Date): Promise<void> {
+  async markFailed(tenantId: string, eventId: string, workerId: string, errorCode: string, retryAt: Date): Promise<void> {
     await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       await client.query(
         `UPDATE outbox_events
          SET attempt_count = attempt_count + 1,
-             last_error = $3,
-             available_at = $4
-         WHERE tenant_id = $1 AND id = $2 AND published_at IS NULL`,
-        [tenantId, eventId, errorCode.slice(0, 1000), retryAt],
+             last_error = $4,
+             available_at = $5,
+             lease_owner = NULL,
+             lease_expires_at = NULL
+         WHERE tenant_id = $1 AND id = $2 AND lease_owner = $3 AND published_at IS NULL`,
+        [tenantId, eventId, workerId, errorCode.slice(0, 1000), retryAt],
       );
     });
   }
