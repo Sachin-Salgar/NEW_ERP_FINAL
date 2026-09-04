@@ -1,5 +1,5 @@
 import { ValidationError } from '../../domain/errors.js';
-import type { BranchRecord, CoreEnterpriseRepository } from '../contracts/security.js';
+import type { BranchRecord, CoreEnterpriseRepository } from '../../domain/contracts/repositories.js';
 
 export class BranchService {
   constructor(private readonly repository: CoreEnterpriseRepository) {}
