@@ -58,6 +58,8 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 - Persistent authenticated application shell with responsive sidebar/top bar.
 - Canonical Flutter Web Router 2.0 navigation implementation with shared route metadata, persistent content navigation, authorization-aware route gates, and controlled not-found handling.
 - Deterministic Postgres-backed CI environment for backend integration and Flutter Web E2E login/dashboard validation.
+- Customer foundation and HTTP API vertical slice, including tenant-scoped persistence, RLS, authorization, soft delete, audit, pagination, validation, and dedicated API integration coverage.
+- Customer Flutter frontend vertical slice, including CRM navigation, permission/module-aware routing, authenticated CRUD screens, server-side search/pagination, soft-delete confirmation, and focused service/routing tests.
 
 ### Not yet complete
 
@@ -154,7 +156,7 @@ Project Management is explicitly removed/deferred and is not an implementation t
 | 5 | Manufacturing | **PENDING** |
 | 6 | Finance | **PENDING** |
 | 7 | Human Resources | **PENDING** |
-| 8 | CRM | **PENDING** |
+| 8 | CRM | **PARTIAL** — Customer foundation and HTTP API are implemented; contacts, leads, opportunities, activities, and broader CRM capabilities remain pending. |
 | 9 | Quality Management | **PENDING** |
 | 10 | Asset Maintenance | **PENDING** |
 | 11 | BI & Analytics | **PENDING** |

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../core/auth/auth_service.dart';
 import '../modules/branch/branch_service.dart';
+import '../modules/customer/customer_service.dart';
 import '../modules/organization/organization_service.dart';
 import '../modules/role/role_service.dart';
 import '../modules/user/user_service.dart';
@@ -33,13 +34,16 @@ class App extends StatefulWidget {
     );
     di.registerLazySingleton(() => UserService(apiClient: di.get<ApiClient>()));
     di.registerLazySingleton(() => RoleService(apiClient: di.get<ApiClient>()));
+    di.registerLazySingleton(
+      () => CustomerService(
+        apiClient: di.get<ApiClient>(),
+        auth: di.get<AuthService>(),
+      ),
+    );
 
     final auth = di.get<AuthService>();
     final theme = di.get<ThemeController>();
-    await Future.wait([
-      theme.init(),
-      auth.init(),
-    ]);
+    await Future.wait([theme.init(), auth.init()]);
     await auth.bootstrap(baseUrl);
     if (auth.isAuthenticated) {
       await auth.restoreSession(baseUrl);
@@ -66,7 +70,9 @@ class _AppState extends State<App> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthService>.value(value: di.get<AuthService>()),
-        ChangeNotifierProvider<ThemeController>.value(value: di.get<ThemeController>()),
+        ChangeNotifierProvider<ThemeController>.value(
+          value: di.get<ThemeController>(),
+        ),
       ],
       child: Consumer2<AuthService, ThemeController>(
         builder: (context, auth, themeController, _) {

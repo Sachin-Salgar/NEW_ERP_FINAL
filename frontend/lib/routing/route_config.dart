@@ -35,6 +35,14 @@ class AppRoutes {
     moduleCode: 'core',
     icon: Icons.dashboard_outlined,
   );
+  static const customers = AppRouteConfig(
+    path: '/customers',
+    title: 'Customers',
+    group: 'CRM',
+    permissionKey: 'customer.read',
+    moduleCode: 'crm',
+    icon: Icons.people_alt_outlined,
+  );
   static const settings = AppRouteConfig(
     path: '/settings',
     title: 'Settings',
@@ -132,10 +140,14 @@ class AppRoutes {
     settingsPermissions,
   ];
 
-  static const topLevel = <AppRouteConfig>[dashboard, settings];
+  static const topLevel = <AppRouteConfig>[dashboard, settings, customers];
 
   static const routePermissions = <String, String?>{
     '/dashboard': null,
+    '/customers': 'customer.read',
+    '/customers/create': 'customer.create',
+    '/customers/details': 'customer.read',
+    '/customers/edit': 'customer.update',
     '/settings': null,
     '/settings/organizations': 'organization.read',
     '/settings/organizations/create': 'organization.manage',
@@ -217,7 +229,7 @@ class AppRoutes {
       if (config.matches(normalized)) return config.path;
     }
     if (isSettingsRoute(normalized)) return settings.path;
-    for (final config in [organizations, branches]) {
+    for (final config in [organizations, branches, customers]) {
       if (config.matches(normalized)) return config.path;
     }
     return dashboard.path;
@@ -231,7 +243,7 @@ class AppRoutes {
     for (final config in topLevel) {
       if (config.matches(normalized)) return config;
     }
-    for (final config in [organizations, branches]) {
+    for (final config in [organizations, branches, customers]) {
       if (config.matches(normalized)) return config;
     }
     return dashboard;

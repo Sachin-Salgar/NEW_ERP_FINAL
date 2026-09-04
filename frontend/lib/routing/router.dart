@@ -7,6 +7,10 @@ import '../modules/branch/create_screen.dart';
 import '../modules/branch/details_screen.dart';
 import '../modules/branch/edit_screen.dart';
 import '../modules/branch/list_screen.dart';
+import '../modules/customer/create_screen.dart';
+import '../modules/customer/details_screen.dart';
+import '../modules/customer/edit_screen.dart';
+import '../modules/customer/list_screen.dart';
 import '../modules/dashboard/dashboard_screen.dart';
 import '../modules/organization/create_screen.dart';
 import '../modules/organization/details_screen.dart';
@@ -34,6 +38,18 @@ class AppRouter {
         .toList();
     if (segments.isEmpty) return '';
     return segments.last;
+  }
+
+  static String _customerId(String path, Object? arguments) {
+    if (arguments is String && arguments.isNotEmpty) return arguments;
+    if (arguments is Map && arguments['id'] is String) {
+      return arguments['id'] as String;
+    }
+    final segments = path
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .toList();
+    return segments.length > 1 ? segments[1] : '';
   }
 
   static String? _extractDetailId(
@@ -75,6 +91,31 @@ class AppRouter {
           routeName: path,
           child: OrganizationDetailsScreen(
             id: _extractDetailId(path, settings.arguments) ?? '',
+          ),
+        ),
+      );
+    }
+
+    if (path.startsWith('/customers/') &&
+        path.endsWith('/edit') &&
+        path != '/customers/create') {
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => _protected(
+          context,
+          routeName: '/customers/edit',
+          child: EditCustomerScreen(id: _customerId(path, settings.arguments)),
+        ),
+      );
+    }
+    if (path.startsWith('/customers/') && path != '/customers/create') {
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => _protected(
+          context,
+          routeName: '/customers/details',
+          child: CustomerDetailsScreen(
+            id: _customerId(path, settings.arguments),
           ),
         ),
       );
@@ -152,8 +193,10 @@ class AppRouter {
       );
     }
 
-    final userPathSegments =
-        path.split('/').where((segment) => segment.isNotEmpty).toList();
+    final userPathSegments = path
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .toList();
     const obsoleteUserRoutes = {
       '/settings/users/edit',
       '/settings/users/roles',
@@ -210,6 +253,24 @@ class AppRouter {
             context,
             routeName: '/dashboard',
             child: const DashboardScreen(),
+          ),
+        );
+      case '/customers':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/customers',
+            child: const CustomerListScreen(),
+          ),
+        );
+      case '/customers/create':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/customers/create',
+            child: const CreateCustomerScreen(),
           ),
         );
       case '/login':
@@ -711,7 +772,18 @@ class _RouteAuthorizationGateState extends State<_RouteAuthorizationGate> {
   @override
   Widget build(BuildContext context) {
     final requiredPermission = AppRouter.routePermissions[widget.routeName];
+    final requiredModule = AppRoutes.forRoute(widget.routeName).moduleCode;
     if (!_auth.isAuthenticated) return const LoginScreen();
+    if (requiredModule != null && !_auth.hasModule(requiredModule)) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'This module is not enabled for the active organization.',
+          ),
+        ),
+      );
+    }
     if (requiredPermission != null) {
       if (_auth.authzService.isLoading || !_auth.authzService.isLoaded) {
         return const Center(child: CircularProgressIndicator());

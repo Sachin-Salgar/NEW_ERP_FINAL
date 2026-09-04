@@ -121,6 +121,60 @@ export interface TenantBootstrapRepository {
   bootstrapTenant(input: TenantBootstrapInput): Promise<TenantBootstrapResult>;
 }
 
+export interface CustomerRecord {
+  id: string;
+  tenantId: string;
+  organizationId: string;
+  name: string;
+  createdAt: Date;
+  createdBy: string | null;
+  updatedAt: Date | null;
+  updatedBy: string | null;
+  deletedAt: Date | null;
+  deletedBy: string | null;
+  isDeleted: boolean;
+  version: number;
+}
+
+export interface CustomerListQuery {
+  organizationId: string;
+  page: number;
+  pageSize: number;
+  order?: 'asc' | 'desc';
+  search?: string;
+}
+
+export interface CustomerListResult {
+  items: CustomerRecord[];
+  total: number;
+}
+
+export interface CustomerRepository {
+  create(input: {
+    tenantId: string;
+    organizationId: string;
+    name: string;
+    actorUserId: string;
+  }): Promise<CustomerRecord>;
+  getById(tenantId: string, organizationId: string, customerId: string): Promise<CustomerRecord | null>;
+  list(tenantId: string, query: CustomerListQuery): Promise<CustomerListResult>;
+  update(
+    input: {
+      tenantId: string;
+      organizationId: string;
+      customerId: string;
+      name: string;
+      actorUserId: string;
+    },
+  ): Promise<CustomerRecord | null>;
+  softDelete(input: {
+    tenantId: string;
+    organizationId: string;
+    customerId: string;
+    actorUserId: string;
+  }): Promise<CustomerRecord | null>;
+}
+
 export interface OrganizationRecord {
   id: string;
   tenantId: string;

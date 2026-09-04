@@ -11,6 +11,7 @@ import type { TenantMembershipService } from '../../../application/services/tena
 import type { UserRegistrationService } from '../../../application/services/user-registration-service.js';
 import type { AccountSecurityService } from '../../../application/services/account-security-service.js';
 import type { MfaService } from '../../../application/services/mfa-service.js';
+import type { CustomerService } from '../../../application/services/customer-service.js';
 import type { JwtTokenService } from '../../../infrastructure/security/jwt-token-service.js';
 import type { AppConfig } from '../../../config/schema.js';
 import type { AuditLogger } from '../../../application/contracts/audit.js';
@@ -31,6 +32,7 @@ declare module 'fastify' {
     accountSecurityService: AccountSecurityService;
     mfaService: MfaService;
     auditLogger: AuditLogger;
+    customerService: CustomerService;
   }
 
   interface FastifyRequest {
@@ -86,6 +88,8 @@ function moduleCodeForPermission(permissionKey: string): string {
     case 'permission':
     case 'session':
       return 'security';
+    case 'customer':
+      return 'crm';
     default:
       return prefix;
   }

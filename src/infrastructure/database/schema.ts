@@ -5,6 +5,7 @@ import {
   date,
   foreignKey,
   integer,
+  index,
   pgEnum,
   pgTable,
   primaryKey,
@@ -251,6 +252,41 @@ export const branches = pgTable(
       .where(sql`${table.isDefault} = true AND ${table.isDeleted} = false`),
     checkBranchSoftDelete: check(
       'check_branch_soft_delete',
+      sql`(((${table.isDeleted}) = false AND (${table.deletedAt}) IS NULL) OR ((${table.isDeleted}) = true AND (${table.deletedAt}) IS NOT NULL))`,
+    ),
+  }),
+);
+
+export const customers = pgTable(
+  'customers',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    organizationId: uuid('organization_id').notNull(),
+    name: varchar('name', { length: 255 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid('created_by'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }),
+    updatedBy: uuid('updated_by'),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    deletedBy: uuid('deleted_by'),
+    isDeleted: boolean('is_deleted').notNull().default(false),
+    version: integer('version').notNull().default(1),
+  },
+  (table) => ({
+    fkCustomerOrgTenant: foreignKey({
+      columns: [table.organizationId, table.tenantId],
+      foreignColumns: [organizations.id, organizations.tenantId],
+      name: 'fk_customer_org_tenant',
+    }),
+    uqCustomerIdTenant: uniqueIndex('uq_customer_id_tenant').on(table.id, table.tenantId),
+    idxCustomerTenantOrgName: index('idx_customer_tenant_org_name')
+      .on(table.tenantId, table.organizationId, table.name, table.id)
+      .where(sql`${table.isDeleted} = false`),
+    checkCustomerSoftDelete: check(
+      'check_customer_soft_delete',
       sql`(((${table.isDeleted}) = false AND (${table.deletedAt}) IS NULL) OR ((${table.isDeleted}) = true AND (${table.deletedAt}) IS NOT NULL))`,
     ),
   }),

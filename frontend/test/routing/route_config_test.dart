@@ -69,6 +69,11 @@ void main() {
       final dashboard = AppRoutes.forRoute('/dashboard');
       expect(dashboard.permissionKey, isNull);
       expect(dashboard.moduleCode, 'core');
+
+      final customers = AppRoutes.forRoute('/customers/customer-1');
+      expect(customers.title, 'Customers');
+      expect(customers.permissionKey, 'customer.read');
+      expect(customers.moduleCode, 'crm');
     });
 
     test('keeps all settings child routes under the settings layout', () {

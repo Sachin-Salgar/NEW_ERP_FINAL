@@ -62,6 +62,10 @@ export function schemaForRoute(method: string, url: string) {
         status: z.enum(['active', 'inactive', 'locked', 'pending_verification']).optional(),
       }),
     );
+  else if (method === 'POST' && normalizedUrl === '/customers')
+    schema.body = toJsonSchema(customerSchemas.createRequest);
+  else if (method === 'PATCH' && normalizedUrl === '/customers/:id')
+    schema.body = toJsonSchema(customerSchemas.updateRequest);
   return schema;
 }
 
@@ -535,6 +539,29 @@ export const enterpriseSchemas = {
   }),
 };
 
+export const customerSchemas = {
+  customer: z.object({
+    id: z.string().uuid(),
+    organizationId: z.string().uuid(),
+    name: z.string().min(1).max(255),
+    createdAt: z.string().datetime(),
+    createdBy: z.string().uuid().nullable(),
+    updatedAt: z.string().datetime().nullable(),
+    updatedBy: z.string().uuid().nullable(),
+    deletedAt: z.string().datetime().nullable(),
+    deletedBy: z.string().uuid().nullable(),
+    isDeleted: z.boolean(),
+    version: z.number().int().positive(),
+  }),
+  createRequest: z.object({
+    organizationId: z.string().uuid(),
+    name: z.string().trim().min(1).max(255),
+  }),
+  updateRequest: z.object({
+    name: z.string().trim().min(1).max(255),
+  }),
+};
+
 export const locationSchemas = {
   location: z.object({
     id: z.string().uuid(),
@@ -600,6 +627,7 @@ export async function setupSwagger(app: FastifyInstance) {
           ...Object.fromEntries(Object.entries(rbacSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
           ...Object.fromEntries(Object.entries(enterpriseSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
           ...Object.fromEntries(Object.entries(locationSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
+          ...Object.fromEntries(Object.entries(customerSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
         },
       },
       security: [{ bearerAuth: [] }],
@@ -610,6 +638,7 @@ export async function setupSwagger(app: FastifyInstance) {
         { name: 'RBAC', description: 'Role-based access control' },
         { name: 'Enterprise', description: 'Organization and branch management' },
         { name: 'Locations', description: 'Location management' },
+        { name: 'Customers', description: 'Customer management' },
       ],
     },
   });

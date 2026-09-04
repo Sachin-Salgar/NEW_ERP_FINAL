@@ -70,6 +70,11 @@
       "strategy": "compensating-migration",
       "destructiveDownAllowed": false,
       "note": "Lease/retry state is durable operational data; stop workers and compensate forward if required."
+    },
+    "0014-customer-foundation": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Customer records are business data; preserve them and correct forward if recovery is required."
     }
   }
 }

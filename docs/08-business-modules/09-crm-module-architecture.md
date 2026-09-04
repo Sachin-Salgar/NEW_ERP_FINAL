@@ -126,6 +126,18 @@ Contacts may contain:
 
 Contacts and customer organizations are separate concepts and may have their own lifecycle and relationship records.
 
+### Customer HTTP API foundation
+
+The initial Customer API exposes only the organization-scoped Customer foundation:
+
+- `POST /api/v1/customers` with `organizationId` and `name`
+- `GET /api/v1/customers` with the standard `page`, `page_size`, `sort`, `order`, and `search` query contract
+- `GET /api/v1/customers/:id`
+- `PATCH /api/v1/customers/:id` with `name`
+- `DELETE /api/v1/customers/:id` for soft deletion
+
+All endpoints require authentication, the corresponding `customer.*` permission, and CRM module enablement for the active organization. Tenant identity is derived from the authenticated session; the request cannot reassign a Customer to another tenant or organization. Normal reads exclude soft-deleted Customers.
+
 ### Relationships
 
 Configurable relationship types may include:

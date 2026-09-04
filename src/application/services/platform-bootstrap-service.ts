@@ -46,6 +46,7 @@ const DEFAULT_MODULES: PlatformModuleSeed[] = [
     isCore: true,
     sortOrder: 6,
   },
+  { code: 'crm', name: 'Customer Relationship Management', moduleGroup: 'CRM', isCore: false, sortOrder: 20 },
 ];
 
 const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
@@ -152,6 +153,38 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
     scope: 'tenant',
     permissionKey: 'session.manage',
     displayName: 'Manage sessions',
+  },
+  {
+    moduleCode: 'crm',
+    resource: 'customer',
+    action: 'read',
+    scope: 'organization',
+    permissionKey: 'customer.read',
+    displayName: 'View customers',
+  },
+  {
+    moduleCode: 'crm',
+    resource: 'customer',
+    action: 'create',
+    scope: 'organization',
+    permissionKey: 'customer.create',
+    displayName: 'Create customers',
+  },
+  {
+    moduleCode: 'crm',
+    resource: 'customer',
+    action: 'update',
+    scope: 'organization',
+    permissionKey: 'customer.update',
+    displayName: 'Update customers',
+  },
+  {
+    moduleCode: 'crm',
+    resource: 'customer',
+    action: 'delete',
+    scope: 'organization',
+    permissionKey: 'customer.delete',
+    displayName: 'Delete customers',
   },
 ];
 
