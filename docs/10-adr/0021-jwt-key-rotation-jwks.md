@@ -1,7 +1,9 @@
 # ADR-0021: JWT Signing-Key Rotation and JWKS
 
 **Date**: 2026-09-04  
-**Status**: Proposed  
+**Status**: Approved  
+**Approval Date**: 2026-09-04  
+**Approved By**: Project Owner following architecture review  
 **Scope**: JWT signing-key lifecycle and public-key distribution
 
 ## Context
@@ -19,7 +21,7 @@ Use asymmetric JWT signing keys with `kid` identifiers and a JWKS publication en
 5. Verification selects the key by `kid`; unknown or retired keys fail closed.
 6. Key rotation is operationally controlled and auditable. Emergency compromise rotation may revoke the old key immediately, accepting forced reauthentication.
 7. Clients must cache JWKS responses for a bounded period and refresh on an unknown `kid` without creating an unbounded request amplification path.
-8. Refresh-token lifecycle remains governed separately by ADR-0009; key rotation must not weaken refresh-token revocation or tenant authorization.
+8. Refresh-token lifecycle remains governed separately by approved ADR-0009; key rotation must not weaken refresh-token revocation or tenant authorization.
 
 ## Rationale
 
@@ -39,7 +41,7 @@ Asymmetric keys separate signing authority from verification and make key public
 
 ## Implementation Notes
 
-Document the approved JWT algorithm and maximum token lifetimes in the security baseline. Never expose private keys through configuration endpoints, logs, diagnostics, or JWKS.
+Document the approved JWT algorithm and maximum token lifetimes in the security baseline before implementation. Never expose private keys through configuration endpoints, logs, diagnostics, or JWKS.
 
 ## Related Documents
 
