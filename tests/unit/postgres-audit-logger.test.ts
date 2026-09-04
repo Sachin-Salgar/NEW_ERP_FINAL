@@ -63,22 +63,17 @@ describe('PostgresAuditLogger', () => {
     });
 
     expect(pool.connect).not.toHaveBeenCalled();
-    expect(client.query).toHaveBeenCalledWith(
-      expect.stringContaining('SET LOCAL "app.current_tenant_id"'),
-    );
-    expect(client.query).toHaveBeenCalledWith(
-      expect.stringContaining('INSERT INTO audit_events'),
-      [
-        TENANT_ID,
-        USER_ID,
-        'user.role.assigned',
-        'user',
-        USER_ID,
-        'success',
-        'corr-123',
-        JSON.stringify({ reason: 'approved' }),
-      ],
-    );
+    expect(client.query).toHaveBeenCalledWith(expect.stringContaining('SET LOCAL "app.current_tenant_id"'));
+    expect(client.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO audit_events'), [
+      TENANT_ID,
+      USER_ID,
+      'user.role.assigned',
+      'user',
+      USER_ID,
+      'success',
+      'corr-123',
+      JSON.stringify({ reason: 'approved' }),
+    ]);
   });
 });
 

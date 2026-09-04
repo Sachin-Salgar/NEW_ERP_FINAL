@@ -37,8 +37,9 @@ export class ModuleAccessService {
       this.pool,
       this.tenantContextKey,
       tenantId,
-      (client) => client.query(
-        `SELECT
+      (client) =>
+        client.query(
+          `SELECT
            m.id,
            m.code,
            m.name,
@@ -59,8 +60,8 @@ export class ModuleAccessService {
           AND om.organization_id = $2
           AND om.enabled = true
          ORDER BY m.sort_order, m.name`,
-        [tenantId, organizationId],
-      ),
+          [tenantId, organizationId],
+        ),
       { organizationId },
     );
 
@@ -88,8 +89,9 @@ export class ModuleAccessService {
       this.pool,
       this.tenantContextKey,
       tenantId,
-      (client) => client.query(
-        `SELECT 1
+      (client) =>
+        client.query(
+          `SELECT 1
          FROM modules m
          INNER JOIN tenant_modules tm
            ON tm.module_id = m.id
@@ -102,8 +104,8 @@ export class ModuleAccessService {
           AND om.enabled = true
          WHERE m.code = $3
          LIMIT 1`,
-        [tenantId, organizationId, normalizedCode],
-      ),
+          [tenantId, organizationId, normalizedCode],
+        ),
       { organizationId },
     );
 

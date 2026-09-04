@@ -13,13 +13,13 @@ export function resolveCorrelationId(request: FastifyRequest): string {
   const explicit = normalizeCorrelationId(
     Array.isArray(request.headers['x-correlation-id'])
       ? request.headers['x-correlation-id'][0]
-      : request.headers['x-correlation-id'] as string | undefined,
+      : (request.headers['x-correlation-id'] as string | undefined),
   );
 
   const requestId = normalizeCorrelationId(
     Array.isArray(request.headers['x-request-id'])
       ? request.headers['x-request-id'][0]
-      : request.headers['x-request-id'] as string | undefined,
+      : (request.headers['x-request-id'] as string | undefined),
   );
 
   return explicit ?? requestId ?? request.id;

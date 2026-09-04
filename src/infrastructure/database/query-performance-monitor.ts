@@ -93,9 +93,7 @@ export class PostgresQueryPerformanceMonitor {
          ) AS installed`,
       );
       const installed = result.rows[0]?.installed ?? false;
-      return installed
-        ? { available: true }
-        : { available: false, reason: 'extension-not-installed' };
+      return installed ? { available: true } : { available: false, reason: 'extension-not-installed' };
     } catch (error) {
       return { available: false, reason: this.classifyDatabaseError(error) };
     }

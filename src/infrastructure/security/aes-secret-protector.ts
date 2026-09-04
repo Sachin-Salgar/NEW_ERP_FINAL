@@ -34,9 +34,8 @@ export class AesGcmSecretProtector implements MfaSecretProtector {
 
     const decipher = createDecipheriv('aes-256-gcm', this.key, Buffer.from(ivEncoded, 'base64url'));
     decipher.setAuthTag(Buffer.from(tagEncoded, 'base64url'));
-    return Buffer.concat([
-      decipher.update(Buffer.from(ciphertextEncoded, 'base64url')),
-      decipher.final(),
-    ]).toString('utf8');
+    return Buffer.concat([decipher.update(Buffer.from(ciphertextEncoded, 'base64url')), decipher.final()]).toString(
+      'utf8',
+    );
   }
 }

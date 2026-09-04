@@ -48,15 +48,26 @@ describe('service transaction boundaries', () => {
   it('wraps user creation and role/access assignments in a transaction', async () => {
     const repository = {
       findById: vi.fn(async () => ({
-        id: 'actor', tenantId: 'tenant', organizationId: 'org', defaultBranchId: 'branch',
-        username: 'actor', email: 'actor@example.com', passwordHash: 'hash', status: 'active',
+        id: 'actor',
+        tenantId: 'tenant',
+        organizationId: 'org',
+        defaultBranchId: 'branch',
+        username: 'actor',
+        email: 'actor@example.com',
+        passwordHash: 'hash',
+        status: 'active',
       })),
       findByTenantAndIdentifier: vi.fn(async () => null),
       findRoleByTenantAndCode: vi.fn(async () => ({ id: 'role', tenantId: 'tenant', code: 'member', name: 'Member' })),
       createRole: vi.fn(),
       createUser: vi.fn(async (input: any) => ({
-        id: input.id, tenantId: input.tenantId, organizationId: input.organizationId,
-        defaultBranchId: input.defaultBranchId, username: input.username, email: input.email, status: input.status,
+        id: input.id,
+        tenantId: input.tenantId,
+        organizationId: input.organizationId,
+        defaultBranchId: input.defaultBranchId,
+        username: input.username,
+        email: input.email,
+        status: input.status,
       })),
       assignUserToOrganization: vi.fn(async () => true),
       assignUserRole: vi.fn(async () => undefined),
@@ -86,8 +97,14 @@ describe('service transaction boundaries', () => {
     };
     const repository = {
       findById: vi.fn(async () => ({
-        id: 'actor', tenantId: 'tenant', organizationId: 'org', defaultBranchId: 'branch',
-        username: 'actor', email: 'actor@example.com', passwordHash: 'hash', status: 'active',
+        id: 'actor',
+        tenantId: 'tenant',
+        organizationId: 'org',
+        defaultBranchId: 'branch',
+        username: 'actor',
+        email: 'actor@example.com',
+        passwordHash: 'hash',
+        status: 'active',
       })),
       findByTenantAndIdentifier: vi.fn(async () => null),
       findRoleByTenantAndCode: vi.fn(async () => ({ id: 'role', tenantId: 'tenant', code: 'member', name: 'Member' })),
@@ -99,8 +116,12 @@ describe('service transaction boundaries', () => {
     const passwordHasher = { hash: vi.fn(async () => 'password-hash'), verify: vi.fn(async () => true) };
     const service = new UserRegistrationService(repository, passwordHasher, undefined, failingRunner);
 
-    await expect(service.registerUser('tenant', 'actor', {
-      username: 'new-user', email: 'new@example.com', password: 'Password123!',
-    })).rejects.toBe(failure);
+    await expect(
+      service.registerUser('tenant', 'actor', {
+        username: 'new-user',
+        email: 'new@example.com',
+        password: 'Password123!',
+      }),
+    ).rejects.toBe(failure);
   });
 });

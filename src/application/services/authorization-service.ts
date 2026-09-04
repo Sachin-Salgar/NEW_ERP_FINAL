@@ -1,10 +1,17 @@
-import type { PermissionDescriptor, PermissionCheckResult, RoleDescriptor } from '../../domain/contracts/authorization.js';
+import type {
+  PermissionDescriptor,
+  PermissionCheckResult,
+  RoleDescriptor,
+} from '../../domain/contracts/authorization.js';
 import type { AuthorizationRepository } from '../../domain/contracts/repositories.js';
 
 export class AuthorizationService {
   constructor(private readonly authorizationRepository: AuthorizationRepository) {}
 
-  async createRole(tenantId: string, input: { code: string; name: string; description?: string | null; isSystem?: boolean; sortOrder?: number }): Promise<RoleDescriptor> {
+  async createRole(
+    tenantId: string,
+    input: { code: string; name: string; description?: string | null; isSystem?: boolean; sortOrder?: number },
+  ): Promise<RoleDescriptor> {
     return this.authorizationRepository.createRole(tenantId, input);
   }
 
@@ -16,7 +23,11 @@ export class AuthorizationService {
     return this.authorizationRepository.getRoleById(tenantId, roleId);
   }
 
-  async updateRole(tenantId: string, roleId: string, changes: { code?: string; name?: string; description?: string | null; isSystem?: boolean; sortOrder?: number }): Promise<RoleDescriptor | null> {
+  async updateRole(
+    tenantId: string,
+    roleId: string,
+    changes: { code?: string; name?: string; description?: string | null; isSystem?: boolean; sortOrder?: number },
+  ): Promise<RoleDescriptor | null> {
     return this.authorizationRepository.updateRole(tenantId, roleId, changes);
   }
 

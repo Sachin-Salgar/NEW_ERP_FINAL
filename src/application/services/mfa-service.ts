@@ -31,12 +31,7 @@ export class MfaService {
   async beginEnrollment(tenantId: string, userId: string, accountLabel: string): Promise<MfaEnrollmentResult> {
     const secret = this.totp.generateSecret();
     const expiresAt = new Date(Date.now() + this.enrollmentTtlMinutes * 60_000);
-    await this.repository.createEnrollment(
-      tenantId,
-      userId,
-      this.protector.encrypt(secret),
-      expiresAt,
-    );
+    await this.repository.createEnrollment(tenantId, userId, this.protector.encrypt(secret), expiresAt);
 
     const label = encodeURIComponent(`${this.options.issuer}:${accountLabel}`);
     const issuer = encodeURIComponent(this.options.issuer);
@@ -77,11 +72,7 @@ export class MfaService {
       if (this.totp.verify(secret, tokenOrRecoveryCode)) return true;
     }
 
-    return this.repository.consumeRecoveryCode(
-      tenantId,
-      userId,
-      hashRecoveryCode(tokenOrRecoveryCode),
-    );
+    return this.repository.consumeRecoveryCode(tenantId, userId, hashRecoveryCode(tokenOrRecoveryCode));
   }
 
   async disable(tenantId: string, userId: string): Promise<void> {

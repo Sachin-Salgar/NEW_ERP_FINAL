@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { isCorsOriginAllowed, parseAppConfig, resolveDatabaseSslMode, resolveDatabaseUrl } from '../../src/config/schema.js';
+import {
+  isCorsOriginAllowed,
+  parseAppConfig,
+  resolveDatabaseSslMode,
+  resolveDatabaseUrl,
+} from '../../src/config/schema.js';
 
 describe('parseAppConfig', () => {
   it('loads valid development defaults', () => {

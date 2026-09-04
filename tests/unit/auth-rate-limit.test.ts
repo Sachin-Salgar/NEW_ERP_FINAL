@@ -13,9 +13,13 @@ async function buildRateLimitedApp() {
     },
   });
 
-  app.post('/auth/login', {
-    config: { rateLimit: { max: 2, timeWindow: 60_000 } },
-  }, async () => ({ success: true }));
+  app.post(
+    '/auth/login',
+    {
+      config: { rateLimit: { max: 2, timeWindow: 60_000 } },
+    },
+    async () => ({ success: true }),
+  );
   app.get('/health', async () => ({ status: 'ok' }));
   await app.ready();
   return app;

@@ -112,11 +112,11 @@ REST is the external/client API contract and may also be used for explicitly def
 - Avoid long-running operations.
 - Define timeout and failure handling when a network call exists.
 
-### Pattern 3: Asynchronous Events — Deferred
+### Pattern 3: Asynchronous Events
 
-**Status: Deferred until the event architecture is formally approved and implemented.**
+**Status: Approved and implemented through the transactional outbox architecture defined by ADR-0020.**
 
-Use events only where an approved event contract exists. Do not invent an event bus, saga, outbox, or asynchronous consistency model merely because a module interaction could use one.
+Use events only where an approved event contract exists. The current modular-monolith implementation uses in-process contracts and a PostgreSQL-backed outbox/dispatcher; an external broker remains optional and requires the relevant deployment or architecture decision.
 
 ### Pattern 4: Data Synchronization — Deferred
 

@@ -1,14 +1,19 @@
 import { ForbiddenError } from '../../domain/errors.js';
 
 export interface TenantMembershipRepository {
-  findUserOrganizationMemberships(tenantId: string, userId: string): Promise<Array<{
-    id: string;
-    tenantId: string;
-    code: string;
-    name: string;
-    status: 'active' | 'inactive' | 'archived';
-    isDefault: boolean;
-  }>>;
+  findUserOrganizationMemberships(
+    tenantId: string,
+    userId: string,
+  ): Promise<
+    Array<{
+      id: string;
+      tenantId: string;
+      code: string;
+      name: string;
+      status: 'active' | 'inactive' | 'archived';
+      isDefault: boolean;
+    }>
+  >;
 }
 
 export class TenantMembershipService {

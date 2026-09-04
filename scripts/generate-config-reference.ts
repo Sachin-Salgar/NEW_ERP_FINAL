@@ -18,11 +18,17 @@ const descriptions: Record<string, string> = {
   DATABASE_SSL_MODE: 'PostgreSQL TLS mode used by the application connection pool.',
   DATABASE_POOL_MIN: 'Minimum desired PostgreSQL pool size.',
   DATABASE_POOL_MAX: 'Maximum PostgreSQL pool size.',
-  JWT_SECRET: 'HS256 signing secret and temporary legacy verification secret during an explicitly enabled RS256 migration window.',
+  JWT_SECRET:
+    'HS256 signing secret and temporary legacy verification secret during an explicitly enabled RS256 migration window.',
   JWT_ISSUER: 'Issuer claim used for JWT creation and validation.',
-  JWT_SIGNING_ALGORITHM: 'JWT issuance mode. RS256 is the approved production migration target; HS256 remains the compatibility default until deployment key material is configured.',
-  JWT_RS256_KEYS_JSON: 'JSON-encoded RS256 key ring. Entries contain kid, lifecycle state, public key PEM, and private PEM only for the active signing key. Store private material in deployment secret storage.',
-  JWT_ACCEPT_LEGACY_HS256: 'Allows already-issued HS256 tokens to verify during a bounded RS256 migration window. Do not leave enabled indefinitely.',
+  JWT_SIGNING_ALGORITHM:
+    'JWT issuance mode. RS256 is the approved production migration target; HS256 remains the compatibility default until deployment key material is configured.',
+  JWT_RS256_KEYS_JSON:
+    'JSON-encoded RS256 key ring. Entries contain kid, lifecycle state, public key PEM, and private PEM only for the active signing key. Store private material in deployment secret storage.',
+  JWT_ACCEPT_LEGACY_HS256:
+    'Allows already-issued HS256 tokens to verify during a bounded RS256 migration window. Do not leave enabled indefinitely.',
+  MFA_ENCRYPTION_KEY:
+    'Secret used to encrypt persisted TOTP secrets with AES-256-GCM. The development placeholder is rejected in production.',
   TENANT_CONTEXT_KEY: 'PostgreSQL session setting used to propagate tenant context for RLS.',
   AUTH_LOGIN_RATE_LIMIT: 'Maximum login requests allowed within the configured auth rate-limit window.',
   AUTH_REGISTER_RATE_LIMIT: 'Maximum registration requests allowed within the configured auth rate-limit window.',
@@ -35,7 +41,8 @@ const descriptions: Record<string, string> = {
   AUTH_PASSWORD_REQUIRE_LOWERCASE: 'Whether passwords must contain a lowercase character.',
   AUTH_PASSWORD_REQUIRE_NUMBER: 'Whether passwords must contain a number.',
   AUTH_PASSWORD_REQUIRE_SYMBOL: 'Whether passwords must contain a symbol.',
-  CORS_ALLOWED_ORIGINS: 'Comma-separated exact browser origins allowed in production. Development/test also permit loopback HTTP origins.',
+  CORS_ALLOWED_ORIGINS:
+    'Comma-separated exact browser origins allowed in production. Development/test also permit loopback HTTP origins.',
 };
 
 function getDefaultValue(schema: z.ZodTypeAny): unknown {

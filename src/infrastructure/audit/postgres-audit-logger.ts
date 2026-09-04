@@ -1,11 +1,6 @@
 import type { Pool, PoolClient } from 'pg';
 
-import type {
-  AuditEvent,
-  AuditLogger,
-  AuditMetadata,
-  AuditRecordOptions,
-} from '../../application/contracts/audit.js';
+import type { AuditEvent, AuditLogger, AuditMetadata, AuditRecordOptions } from '../../application/contracts/audit.js';
 import { getTransactionContext } from '../database/transaction-context.js';
 import { withTenantContext } from '../database/tenant-context.js';
 
@@ -81,15 +76,10 @@ export class PostgresAuditLogger implements AuditLogger {
   }
 }
 
-export function filterMetadata(
-  metadata: AuditMetadata | undefined,
-  allowedKeys: ReadonlySet<string>,
-): AuditMetadata {
+export function filterMetadata(metadata: AuditMetadata | undefined, allowedKeys: ReadonlySet<string>): AuditMetadata {
   if (!metadata || allowedKeys.size === 0) {
     return {};
   }
 
-  return Object.fromEntries(
-    Object.entries(metadata).filter(([key]) => allowedKeys.has(key)),
-  ) as AuditMetadata;
+  return Object.fromEntries(Object.entries(metadata).filter(([key]) => allowedKeys.has(key))) as AuditMetadata;
 }

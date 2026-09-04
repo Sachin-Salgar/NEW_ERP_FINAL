@@ -13,10 +13,7 @@ export interface RefreshRotationResult {
   sessionId: string;
 }
 
-type RotationOutcome =
-  | { kind: 'rotated'; result: RefreshRotationResult }
-  | { kind: 'reused' }
-  | { kind: 'invalid' };
+type RotationOutcome = { kind: 'rotated'; result: RefreshRotationResult } | { kind: 'reused' } | { kind: 'invalid' };
 
 export class RefreshTokenRotationService {
   constructor(

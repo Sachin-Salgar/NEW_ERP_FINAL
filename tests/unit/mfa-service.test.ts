@@ -6,7 +6,10 @@ import type { MfaRepository, MfaSecretProtector, TotpProvider } from '../../src/
 function makeRepository(): MfaRepository {
   return {
     createEnrollment: vi.fn(async () => undefined),
-    getPendingEnrollment: vi.fn(async () => ({ encryptedSecret: 'encrypted-secret', expiresAt: new Date(Date.now() + 60_000) })),
+    getPendingEnrollment: vi.fn(async () => ({
+      encryptedSecret: 'encrypted-secret',
+      expiresAt: new Date(Date.now() + 60_000),
+    })),
     activateEnrollment: vi.fn(async () => undefined),
     getEnabledSecret: vi.fn(async () => 'encrypted-secret'),
     consumeRecoveryCode: vi.fn(async () => true),
@@ -49,7 +52,10 @@ describe('MfaService', () => {
   it('activates enrollment only after a valid TOTP code and returns recovery codes once', async () => {
     const repository = makeRepository();
     const totp = makeTotp();
-    const service = new MfaService(repository, totp, makeProtector(), { issuer: 'new-erp-final', recoveryCodeCount: 3 });
+    const service = new MfaService(repository, totp, makeProtector(), {
+      issuer: 'new-erp-final',
+      recoveryCodeCount: 3,
+    });
 
     const recoveryCodes = await service.confirmEnrollment('tenant-1', 'user-1', '123456');
 

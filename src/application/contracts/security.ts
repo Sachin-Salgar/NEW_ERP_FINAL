@@ -1,5 +1,10 @@
 import type { PermissionDescriptor } from '../../domain/contracts/authorization.js';
-import type { AuthenticatedUser, AuthenticationResult, CreateSessionInput, SessionRecord } from '../../domain/contracts/authentication.js';
+import type {
+  AuthenticatedUser,
+  AuthenticationResult,
+  CreateSessionInput,
+  SessionRecord,
+} from '../../domain/contracts/authentication.js';
 import type { TenantBootstrapInput, TenantBootstrapResult } from '../../domain/contracts/bootstrap.js';
 
 /**

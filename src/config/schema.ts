@@ -6,15 +6,17 @@ export const databaseSslModes = ['disable', 'require'] as const;
 export const jwtSigningAlgorithms = ['HS256', 'RS256'] as const;
 
 const envBoolean = (defaultValue: boolean) =>
-  z.preprocess((value) => {
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'string') {
-      const normalized = value.trim().toLowerCase();
-      if (normalized === 'true') return true;
-      if (normalized === 'false') return false;
-    }
-    return value;
-  }, z.boolean()).default(defaultValue);
+  z
+    .preprocess((value) => {
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === 'true') return true;
+        if (normalized === 'false') return false;
+      }
+      return value;
+    }, z.boolean())
+    .default(defaultValue);
 
 export const appConfigSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -37,7 +39,9 @@ export const appConfigSchema = z.object({
     .trim()
     .min(32)
     .default('development-mfa-encryption-key-change-me-32')
-    .describe('Secret used to encrypt persisted TOTP secrets with AES-256-GCM. The development placeholder is rejected in production.'),
+    .describe(
+      'Secret used to encrypt persisted TOTP secrets with AES-256-GCM. The development placeholder is rejected in production.',
+    ),
   TENANT_CONTEXT_KEY: z.string().trim().min(1).default('app.current_tenant_id'),
   AUTH_LOGIN_RATE_LIMIT: z.coerce.number().int().positive().default(5),
   AUTH_REGISTER_RATE_LIMIT: z.coerce.number().int().positive().default(5),
@@ -52,7 +56,12 @@ export const appConfigSchema = z.object({
   AUTH_PASSWORD_REQUIRE_SYMBOL: envBoolean(true),
   CORS_ALLOWED_ORIGINS: z
     .string()
-    .transform((value) => value.split(',').map((origin) => origin.trim()).filter(Boolean))
+    .transform((value) =>
+      value
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+    )
     .pipe(z.array(z.string().min(1)))
     .default(''),
 });
@@ -83,10 +92,7 @@ export function isCorsOriginAllowed(config: AppConfig, origin?: string): boolean
   }
 }
 
-export function resolveDatabaseUrl(
-  env: NodeJS.ProcessEnv = process.env,
-  options: { forTest?: boolean } = {},
-): string {
+export function resolveDatabaseUrl(env: NodeJS.ProcessEnv = process.env, options: { forTest?: boolean } = {}): string {
   const key = options.forTest ? 'TEST_DATABASE_URL' : 'DATABASE_URL';
   let value = env[key]?.trim();
 
@@ -124,9 +130,7 @@ export function parseAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig 
 
   const parsed = appConfigSchema.safeParse(env);
   if (!parsed.success) {
-    const issues = parsed.error.issues
-      .map((issue) => `${issue.path.join('.') || 'env'}: ${issue.message}`)
-      .join('; ');
+    const issues = parsed.error.issues.map((issue) => `${issue.path.join('.') || 'env'}: ${issue.message}`).join('; ');
     throw new Error(`Invalid application configuration: ${issues}`);
   }
 

@@ -14,16 +14,20 @@ describe('API pagination', () => {
   });
 
   it('filters, sorts and returns pagination metadata', () => {
-    const result = paginate([
-      { code: 'B', name: 'Beta' },
-      { code: 'A', name: 'Alpha' },
-      { code: 'C', name: 'Gamma' },
-    ], parsePaginationQuery({ page: 1, page_size: 2, sort: 'name', order: 'asc', search: 'a' }), {
-      searchable: [item => item.code, item => item.name],
-      sortable: { name: item => item.name },
-    });
+    const result = paginate(
+      [
+        { code: 'B', name: 'Beta' },
+        { code: 'A', name: 'Alpha' },
+        { code: 'C', name: 'Gamma' },
+      ],
+      parsePaginationQuery({ page: 1, page_size: 2, sort: 'name', order: 'asc', search: 'a' }),
+      {
+        searchable: [(item) => item.code, (item) => item.name],
+        sortable: { name: (item) => item.name },
+      },
+    );
 
-    expect(result.data.map(item => item.name)).toEqual(['Alpha', 'Beta']);
+    expect(result.data.map((item) => item.name)).toEqual(['Alpha', 'Beta']);
     expect(result.metadata).toEqual({
       page: 1,
       page_size: 2,
@@ -37,8 +41,10 @@ describe('API pagination', () => {
 
   it('rejects invalid page_size and unsupported sort fields', () => {
     expect(() => parsePaginationQuery({ page_size: 101 })).toThrow('page_size must be between 1 and 100');
-    expect(() => paginate([{ name: 'Alpha' }], parsePaginationQuery({ sort: 'id' }), {
-      sortable: { name: item => item.name },
-    })).toThrow('Unsupported sort field: id');
+    expect(() =>
+      paginate([{ name: 'Alpha' }], parsePaginationQuery({ sort: 'id' }), {
+        sortable: { name: (item) => item.name },
+      }),
+    ).toThrow('Unsupported sort field: id');
   });
 });

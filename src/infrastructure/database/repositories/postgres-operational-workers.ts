@@ -172,7 +172,13 @@ export class PostgresOutboxStore implements OutboxStore {
     });
   }
 
-  async markFailed(tenantId: string, eventId: string, workerId: string, errorCode: string, retryAt: Date): Promise<void> {
+  async markFailed(
+    tenantId: string,
+    eventId: string,
+    workerId: string,
+    errorCode: string,
+    retryAt: Date,
+  ): Promise<void> {
     await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       await client.query(
         `UPDATE outbox_events

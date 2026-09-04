@@ -17,11 +17,7 @@ export class NotificationDeliveryWorker {
   }
 
   async runNext(tenantId: string, workerId: string): Promise<boolean> {
-    const notification = await this.store.claimNext(
-      tenantId,
-      workerId,
-      this.options.leaseSeconds ?? 60,
-    );
+    const notification = await this.store.claimNext(tenantId, workerId, this.options.leaseSeconds ?? 60);
     if (!notification) return false;
 
     const provider = this.providers.get(notification.channel);
@@ -46,7 +42,8 @@ export class NotificationDeliveryWorker {
       await provider.deliver(notification);
       await this.store.markSent(tenantId, notification.id, workerId, provider.providerName);
     } catch (error) {
-      const errorCode = error instanceof Error ? error.name || 'notification_delivery_failed' : 'notification_delivery_failed';
+      const errorCode =
+        error instanceof Error ? error.name || 'notification_delivery_failed' : 'notification_delivery_failed';
       await this.store.markFailed(
         tenantId,
         notification.id,

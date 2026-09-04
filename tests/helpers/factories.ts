@@ -30,13 +30,15 @@ export function createTenantHeaders(tenantId: string, accessToken?: string) {
   };
 }
 
-export function createPaginationQuery(overrides: Partial<{
-  page: number;
-  page_size: number;
-  sort: string;
-  order: 'asc' | 'desc';
-  search: string;
-}> = {}) {
+export function createPaginationQuery(
+  overrides: Partial<{
+    page: number;
+    page_size: number;
+    sort: string;
+    order: 'asc' | 'desc';
+    search: string;
+  }> = {},
+) {
   return {
     page: overrides.page ?? 1,
     page_size: overrides.page_size ?? 20,
@@ -46,10 +48,7 @@ export function createPaginationQuery(overrides: Partial<{
   };
 }
 
-export async function expectRejectsWithCode(
-  operation: Promise<unknown>,
-  expectedCode: string,
-): Promise<void> {
+export async function expectRejectsWithCode(operation: Promise<unknown>, expectedCode: string): Promise<void> {
   try {
     await operation;
   } catch (error) {

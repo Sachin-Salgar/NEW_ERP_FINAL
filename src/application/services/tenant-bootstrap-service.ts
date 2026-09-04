@@ -19,7 +19,9 @@ export class TenantBootstrapService implements TenantBootstrapServicePort {
     const adminId = input.administrator.id ?? uuidV7();
     const roleId = input.role.id ?? uuidV7();
 
-    const passwordHash = this.passwordHasher ? await this.passwordHasher.hash(input.administrator.password) : input.administrator.password;
+    const passwordHash = this.passwordHasher
+      ? await this.passwordHasher.hash(input.administrator.password)
+      : input.administrator.password;
 
     const normalizedInput: TenantBootstrapInput = {
       ...input,

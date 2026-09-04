@@ -5,11 +5,7 @@ import type { AppConfig } from '../../config/schema.js';
 import type { AccessTokenClaims, RefreshTokenClaims } from '../../domain/contracts/authentication.js';
 import { UnauthorizedError } from '../../domain/errors.js';
 import type { TokenService } from '../../application/contracts/security.js';
-import {
-  RotatingJwtTokenService,
-  type JsonWebKeySet,
-  type RsaJwtSigningKey,
-} from './rotating-jwt-key-ring.js';
+import { RotatingJwtTokenService, type JsonWebKeySet, type RsaJwtSigningKey } from './rotating-jwt-key-ring.js';
 
 type JwtConfig = Pick<AppConfig, 'JWT_SECRET' | 'JWT_ISSUER'> &
   Partial<Pick<AppConfig, 'JWT_SIGNING_ALGORITHM' | 'JWT_RS256_KEYS_JSON' | 'JWT_ACCEPT_LEGACY_HS256'>>;
@@ -47,7 +43,12 @@ export class JwtTokenService implements TokenService {
     });
   }
 
-  createRefreshToken(input: { userId: string; tenantId: string; sessionId: string; expiresInSeconds?: number }): string {
+  createRefreshToken(input: {
+    userId: string;
+    tenantId: string;
+    sessionId: string;
+    expiresInSeconds?: number;
+  }): string {
     if (this.asymmetricDelegate) return this.asymmetricDelegate.createRefreshToken(input);
 
     const expiresInSeconds = input.expiresInSeconds ?? 60 * 60 * 24 * 14;
@@ -97,7 +98,10 @@ export class JwtTokenService implements TokenService {
     return Boolean(decoded && typeof decoded !== 'string' && decoded.header.alg === 'HS256');
   }
 
-  private verifyHs256Token<T extends AccessTokenClaims | RefreshTokenClaims>(token: string, expectedType: 'access' | 'refresh'): T {
+  private verifyHs256Token<T extends AccessTokenClaims | RefreshTokenClaims>(
+    token: string,
+    expectedType: 'access' | 'refresh',
+  ): T {
     if (this.asymmetricDelegate && !this.config.JWT_ACCEPT_LEGACY_HS256) {
       throw new UnauthorizedError('Legacy authentication token algorithm is no longer accepted.');
     }

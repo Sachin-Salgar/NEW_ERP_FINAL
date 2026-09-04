@@ -28,27 +28,22 @@ export class PostgresAccountSecurityRepository implements AccountSecurityReposit
 
     const accounts: AccountSecurityAccount[] = [];
     for (const candidate of identityResult.rows) {
-      const account = await withTenantContext(
-        this.pool,
-        this.tenantContextKey,
-        candidate.tenant_id,
-        async (client) => {
-          const result = await client.query<{
-            id: string;
-            tenant_id: string;
-            email: string;
-            status: string;
-          }>(
-            `SELECT id, tenant_id, email, status
+      const account = await withTenantContext(this.pool, this.tenantContextKey, candidate.tenant_id, async (client) => {
+        const result = await client.query<{
+          id: string;
+          tenant_id: string;
+          email: string;
+          status: string;
+        }>(
+          `SELECT id, tenant_id, email, status
              FROM users
              WHERE tenant_id = $1 AND id = $2 AND is_deleted = false
              LIMIT 1`,
-            [candidate.tenant_id, candidate.user_id],
-          );
-          const row = result.rows[0];
-          return row ? { id: row.id, tenantId: row.tenant_id, email: row.email, status: row.status } : null;
-        },
-      );
+          [candidate.tenant_id, candidate.user_id],
+        );
+        const row = result.rows[0];
+        return row ? { id: row.id, tenantId: row.tenant_id, email: row.email, status: row.status } : null;
+      });
       if (account) accounts.push(account);
     }
 

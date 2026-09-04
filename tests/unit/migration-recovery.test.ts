@@ -5,9 +5,10 @@ import {
   verifyMigrationRecoveryGovernance,
 } from '../../src/infrastructure/database/migration-recovery.js';
 
-const manifestFor = (
-  migrations: MigrationRecoveryManifest['migrations'],
-): MigrationRecoveryManifest => ({ version: 1, migrations });
+const manifestFor = (migrations: MigrationRecoveryManifest['migrations']): MigrationRecoveryManifest => ({
+  version: 1,
+  migrations,
+});
 
 describe('migration recovery governance', () => {
   it('accepts reviewed forward-only and compensating strategies', () => {

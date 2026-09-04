@@ -28,7 +28,20 @@ export class LocationService {
   async createLocation(
     tenantId: string,
     organizationId: string,
-    input: { code?: string; name: string; description?: string | null; status?: 'active' | 'inactive' | 'archived'; isDefault?: boolean; addressLine1?: string | null; addressLine2?: string | null; city?: string | null; state?: string | null; country?: string | null; postalCode?: string | null; timezone?: string },
+    input: {
+      code?: string;
+      name: string;
+      description?: string | null;
+      status?: 'active' | 'inactive' | 'archived';
+      isDefault?: boolean;
+      addressLine1?: string | null;
+      addressLine2?: string | null;
+      city?: string | null;
+      state?: string | null;
+      country?: string | null;
+      postalCode?: string | null;
+      timezone?: string;
+    },
   ): Promise<LocationRecord> {
     this.requireContext(tenantId, organizationId);
     const name = this.normalizeCode(input.name, 'Location name');
@@ -55,7 +68,11 @@ export class LocationService {
     return this.repository.listLocations(tenantId, organizationId);
   }
 
-  async listAccessibleLocationsForUser(tenantId: string, userId: string, organizationId?: string | null): Promise<LocationRecord[]> {
+  async listAccessibleLocationsForUser(
+    tenantId: string,
+    userId: string,
+    organizationId?: string | null,
+  ): Promise<LocationRecord[]> {
     this.requireTenant(tenantId);
     const normalizedUserId = (userId ?? '').trim();
     if (!normalizedUserId) {
@@ -73,7 +90,12 @@ export class LocationService {
     return this.repository.getLocationById(tenantId, organizationId, normalizedId);
   }
 
-  async getAccessibleLocationByIdForUser(tenantId: string, userId: string, locationId: string, organizationId?: string | null): Promise<LocationRecord | null> {
+  async getAccessibleLocationByIdForUser(
+    tenantId: string,
+    userId: string,
+    locationId: string,
+    organizationId?: string | null,
+  ): Promise<LocationRecord | null> {
     this.requireTenant(tenantId);
     const normalizedUserId = (userId ?? '').trim();
     const normalizedLocationId = (locationId ?? '').trim();
@@ -83,24 +105,55 @@ export class LocationService {
     if (!normalizedLocationId) {
       throw new ValidationError('Location ID is required.');
     }
-    return this.repository.getAccessibleLocationByIdForUser(tenantId, normalizedUserId, normalizedLocationId, organizationId ?? null);
+    return this.repository.getAccessibleLocationByIdForUser(
+      tenantId,
+      normalizedUserId,
+      normalizedLocationId,
+      organizationId ?? null,
+    );
   }
 
-  async validateLocationAccess(tenantId: string, userId: string, locationId: string, organizationId?: string | null): Promise<boolean> {
+  async validateLocationAccess(
+    tenantId: string,
+    userId: string,
+    locationId: string,
+    organizationId?: string | null,
+  ): Promise<boolean> {
     this.requireTenant(tenantId);
     const normalizedUserId = (userId ?? '').trim();
     const normalizedLocationId = (locationId ?? '').trim();
     if (!normalizedUserId || !normalizedLocationId) {
       return false;
     }
-    return this.repository.validateLocationAccess(tenantId, normalizedUserId, normalizedLocationId, organizationId ?? null);
+    return this.repository.validateLocationAccess(
+      tenantId,
+      normalizedUserId,
+      normalizedLocationId,
+      organizationId ?? null,
+    );
   }
 
   async updateLocation(
     tenantId: string,
     organizationId: string,
     locationId: string,
-    changes: Partial<Pick<LocationRecord, 'code' | 'name' | 'description' | 'status' | 'isDefault' | 'addressLine1' | 'addressLine2' | 'city' | 'state' | 'country' | 'postalCode' | 'timezone'>>,
+    changes: Partial<
+      Pick<
+        LocationRecord,
+        | 'code'
+        | 'name'
+        | 'description'
+        | 'status'
+        | 'isDefault'
+        | 'addressLine1'
+        | 'addressLine2'
+        | 'city'
+        | 'state'
+        | 'country'
+        | 'postalCode'
+        | 'timezone'
+      >
+    >,
   ): Promise<LocationRecord | null> {
     this.requireContext(tenantId, organizationId);
     const normalizedId = (locationId ?? '').trim();

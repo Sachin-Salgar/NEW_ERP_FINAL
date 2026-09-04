@@ -18,40 +18,40 @@ This distinction is intentional. Provider credentials, production keys, deployme
 
 ## Closure Matrix
 
-| ID | Improvement | Implementation status | Remaining evidence |
-|---|---|---|---|
-| IMP-001 | OpenAPI/Swagger | COMPLETED | None |
-| IMP-002 | Auth rate limiting | COMPLETED | None |
-| IMP-003 | Request validation | COMPLETED | None |
-| IMP-004 | Audit logging foundation | COMPLETED | None |
-| IMP-005 | Email verification/password recovery | IMPLEMENTED — VALIDATION PENDING | External provider delivery |
-| IMP-006 | MFA/TOTP | IMPLEMENTED — VALIDATION PENDING | Production key provisioning; mandatory-login product decision |
-| IMP-007 | Soft delete consistency | COMPLETED | None |
-| IMP-008 | Enhanced health checks | COMPLETED | None |
-| IMP-009 | Unit of Work/transactions | COMPLETED | None |
-| IMP-010 | RFC 7807 | COMPLETED | None |
-| IMP-011 | Correlation IDs | COMPLETED | None |
-| IMP-012 | `organization_modules` | COMPLETED | None |
-| IMP-013 | Pagination | COMPLETED | SQL/keyset optimization is future performance work |
-| IMP-014 | Notification service | IMPLEMENTED — VALIDATION PENDING | Concrete provider/worker operation |
-| IMP-015 | File storage | IMPLEMENTED — VALIDATION PENDING | Concrete deployment provider |
-| IMP-016 | Scheduler | IMPLEMENTED — VALIDATION PENDING | Worker operation |
-| IMP-017 | Domain events/outbox | IMPLEMENTED — VALIDATION PENDING | Worker operation and future module adoption |
-| IMP-018 | Account lockout | COMPLETED | None |
-| IMP-019 | Password policy | COMPLETED | None |
-| IMP-020 | JWT rotation/JWKS | IMPLEMENTED — VALIDATION PENDING | Production key/rotation evidence |
-| IMP-021 | Request size limits | COMPLETED | None |
-| IMP-022 | ESLint + Prettier | IMPLEMENTED — VALIDATION PENDING | Run quality gate |
-| IMP-023 | Type-safe routes | IMPLEMENTED — VALIDATION PENDING | Typecheck/route regressions |
-| IMP-024 | Test infrastructure | IMPLEMENTED — VALIDATION PENDING | Run expanded suites |
-| IMP-025 | CI/CD | IMPLEMENTED — VALIDATION PENDING | GitHub Actions/registry execution |
-| IMP-026 | Production Dockerfile | COMPLETED | Local Docker optional; CI build is authoritative |
-| IMP-027 | Migration recovery | IMPLEMENTED — VALIDATION PENDING | Unit/CI/staging recovery evidence |
-| IMP-028 | Query performance monitoring | IMPLEMENTED — VALIDATION PENDING | `pg_stat_statements` deployment validation |
-| IMP-029 | Partitioning | FUTURE — EVIDENCE REQUIRED | Objective workload/data evidence |
-| IMP-030 | API versioning | IMPLEMENTED — VALIDATION PENDING | Runtime/proxy header validation |
-| IMP-031 | Domain repository interfaces | IMPLEMENTED — VALIDATION PENDING | Typecheck/import audit |
-| IMP-032 | Configuration documentation | COMPLETED | None |
+| ID      | Improvement                          | Implementation status            | Remaining evidence                                            |
+| ------- | ------------------------------------ | -------------------------------- | ------------------------------------------------------------- |
+| IMP-001 | OpenAPI/Swagger                      | COMPLETED                        | None                                                          |
+| IMP-002 | Auth rate limiting                   | COMPLETED                        | None                                                          |
+| IMP-003 | Request validation                   | COMPLETED                        | None                                                          |
+| IMP-004 | Audit logging foundation             | COMPLETED                        | None                                                          |
+| IMP-005 | Email verification/password recovery | IMPLEMENTED — VALIDATION PENDING | External provider delivery                                    |
+| IMP-006 | MFA/TOTP                             | IMPLEMENTED — VALIDATION PENDING | Production key provisioning; mandatory-login product decision |
+| IMP-007 | Soft delete consistency              | COMPLETED                        | None                                                          |
+| IMP-008 | Enhanced health checks               | COMPLETED                        | None                                                          |
+| IMP-009 | Unit of Work/transactions            | COMPLETED                        | None                                                          |
+| IMP-010 | RFC 7807                             | COMPLETED                        | None                                                          |
+| IMP-011 | Correlation IDs                      | COMPLETED                        | None                                                          |
+| IMP-012 | `organization_modules`               | COMPLETED                        | None                                                          |
+| IMP-013 | Pagination                           | COMPLETED                        | SQL/keyset optimization is future performance work            |
+| IMP-014 | Notification service                 | IMPLEMENTED — VALIDATION PENDING | Concrete provider/worker operation                            |
+| IMP-015 | File storage                         | IMPLEMENTED — VALIDATION PENDING | Concrete deployment provider                                  |
+| IMP-016 | Scheduler                            | IMPLEMENTED — VALIDATION PENDING | Worker operation                                              |
+| IMP-017 | Domain events/outbox                 | IMPLEMENTED — VALIDATION PENDING | Worker operation and future module adoption                   |
+| IMP-018 | Account lockout                      | COMPLETED                        | None                                                          |
+| IMP-019 | Password policy                      | COMPLETED                        | None                                                          |
+| IMP-020 | JWT rotation/JWKS                    | IMPLEMENTED — VALIDATION PENDING | Production key/rotation evidence                              |
+| IMP-021 | Request size limits                  | COMPLETED                        | None                                                          |
+| IMP-022 | ESLint + Prettier                    | COMPLETED                        | Local quality and format checks pass                          |
+| IMP-023 | Type-safe routes                     | COMPLETED                        | Typecheck and route regression tests pass                     |
+| IMP-024 | Test infrastructure                  | COMPLETED                        | Expanded unit and PostgreSQL integration suites pass          |
+| IMP-025 | CI/CD                                | IMPLEMENTED — VALIDATION PENDING | GitHub Actions/registry execution                             |
+| IMP-026 | Production Dockerfile                | COMPLETED                        | Local Docker optional; CI build is authoritative              |
+| IMP-027 | Migration recovery                   | COMPLETED                        | Local governance verification and migration runs pass         |
+| IMP-028 | Query performance monitoring         | IMPLEMENTED — VALIDATION PENDING | `pg_stat_statements` deployment validation                    |
+| IMP-029 | Partitioning                         | FUTURE — EVIDENCE REQUIRED       | Objective workload/data evidence                              |
+| IMP-030 | API versioning                       | COMPLETED                        | Local runtime and integration header validation               |
+| IMP-031 | Domain repository interfaces         | COMPLETED                        | Typecheck and import audit pass                               |
+| IMP-032 | Configuration documentation          | COMPLETED                        | None                                                          |
 
 ---
 
@@ -152,9 +152,9 @@ The compatibility bridge remains intentionally available for the legacy monolith
 
 ---
 
-## Validation Handoff to VS Code / Copilot
+## Validation Evidence
 
-The next activity is validation, not another implementation wave. Run the following from the clean `feat/improvements` checkout and fix any implementation regression before considering the validation labels closed:
+The local reconciliation run on `feat/improvements` executed the following successfully:
 
 ```bash
 npm ci
@@ -169,7 +169,7 @@ npm run build
 git diff --check
 ```
 
-Then perform the existing HTTP/runtime probes for health, OpenAPI, request validation, RFC7807, correlation IDs, rate limits, recovery enumeration resistance, MFA route protection, API version headers, and PostgreSQL/RLS tenant isolation.
+The run also validated health, OpenAPI, request validation, RFC7807, correlation IDs, rate limits, recovery enumeration resistance, MFA route protection, API version headers, and PostgreSQL/RLS tenant isolation.
 
 Docker/image publishing, external provider delivery, production key rotation, worker execution, and `pg_stat_statements` must be validated only in environments that actually provide those capabilities.
 

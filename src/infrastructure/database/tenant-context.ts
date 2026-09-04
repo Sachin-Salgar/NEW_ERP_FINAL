@@ -44,7 +44,11 @@ export class PostgresTenantContextProvider implements TenantContextProvider {
     }
   }
 
-  async withTenantContext<T>(tenantId: string, callback: (client: PoolClient) => Promise<T>, context?: Partial<TenantContext>): Promise<T> {
+  async withTenantContext<T>(
+    tenantId: string,
+    callback: (client: PoolClient) => Promise<T>,
+    context?: Partial<TenantContext>,
+  ): Promise<T> {
     return withTenantContext(this.pool, this.tenantContextKey, tenantId, callback, context);
   }
 
@@ -95,7 +99,9 @@ async function setTenantSettingsForClient(
     return;
   }
 
-  await client.query(`SELECT set_config('${tenantContextKey}_context', '${JSON.stringify(context).replace(/'/g, "''")}', true)`);
+  await client.query(
+    `SELECT set_config('${tenantContextKey}_context', '${JSON.stringify(context).replace(/'/g, "''")}', true)`,
+  );
   const contextEntries: Array<[string, string | null]> = [
     [`${tenantContextKey}_user_id`, context.userId ?? null],
     [`${tenantContextKey}_organization_id`, context.organizationId ?? context.activeOrganizationId ?? null],
@@ -111,7 +117,13 @@ async function setTenantSettingsForClient(
   }
 }
 
-export async function withTenantContext<T>(pool: Pool, tenantContextKey: string, tenantId: string, callback: (client: PoolClient) => Promise<T>, context?: Partial<TenantContext>): Promise<T> {
+export async function withTenantContext<T>(
+  pool: Pool,
+  tenantContextKey: string,
+  tenantId: string,
+  callback: (client: PoolClient) => Promise<T>,
+  context?: Partial<TenantContext>,
+): Promise<T> {
   if (!isUuid(tenantId)) {
     throw new TenantContextError(`The tenant identifier is not a valid UUID: ${tenantId}`);
   }

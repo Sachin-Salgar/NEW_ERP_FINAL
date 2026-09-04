@@ -21,7 +21,7 @@
 | `JWT_SIGNING_ALGORITHM` | `HS256` \| `RS256` | No | `HS256` | JWT issuance mode. RS256 is the approved production migration target; HS256 remains the compatibility default until deployment key material is configured. |
 | `JWT_RS256_KEYS_JSON` | string | No | `[]` | JSON-encoded RS256 key ring. Entries contain kid, lifecycle state, public key PEM, and private PEM only for the active signing key. Store private material in deployment secret storage. |
 | `JWT_ACCEPT_LEGACY_HS256` | boolean | No | `false` | Allows already-issued HS256 tokens to verify during a bounded RS256 migration window. Do not leave enabled indefinitely. |
-| `MFA_ENCRYPTION_KEY` | string | No | `development-mfa-encryption-key-change-me-32` |  |
+| `MFA_ENCRYPTION_KEY` | string | No | `development-mfa-encryption-key-change-me-32` | Secret used to encrypt persisted TOTP secrets with AES-256-GCM. The development placeholder is rejected in production. |
 | `TENANT_CONTEXT_KEY` | string | No | `app.current_tenant_id` | PostgreSQL session setting used to propagate tenant context for RLS. |
 | `AUTH_LOGIN_RATE_LIMIT` | number | No | `5` | Maximum login requests allowed within the configured auth rate-limit window. |
 | `AUTH_REGISTER_RATE_LIMIT` | number | No | `5` | Maximum registration requests allowed within the configured auth rate-limit window. |

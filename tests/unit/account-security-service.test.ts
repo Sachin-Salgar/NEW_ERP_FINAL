@@ -1,13 +1,23 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { AccountSecurityService } from '../../src/application/services/account-security-service.js';
-import type { AccountSecurityRepository, AccountSecurityNotificationPort } from '../../src/application/contracts/account-security.js';
+import type {
+  AccountSecurityRepository,
+  AccountSecurityNotificationPort,
+} from '../../src/application/contracts/account-security.js';
 import type { PasswordHasher } from '../../src/application/contracts/security.js';
 
 function makeRepository(): AccountSecurityRepository {
   return {
-    findAccountCandidates: vi.fn(async () => [{ id: 'user-1', tenantId: 'tenant-1', email: 'user@example.com', status: 'active' }]),
-    findUserByIdentifier: vi.fn(async () => ({ id: 'user-1', tenantId: 'tenant-1', email: 'user@example.com', status: 'active' })),
+    findAccountCandidates: vi.fn(async () => [
+      { id: 'user-1', tenantId: 'tenant-1', email: 'user@example.com', status: 'active' },
+    ]),
+    findUserByIdentifier: vi.fn(async () => ({
+      id: 'user-1',
+      tenantId: 'tenant-1',
+      email: 'user@example.com',
+      status: 'active',
+    })),
     createEmailVerificationToken: vi.fn(async () => undefined),
     consumeEmailVerificationToken: vi.fn(async () => true),
     createPasswordResetToken: vi.fn(async () => undefined),

@@ -22,7 +22,14 @@ import type {
 import { withTenantContext } from '../tenant-context.js';
 
 export class PostgresPlatformRepository
-  implements PlatformBootstrapRepository, UserRepository, AuthorizationRepository, CoreEnterpriseRepository, SessionRepository, AuthenticationRepository, TenantBootstrapRepository
+  implements
+    PlatformBootstrapRepository,
+    UserRepository,
+    AuthorizationRepository,
+    CoreEnterpriseRepository,
+    SessionRepository,
+    AuthenticationRepository,
+    TenantBootstrapRepository
 {
   constructor(
     private readonly pool: Pool,
@@ -121,7 +128,11 @@ export class PostgresPlatformRepository
     };
   }
 
-  private async reserveNextCodeValue(tenantId: string, entityType: 'organization' | 'branch' | 'location', scopeKey: string): Promise<number> {
+  private async reserveNextCodeValue(
+    tenantId: string,
+    entityType: 'organization' | 'branch' | 'location',
+    scopeKey: string,
+  ): Promise<number> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return this.reserveNextCodeValueWithClient(client, tenantId, entityType, scopeKey);
     });
@@ -146,20 +157,45 @@ export class PostgresPlatformRepository
   }
 
   async seedSubscriptionPlans(
-    plans: Array<{ name: string; description?: string | null; priceMonthly: number; maxUsers?: number | null; maxStorageGb?: number | null; isActive?: boolean }>,
+    plans: Array<{
+      name: string;
+      description?: string | null;
+      priceMonthly: number;
+      maxUsers?: number | null;
+      maxStorageGb?: number | null;
+      isActive?: boolean;
+    }>,
   ): Promise<void> {
     for (const plan of plans) {
       await this.pool.query(
         `INSERT INTO subscription_plans (id, name, description, price_monthly, max_users, max_storage_gb, is_active, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
          ON CONFLICT (name) DO NOTHING`,
-        [uuidV7(), plan.name, plan.description ?? null, plan.priceMonthly, plan.maxUsers ?? null, plan.maxStorageGb ?? null, plan.isActive ?? true],
+        [
+          uuidV7(),
+          plan.name,
+          plan.description ?? null,
+          plan.priceMonthly,
+          plan.maxUsers ?? null,
+          plan.maxStorageGb ?? null,
+          plan.isActive ?? true,
+        ],
       );
     }
   }
 
   async seedModules(
-    modules: Array<{ code: string; name: string; moduleGroup?: string; description?: string | null; icon?: string | null; route?: string | null; isCore?: boolean; sortOrder?: number; parentModuleCode?: string | null }>,
+    modules: Array<{
+      code: string;
+      name: string;
+      moduleGroup?: string;
+      description?: string | null;
+      icon?: string | null;
+      route?: string | null;
+      isCore?: boolean;
+      sortOrder?: number;
+      parentModuleCode?: string | null;
+    }>,
   ): Promise<void> {
     for (const module of modules) {
       const parentResult = module.parentModuleCode
@@ -172,23 +208,32 @@ export class PostgresPlatformRepository
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
          ON CONFLICT (code) DO NOTHING`,
         [
-         uuidV7(),
-         parentId,
-         module.code,
-         module.name,
-         module.moduleGroup ?? 'Administration',
-         module.description ?? null,
-         module.icon ?? null,
-         module.route ?? null,
-         module.isCore ?? false,
-         module.sortOrder ?? 0,
+          uuidV7(),
+          parentId,
+          module.code,
+          module.name,
+          module.moduleGroup ?? 'Administration',
+          module.description ?? null,
+          module.icon ?? null,
+          module.route ?? null,
+          module.isCore ?? false,
+          module.sortOrder ?? 0,
         ],
       );
     }
   }
 
   async seedPermissions(
-    permissions: Array<{ moduleCode: string; resource: string; action: string; scope?: 'own' | 'branch' | 'organization' | 'tenant' | 'global'; permissionKey: string; displayName: string; description?: string | null; isSystem?: boolean }>,
+    permissions: Array<{
+      moduleCode: string;
+      resource: string;
+      action: string;
+      scope?: 'own' | 'branch' | 'organization' | 'tenant' | 'global';
+      permissionKey: string;
+      displayName: string;
+      description?: string | null;
+      isSystem?: boolean;
+    }>,
   ): Promise<void> {
     for (const permission of permissions) {
       await this.pool.query(
@@ -196,21 +241,24 @@ export class PostgresPlatformRepository
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          ON CONFLICT (permission_key) DO NOTHING`,
         [
-         uuidV7(),
-         permission.moduleCode,
-         permission.resource,
-         permission.action,
-         permission.scope ?? 'tenant',
-         permission.permissionKey,
-         permission.displayName,
-         permission.description ?? null,
-         permission.isSystem ?? false,
+          uuidV7(),
+          permission.moduleCode,
+          permission.resource,
+          permission.action,
+          permission.scope ?? 'tenant',
+          permission.permissionKey,
+          permission.displayName,
+          permission.description ?? null,
+          permission.isSystem ?? false,
         ],
       );
     }
   }
 
-  async findByTenantAndIdentifier(tenantId: string, identifier: string): Promise<({
+  async findByTenantAndIdentifier(
+    tenantId: string,
+    identifier: string,
+  ): Promise<{
     id: string;
     tenantId: string;
     organizationId?: string | null;
@@ -220,7 +268,7 @@ export class PostgresPlatformRepository
     email: string;
     passwordHash: string;
     status: string;
-  }) | null> {
+  } | null> {
     if (!tenantId || tenantId.trim() === '') {
       return null;
     }
@@ -255,7 +303,10 @@ export class PostgresPlatformRepository
     };
   }
 
-  async findById(tenantId: string, userId: string): Promise<({
+  async findById(
+    tenantId: string,
+    userId: string,
+  ): Promise<{
     id: string;
     tenantId: string;
     organizationId?: string | null;
@@ -267,7 +318,7 @@ export class PostgresPlatformRepository
     status: string;
     failedLoginCount?: number;
     lockedUntil?: Date | string | null;
-  }) | null> {
+  } | null> {
     if (!tenantId || tenantId.trim() === '' || !userId || userId.trim() === '') {
       return null;
     }
@@ -387,7 +438,11 @@ export class PostgresPlatformRepository
     slug: string;
     status: string;
   } | null> {
-    const normalizedHost = (host ?? '').trim().toLowerCase().replace(/:\d+$/, '').replace(/^www\./, '');
+    const normalizedHost = (host ?? '')
+      .trim()
+      .toLowerCase()
+      .replace(/:\d+$/, '')
+      .replace(/^www\./, '');
     if (!normalizedHost) {
       return null;
     }
@@ -425,14 +480,19 @@ export class PostgresPlatformRepository
     };
   }
 
-  async findUserOrganizationMemberships(tenantId: string, userId: string): Promise<Array<{
-    id: string;
-    tenantId: string;
-    code: string;
-    name: string;
-    status: 'active' | 'inactive' | 'archived';
-    isDefault: boolean;
-  }>> {
+  async findUserOrganizationMemberships(
+    tenantId: string,
+    userId: string,
+  ): Promise<
+    Array<{
+      id: string;
+      tenantId: string;
+      code: string;
+      name: string;
+      status: 'active' | 'inactive' | 'archived';
+      isDefault: boolean;
+    }>
+  > {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
         `SELECT o.id, o.tenant_id as "tenantId", o.code, o.name, o.status, o.is_default as "isDefault"
@@ -485,7 +545,19 @@ export class PostgresPlatformRepository
     }));
   }
 
-  async listRoles(tenantId: string): Promise<Array<{ id: string; tenantId: string; code: string; name: string; description?: string | null; isSystem: boolean; sortOrder: number; createdAt?: Date | string | null; updatedAt?: Date | string | null }>> {
+  async listRoles(tenantId: string): Promise<
+    Array<{
+      id: string;
+      tenantId: string;
+      code: string;
+      name: string;
+      description?: string | null;
+      isSystem: boolean;
+      sortOrder: number;
+      createdAt?: Date | string | null;
+      updatedAt?: Date | string | null;
+    }>
+  > {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
         `SELECT id, tenant_id as "tenantId", code, name, description, is_system as "isSystem", sort_order as "sortOrder", created_at as "createdAt", updated_at as "updatedAt"
@@ -507,7 +579,20 @@ export class PostgresPlatformRepository
     }));
   }
 
-  async getRoleById(tenantId: string, roleId: string): Promise<{ id: string; tenantId: string; code: string; name: string; description?: string | null; isSystem: boolean; sortOrder: number; createdAt?: Date | string | null; updatedAt?: Date | string | null } | null> {
+  async getRoleById(
+    tenantId: string,
+    roleId: string,
+  ): Promise<{
+    id: string;
+    tenantId: string;
+    code: string;
+    name: string;
+    description?: string | null;
+    isSystem: boolean;
+    sortOrder: number;
+    createdAt?: Date | string | null;
+    updatedAt?: Date | string | null;
+  } | null> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
         `SELECT id, tenant_id as "tenantId", code, name, description, is_system as "isSystem", sort_order as "sortOrder", created_at as "createdAt", updated_at as "updatedAt"
@@ -534,7 +619,21 @@ export class PostgresPlatformRepository
     };
   }
 
-  async updateRole(tenantId: string, roleId: string, changes: { code?: string; name?: string; description?: string | null; isSystem?: boolean; sortOrder?: number }): Promise<{ id: string; tenantId: string; code: string; name: string; description?: string | null; isSystem: boolean; sortOrder: number; createdAt?: Date | string | null; updatedAt?: Date | string | null } | null> {
+  async updateRole(
+    tenantId: string,
+    roleId: string,
+    changes: { code?: string; name?: string; description?: string | null; isSystem?: boolean; sortOrder?: number },
+  ): Promise<{
+    id: string;
+    tenantId: string;
+    code: string;
+    name: string;
+    description?: string | null;
+    isSystem: boolean;
+    sortOrder: number;
+    createdAt?: Date | string | null;
+    updatedAt?: Date | string | null;
+  } | null> {
     const fields: string[] = ['updated_at = NOW()'];
     const values: unknown[] = [];
     let idx = 1;
@@ -591,7 +690,19 @@ export class PostgresPlatformRepository
     };
   }
 
-  async listPermissions(tenantId: string): Promise<Array<{ id: string; moduleCode: string; resource: string; action: string; scope: 'own' | 'branch' | 'organization' | 'tenant' | 'global'; permissionKey: string; displayName: string; description?: string | null; isSystem: boolean }>> {
+  async listPermissions(tenantId: string): Promise<
+    Array<{
+      id: string;
+      moduleCode: string;
+      resource: string;
+      action: string;
+      scope: 'own' | 'branch' | 'organization' | 'tenant' | 'global';
+      permissionKey: string;
+      displayName: string;
+      description?: string | null;
+      isSystem: boolean;
+    }>
+  > {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
         `SELECT id, module_code as "moduleCode", resource, action, scope, permission_key as "permissionKey", display_name as "displayName", description, is_system as "isSystem"
@@ -619,10 +730,9 @@ export class PostgresPlatformRepository
     }
 
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
-      const permissionRows = await client.query(
-        `SELECT id FROM permissions WHERE permission_key = ANY($1)`,
-        [normalized],
-      );
+      const permissionRows = await client.query(`SELECT id FROM permissions WHERE permission_key = ANY($1)`, [
+        normalized,
+      ]);
       if (permissionRows.rows.length === 0) {
         return { count: 0 };
       }
@@ -638,10 +748,10 @@ export class PostgresPlatformRepository
       const inserted: number[] = [];
       for (const permission of permissionRows.rows) {
         const insertResult = await client.query(
-         `INSERT INTO role_permissions (tenant_id, role_id, permission_id)
+          `INSERT INTO role_permissions (tenant_id, role_id, permission_id)
           VALUES ($1, $2, $3)
           ON CONFLICT (role_id, permission_id, tenant_id) DO NOTHING`,
-         [tenantId, roleId, permission.id],
+          [tenantId, roleId, permission.id],
         );
         inserted.push(insertResult.rowCount ?? 0);
       }
@@ -659,10 +769,9 @@ export class PostgresPlatformRepository
     }
 
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
-      const permissionRows = await client.query(
-        `SELECT id FROM permissions WHERE permission_key = ANY($1)`,
-        [normalized],
-      );
+      const permissionRows = await client.query(`SELECT id FROM permissions WHERE permission_key = ANY($1)`, [
+        normalized,
+      ]);
       if (permissionRows.rows.length === 0) {
         return { count: 0 };
       }
@@ -680,7 +789,9 @@ export class PostgresPlatformRepository
   }
 
   async replacePermissionsForRole(tenantId: string, roleId: string, permissionKeys: string[]): Promise<number> {
-    const normalized = Array.from(new Set((permissionKeys ?? []).filter(Boolean))).map((key) => key.trim()).filter(Boolean);
+    const normalized = Array.from(new Set((permissionKeys ?? []).filter(Boolean)))
+      .map((key) => key.trim())
+      .filter(Boolean);
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       const roleExists = await client.query(
         `SELECT 1 FROM roles WHERE tenant_id = $1 AND id = $2 AND is_deleted = false LIMIT 1`,
@@ -700,10 +811,7 @@ export class PostgresPlatformRepository
         throw new Error(`Unknown permission key(s): ${invalidKeys.join(', ')}`);
       }
 
-      await client.query(
-        `DELETE FROM role_permissions WHERE tenant_id = $1 AND role_id = $2`,
-        [tenantId, roleId],
-      );
+      await client.query(`DELETE FROM role_permissions WHERE tenant_id = $1 AND role_id = $2`, [tenantId, roleId]);
 
       const permissionIds = permissionRows.rows.map((row) => row.id);
       if (permissionIds.length === 0) {
@@ -803,7 +911,22 @@ export class PostgresPlatformRepository
     return result;
   }
 
-  async getRolesForUser(tenantId: string, userId: string): Promise<Array<{ id: string; tenantId: string; code: string; name: string; description?: string | null; isSystem: boolean; sortOrder: number; createdAt?: Date | string | null; updatedAt?: Date | string | null }>> {
+  async getRolesForUser(
+    tenantId: string,
+    userId: string,
+  ): Promise<
+    Array<{
+      id: string;
+      tenantId: string;
+      code: string;
+      name: string;
+      description?: string | null;
+      isSystem: boolean;
+      sortOrder: number;
+      createdAt?: Date | string | null;
+      updatedAt?: Date | string | null;
+    }>
+  > {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
         `SELECT r.id, r.tenant_id as "tenantId", r.code, r.name, r.description,
@@ -860,20 +983,20 @@ export class PostgresPlatformRepository
           input.tenantId,
           input.userId,
           input.organizationId ?? null,
-         input.locationId ?? null,
-         input.branchId ?? null,
-         input.accessTokenId ?? null,
-         input.refreshTokenHash,
-         input.device ?? null,
-         input.userAgent ?? null,
-         input.ipAddress ?? null,
-         null,
-         true,
+          input.locationId ?? null,
+          input.branchId ?? null,
+          input.accessTokenId ?? null,
+          input.refreshTokenHash,
+          input.device ?? null,
+          input.userAgent ?? null,
+          input.ipAddress ?? null,
+          null,
+          true,
           null,
           null,
-         null,
-         input.expiresAt,
-         null,
+          null,
+          input.expiresAt,
+          null,
         ],
       );
     });
@@ -977,7 +1100,10 @@ export class PostgresPlatformRepository
     });
   }
 
-  async findRoleByTenantAndCode(tenantId: string, code: string): Promise<{ id: string; tenantId: string; code: string; name: string } | null> {
+  async findRoleByTenantAndCode(
+    tenantId: string,
+    code: string,
+  ): Promise<{ id: string; tenantId: string; code: string; name: string } | null> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
         'SELECT id, tenant_id as "tenantId", code, name FROM roles WHERE tenant_id = $1 AND code = $2 AND is_deleted = false LIMIT 1',
@@ -1000,19 +1126,40 @@ export class PostgresPlatformRepository
 
   async createRole(
     tenantId: string,
-    codeOrInput: string | { code: string; name: string; description?: string | null; isSystem?: boolean; sortOrder?: number },
+    codeOrInput:
+      | string
+      | { code: string; name: string; description?: string | null; isSystem?: boolean; sortOrder?: number },
     maybeName?: string,
-  ): Promise<{ id: string; tenantId: string; code: string; name: string; description?: string | null; isSystem: boolean; sortOrder: number; createdAt?: Date | string | null; updatedAt?: Date | string | null }> {
-    const input = typeof codeOrInput === 'string'
-      ? { code: codeOrInput, name: maybeName ?? codeOrInput, description: null, isSystem: false, sortOrder: 0 }
-      : codeOrInput;
+  ): Promise<{
+    id: string;
+    tenantId: string;
+    code: string;
+    name: string;
+    description?: string | null;
+    isSystem: boolean;
+    sortOrder: number;
+    createdAt?: Date | string | null;
+    updatedAt?: Date | string | null;
+  }> {
+    const input =
+      typeof codeOrInput === 'string'
+        ? { code: codeOrInput, name: maybeName ?? codeOrInput, description: null, isSystem: false, sortOrder: 0 }
+        : codeOrInput;
 
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
         `INSERT INTO roles (id, tenant_id, code, name, description, is_system, sort_order, created_at, updated_at, version)
          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW(), 1)
          RETURNING id, tenant_id as "tenantId", code, name, description, is_system as "isSystem", sort_order as "sortOrder", created_at as "createdAt", updated_at as "updatedAt"`,
-        [uuidV7(), tenantId, input.code.trim(), input.name.trim(), input.description ?? null, input.isSystem ?? false, input.sortOrder ?? 0],
+        [
+          uuidV7(),
+          tenantId,
+          input.code.trim(),
+          input.name.trim(),
+          input.description ?? null,
+          input.isSystem ?? false,
+          input.sortOrder ?? 0,
+        ],
       );
     });
 
@@ -1040,40 +1187,59 @@ export class PostgresPlatformRepository
     email: string;
     passwordHash: string;
     status?: string;
-  }): Promise<{ id: string; tenantId: string; organizationId?: string | null; defaultBranchId?: string | null; defaultLocationId?: string | null; username: string; email: string; status: string }> {
+  }): Promise<{
+    id: string;
+    tenantId: string;
+    organizationId?: string | null;
+    defaultBranchId?: string | null;
+    defaultLocationId?: string | null;
+    username: string;
+    email: string;
+    status: string;
+  }> {
     const id = input.id ?? uuidV7();
     const result = await withTenantContext(this.pool, this.tenantContextKey, input.tenantId, async (client) => {
       const userResult = await client.query(
         `INSERT INTO users (id, tenant_id, organization_id, default_branch_id, default_location_id, username, email, password_hash, status, created_at, updated_at, version)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW(), 1)
          RETURNING id, tenant_id as "tenantId", organization_id as "organizationId", default_branch_id as "defaultBranchId", default_location_id as "defaultLocationId", username, email, status`,
-        [id, input.tenantId, input.organizationId ?? null, input.defaultBranchId ?? null, input.defaultLocationId ?? null, input.username, input.email, input.passwordHash, input.status ?? 'active'],
+        [
+          id,
+          input.tenantId,
+          input.organizationId ?? null,
+          input.defaultBranchId ?? null,
+          input.defaultLocationId ?? null,
+          input.username,
+          input.email,
+          input.passwordHash,
+          input.status ?? 'active',
+        ],
       );
 
       if (input.organizationId) {
         await client.query(
-         `INSERT INTO user_organization_access (tenant_id, user_id, organization_id)
+          `INSERT INTO user_organization_access (tenant_id, user_id, organization_id)
            VALUES ($1, $2, $3)
            ON CONFLICT (user_id, organization_id, tenant_id) DO NOTHING`,
-         [input.tenantId, id, input.organizationId],
+          [input.tenantId, id, input.organizationId],
         );
       }
 
       if (input.defaultBranchId) {
         await client.query(
-         `INSERT INTO user_branch_access (tenant_id, user_id, branch_id)
+          `INSERT INTO user_branch_access (tenant_id, user_id, branch_id)
            VALUES ($1, $2, $3)
            ON CONFLICT (user_id, branch_id, tenant_id) DO NOTHING`,
-         [input.tenantId, id, input.defaultBranchId],
+          [input.tenantId, id, input.defaultBranchId],
         );
       }
 
       if (input.defaultLocationId) {
         await client.query(
-         `INSERT INTO user_location_access (tenant_id, user_id, organization_id, location_id)
+          `INSERT INTO user_location_access (tenant_id, user_id, organization_id, location_id)
            VALUES ($1, $2, $3, $4)
            ON CONFLICT (user_id, location_id, tenant_id) DO NOTHING`,
-         [input.tenantId, id, input.organizationId, input.defaultLocationId],
+          [input.tenantId, id, input.organizationId, input.defaultLocationId],
         );
       }
 
@@ -1135,7 +1301,12 @@ export class PostgresPlatformRepository
       );
 
       const insertedTenantId = tenantResult.rows[0]?.id ?? tenantId;
-      const organizationCodeResult = await this.reserveNextCodeValueWithClient(client, insertedTenantId, 'organization', 'tenant');
+      const organizationCodeResult = await this.reserveNextCodeValueWithClient(
+        client,
+        insertedTenantId,
+        'organization',
+        'tenant',
+      );
       const branchCodeResult = await this.reserveNextCodeValueWithClient(client, insertedTenantId, 'branch', 'tenant');
 
       const organizationNumber = Number(organizationCodeResult.rows[0]?.lastValue ?? 0);
@@ -1147,17 +1318,17 @@ export class PostgresPlatformRepository
         [
           organizationId,
           insertedTenantId,
-         `ORG${String(organizationNumber).padStart(6, '0')}`,
-         input.organization.name,
-         input.organization.legalName ?? null,
-         input.organization.email ?? null,
-         input.organization.phone ?? null,
-         input.organization.website ?? null,
-         input.organization.baseCurrency ?? 'USD',
-         input.organization.fiscalCalendar ?? 'standard',
-         input.organization.status ?? 'active',
-         input.organization.isDefault ?? true,
-         null,
+          `ORG${String(organizationNumber).padStart(6, '0')}`,
+          input.organization.name,
+          input.organization.legalName ?? null,
+          input.organization.email ?? null,
+          input.organization.phone ?? null,
+          input.organization.website ?? null,
+          input.organization.baseCurrency ?? 'USD',
+          input.organization.fiscalCalendar ?? 'standard',
+          input.organization.status ?? 'active',
+          input.organization.isDefault ?? true,
+          null,
         ],
       );
 
@@ -1184,19 +1355,21 @@ export class PostgresPlatformRepository
           branchId,
           insertedTenantId,
           organizationId,
-         `BR${String(branchNumber).padStart(3, '0')}`,
-         input.branch.name,
-         input.branch.status ?? 'active',
-         input.branch.isHeadOffice ?? true,
-         input.branch.isDefault ?? true,
-         input.branch.city ?? null,
-         input.branch.country ?? null,
-         input.branch.timezone ?? 'UTC',
+          `BR${String(branchNumber).padStart(3, '0')}`,
+          input.branch.name,
+          input.branch.status ?? 'active',
+          input.branch.isHeadOffice ?? true,
+          input.branch.isDefault ?? true,
+          input.branch.city ?? null,
+          input.branch.country ?? null,
+          input.branch.timezone ?? 'UTC',
         ],
       );
 
       if (input.subscriptionPlanName) {
-        const planResult = await logQuery('SELECT id FROM subscription_plans WHERE name = $1 LIMIT 1', [input.subscriptionPlanName]);
+        const planResult = await logQuery('SELECT id FROM subscription_plans WHERE name = $1 LIMIT 1', [
+          input.subscriptionPlanName,
+        ]);
         const planId = planResult.rows[0]?.id;
         if (planId) {
           await logQuery(
@@ -1207,7 +1380,10 @@ export class PostgresPlatformRepository
         }
       }
 
-      const moduleResult = await logQuery('SELECT id, code FROM modules WHERE code IN (\'core\', \'security\', \'organization\', \'branch\', \'user-management\', \'tenant-configuration\')', []);
+      const moduleResult = await logQuery(
+        "SELECT id, code FROM modules WHERE code IN ('core', 'security', 'organization', 'branch', 'user-management', 'tenant-configuration')",
+        [],
+      );
       for (const moduleRow of moduleResult.rows) {
         await logQuery(
           `INSERT INTO tenant_modules (id, tenant_id, module_id, enabled, enabled_at, enabled_by, enabled_reason, disabled_at, disabled_by)
@@ -1241,13 +1417,28 @@ export class PostgresPlatformRepository
       await logQuery(
         `INSERT INTO users (id, tenant_id, organization_id, default_branch_id, username, email, password_hash, status, created_at, updated_at, version)
          VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', NOW(), NOW(), 1)`,
-        [userId, insertedTenantId, adminOrganizationId, adminBranchId, input.administrator.username, input.administrator.email, hashedPassword],
+        [
+          userId,
+          insertedTenantId,
+          adminOrganizationId,
+          adminBranchId,
+          input.administrator.username,
+          input.administrator.email,
+          hashedPassword,
+        ],
       );
 
       await logQuery(
         `INSERT INTO roles (id, tenant_id, code, name, description, is_system, sort_order, created_at, updated_at, version)
          VALUES ($1, $2, $3, $4, $5, $6, 0, NOW(), NOW(), 1)`,
-        [roleId, insertedTenantId, input.role.code, input.role.name, input.role.description ?? null, input.role.isSystem ?? false],
+        [
+          roleId,
+          insertedTenantId,
+          input.role.code,
+          input.role.name,
+          input.role.description ?? null,
+          input.role.isSystem ?? false,
+        ],
       );
 
       const permissionIds = await logQuery(
@@ -1310,7 +1501,10 @@ export class PostgresPlatformRepository
     return result;
   }
 
-  private async generateOrganizationCodeWithClient(client: { query: (text: string, params?: any[]) => Promise<any> }, tenantId: string): Promise<string> {
+  private async generateOrganizationCodeWithClient(
+    client: { query: (text: string, params?: any[]) => Promise<any> },
+    tenantId: string,
+  ): Promise<string> {
     const result = await this.reserveNextCodeValueWithClient(client, tenantId, 'organization', 'tenant');
     const nextNumber = Number(result.rows[0]?.lastValue ?? 0);
     return `ORG${String(nextNumber).padStart(6, '0')}`;
@@ -1321,7 +1515,25 @@ export class PostgresPlatformRepository
     return `ORG${String(nextNumber).padStart(6, '0')}`;
   }
 
-  async createOrganization(tenantId: string, input: { code?: string | null; name: string; legalName?: string | null; gstNo?: string | null; panNo?: string | null; cinNo?: string | null; email?: string | null; phone?: string | null; website?: string | null; baseCurrency?: string; fiscalCalendar?: string; status?: 'active' | 'inactive' | 'archived'; isDefault?: boolean; remarks?: string | null }): Promise<OrganizationRecord> {
+  async createOrganization(
+    tenantId: string,
+    input: {
+      code?: string | null;
+      name: string;
+      legalName?: string | null;
+      gstNo?: string | null;
+      panNo?: string | null;
+      cinNo?: string | null;
+      email?: string | null;
+      phone?: string | null;
+      website?: string | null;
+      baseCurrency?: string;
+      fiscalCalendar?: string;
+      status?: 'active' | 'inactive' | 'archived';
+      isDefault?: boolean;
+      remarks?: string | null;
+    },
+  ): Promise<OrganizationRecord> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       const nextCode = await this.generateOrganizationCodeWithClient(client, tenantId);
 
@@ -1352,22 +1564,22 @@ export class PostgresPlatformRepository
          deleted_at as "deletedAt",
          is_deleted as "isDeleted"`,
         [
-         uuidV7(),
-         tenantId,
-         nextCode,
-         input.name.trim(),
-         input.legalName ?? null,
-         input.gstNo ?? null,
-         input.panNo ?? null,
-         input.cinNo ?? null,
-         input.email ?? null,
-         input.phone ?? null,
-         input.website ?? null,
-         input.baseCurrency ?? 'USD',
-         input.fiscalCalendar ?? 'standard',
-         input.status ?? 'active',
-         input.isDefault ?? false,
-         input.remarks ?? null,
+          uuidV7(),
+          tenantId,
+          nextCode,
+          input.name.trim(),
+          input.legalName ?? null,
+          input.gstNo ?? null,
+          input.panNo ?? null,
+          input.cinNo ?? null,
+          input.email ?? null,
+          input.phone ?? null,
+          input.website ?? null,
+          input.baseCurrency ?? 'USD',
+          input.fiscalCalendar ?? 'standard',
+          input.status ?? 'active',
+          input.isDefault ?? false,
+          input.remarks ?? null,
         ],
       );
     });
@@ -1443,7 +1655,29 @@ export class PostgresPlatformRepository
     return result.rows.length > 0 ? this.mapOrganizationRow(result.rows[0]) : null;
   }
 
-  async updateOrganization(tenantId: string, organizationId: string, changes: Partial<Pick<OrganizationRecord, 'code' | 'name' | 'legalName' | 'gstNo' | 'panNo' | 'cinNo' | 'email' | 'phone' | 'website' | 'baseCurrency' | 'fiscalCalendar' | 'status' | 'isDefault' | 'remarks'>>): Promise<OrganizationRecord | null> {
+  async updateOrganization(
+    tenantId: string,
+    organizationId: string,
+    changes: Partial<
+      Pick<
+        OrganizationRecord,
+        | 'code'
+        | 'name'
+        | 'legalName'
+        | 'gstNo'
+        | 'panNo'
+        | 'cinNo'
+        | 'email'
+        | 'phone'
+        | 'website'
+        | 'baseCurrency'
+        | 'fiscalCalendar'
+        | 'status'
+        | 'isDefault'
+        | 'remarks'
+      >
+    >,
+  ): Promise<OrganizationRecord | null> {
     const fields: string[] = [];
     const values: unknown[] = [];
     let idx = 1;
@@ -1560,7 +1794,11 @@ export class PostgresPlatformRepository
     return (result.rowCount ?? 0) > 0;
   }
 
-  private async generateBranchCodeWithClient(client: { query: (text: string, params?: any[]) => Promise<any> }, tenantId: string, organizationId: string): Promise<string> {
+  private async generateBranchCodeWithClient(
+    client: { query: (text: string, params?: any[]) => Promise<any> },
+    tenantId: string,
+    organizationId: string,
+  ): Promise<string> {
     void organizationId;
     const result = await this.reserveNextCodeValueWithClient(client, tenantId, 'branch', 'tenant');
     const nextNumber = Number(result.rows[0]?.lastValue ?? 0);
@@ -1573,7 +1811,26 @@ export class PostgresPlatformRepository
     return `BR${String(nextNumber).padStart(3, '0')}`;
   }
 
-  async createBranch(tenantId: string, organizationId: string, input: { code?: string | null; name: string; status?: 'active' | 'inactive' | 'archived'; isHeadOffice?: boolean; isDefault?: boolean; addressLine1?: string | null; addressLine2?: string | null; city?: string | null; district?: string | null; state?: string | null; country?: string | null; postalCode?: string | null; timezone?: string; remarks?: string | null }): Promise<BranchRecord> {
+  async createBranch(
+    tenantId: string,
+    organizationId: string,
+    input: {
+      code?: string | null;
+      name: string;
+      status?: 'active' | 'inactive' | 'archived';
+      isHeadOffice?: boolean;
+      isDefault?: boolean;
+      addressLine1?: string | null;
+      addressLine2?: string | null;
+      city?: string | null;
+      district?: string | null;
+      state?: string | null;
+      country?: string | null;
+      postalCode?: string | null;
+      timezone?: string;
+      remarks?: string | null;
+    },
+  ): Promise<BranchRecord> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       const organization = await client.query(
         `SELECT id FROM organizations WHERE tenant_id = $1 AND id = $2 AND is_deleted = false AND status = 'active' LIMIT 1`,
@@ -1613,23 +1870,23 @@ export class PostgresPlatformRepository
          deleted_at as "deletedAt",
          is_deleted as "isDeleted"`,
         [
-         uuidV7(),
-         tenantId,
-         organizationId,
-         nextCode,
-         input.name.trim(),
-         input.status ?? 'active',
-         input.isHeadOffice ?? false,
-         input.isDefault ?? false,
-         input.addressLine1 ?? null,
-         input.addressLine2 ?? null,
-         input.city ?? null,
-         input.district ?? null,
-         input.state ?? null,
-         input.country ?? null,
-         input.postalCode ?? null,
-         input.timezone ?? 'UTC',
-         input.remarks ?? null,
+          uuidV7(),
+          tenantId,
+          organizationId,
+          nextCode,
+          input.name.trim(),
+          input.status ?? 'active',
+          input.isHeadOffice ?? false,
+          input.isDefault ?? false,
+          input.addressLine1 ?? null,
+          input.addressLine2 ?? null,
+          input.city ?? null,
+          input.district ?? null,
+          input.state ?? null,
+          input.country ?? null,
+          input.postalCode ?? null,
+          input.timezone ?? 'UTC',
+          input.remarks ?? null,
         ],
       );
     });
@@ -1672,7 +1929,11 @@ export class PostgresPlatformRepository
     return result.rows.map((row) => this.mapBranchRow(row));
   }
 
-  async listAccessibleBranchesForUser(tenantId: string, userId: string, organizationId?: string | null): Promise<BranchRecord[]> {
+  async listAccessibleBranchesForUser(
+    tenantId: string,
+    userId: string,
+    organizationId?: string | null,
+  ): Promise<BranchRecord[]> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
         `SELECT b.id,
@@ -1751,7 +2012,12 @@ export class PostgresPlatformRepository
     return result.rows.length > 0 ? this.mapBranchRow(result.rows[0]) : null;
   }
 
-  async getAccessibleBranchByIdForUser(tenantId: string, userId: string, branchId: string, organizationId?: string | null): Promise<BranchRecord | null> {
+  async getAccessibleBranchByIdForUser(
+    tenantId: string,
+    userId: string,
+    branchId: string,
+    organizationId?: string | null,
+  ): Promise<BranchRecord | null> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
         `SELECT b.id,
@@ -1796,7 +2062,12 @@ export class PostgresPlatformRepository
     return result.rows.length > 0 ? this.mapBranchRow(result.rows[0]) : null;
   }
 
-  async validateBranchAccess(tenantId: string, userId: string, branchId: string, organizationId?: string | null): Promise<boolean> {
+  async validateBranchAccess(
+    tenantId: string,
+    userId: string,
+    branchId: string,
+    organizationId?: string | null,
+  ): Promise<boolean> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
         `SELECT 1
@@ -1821,7 +2092,30 @@ export class PostgresPlatformRepository
     return (result.rowCount ?? 0) > 0;
   }
 
-  async updateBranch(tenantId: string, organizationId: string, branchId: string, changes: Partial<Pick<BranchRecord, 'code' | 'name' | 'status' | 'isHeadOffice' | 'isDefault' | 'addressLine1' | 'addressLine2' | 'city' | 'district' | 'state' | 'country' | 'postalCode' | 'timezone' | 'remarks'>>): Promise<BranchRecord | null> {
+  async updateBranch(
+    tenantId: string,
+    organizationId: string,
+    branchId: string,
+    changes: Partial<
+      Pick<
+        BranchRecord,
+        | 'code'
+        | 'name'
+        | 'status'
+        | 'isHeadOffice'
+        | 'isDefault'
+        | 'addressLine1'
+        | 'addressLine2'
+        | 'city'
+        | 'district'
+        | 'state'
+        | 'country'
+        | 'postalCode'
+        | 'timezone'
+        | 'remarks'
+      >
+    >,
+  ): Promise<BranchRecord | null> {
     const fields: string[] = [];
     const values: unknown[] = [];
     let idx = 1;
@@ -1944,7 +2238,24 @@ export class PostgresPlatformRepository
     return `LOC${String(nextNumber).padStart(6, '0')}`;
   }
 
-  async createLocation(tenantId: string, organizationId: string, input: { code: string; name: string; description?: string | null; status?: 'active' | 'inactive' | 'archived'; isDefault?: boolean; addressLine1?: string | null; addressLine2?: string | null; city?: string | null; state?: string | null; country?: string | null; postalCode?: string | null; timezone?: string }): Promise<LocationRecord> {
+  async createLocation(
+    tenantId: string,
+    organizationId: string,
+    input: {
+      code: string;
+      name: string;
+      description?: string | null;
+      status?: 'active' | 'inactive' | 'archived';
+      isDefault?: boolean;
+      addressLine1?: string | null;
+      addressLine2?: string | null;
+      city?: string | null;
+      state?: string | null;
+      country?: string | null;
+      postalCode?: string | null;
+      timezone?: string;
+    },
+  ): Promise<LocationRecord> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
         `INSERT INTO locations (
@@ -1973,21 +2284,21 @@ export class PostgresPlatformRepository
          deleted_at as "deletedAt",
          is_deleted as "isDeleted"`,
         [
-         uuidV7(),
-         tenantId,
-         organizationId,
-         input.code.trim(),
-         input.name.trim(),
-         input.description ?? null,
-         input.status ?? 'active',
-         input.isDefault ?? false,
-         input.addressLine1 ?? null,
-         input.addressLine2 ?? null,
-         input.city ?? null,
-         input.state ?? null,
-         input.country ?? null,
-         input.postalCode ?? null,
-         input.timezone ?? 'UTC',
+          uuidV7(),
+          tenantId,
+          organizationId,
+          input.code.trim(),
+          input.name.trim(),
+          input.description ?? null,
+          input.status ?? 'active',
+          input.isDefault ?? false,
+          input.addressLine1 ?? null,
+          input.addressLine2 ?? null,
+          input.city ?? null,
+          input.state ?? null,
+          input.country ?? null,
+          input.postalCode ?? null,
+          input.timezone ?? 'UTC',
         ],
       );
     });
@@ -2061,7 +2372,28 @@ export class PostgresPlatformRepository
     return result.rows.length > 0 ? this.mapLocationRow(result.rows[0]) : null;
   }
 
-  async updateLocation(tenantId: string, organizationId: string, locationId: string, changes: Partial<Pick<LocationRecord, 'code' | 'name' | 'description' | 'status' | 'isDefault' | 'addressLine1' | 'addressLine2' | 'city' | 'state' | 'country' | 'postalCode' | 'timezone'>>): Promise<LocationRecord | null> {
+  async updateLocation(
+    tenantId: string,
+    organizationId: string,
+    locationId: string,
+    changes: Partial<
+      Pick<
+        LocationRecord,
+        | 'code'
+        | 'name'
+        | 'description'
+        | 'status'
+        | 'isDefault'
+        | 'addressLine1'
+        | 'addressLine2'
+        | 'city'
+        | 'state'
+        | 'country'
+        | 'postalCode'
+        | 'timezone'
+      >
+    >,
+  ): Promise<LocationRecord | null> {
     const fields: string[] = [];
     const values: unknown[] = [];
     let idx = 1;
@@ -2169,7 +2501,11 @@ export class PostgresPlatformRepository
     return (result.rowCount ?? 0) > 0;
   }
 
-  async listAccessibleLocationsForUser(tenantId: string, userId: string, organizationId?: string | null): Promise<LocationRecord[]> {
+  async listAccessibleLocationsForUser(
+    tenantId: string,
+    userId: string,
+    organizationId?: string | null,
+  ): Promise<LocationRecord[]> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
         `SELECT l.id,
@@ -2212,7 +2548,12 @@ export class PostgresPlatformRepository
     return result.rows.map((row) => this.mapLocationRow(row));
   }
 
-  async getAccessibleLocationByIdForUser(tenantId: string, userId: string, locationId: string, organizationId?: string | null): Promise<LocationRecord | null> {
+  async getAccessibleLocationByIdForUser(
+    tenantId: string,
+    userId: string,
+    locationId: string,
+    organizationId?: string | null,
+  ): Promise<LocationRecord | null> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
         `SELECT l.id,
@@ -2256,7 +2597,12 @@ export class PostgresPlatformRepository
     return result.rows.length > 0 ? this.mapLocationRow(result.rows[0]) : null;
   }
 
-  async validateLocationAccess(tenantId: string, userId: string, locationId: string, organizationId?: string | null): Promise<boolean> {
+  async validateLocationAccess(
+    tenantId: string,
+    userId: string,
+    locationId: string,
+    organizationId?: string | null,
+  ): Promise<boolean> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
         `SELECT 1
@@ -2386,7 +2732,16 @@ export class PostgresPlatformRepository
     }));
   }
 
-  async updateUser(tenantId: string, userId: string, changes: Partial<Pick<UserAdminRecord, 'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'defaultLocationId' | 'status'>>): Promise<UserAdminRecord | null> {
+  async updateUser(
+    tenantId: string,
+    userId: string,
+    changes: Partial<
+      Pick<
+        UserAdminRecord,
+        'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'defaultLocationId' | 'status'
+      >
+    >,
+  ): Promise<UserAdminRecord | null> {
     const fields: string[] = [];
     const values: unknown[] = [];
     let idx = 1;
@@ -2471,21 +2826,22 @@ export class PostgresPlatformRepository
       const currentBranchId = userRow.rows[0].defaultBranchId;
       if (currentBranchId) {
         const branchCheck = await client.query(
-         `SELECT id FROM branches WHERE tenant_id = $1 AND organization_id = $2 AND id = $3 AND is_deleted = false AND status = 'active' LIMIT 1`,
-         [tenantId, organizationId, currentBranchId],
+          `SELECT id FROM branches WHERE tenant_id = $1 AND organization_id = $2 AND id = $3 AND is_deleted = false AND status = 'active' LIMIT 1`,
+          [tenantId, organizationId, currentBranchId],
         );
         if (branchCheck.rows.length === 0) {
-         await client.query(
-           `UPDATE users SET default_branch_id = NULL, updated_at = NOW() WHERE tenant_id = $1 AND id = $2`,
-           [tenantId, userId],
-         );
+          await client.query(
+            `UPDATE users SET default_branch_id = NULL, updated_at = NOW() WHERE tenant_id = $1 AND id = $2`,
+            [tenantId, userId],
+          );
         }
       }
 
-      await client.query(
-        `UPDATE users SET organization_id = $1, updated_at = NOW() WHERE tenant_id = $2 AND id = $3`,
-        [organizationId, tenantId, userId],
-      );
+      await client.query(`UPDATE users SET organization_id = $1, updated_at = NOW() WHERE tenant_id = $2 AND id = $3`, [
+        organizationId,
+        tenantId,
+        userId,
+      ]);
 
       await client.query(
         `INSERT INTO user_organization_access (tenant_id, user_id, organization_id)

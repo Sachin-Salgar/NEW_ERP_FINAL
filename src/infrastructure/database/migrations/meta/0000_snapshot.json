@@ -250,12 +250,8 @@
           "name": "branches_tenant_id_tenants_id_fk",
           "tableFrom": "branches",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -263,14 +259,8 @@
           "name": "fk_branch_org_tenant",
           "tableFrom": "branches",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
+          "columnsFrom": ["organization_id", "tenant_id"],
+          "columnsTo": ["id", "tenant_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -457,12 +447,8 @@
           "name": "financial_years_tenant_id_tenants_id_fk",
           "tableFrom": "financial_years",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -470,14 +456,8 @@
           "name": "fk_fy_org_tenant",
           "tableFrom": "financial_years",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
+          "columnsFrom": ["organization_id", "tenant_id"],
+          "columnsTo": ["id", "tenant_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -725,12 +705,8 @@
           "name": "organizations_tenant_id_tenants_id_fk",
           "tableFrom": "organizations",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -820,9 +796,7 @@
         "permissions_permission_key_unique": {
           "name": "permissions_permission_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "permission_key"
-          ]
+          "columns": ["permission_key"]
         }
       },
       "policies": {},
@@ -880,12 +854,8 @@
           "name": "role_permissions_tenant_id_tenants_id_fk",
           "tableFrom": "role_permissions",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -893,12 +863,8 @@
           "name": "role_permissions_permission_id_permissions_id_fk",
           "tableFrom": "role_permissions",
           "tableTo": "permissions",
-          "columnsFrom": [
-            "permission_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["permission_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -906,14 +872,8 @@
           "name": "fk_role_permissions_role",
           "tableFrom": "role_permissions",
           "tableTo": "roles",
-          "columnsFrom": [
-            "role_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
+          "columnsFrom": ["role_id", "tenant_id"],
+          "columnsTo": ["id", "tenant_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -921,11 +881,7 @@
       "compositePrimaryKeys": {
         "role_permissions_pkey": {
           "name": "role_permissions_pkey",
-          "columns": [
-            "role_id",
-            "permission_id",
-            "tenant_id"
-          ]
+          "columns": ["role_id", "permission_id", "tenant_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1106,12 +1062,8 @@
           "name": "roles_tenant_id_tenants_id_fk",
           "tableFrom": "roles",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1217,12 +1169,8 @@
           "name": "tenant_modules_tenant_id_tenants_id_fk",
           "tableFrom": "tenant_modules",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1339,12 +1287,8 @@
           "name": "tenant_subscriptions_tenant_id_tenants_id_fk",
           "tableFrom": "tenant_subscriptions",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1577,12 +1521,8 @@
           "name": "user_branch_access_tenant_id_tenants_id_fk",
           "tableFrom": "user_branch_access",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1590,14 +1530,8 @@
           "name": "fk_ub_access_user",
           "tableFrom": "user_branch_access",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
+          "columnsFrom": ["user_id", "tenant_id"],
+          "columnsTo": ["id", "tenant_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1605,14 +1539,8 @@
           "name": "fk_ub_access_branch",
           "tableFrom": "user_branch_access",
           "tableTo": "branches",
-          "columnsFrom": [
-            "branch_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
+          "columnsFrom": ["branch_id", "tenant_id"],
+          "columnsTo": ["id", "tenant_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1620,11 +1548,7 @@
       "compositePrimaryKeys": {
         "user_branch_access_pkey": {
           "name": "user_branch_access_pkey",
-          "columns": [
-            "user_id",
-            "branch_id",
-            "tenant_id"
-          ]
+          "columns": ["user_id", "branch_id", "tenant_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1683,12 +1607,8 @@
           "name": "user_organization_access_tenant_id_tenants_id_fk",
           "tableFrom": "user_organization_access",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1696,14 +1616,8 @@
           "name": "fk_uo_access_user",
           "tableFrom": "user_organization_access",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
+          "columnsFrom": ["user_id", "tenant_id"],
+          "columnsTo": ["id", "tenant_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1711,14 +1625,8 @@
           "name": "fk_uo_access_org",
           "tableFrom": "user_organization_access",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
+          "columnsFrom": ["organization_id", "tenant_id"],
+          "columnsTo": ["id", "tenant_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1726,11 +1634,7 @@
       "compositePrimaryKeys": {
         "user_organization_access_pkey": {
           "name": "user_organization_access_pkey",
-          "columns": [
-            "user_id",
-            "organization_id",
-            "tenant_id"
-          ]
+          "columns": ["user_id", "organization_id", "tenant_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1796,12 +1700,8 @@
           "name": "user_permissions_tenant_id_tenants_id_fk",
           "tableFrom": "user_permissions",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1809,12 +1709,8 @@
           "name": "user_permissions_permission_id_permissions_id_fk",
           "tableFrom": "user_permissions",
           "tableTo": "permissions",
-          "columnsFrom": [
-            "permission_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["permission_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1822,14 +1718,8 @@
           "name": "fk_user_perms_user",
           "tableFrom": "user_permissions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
+          "columnsFrom": ["user_id", "tenant_id"],
+          "columnsTo": ["id", "tenant_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1837,11 +1727,7 @@
       "compositePrimaryKeys": {
         "user_permissions_pkey": {
           "name": "user_permissions_pkey",
-          "columns": [
-            "user_id",
-            "permission_id",
-            "tenant_id"
-          ]
+          "columns": ["user_id", "permission_id", "tenant_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1900,12 +1786,8 @@
           "name": "user_roles_tenant_id_tenants_id_fk",
           "tableFrom": "user_roles",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1913,14 +1795,8 @@
           "name": "fk_user_roles_user",
           "tableFrom": "user_roles",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
+          "columnsFrom": ["user_id", "tenant_id"],
+          "columnsTo": ["id", "tenant_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1928,14 +1804,8 @@
           "name": "fk_user_roles_role",
           "tableFrom": "user_roles",
           "tableTo": "roles",
-          "columnsFrom": [
-            "role_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
+          "columnsFrom": ["role_id", "tenant_id"],
+          "columnsTo": ["id", "tenant_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1943,11 +1813,7 @@
       "compositePrimaryKeys": {
         "user_roles_pkey": {
           "name": "user_roles_pkey",
-          "columns": [
-            "user_id",
-            "role_id",
-            "tenant_id"
-          ]
+          "columns": ["user_id", "role_id", "tenant_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2097,12 +1963,8 @@
           "name": "user_sessions_tenant_id_tenants_id_fk",
           "tableFrom": "user_sessions",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2110,14 +1972,8 @@
           "name": "fk_session_user_tenant",
           "tableFrom": "user_sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
+          "columnsFrom": ["user_id", "tenant_id"],
+          "columnsTo": ["id", "tenant_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2125,14 +1981,8 @@
           "name": "fk_session_org_tenant",
           "tableFrom": "user_sessions",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
+          "columnsFrom": ["organization_id", "tenant_id"],
+          "columnsTo": ["id", "tenant_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2140,14 +1990,8 @@
           "name": "fk_session_branch_tenant",
           "tableFrom": "user_sessions",
           "tableTo": "branches",
-          "columnsFrom": [
-            "branch_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
+          "columnsFrom": ["branch_id", "tenant_id"],
+          "columnsTo": ["id", "tenant_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2410,12 +2254,8 @@
           "name": "users_tenant_id_tenants_id_fk",
           "tableFrom": "users",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2423,14 +2263,8 @@
           "name": "fk_user_org_tenant",
           "tableFrom": "users",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
+          "columnsFrom": ["organization_id", "tenant_id"],
+          "columnsTo": ["id", "tenant_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2438,14 +2272,8 @@
           "name": "fk_user_branch_tenant",
           "tableFrom": "users",
           "tableTo": "branches",
-          "columnsFrom": [
-            "default_branch_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
+          "columnsFrom": ["default_branch_id", "tenant_id"],
+          "columnsTo": ["id", "tenant_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2470,73 +2298,37 @@
     "public.fy_status_enum": {
       "name": "fy_status_enum",
       "schema": "public",
-      "values": [
-        "open",
-        "closed",
-        "locked"
-      ]
+      "values": ["open", "closed", "locked"]
     },
     "public.org_status_enum": {
       "name": "org_status_enum",
       "schema": "public",
-      "values": [
-        "active",
-        "inactive",
-        "archived"
-      ]
+      "values": ["active", "inactive", "archived"]
     },
     "public.permission_scope_enum": {
       "name": "permission_scope_enum",
       "schema": "public",
-      "values": [
-        "own",
-        "branch",
-        "organization",
-        "tenant",
-        "global"
-      ]
+      "values": ["own", "branch", "organization", "tenant", "global"]
     },
     "public.reset_policy_enum": {
       "name": "reset_policy_enum",
       "schema": "public",
-      "values": [
-        "financial_year",
-        "calendar_year",
-        "monthly",
-        "never"
-      ]
+      "values": ["financial_year", "calendar_year", "monthly", "never"]
     },
     "public.subscription_status_enum": {
       "name": "subscription_status_enum",
       "schema": "public",
-      "values": [
-        "active",
-        "past_due",
-        "canceled",
-        "trialing"
-      ]
+      "values": ["active", "past_due", "canceled", "trialing"]
     },
     "public.tenant_status_enum": {
       "name": "tenant_status_enum",
       "schema": "public",
-      "values": [
-        "active",
-        "suspended",
-        "trial",
-        "expired",
-        "cancelled",
-        "maintenance"
-      ]
+      "values": ["active", "suspended", "trial", "expired", "cancelled", "maintenance"]
     },
     "public.user_status_enum": {
       "name": "user_status_enum",
       "schema": "public",
-      "values": [
-        "active",
-        "inactive",
-        "locked",
-        "pending_verification"
-      ]
+      "values": ["active", "inactive", "locked", "pending_verification"]
     }
   },
   "schemas": {},

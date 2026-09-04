@@ -20,12 +20,14 @@ describe('error handler', () => {
     buildErrorHandler(config)(new NotFoundError('Record not found.'), request as never, reply as never);
 
     expect(type).toHaveBeenCalledWith('application/problem+json');
-    expect(send).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'https://httpstatuses.com/404',
-      status: 404,
-      detail: 'Record not found.',
-      instance: '/api/v1/example/missing',
-    }));
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'https://httpstatuses.com/404',
+        status: 404,
+        detail: 'Record not found.',
+        instance: '/api/v1/example/missing',
+      }),
+    );
   });
 
   it('keeps the existing error envelope by default', () => {
@@ -42,13 +44,15 @@ describe('error handler', () => {
     buildErrorHandler(config)(new NotFoundError('Record not found.'), request as never, reply as never);
 
     expect(code).toHaveBeenCalledWith(404);
-    expect(send).toHaveBeenCalledWith(expect.objectContaining({
-      error: expect.objectContaining({
-        code: 'NOT_FOUND',
-        message: 'Record not found.',
-        requestId: 'req-456',
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: expect.objectContaining({
+          code: 'NOT_FOUND',
+          message: 'Record not found.',
+          requestId: 'req-456',
+        }),
       }),
-    }));
+    );
   });
 
   it('keeps the existing error envelope for wildcard Accept to avoid changing legacy clients', () => {
@@ -67,11 +71,13 @@ describe('error handler', () => {
 
     expect(type).not.toHaveBeenCalled();
     expect(code).toHaveBeenCalledWith(404);
-    expect(send).toHaveBeenCalledWith(expect.objectContaining({
-      error: expect.objectContaining({
-        code: 'NOT_FOUND',
-        requestId: 'req-789',
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: expect.objectContaining({
+          code: 'NOT_FOUND',
+          requestId: 'req-789',
+        }),
       }),
-    }));
+    );
   });
 });

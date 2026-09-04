@@ -1,8 +1,17 @@
 import { v7 as uuidV7 } from 'uuid';
 
 import { UnauthorizedError, ValidationError } from '../../domain/errors.js';
-import { DEFAULT_PASSWORD_POLICY, type PasswordPolicy, validatePassword } from '../../infrastructure/security/password-policy.js';
-import type { PasswordHasher, UserRegistrationInput, UserRegistrationRepository, UserRegistrationRecord } from '../contracts/security.js';
+import {
+  DEFAULT_PASSWORD_POLICY,
+  type PasswordPolicy,
+  validatePassword,
+} from '../../infrastructure/security/password-policy.js';
+import type {
+  PasswordHasher,
+  UserRegistrationInput,
+  UserRegistrationRepository,
+  UserRegistrationRecord,
+} from '../contracts/security.js';
 import type { TransactionRunner } from '../contracts/transaction.js';
 
 export class UserRegistrationService {
@@ -13,7 +22,11 @@ export class UserRegistrationService {
     private readonly transactionRunner?: TransactionRunner,
   ) {}
 
-  async registerUser(tenantId: string, actorUserId: string, input: UserRegistrationInput): Promise<UserRegistrationRecord> {
+  async registerUser(
+    tenantId: string,
+    actorUserId: string,
+    input: UserRegistrationInput,
+  ): Promise<UserRegistrationRecord> {
     if (!tenantId || !actorUserId) {
       throw new UnauthorizedError('Tenant context is required for registration.');
     }
@@ -31,7 +44,9 @@ export class UserRegistrationService {
       throw new ValidationError('Username, email, and password are required.');
     }
 
-    const existingUser = await this.repository.findByTenantAndIdentifier(tenantId, username) ?? await this.repository.findByTenantAndIdentifier(tenantId, email);
+    const existingUser =
+      (await this.repository.findByTenantAndIdentifier(tenantId, username)) ??
+      (await this.repository.findByTenantAndIdentifier(tenantId, email));
     if (existingUser) {
       throw new ValidationError('A user with that username or email already exists in this tenant.');
     }
@@ -48,7 +63,11 @@ export class UserRegistrationService {
     const register = async (): Promise<UserRegistrationRecord> => {
       let role = await this.repository.findRoleByTenantAndCode(tenantId, defaultRoleCode);
       if (!role) {
-        role = await this.repository.createRole(tenantId, defaultRoleCode, defaultRoleCode === 'admin' ? 'Administrator' : 'Member');
+        role = await this.repository.createRole(
+          tenantId,
+          defaultRoleCode,
+          defaultRoleCode === 'admin' ? 'Administrator' : 'Member',
+        );
       }
 
       const user = await this.repository.createUser({

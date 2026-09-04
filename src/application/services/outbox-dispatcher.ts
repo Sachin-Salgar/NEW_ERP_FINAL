@@ -31,13 +31,7 @@ export class OutboxDispatcher {
         await this.store.markPublished(tenantId, event.id, workerId);
       } catch (error) {
         const errorCode = error instanceof Error ? error.name || 'outbox_delivery_failed' : 'outbox_delivery_failed';
-        await this.store.markFailed(
-          tenantId,
-          event.id,
-          workerId,
-          errorCode,
-          this.retryAt(event.id),
-        );
+        await this.store.markFailed(tenantId, event.id, workerId, errorCode, this.retryAt(event.id));
       }
       processed += 1;
     }

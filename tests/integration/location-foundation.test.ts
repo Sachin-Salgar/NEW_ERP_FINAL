@@ -49,7 +49,17 @@ async function seedTenant(pool: Pool, suffix: string) {
       code: `locadmin${suffix}`.slice(0, 20),
       name: `Location Admin ${suffix}`,
     },
-    permissions: ['organization.read', 'organization.manage', 'branch.read', 'branch.manage', 'user.read', 'user.manage', 'role.manage', 'role.read', 'permission.read'],
+    permissions: [
+      'organization.read',
+      'organization.manage',
+      'branch.read',
+      'branch.manage',
+      'user.read',
+      'user.manage',
+      'role.manage',
+      'role.read',
+      'permission.read',
+    ],
     subscriptionPlanName: 'Starter',
     initialFinancialYear: {
       name: `FY-${suffix}`,
@@ -99,7 +109,11 @@ describe('Location foundation', () => {
     const listedLocations = await repository.listLocations(bootstrapResult.tenantId, bootstrapResult.organizationId);
     expect(listedLocations.some((item) => item.id === location.id)).toBe(true);
 
-    const fetchedLocation = await repository.getLocationById(bootstrapResult.tenantId, bootstrapResult.organizationId, location.id);
+    const fetchedLocation = await repository.getLocationById(
+      bootstrapResult.tenantId,
+      bootstrapResult.organizationId,
+      location.id,
+    );
     expect(fetchedLocation?.id).toBe(location.id);
     expect(fetchedLocation?.tenantId).toBe(bootstrapResult.tenantId);
   });
@@ -114,11 +128,15 @@ describe('Location foundation', () => {
     const firstTenant = await seedTenant(pool, `user-location-${suffix}`);
     const secondTenant = await seedTenant(pool, `user-location-other-${suffix}`);
     const passwordHasher = new BcryptPasswordHasher();
-    const location = await firstTenant.repository.createLocation(firstTenant.bootstrapResult.tenantId, firstTenant.bootstrapResult.organizationId, {
-      code: `ULA-${suffix}`.slice(0, 15),
-      name: `User Location ${suffix}`,
-      status: 'active',
-    });
+    const location = await firstTenant.repository.createLocation(
+      firstTenant.bootstrapResult.tenantId,
+      firstTenant.bootstrapResult.organizationId,
+      {
+        code: `ULA-${suffix}`.slice(0, 15),
+        name: `User Location ${suffix}`,
+        status: 'active',
+      },
+    );
     const userId = uuidV7();
     const user = await firstTenant.repository.createUser({
       id: userId,
@@ -179,10 +197,14 @@ describe('Location foundation', () => {
     const secondTenant = await seedTenant(pool, `second-${suffix}`);
 
     await expect(
-      firstTenant.repository.createLocation(firstTenant.bootstrapResult.tenantId, secondTenant.bootstrapResult.organizationId, {
-        code: `BAD-${suffix}`.slice(0, 15),
-        name: 'Invalid location',
-      }),
+      firstTenant.repository.createLocation(
+        firstTenant.bootstrapResult.tenantId,
+        secondTenant.bootstrapResult.organizationId,
+        {
+          code: `BAD-${suffix}`.slice(0, 15),
+          name: 'Invalid location',
+        },
+      ),
     ).rejects.toThrow();
   });
 
@@ -201,11 +223,17 @@ describe('Location foundation', () => {
       status: 'active',
     });
 
-    const deactivated = await repository.deactivateLocation(bootstrapResult.tenantId, bootstrapResult.organizationId, location.id);
+    const deactivated = await repository.deactivateLocation(
+      bootstrapResult.tenantId,
+      bootstrapResult.organizationId,
+      location.id,
+    );
     expect(deactivated).toBe(true);
     expect(await repository.listLocations(bootstrapResult.tenantId, bootstrapResult.organizationId)).not.toContainEqual(
       expect.objectContaining({ id: location.id }),
     );
-    expect(await repository.getLocationById(bootstrapResult.tenantId, bootstrapResult.organizationId, location.id)).toBeNull();
+    expect(
+      await repository.getLocationById(bootstrapResult.tenantId, bootstrapResult.organizationId, location.id),
+    ).toBeNull();
   });
 });

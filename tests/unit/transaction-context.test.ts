@@ -37,10 +37,12 @@ describe('transaction context and tenant RLS boundary', () => {
     const tenantA = 'a7f2f4b0-2f11-4d2f-9a8a-4d7d9b2e1001';
     const tenantB = 'b7f2f4b0-2f11-4d2f-9a8a-4d7d9b2e1001';
 
-    await expect(uow.runInTransaction(async () => {
-      await withTenantContext(mock.pool, 'app.current_tenant_id', tenantA, async () => undefined);
-      await withTenantContext(mock.pool, 'app.current_tenant_id', tenantB, async () => undefined);
-    })).rejects.toThrow('transaction cannot be reused across tenant contexts');
+    await expect(
+      uow.runInTransaction(async () => {
+        await withTenantContext(mock.pool, 'app.current_tenant_id', tenantA, async () => undefined);
+        await withTenantContext(mock.pool, 'app.current_tenant_id', tenantB, async () => undefined);
+      }),
+    ).rejects.toThrow('transaction cannot be reused across tenant contexts');
 
     expect(mock.query).toHaveBeenCalledWith('ROLLBACK');
   });

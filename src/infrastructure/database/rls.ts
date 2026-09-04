@@ -6,10 +6,7 @@ export interface TenantTableRlsConfig {
   tenantContextKey?: string;
 }
 
-export async function applyTenantTableRls(
-  pool: Pool,
-  config: TenantTableRlsConfig,
-): Promise<void> {
+export async function applyTenantTableRls(pool: Pool, config: TenantTableRlsConfig): Promise<void> {
   const tableName = config.tableName.trim();
   const tenantColumn = config.tenantColumn ?? 'tenant_id';
   const tenantContextKey = config.tenantContextKey ?? 'app.current_tenant_id';

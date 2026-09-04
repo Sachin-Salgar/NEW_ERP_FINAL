@@ -1,9 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 
-import type {
-  AccountSecurityNotificationPort,
-  AccountSecurityRepository,
-} from '../contracts/account-security.js';
+import type { AccountSecurityNotificationPort, AccountSecurityRepository } from '../contracts/account-security.js';
 import type { PasswordHasher } from '../contracts/security.js';
 
 export interface AccountSecurityOptions {
@@ -47,11 +44,7 @@ export class AccountSecurityService {
   }
 
   async verifyEmail(tenantId: string, token: string): Promise<boolean> {
-    return this.repository.consumeEmailVerificationToken(
-      tenantId,
-      hashOpaqueToken(token),
-      new Date(),
-    );
+    return this.repository.consumeEmailVerificationToken(tenantId, hashOpaqueToken(token), new Date());
   }
 
   /**
@@ -83,12 +76,7 @@ export class AccountSecurityService {
 
   async resetPassword(tenantId: string, token: string, newPassword: string): Promise<boolean> {
     const passwordHash = await this.passwordHasher.hash(newPassword);
-    return this.repository.consumePasswordResetToken(
-      tenantId,
-      hashOpaqueToken(token),
-      passwordHash,
-      new Date(),
-    );
+    return this.repository.consumePasswordResetToken(tenantId, hashOpaqueToken(token), passwordHash, new Date());
   }
 }
 

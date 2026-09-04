@@ -74,9 +74,12 @@ describe('RotatingJwtTokenService', () => {
   it('requires exactly one active key with private material', () => {
     const pair = rsaPair();
     expect(() => new RotatingJwtTokenService({ issuer: 'erp-test', keys: [] })).toThrow('Exactly one');
-    expect(() => new RotatingJwtTokenService({
-      issuer: 'erp-test',
-      keys: [{ kid: 'verify-only', state: 'active', publicKeyPem: pair.publicKeyPem }],
-    })).toThrow('private key');
+    expect(
+      () =>
+        new RotatingJwtTokenService({
+          issuer: 'erp-test',
+          keys: [{ kid: 'verify-only', state: 'active', publicKeyPem: pair.publicKeyPem }],
+        }),
+    ).toThrow('private key');
   });
 });

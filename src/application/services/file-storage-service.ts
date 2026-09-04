@@ -66,7 +66,11 @@ export class FileStorageService {
     return { file, upload };
   }
 
-  async createDownload(tenantId: string, userId: string, fileId: string): Promise<{ file: FileMetadataRecord; url: string }> {
+  async createDownload(
+    tenantId: string,
+    userId: string,
+    fileId: string,
+  ): Promise<{ file: FileMetadataRecord; url: string }> {
     const file = await this.repository.getById(tenantId, fileId);
     if (!file) throw new ValidationError('File not found.');
     if (!(await this.accessPolicy.canRead({ tenantId, userId, file }))) {

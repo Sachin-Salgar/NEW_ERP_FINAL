@@ -1,4 +1,10 @@
-export type StructuredPayloadValue = string | number | boolean | null | StructuredPayloadValue[] | { [key: string]: StructuredPayloadValue };
+export type StructuredPayloadValue =
+  | string
+  | number
+  | boolean
+  | null
+  | StructuredPayloadValue[]
+  | { [key: string]: StructuredPayloadValue };
 export type StructuredPayload = Record<string, StructuredPayloadValue>;
 
 export type NotificationChannel = 'email' | 'in_app';
@@ -36,7 +42,11 @@ export interface FileMetadataRepository {
 }
 
 export interface ObjectStorageProvider {
-  createUploadTarget(input: { storageKey: string; contentType: string; expiresInSeconds: number }): Promise<{ url: string; headers?: Record<string, string> }>;
+  createUploadTarget(input: {
+    storageKey: string;
+    contentType: string;
+    expiresInSeconds: number;
+  }): Promise<{ url: string; headers?: Record<string, string> }>;
   createDownloadTarget(input: { storageKey: string; expiresInSeconds: number }): Promise<{ url: string }>;
   deleteObject(storageKey: string): Promise<void>;
 }

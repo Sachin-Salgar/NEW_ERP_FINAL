@@ -11,10 +11,7 @@ export class PostgresMfaRepository implements MfaRepository {
 
   async createEnrollment(tenantId: string, userId: string, encryptedSecret: string, expiresAt: Date): Promise<void> {
     await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
-      await client.query(
-        `DELETE FROM mfa_enrollments WHERE tenant_id = $1 AND user_id = $2`,
-        [tenantId, userId],
-      );
+      await client.query(`DELETE FROM mfa_enrollments WHERE tenant_id = $1 AND user_id = $2`, [tenantId, userId]);
       await client.query(
         `INSERT INTO mfa_enrollments (tenant_id, user_id, encrypted_secret, expires_at)
          VALUES ($1, $2, $3, $4)`,
@@ -23,7 +20,10 @@ export class PostgresMfaRepository implements MfaRepository {
     });
   }
 
-  async getPendingEnrollment(tenantId: string, userId: string): Promise<{ encryptedSecret: string; expiresAt: Date } | null> {
+  async getPendingEnrollment(
+    tenantId: string,
+    userId: string,
+  ): Promise<{ encryptedSecret: string; expiresAt: Date } | null> {
     return withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       const result = await client.query<{ encrypted_secret: string; expires_at: Date }>(
         `SELECT encrypted_secret, expires_at
@@ -37,7 +37,12 @@ export class PostgresMfaRepository implements MfaRepository {
     });
   }
 
-  async activateEnrollment(tenantId: string, userId: string, encryptedSecret: string, recoveryCodeHashes: string[]): Promise<void> {
+  async activateEnrollment(
+    tenantId: string,
+    userId: string,
+    encryptedSecret: string,
+    recoveryCodeHashes: string[],
+  ): Promise<void> {
     await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       const enrollment = await client.query(
         `DELETE FROM mfa_enrollments
@@ -58,10 +63,7 @@ export class PostgresMfaRepository implements MfaRepository {
       );
       if ((user.rowCount ?? 0) !== 1) throw new Error('User not found for MFA enrollment');
 
-      await client.query(
-        `DELETE FROM mfa_recovery_codes WHERE tenant_id = $1 AND user_id = $2`,
-        [tenantId, userId],
-      );
+      await client.query(`DELETE FROM mfa_recovery_codes WHERE tenant_id = $1 AND user_id = $2`, [tenantId, userId]);
       for (const recoveryCodeHash of recoveryCodeHashes) {
         await client.query(
           `INSERT INTO mfa_recovery_codes (tenant_id, user_id, code_hash)
@@ -111,14 +113,8 @@ export class PostgresMfaRepository implements MfaRepository {
          WHERE tenant_id = $1 AND id = $2 AND is_deleted = false`,
         [tenantId, userId],
       );
-      await client.query(
-        `DELETE FROM mfa_enrollments WHERE tenant_id = $1 AND user_id = $2`,
-        [tenantId, userId],
-      );
-      await client.query(
-        `DELETE FROM mfa_recovery_codes WHERE tenant_id = $1 AND user_id = $2`,
-        [tenantId, userId],
-      );
+      await client.query(`DELETE FROM mfa_enrollments WHERE tenant_id = $1 AND user_id = $2`, [tenantId, userId]);
+      await client.query(`DELETE FROM mfa_recovery_codes WHERE tenant_id = $1 AND user_id = $2`, [tenantId, userId]);
     });
   }
 }

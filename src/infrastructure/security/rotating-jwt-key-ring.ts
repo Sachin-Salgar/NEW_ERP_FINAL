@@ -51,18 +51,19 @@ export class RotatingJwtTokenService implements TokenService {
     }
 
     this.activeKey = activeKeys[0]!;
-    this.trustedKeys = new Map(
-      options.keys
-        .filter((key) => key.state !== 'retired')
-        .map((key) => [key.kid, key]),
-    );
+    this.trustedKeys = new Map(options.keys.filter((key) => key.state !== 'retired').map((key) => [key.kid, key]));
   }
 
   createAccessToken(input: { userId: string; tenantId: string; sessionId: string; expiresInSeconds?: number }): string {
     return this.signToken('access', input);
   }
 
-  createRefreshToken(input: { userId: string; tenantId: string; sessionId: string; expiresInSeconds?: number }): string {
+  createRefreshToken(input: {
+    userId: string;
+    tenantId: string;
+    sessionId: string;
+    expiresInSeconds?: number;
+  }): string {
     return this.signToken('refresh', input);
   }
 

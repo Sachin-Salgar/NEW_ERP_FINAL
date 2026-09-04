@@ -294,7 +294,11 @@ export interface CoreEnterpriseRepository {
     },
   ): Promise<BranchRecord>;
   listBranches(tenantId: string, organizationId: string): Promise<BranchRecord[]>;
-  listAccessibleBranchesForUser(tenantId: string, userId: string, organizationId?: string | null): Promise<BranchRecord[]>;
+  listAccessibleBranchesForUser(
+    tenantId: string,
+    userId: string,
+    organizationId?: string | null,
+  ): Promise<BranchRecord[]>;
   getBranchById(tenantId: string, organizationId: string, branchId: string): Promise<BranchRecord | null>;
   getAccessibleBranchByIdForUser(
     tenantId: string,
@@ -302,7 +306,12 @@ export interface CoreEnterpriseRepository {
     branchId: string,
     organizationId?: string | null,
   ): Promise<BranchRecord | null>;
-  validateBranchAccess(tenantId: string, userId: string, branchId: string, organizationId?: string | null): Promise<boolean>;
+  validateBranchAccess(
+    tenantId: string,
+    userId: string,
+    branchId: string,
+    organizationId?: string | null,
+  ): Promise<boolean>;
   updateBranch(
     tenantId: string,
     organizationId: string,
@@ -348,7 +357,11 @@ export interface CoreEnterpriseRepository {
     },
   ): Promise<LocationRecord>;
   listLocations(tenantId: string, organizationId: string): Promise<LocationRecord[]>;
-  listAccessibleLocationsForUser(tenantId: string, userId: string, organizationId?: string | null): Promise<LocationRecord[]>;
+  listAccessibleLocationsForUser(
+    tenantId: string,
+    userId: string,
+    organizationId?: string | null,
+  ): Promise<LocationRecord[]>;
   getLocationById(tenantId: string, organizationId: string, locationId: string): Promise<LocationRecord | null>;
   getAccessibleLocationByIdForUser(
     tenantId: string,
@@ -356,7 +369,12 @@ export interface CoreEnterpriseRepository {
     locationId: string,
     organizationId?: string | null,
   ): Promise<LocationRecord | null>;
-  validateLocationAccess(tenantId: string, userId: string, locationId: string, organizationId?: string | null): Promise<boolean>;
+  validateLocationAccess(
+    tenantId: string,
+    userId: string,
+    locationId: string,
+    organizationId?: string | null,
+  ): Promise<boolean>;
   updateLocation(
     tenantId: string,
     organizationId: string,
@@ -402,9 +420,7 @@ export interface CoreEnterpriseRepository {
 
 export interface AuthorizationRepository {
   getPermissionKeysForUser(tenantId: string, userId: string): Promise<UserPermissionRecord[]>;
-  listRoles(
-    tenantId: string,
-  ): Promise<
+  listRoles(tenantId: string): Promise<
     Array<{
       id: string;
       tenantId: string;
@@ -460,9 +476,7 @@ export interface AuthorizationRepository {
     createdAt?: Date | string | null;
     updatedAt?: Date | string | null;
   } | null>;
-  listPermissions(
-    tenantId: string,
-  ): Promise<
+  listPermissions(tenantId: string): Promise<
     Array<{
       id: string;
       moduleCode: string;

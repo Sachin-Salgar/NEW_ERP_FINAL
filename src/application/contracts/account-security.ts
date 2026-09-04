@@ -28,6 +28,18 @@ export interface AccountSecurityRepository {
 }
 
 export interface AccountSecurityNotificationPort {
-  sendEmailVerification(input: { tenantId: string; userId: string; email: string; token: string; expiresAt: Date }): Promise<void>;
-  sendPasswordReset(input: { tenantId: string; userId: string; email: string; token: string; expiresAt: Date }): Promise<void>;
+  sendEmailVerification(input: {
+    tenantId: string;
+    userId: string;
+    email: string;
+    token: string;
+    expiresAt: Date;
+  }): Promise<void>;
+  sendPasswordReset(input: {
+    tenantId: string;
+    userId: string;
+    email: string;
+    token: string;
+    expiresAt: Date;
+  }): Promise<void>;
 }

@@ -126,7 +126,9 @@ async function main() {
     }
 
     const primaryBranches = await repository.listBranches(tenantId, organizationId);
-    let magodPune = primaryBranches.find((branch) => branch.id === branchId) ?? primaryBranches.find((branch) => branch.name === 'Pune');
+    let magodPune =
+      primaryBranches.find((branch) => branch.id === branchId) ??
+      primaryBranches.find((branch) => branch.name === 'Pune');
     if (!magodPune) {
       magodPune = await coreEnterprise.createBranch(tenantId, organizationId, {
         name: 'Pune',
@@ -139,16 +141,17 @@ async function main() {
         timezone: 'Asia/Kolkata',
       });
     } else {
-      magodPune = await coreEnterprise.updateBranch(tenantId, organizationId, magodPune.id, {
-        name: 'Pune',
-        status: 'active',
-        isHeadOffice: true,
-        isDefault: true,
-        city: 'Pune',
-        state: 'Maharashtra',
-        country: 'IN',
-        timezone: 'Asia/Kolkata',
-      }) ?? magodPune;
+      magodPune =
+        (await coreEnterprise.updateBranch(tenantId, organizationId, magodPune.id, {
+          name: 'Pune',
+          status: 'active',
+          isHeadOffice: true,
+          isDefault: true,
+          city: 'Pune',
+          state: 'Maharashtra',
+          country: 'IN',
+          timezone: 'Asia/Kolkata',
+        })) ?? magodPune;
     }
 
     let magodCSN = primaryBranches.find((branch) => branch.name === 'Chatrapati Sambhaji Nagar (CSN)');
@@ -184,9 +187,13 @@ async function main() {
     }
 
     const organizations = await repository.listOrganizations(tenantId);
-    let trimill = organizations.find((organization) => organization.name === 'Trimill Industries Pvt. Ltd.' && !organization.isDeleted);
+    let trimill = organizations.find(
+      (organization) => organization.name === 'Trimill Industries Pvt. Ltd.' && !organization.isDeleted,
+    );
     if (!trimill) {
-      const legacy = organizations.find((organization) => organization.name === 'Magod Fusion Manufacturing' && !organization.isDeleted);
+      const legacy = organizations.find(
+        (organization) => organization.name === 'Magod Fusion Manufacturing' && !organization.isDeleted,
+      );
       trimill = legacy
         ? await coreEnterprise.updateOrganization(tenantId, legacy.id, {
             name: 'Trimill Industries Pvt. Ltd.',
@@ -271,7 +278,13 @@ async function main() {
       throw new Error('Failed to create/resolve Trimill branches.');
     }
 
-    async function ensureLocation(organizationIdForLocation: string, desiredName: string, legacyNames: string[], city: string, isDefault: boolean) {
+    async function ensureLocation(
+      organizationIdForLocation: string,
+      desiredName: string,
+      legacyNames: string[],
+      city: string,
+      isDefault: boolean,
+    ) {
       const locations = await repository.listLocations(tenantId, organizationIdForLocation);
       const existing = locations.find((location) => location.name === desiredName && !location.isDeleted);
       if (existing) {
@@ -280,15 +293,17 @@ async function main() {
 
       const legacy = locations.find((location) => legacyNames.includes(location.name) && !location.isDeleted);
       if (legacy) {
-        return await repository.updateLocation(tenantId, organizationIdForLocation, legacy.id, {
-          name: desiredName,
-          status: 'active',
-          isDefault,
-          city,
-          state: 'Maharashtra',
-          country: 'IN',
-          timezone: 'Asia/Kolkata',
-        }) ?? legacy;
+        return (
+          (await repository.updateLocation(tenantId, organizationIdForLocation, legacy.id, {
+            name: desiredName,
+            status: 'active',
+            isDefault,
+            city,
+            state: 'Maharashtra',
+            country: 'IN',
+            timezone: 'Asia/Kolkata',
+          })) ?? legacy
+        );
       }
 
       const currentLocations = await repository.listLocations(tenantId, organizationIdForLocation);
@@ -307,9 +322,27 @@ async function main() {
     }
 
     const magodPuneLocation = await ensureLocation(organizationId, 'Pune Manufacturing', ['Pune Plant'], 'Pune', true);
-    const magodCSNLocation = await ensureLocation(organizationId, 'CSN Manufacturing', ['Chatrapati Sambhaji Nagar Plant'], 'Chhatrapati Sambhajinagar', false);
-    const trimillPuneLocation = await ensureLocation(trimill.id, 'Pune Manufacturing', ['Pune Manufacturing Plant'], 'Pune', true);
-    const trimillIndapurLocation = await ensureLocation(trimill.id, 'Indapur Manufacturing', ['Mumbai Manufacturing Plant'], 'Indapur', false);
+    const magodCSNLocation = await ensureLocation(
+      organizationId,
+      'CSN Manufacturing',
+      ['Chatrapati Sambhaji Nagar Plant'],
+      'Chhatrapati Sambhajinagar',
+      false,
+    );
+    const trimillPuneLocation = await ensureLocation(
+      trimill.id,
+      'Pune Manufacturing',
+      ['Pune Manufacturing Plant'],
+      'Pune',
+      true,
+    );
+    const trimillIndapurLocation = await ensureLocation(
+      trimill.id,
+      'Indapur Manufacturing',
+      ['Mumbai Manufacturing Plant'],
+      'Indapur',
+      false,
+    );
 
     const tenantAdminRole = await repository.findRoleByTenantAndCode(tenantId, 'tenant-admin');
     if (!tenantAdminRole) {
@@ -360,13 +393,20 @@ async function main() {
 
     const administratorPasswordHash = await passwordHasher.hash(password);
     await withTenantContext(pool, 'app.current_tenant_id', tenantId, async (client) => {
-      await client.query(
-        'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE tenant_id = $2 AND id = $3',
-        [administratorPasswordHash, tenantId, administratorUser!.id],
-      );
+      await client.query('UPDATE users SET password_hash = $1, updated_at = NOW() WHERE tenant_id = $2 AND id = $3', [
+        administratorPasswordHash,
+        tenantId,
+        administratorUser!.id,
+      ]);
     });
 
-    async function ensureUser(username: string, email: string, organizationIdForUser: string, defaultBranchId: string, defaultLocationId: string) {
+    async function ensureUser(
+      username: string,
+      email: string,
+      organizationIdForUser: string,
+      defaultBranchId: string,
+      defaultLocationId: string,
+    ) {
       let user = await repository.findByTenantAndIdentifier(tenantId, username);
       const passwordHash = await passwordHasher.hash(password);
 
@@ -398,23 +438,36 @@ async function main() {
       }
 
       await withTenantContext(pool, 'app.current_tenant_id', tenantId, async (client) => {
-        await client.query(
-          'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE tenant_id = $2 AND id = $3',
-          [passwordHash, tenantId, user.id],
-        );
+        await client.query('UPDATE users SET password_hash = $1, updated_at = NOW() WHERE tenant_id = $2 AND id = $3', [
+          passwordHash,
+          tenantId,
+          user.id,
+        ]);
       });
 
       return user;
     }
 
     const admin = await ensureUser('admin', 'admin@magodfusion.in', organizationId, magodPune.id, magodPuneLocation.id);
-    const manager = await ensureUser('manager', 'manager@magodfusion.in', organizationId, magodPune.id, magodPuneLocation.id);
+    const manager = await ensureUser(
+      'manager',
+      'manager@magodfusion.in',
+      organizationId,
+      magodPune.id,
+      magodPuneLocation.id,
+    );
 
     await withTenantContext(pool, 'app.current_tenant_id', tenantId, async (client) => {
       for (const user of [administratorUser!, admin, manager]) {
-        await client.query('DELETE FROM user_organization_access WHERE tenant_id = $1 AND user_id = $2', [tenantId, user.id]);
+        await client.query('DELETE FROM user_organization_access WHERE tenant_id = $1 AND user_id = $2', [
+          tenantId,
+          user.id,
+        ]);
         await client.query('DELETE FROM user_branch_access WHERE tenant_id = $1 AND user_id = $2', [tenantId, user.id]);
-        await client.query('DELETE FROM user_location_access WHERE tenant_id = $1 AND user_id = $2', [tenantId, user.id]);
+        await client.query('DELETE FROM user_location_access WHERE tenant_id = $1 AND user_id = $2', [
+          tenantId,
+          user.id,
+        ]);
         await client.query('DELETE FROM user_roles WHERE tenant_id = $1 AND user_id = $2', [tenantId, user.id]);
       }
     });
@@ -495,8 +548,14 @@ async function main() {
     const administratorOrganizations = await repository.findUserOrganizationMemberships(tenantId, administratorUser.id);
     const adminOrganizations = await repository.findUserOrganizationMemberships(tenantId, admin.id);
     const managerOrganizations = await repository.findUserOrganizationMemberships(tenantId, manager.id);
-    const administratorBranches = (await Promise.all(allOrgIds.map((id) => repository.listAccessibleBranchesForUser(tenantId, administratorUser.id, id)))).flat();
-    const adminBranches = (await Promise.all(allOrgIds.map((id) => repository.listAccessibleBranchesForUser(tenantId, admin.id, id)))).flat();
+    const administratorBranches = (
+      await Promise.all(
+        allOrgIds.map((id) => repository.listAccessibleBranchesForUser(tenantId, administratorUser.id, id)),
+      )
+    ).flat();
+    const adminBranches = (
+      await Promise.all(allOrgIds.map((id) => repository.listAccessibleBranchesForUser(tenantId, admin.id, id)))
+    ).flat();
     const managerBranches = await repository.listAccessibleBranchesForUser(tenantId, manager.id, organizationId);
     const managerTrimillBranches = await repository.listAccessibleBranchesForUser(tenantId, manager.id, trimill.id);
     const managerLocations = await repository.listAccessibleLocationsForUser(tenantId, manager.id, organizationId);
@@ -511,34 +570,49 @@ async function main() {
     if (managerOrganizations.length !== 1 || managerOrganizations[0].id !== organizationId) {
       throw new Error('Seed validation failed: Manager must have only Magod Fusion organization access.');
     }
-    if (managerBranches.length !== 2 || managerTrimillBranches.length !== 0 || managerLocations.length !== 2 || managerTrimillLocations.length !== 0) {
+    if (
+      managerBranches.length !== 2 ||
+      managerTrimillBranches.length !== 0 ||
+      managerLocations.length !== 2 ||
+      managerTrimillLocations.length !== 0
+    ) {
       throw new Error('Seed validation failed: Manager must have only Magod Fusion branches and locations.');
     }
 
-    console.log(JSON.stringify({
-      tenant: provider.tenant,
-      organizations: [
+    console.log(
+      JSON.stringify(
         {
-          name: 'Magod Fusion Technologies Pvt. Ltd.',
-          branches: [
-            { name: 'Pune', location: 'Pune Manufacturing' },
-            { name: 'Chatrapati Sambhaji Nagar (CSN)', location: 'CSN Manufacturing' },
+          tenant: provider.tenant,
+          organizations: [
+            {
+              name: 'Magod Fusion Technologies Pvt. Ltd.',
+              branches: [
+                { name: 'Pune', location: 'Pune Manufacturing' },
+                { name: 'Chatrapati Sambhaji Nagar (CSN)', location: 'CSN Manufacturing' },
+              ],
+            },
+            {
+              name: 'Trimill Industries Pvt. Ltd.',
+              branches: [
+                { name: 'Pune', location: 'Pune Manufacturing' },
+                { name: 'Indapur', location: 'Indapur Manufacturing' },
+              ],
+            },
+          ],
+          users: [
+            {
+              username: 'administrator',
+              role: 'Administrator',
+              access: 'Both organizations / all 4 branches / all 4 locations',
+            },
+            { username: 'admin', role: 'Admin', access: 'Both organizations / all 4 branches / all 4 locations' },
+            { username: 'manager', role: 'Manager', access: 'Magod Fusion only / 2 branches / 2 locations' },
           ],
         },
-        {
-          name: 'Trimill Industries Pvt. Ltd.',
-          branches: [
-            { name: 'Pune', location: 'Pune Manufacturing' },
-            { name: 'Indapur', location: 'Indapur Manufacturing' },
-          ],
-        },
-      ],
-      users: [
-        { username: 'administrator', role: 'Administrator', access: 'Both organizations / all 4 branches / all 4 locations' },
-        { username: 'admin', role: 'Admin', access: 'Both organizations / all 4 branches / all 4 locations' },
-        { username: 'manager', role: 'Manager', access: 'Magod Fusion only / 2 branches / 2 locations' },
-      ],
-    }, null, 2));
+        null,
+        2,
+      ),
+    );
   } finally {
     await pool.end();
   }
@@ -546,6 +620,6 @@ async function main() {
 
 main().catch((error) => {
   console.error('Custom tenant seed failed.');
-  console.error(error instanceof Error ? error.stack ?? error.message : error);
+  console.error(error instanceof Error ? (error.stack ?? error.message) : error);
   process.exit(1);
 });

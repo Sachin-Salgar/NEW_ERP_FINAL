@@ -14,10 +14,7 @@ export function createIntegrationPool(): Pool {
   return new Pool({ connectionString: resolveTestDatabaseUrl() });
 }
 
-export async function withIntegrationClient<T>(
-  pool: Pool,
-  operation: (client: PoolClient) => Promise<T>,
-): Promise<T> {
+export async function withIntegrationClient<T>(pool: Pool, operation: (client: PoolClient) => Promise<T>): Promise<T> {
   const client = await pool.connect();
   try {
     return await operation(client);

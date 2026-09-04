@@ -50,15 +50,25 @@ function parsePositiveInteger(value: unknown, field: string, fallback: number): 
   return parsed;
 }
 
-export function paginate<T>(items: T[], query: PaginationQuery, options: {
-  searchable?: Array<(item: T) => unknown>;
-  sortable?: Record<string, (item: T) => unknown>;
-} = {}): { data: T[]; metadata: PaginationMeta } {
+export function paginate<T>(
+  items: T[],
+  query: PaginationQuery,
+  options: {
+    searchable?: Array<(item: T) => unknown>;
+    sortable?: Record<string, (item: T) => unknown>;
+  } = {},
+): { data: T[]; metadata: PaginationMeta } {
   let filtered = items;
 
   if (query.search && options.searchable?.length) {
     const needle = query.search.toLowerCase();
-    filtered = filtered.filter((item) => options.searchable!.some((getValue) => String(getValue(item) ?? '').toLowerCase().includes(needle)));
+    filtered = filtered.filter((item) =>
+      options.searchable!.some((getValue) =>
+        String(getValue(item) ?? '')
+          .toLowerCase()
+          .includes(needle),
+      ),
+    );
   }
 
   if (query.sort) {
@@ -93,11 +103,14 @@ export function paginateListResponse(
   payload: Record<string, unknown>,
   queryValue: unknown,
 ): Record<string, unknown> {
-  const queryObject = queryValue && typeof queryValue === 'object' && !Array.isArray(queryValue)
-    ? queryValue as Record<string, unknown>
-    : {};
+  const queryObject =
+    queryValue && typeof queryValue === 'object' && !Array.isArray(queryValue)
+      ? (queryValue as Record<string, unknown>)
+      : {};
 
-  const hasPaginationParameter = ['page', 'page_size', 'sort', 'order', 'search'].some((key) => queryObject[key] !== undefined);
+  const hasPaginationParameter = ['page', 'page_size', 'sort', 'order', 'search'].some(
+    (key) => queryObject[key] !== undefined,
+  );
   if (!hasPaginationParameter) return payload;
 
   const config = getListConfig(routePath);
@@ -118,59 +131,98 @@ export function paginateListResponse(
   };
 }
 
-function getListConfig(routePath: string): {
-  key: string;
-  searchable: Array<(item: any) => unknown>;
-  sortable: Record<string, (item: any) => unknown>;
-} | undefined {
+function getListConfig(routePath: string):
+  | {
+      key: string;
+      searchable: Array<(item: any) => unknown>;
+      sortable: Record<string, (item: any) => unknown>;
+    }
+  | undefined {
   const normalized = routePath.split('?')[0].replace(/\/$/, '');
   if (/\/rbac\/roles$/.test(normalized)) {
     return {
       key: 'roles',
-      searchable: [item => item.code, item => item.name, item => item.description],
-      sortable: { code: item => item.code, name: item => item.name, sortOrder: item => item.sortOrder, createdAt: item => item.createdAt },
+      searchable: [(item) => item.code, (item) => item.name, (item) => item.description],
+      sortable: {
+        code: (item) => item.code,
+        name: (item) => item.name,
+        sortOrder: (item) => item.sortOrder,
+        createdAt: (item) => item.createdAt,
+      },
     };
   }
   if (/\/rbac\/permissions$/.test(normalized)) {
     return {
       key: 'permissions',
-      searchable: [item => item.permissionKey, item => item.displayName, item => item.moduleCode, item => item.resource, item => item.action],
-      sortable: { permissionKey: item => item.permissionKey, displayName: item => item.displayName, moduleCode: item => item.moduleCode, resource: item => item.resource, action: item => item.action },
+      searchable: [
+        (item) => item.permissionKey,
+        (item) => item.displayName,
+        (item) => item.moduleCode,
+        (item) => item.resource,
+        (item) => item.action,
+      ],
+      sortable: {
+        permissionKey: (item) => item.permissionKey,
+        displayName: (item) => item.displayName,
+        moduleCode: (item) => item.moduleCode,
+        resource: (item) => item.resource,
+        action: (item) => item.action,
+      },
     };
   }
   if (/\/organizations$/.test(normalized)) {
     return {
       key: 'organizations',
-      searchable: [item => item.code, item => item.name, item => item.legalName],
-      sortable: { code: item => item.code, name: item => item.name, status: item => item.status, createdAt: item => item.createdAt },
+      searchable: [(item) => item.code, (item) => item.name, (item) => item.legalName],
+      sortable: {
+        code: (item) => item.code,
+        name: (item) => item.name,
+        status: (item) => item.status,
+        createdAt: (item) => item.createdAt,
+      },
     };
   }
   if (/\/organizations\/[^/]+\/branches$|\/branches$/.test(normalized)) {
     return {
       key: 'branches',
-      searchable: [item => item.code, item => item.name, item => item.city, item => item.state],
-      sortable: { code: item => item.code, name: item => item.name, city: item => item.city, createdAt: item => item.createdAt },
+      searchable: [(item) => item.code, (item) => item.name, (item) => item.city, (item) => item.state],
+      sortable: {
+        code: (item) => item.code,
+        name: (item) => item.name,
+        city: (item) => item.city,
+        createdAt: (item) => item.createdAt,
+      },
     };
   }
   if (/\/locations$/.test(normalized)) {
     return {
       key: 'locations',
-      searchable: [item => item.code, item => item.name, item => item.city, item => item.state],
-      sortable: { code: item => item.code, name: item => item.name, city: item => item.city, createdAt: item => item.createdAt },
+      searchable: [(item) => item.code, (item) => item.name, (item) => item.city, (item) => item.state],
+      sortable: {
+        code: (item) => item.code,
+        name: (item) => item.name,
+        city: (item) => item.city,
+        createdAt: (item) => item.createdAt,
+      },
     };
   }
   if (/\/users$/.test(normalized)) {
     return {
       key: 'users',
-      searchable: [item => item.username, item => item.email, item => item.status],
-      sortable: { username: item => item.username, email: item => item.email, status: item => item.status, createdAt: item => item.createdAt },
+      searchable: [(item) => item.username, (item) => item.email, (item) => item.status],
+      sortable: {
+        username: (item) => item.username,
+        email: (item) => item.email,
+        status: (item) => item.status,
+        createdAt: (item) => item.createdAt,
+      },
     };
   }
   if (/\/auth\/modules$/.test(normalized)) {
     return {
       key: 'modules',
-      searchable: [item => item.code, item => item.name, item => item.moduleGroup],
-      sortable: { code: item => item.code, name: item => item.name, sortOrder: item => item.sortOrder },
+      searchable: [(item) => item.code, (item) => item.name, (item) => item.moduleGroup],
+      sortable: { code: (item) => item.code, name: (item) => item.name, sortOrder: (item) => item.sortOrder },
     };
   }
   return undefined;

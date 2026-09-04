@@ -88,12 +88,26 @@ describe('Phase 2 platform and identity foundation', () => {
     const scoped = await (async () => {
       const { withTenantContext } = await import('../../src/infrastructure/database/tenant-context.js');
       return withTenantContext(pool, 'app.current_tenant_id', result.tenantId, async (client) => {
-        const organizationRow = await client.query('SELECT id FROM organizations WHERE tenant_id = $1', [result.tenantId]);
+        const organizationRow = await client.query('SELECT id FROM organizations WHERE tenant_id = $1', [
+          result.tenantId,
+        ]);
         const branchRow = await client.query('SELECT id FROM branches WHERE tenant_id = $1', [result.tenantId]);
-        const userRow = await client.query('SELECT id, password_hash FROM users WHERE tenant_id = $1 AND id = $2', [result.tenantId, result.userId]);
-        const rolePermissionsCount = await client.query('SELECT COUNT(*)::int AS count FROM role_permissions WHERE tenant_id = $1 AND role_id = $2', [result.tenantId, result.roleId]);
-        const orgAccess = await client.query('SELECT COUNT(*)::int AS count FROM user_organization_access WHERE tenant_id = $1 AND user_id = $2', [result.tenantId, result.userId]);
-        const branchAccess = await client.query('SELECT COUNT(*)::int AS count FROM user_branch_access WHERE tenant_id = $1 AND user_id = $2', [result.tenantId, result.userId]);
+        const userRow = await client.query('SELECT id, password_hash FROM users WHERE tenant_id = $1 AND id = $2', [
+          result.tenantId,
+          result.userId,
+        ]);
+        const rolePermissionsCount = await client.query(
+          'SELECT COUNT(*)::int AS count FROM role_permissions WHERE tenant_id = $1 AND role_id = $2',
+          [result.tenantId, result.roleId],
+        );
+        const orgAccess = await client.query(
+          'SELECT COUNT(*)::int AS count FROM user_organization_access WHERE tenant_id = $1 AND user_id = $2',
+          [result.tenantId, result.userId],
+        );
+        const branchAccess = await client.query(
+          'SELECT COUNT(*)::int AS count FROM user_branch_access WHERE tenant_id = $1 AND user_id = $2',
+          [result.tenantId, result.userId],
+        );
         return { organizationRow, branchRow, userRow, rolePermissionsCount, orgAccess, branchAccess };
       });
     })();
@@ -107,9 +121,15 @@ describe('Phase 2 platform and identity foundation', () => {
     expect(scoped.branchAccess.rows[0].count).toBe(1);
 
     await expect(authorizationService.hasPermission(result.tenantId, result.userId, 'role.manage')).resolves.toBe(true);
-    await expect(authorizationService.hasPermission(result.tenantId, result.userId, 'permission.manage')).resolves.toBe(false);
+    await expect(authorizationService.hasPermission(result.tenantId, result.userId, 'permission.manage')).resolves.toBe(
+      false,
+    );
 
-    const authResult = await authService.authenticate(result.tenantId, tenantInput.administrator.username, tenantInput.administrator.password);
+    const authResult = await authService.authenticate(
+      result.tenantId,
+      tenantInput.administrator.username,
+      tenantInput.administrator.password,
+    );
     expect(authResult.success).toBe(true);
     expect(authResult.session).toBeDefined();
     expect(authResult.session?.tenantId).toBe(result.tenantId);
@@ -118,7 +138,10 @@ describe('Phase 2 platform and identity foundation', () => {
     const sessionRow = await (async () => {
       const { withTenantContext } = await import('../../src/infrastructure/database/tenant-context.js');
       return withTenantContext(pool, 'app.current_tenant_id', result.tenantId, async (client) => {
-        return client.query('SELECT is_active FROM user_sessions WHERE id = $1 AND tenant_id = $2', [authResult.session!.id, result.tenantId]);
+        return client.query('SELECT is_active FROM user_sessions WHERE id = $1 AND tenant_id = $2', [
+          authResult.session!.id,
+          result.tenantId,
+        ]);
       });
     })();
     expect(sessionRow.rowCount).toBe(1);
@@ -160,7 +183,9 @@ describe('Phase 2 platform and identity foundation', () => {
       });
       throw new Error('Expected tenant bootstrap to fail on duplicate unique tenant slug.');
     } catch (error) {
-      const rows = await pool.query('SELECT COUNT(*)::int AS count FROM tenants WHERE slug = $1', [tenantSeed.tenant.slug]);
+      const rows = await pool.query('SELECT COUNT(*)::int AS count FROM tenants WHERE slug = $1', [
+        tenantSeed.tenant.slug,
+      ]);
       expect(rows.rows[0].count).toBe(1);
     }
   });

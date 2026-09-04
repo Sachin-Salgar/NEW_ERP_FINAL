@@ -17,7 +17,11 @@ export class BranchService {
     }
   }
 
-  async listAccessibleBranchesForUser(tenantId: string, userId: string, organizationId?: string | null): Promise<BranchRecord[]> {
+  async listAccessibleBranchesForUser(
+    tenantId: string,
+    userId: string,
+    organizationId?: string | null,
+  ): Promise<BranchRecord[]> {
     this.requireTenant(tenantId);
     const normalizedUserId = (userId ?? '').trim();
     if (!normalizedUserId) {
@@ -26,7 +30,12 @@ export class BranchService {
     return this.repository.listAccessibleBranchesForUser(tenantId, normalizedUserId, organizationId ?? null);
   }
 
-  async getAccessibleBranchByIdForUser(tenantId: string, userId: string, branchId: string, organizationId?: string | null): Promise<BranchRecord | null> {
+  async getAccessibleBranchByIdForUser(
+    tenantId: string,
+    userId: string,
+    branchId: string,
+    organizationId?: string | null,
+  ): Promise<BranchRecord | null> {
     this.requireTenant(tenantId);
     const normalizedUserId = (userId ?? '').trim();
     const normalizedBranchId = (branchId ?? '').trim();
@@ -36,10 +45,20 @@ export class BranchService {
     if (!normalizedBranchId) {
       throw new ValidationError('Branch ID is required.');
     }
-    return this.repository.getAccessibleBranchByIdForUser(tenantId, normalizedUserId, normalizedBranchId, organizationId ?? null);
+    return this.repository.getAccessibleBranchByIdForUser(
+      tenantId,
+      normalizedUserId,
+      normalizedBranchId,
+      organizationId ?? null,
+    );
   }
 
-  async validateBranchAccess(tenantId: string, userId: string, branchId: string, organizationId?: string | null): Promise<boolean> {
+  async validateBranchAccess(
+    tenantId: string,
+    userId: string,
+    branchId: string,
+    organizationId?: string | null,
+  ): Promise<boolean> {
     this.requireTenant(tenantId);
     const normalizedUserId = (userId ?? '').trim();
     const normalizedBranchId = (branchId ?? '').trim();

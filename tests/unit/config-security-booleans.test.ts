@@ -21,14 +21,18 @@ describe('security boolean environment parsing', () => {
   });
 
   it('parses explicit true strings as true and rejects ambiguous values', () => {
-    expect(appConfigSchema.parse({
-      DATABASE_URL: 'postgresql://user:pass@localhost:5432/test',
-      JWT_ACCEPT_LEGACY_HS256: 'true',
-    }).JWT_ACCEPT_LEGACY_HS256).toBe(true);
+    expect(
+      appConfigSchema.parse({
+        DATABASE_URL: 'postgresql://user:pass@localhost:5432/test',
+        JWT_ACCEPT_LEGACY_HS256: 'true',
+      }).JWT_ACCEPT_LEGACY_HS256,
+    ).toBe(true);
 
-    expect(() => appConfigSchema.parse({
-      DATABASE_URL: 'postgresql://user:pass@localhost:5432/test',
-      JWT_ACCEPT_LEGACY_HS256: 'yes',
-    })).toThrow();
+    expect(() =>
+      appConfigSchema.parse({
+        DATABASE_URL: 'postgresql://user:pass@localhost:5432/test',
+        JWT_ACCEPT_LEGACY_HS256: 'yes',
+      }),
+    ).toThrow();
   });
 });

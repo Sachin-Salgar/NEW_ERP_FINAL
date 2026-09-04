@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { FastifyInstance } from 'fastify';
-import { promisify } from 'util';
 import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 import { zodToJsonSchema } from 'zod-to-json-schema';
@@ -12,12 +11,8 @@ export function toJsonSchema(schema: z.ZodTypeAny, name?: string) {
   });
 }
 
-const idParams = (names: string[]) => z.object(
-  Object.fromEntries(names.map((name) => [
-    name,
-    name === 'code' ? z.string().min(1) : z.string().uuid(),
-  ])),
-);
+const idParams = (names: string[]) =>
+  z.object(Object.fromEntries(names.map((name) => [name, name === 'code' ? z.string().min(1) : z.string().uuid()])));
 
 export function schemaForRoute(method: string, url: string) {
   const normalizedUrl = url.replace(/^\/(?:api\/v\d+\/)?/, '/');
@@ -27,28 +22,46 @@ export function schemaForRoute(method: string, url: string) {
 
   if (method === 'POST' && normalizedUrl === '/auth/register') schema.body = toJsonSchema(authSchemas.registerRequest);
   else if (method === 'POST' && normalizedUrl === '/auth/login') schema.body = toJsonSchema(authSchemas.loginRequest);
-  else if (method === 'POST' && normalizedUrl === '/auth/refresh') schema.body = toJsonSchema(authSchemas.refreshRequest);
-  else if (method === 'POST' && normalizedUrl === '/auth/organizations/select') schema.body = toJsonSchema(authSchemas.orgSelectRequest);
-  else if (method === 'POST' && normalizedUrl === '/auth/context/select') schema.body = toJsonSchema(authSchemas.contextSelectRequest);
-  else if (method === 'POST' && normalizedUrl === '/organizations') schema.body = toJsonSchema(enterpriseSchemas.createOrganizationRequest);
-  else if (method === 'PATCH' && normalizedUrl === '/organizations/:id') schema.body = toJsonSchema(enterpriseSchemas.createOrganizationRequest.partial());
-  else if (method === 'POST' && normalizedUrl.endsWith('/branches')) schema.body = toJsonSchema(enterpriseSchemas.createBranchRequest);
-  else if (method === 'PATCH' && normalizedUrl.match(/^\/organizations\/:organizationId\/branches\/:branchId$/)) schema.body = toJsonSchema(enterpriseSchemas.createBranchRequest.partial());
-  else if (method === 'POST' && normalizedUrl === '/locations') schema.body = toJsonSchema(locationSchemas.createLocationRequest);
-  else if (method === 'PATCH' && normalizedUrl === '/locations/:id') schema.body = toJsonSchema(locationSchemas.createLocationRequest.partial());
-  else if (method === 'POST' && normalizedUrl === '/rbac/roles') schema.body = toJsonSchema(rbacSchemas.createRoleRequest);
-  else if (method === 'PATCH' && normalizedUrl === '/rbac/roles/:roleId') schema.body = toJsonSchema(rbacSchemas.updateRoleRequest);
-  else if (method === 'POST' && normalizedUrl.endsWith('/permissions')) schema.body = toJsonSchema(rbacSchemas.assignPermissionsRequest);
-  else if (method === 'PUT' && normalizedUrl.endsWith('/permissions')) schema.body = toJsonSchema(rbacSchemas.assignPermissionsRequest);
-  else if (method === 'POST' && normalizedUrl.endsWith('/roles')) schema.body = toJsonSchema(rbacSchemas.assignRoleRequest);
-  else if (method === 'DELETE' && normalizedUrl.endsWith('/permissions')) schema.body = toJsonSchema(rbacSchemas.assignPermissionsRequest);
-  else if (method === 'PATCH' && normalizedUrl === '/users/:id') schema.body = toJsonSchema(z.object({
-    username: z.string().min(1).optional(),
-    email: z.string().email().optional(),
-    organizationId: z.string().nullable().optional(),
-    defaultBranchId: z.string().nullable().optional(),
-    status: z.enum(['active', 'inactive', 'locked', 'pending_verification']).optional(),
-  }));
+  else if (method === 'POST' && normalizedUrl === '/auth/refresh')
+    schema.body = toJsonSchema(authSchemas.refreshRequest);
+  else if (method === 'POST' && normalizedUrl === '/auth/organizations/select')
+    schema.body = toJsonSchema(authSchemas.orgSelectRequest);
+  else if (method === 'POST' && normalizedUrl === '/auth/context/select')
+    schema.body = toJsonSchema(authSchemas.contextSelectRequest);
+  else if (method === 'POST' && normalizedUrl === '/organizations')
+    schema.body = toJsonSchema(enterpriseSchemas.createOrganizationRequest);
+  else if (method === 'PATCH' && normalizedUrl === '/organizations/:id')
+    schema.body = toJsonSchema(enterpriseSchemas.createOrganizationRequest.partial());
+  else if (method === 'POST' && normalizedUrl.endsWith('/branches'))
+    schema.body = toJsonSchema(enterpriseSchemas.createBranchRequest);
+  else if (method === 'PATCH' && normalizedUrl.match(/^\/organizations\/:organizationId\/branches\/:branchId$/))
+    schema.body = toJsonSchema(enterpriseSchemas.createBranchRequest.partial());
+  else if (method === 'POST' && normalizedUrl === '/locations')
+    schema.body = toJsonSchema(locationSchemas.createLocationRequest);
+  else if (method === 'PATCH' && normalizedUrl === '/locations/:id')
+    schema.body = toJsonSchema(locationSchemas.createLocationRequest.partial());
+  else if (method === 'POST' && normalizedUrl === '/rbac/roles')
+    schema.body = toJsonSchema(rbacSchemas.createRoleRequest);
+  else if (method === 'PATCH' && normalizedUrl === '/rbac/roles/:roleId')
+    schema.body = toJsonSchema(rbacSchemas.updateRoleRequest);
+  else if (method === 'POST' && normalizedUrl.endsWith('/permissions'))
+    schema.body = toJsonSchema(rbacSchemas.assignPermissionsRequest);
+  else if (method === 'PUT' && normalizedUrl.endsWith('/permissions'))
+    schema.body = toJsonSchema(rbacSchemas.assignPermissionsRequest);
+  else if (method === 'POST' && normalizedUrl.endsWith('/roles'))
+    schema.body = toJsonSchema(rbacSchemas.assignRoleRequest);
+  else if (method === 'DELETE' && normalizedUrl.endsWith('/permissions'))
+    schema.body = toJsonSchema(rbacSchemas.assignPermissionsRequest);
+  else if (method === 'PATCH' && normalizedUrl === '/users/:id')
+    schema.body = toJsonSchema(
+      z.object({
+        username: z.string().min(1).optional(),
+        email: z.string().email().optional(),
+        organizationId: z.string().nullable().optional(),
+        defaultBranchId: z.string().nullable().optional(),
+        status: z.enum(['active', 'inactive', 'locked', 'pending_verification']).optional(),
+      }),
+    );
   return schema;
 }
 
@@ -123,14 +136,16 @@ export const authSchemas = {
     expiresAt: z.string().datetime(),
     tokenType: z.string().describe('Always "bearer"'),
     tenant: z.object({ id: z.string().uuid() }),
-    organizations: z.array(z.object({
-      id: z.string().uuid(),
-      tenantId: z.string().uuid(),
-      code: z.string(),
-      name: z.string(),
-      status: z.string(),
-      isDefault: z.boolean(),
-    })),
+    organizations: z.array(
+      z.object({
+        id: z.string().uuid(),
+        tenantId: z.string().uuid(),
+        code: z.string(),
+        name: z.string(),
+        status: z.string(),
+        isDefault: z.boolean(),
+      }),
+    ),
     activeOrganizationId: z.string().uuid().nullable(),
     requiresOrganizationSelection: z.boolean(),
   }),
@@ -266,34 +281,38 @@ export const authSchemas = {
   modulesResponse: z.object({
     success: z.boolean().describe('Always true'),
     organizationId: z.string().uuid(),
-    modules: z.array(z.object({
-      id: z.string().uuid(),
-      code: z.string(),
-      name: z.string(),
-      moduleGroup: z.string(),
-      description: z.string().nullable(),
-      icon: z.string().nullable(),
-      route: z.string().nullable(),
-      isCore: z.boolean(),
-      sortOrder: z.number(),
-      enabled: z.boolean(),
-    })),
+    modules: z.array(
+      z.object({
+        id: z.string().uuid(),
+        code: z.string(),
+        name: z.string(),
+        moduleGroup: z.string(),
+        description: z.string().nullable(),
+        icon: z.string().nullable(),
+        route: z.string().nullable(),
+        isCore: z.boolean(),
+        sortOrder: z.number(),
+        enabled: z.boolean(),
+      }),
+    ),
   }),
   moduleToggleResponse: z.object({
     success: z.boolean().describe('Always true'),
     enabled: z.boolean(),
-    module: z.object({
-      id: z.string().uuid(),
-      code: z.string(),
-      name: z.string(),
-      moduleGroup: z.string(),
-      description: z.string().nullable(),
-      icon: z.string().nullable(),
-      route: z.string().nullable(),
-      isCore: z.boolean(),
-      sortOrder: z.number(),
-      enabled: z.boolean(),
-    }).optional(),
+    module: z
+      .object({
+        id: z.string().uuid(),
+        code: z.string(),
+        name: z.string(),
+        moduleGroup: z.string(),
+        description: z.string().nullable(),
+        icon: z.string().nullable(),
+        route: z.string().nullable(),
+        isCore: z.boolean(),
+        sortOrder: z.number(),
+        enabled: z.boolean(),
+      })
+      .optional(),
     moduleCode: z.string().optional(),
   }),
   logoutResponse: z.object({
@@ -330,16 +349,20 @@ export const healthSchemas = {
     database: z.object({
       connected: z.boolean(),
       latencyMs: z.number().optional(),
-      pool: z.object({
-        total: z.number(),
-        idle: z.number(),
-        waiting: z.number(),
-      }).optional(),
+      pool: z
+        .object({
+          total: z.number(),
+          idle: z.number(),
+          waiting: z.number(),
+        })
+        .optional(),
     }),
-    migrations: z.object({
-      applied: z.array(z.string()),
-      pending: z.array(z.string()),
-    }).optional(),
+    migrations: z
+      .object({
+        applied: z.array(z.string()),
+        pending: z.array(z.string()),
+      })
+      .optional(),
   }),
 };
 
@@ -385,45 +408,51 @@ export const rbacSchemas = {
   }),
   rolePermissionsResponse: z.object({
     success: z.boolean().describe('Always true'),
-    permissions: z.array(z.object({
-      id: z.string().uuid(),
-      moduleCode: z.string(),
-      resource: z.string(),
-      action: z.string(),
-      scope: z.enum(['own', 'branch', 'organization', 'tenant', 'global']),
-      permissionKey: z.string(),
-      displayName: z.string(),
-      description: z.string().nullable(),
-      isSystem: z.boolean(),
-    })),
+    permissions: z.array(
+      z.object({
+        id: z.string().uuid(),
+        moduleCode: z.string(),
+        resource: z.string(),
+        action: z.string(),
+        scope: z.enum(['own', 'branch', 'organization', 'tenant', 'global']),
+        permissionKey: z.string(),
+        displayName: z.string(),
+        description: z.string().nullable(),
+        isSystem: z.boolean(),
+      }),
+    ),
   }),
   userRolesResponse: z.object({
     success: z.boolean().describe('Always true'),
-    roles: z.array(z.object({
-      id: z.string().uuid(),
-      tenantId: z.string().uuid(),
-      code: z.string(),
-      name: z.string(),
-      description: z.string().nullable(),
-      isSystem: z.boolean(),
-      sortOrder: z.number(),
-      createdAt: z.string().datetime().nullable(),
-      updatedAt: z.string().datetime().nullable(),
-    })),
+    roles: z.array(
+      z.object({
+        id: z.string().uuid(),
+        tenantId: z.string().uuid(),
+        code: z.string(),
+        name: z.string(),
+        description: z.string().nullable(),
+        isSystem: z.boolean(),
+        sortOrder: z.number(),
+        createdAt: z.string().datetime().nullable(),
+        updatedAt: z.string().datetime().nullable(),
+      }),
+    ),
   }),
   userEffectivePermissionsResponse: z.object({
     success: z.boolean().describe('Always true'),
-    permissions: z.array(z.object({
-      id: z.string().uuid(),
-      moduleCode: z.string(),
-      resource: z.string(),
-      action: z.string(),
-      scope: z.enum(['own', 'branch', 'organization', 'tenant', 'global']),
-      permissionKey: z.string(),
-      displayName: z.string(),
-      description: z.string().nullable(),
-      isSystem: z.boolean(),
-    })),
+    permissions: z.array(
+      z.object({
+        id: z.string().uuid(),
+        moduleCode: z.string(),
+        resource: z.string(),
+        action: z.string(),
+        scope: z.enum(['own', 'branch', 'organization', 'tenant', 'global']),
+        permissionKey: z.string(),
+        displayName: z.string(),
+        description: z.string().nullable(),
+        isSystem: z.boolean(),
+      }),
+    ),
   }),
   assignRoleRequest: z.object({
     roleId: z.string().uuid(),
@@ -559,30 +588,18 @@ export async function setupSwagger(app: FastifyInstance) {
           name: 'Proprietary',
         },
       },
-      servers: [
-        { url: 'http://localhost:3000/api/v1', description: 'Development server' },
-      ],
+      servers: [{ url: 'http://localhost:3000/api/v1', description: 'Development server' }],
       components: {
         securitySchemes: securityScheme,
         schemas: {
           ErrorResponse: toJsonSchema(errorResponseSchema),
           PaginationQuery: toJsonSchema(paginationQuerySchema),
           PaginationMeta: toJsonSchema(paginationMetaSchema),
-          ...Object.fromEntries(
-            Object.entries(authSchemas).map(([k, v]) => [k, toJsonSchema(v)])
-          ),
-          ...Object.fromEntries(
-            Object.entries(healthSchemas).map(([k, v]) => [k, toJsonSchema(v)])
-          ),
-          ...Object.fromEntries(
-            Object.entries(rbacSchemas).map(([k, v]) => [k, toJsonSchema(v)])
-          ),
-          ...Object.fromEntries(
-            Object.entries(enterpriseSchemas).map(([k, v]) => [k, toJsonSchema(v)])
-          ),
-          ...Object.fromEntries(
-            Object.entries(locationSchemas).map(([k, v]) => [k, toJsonSchema(v)])
-          ),
+          ...Object.fromEntries(Object.entries(authSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
+          ...Object.fromEntries(Object.entries(healthSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
+          ...Object.fromEntries(Object.entries(rbacSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
+          ...Object.fromEntries(Object.entries(enterpriseSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
+          ...Object.fromEntries(Object.entries(locationSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
         },
       },
       security: [{ bearerAuth: [] }],
@@ -606,7 +623,7 @@ export async function setupSwagger(app: FastifyInstance) {
       filter: true,
     },
     staticCSP: true,
-    transformStaticCSP: (header: string) => header.replace('script-src \'self\'', 'script-src \'self\' \'unsafe-inline\''),
+    transformStaticCSP: (header: string) => header.replace("script-src 'self'", "script-src 'self' 'unsafe-inline'"),
   });
 
   app.log.info('Swagger UI available at /docs');

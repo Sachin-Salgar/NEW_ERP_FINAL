@@ -28,9 +28,11 @@ describe('UnitOfWork', () => {
     const uow = new UnitOfWork(mock.pool);
     const failure = new Error('operation failed');
 
-    await expect(uow.runInTransaction(async () => {
-      throw failure;
-    })).rejects.toBe(failure);
+    await expect(
+      uow.runInTransaction(async () => {
+        throw failure;
+      }),
+    ).rejects.toBe(failure);
 
     expect(mock.query).toHaveBeenCalledWith('BEGIN');
     expect(mock.query).toHaveBeenCalledWith('ROLLBACK');
