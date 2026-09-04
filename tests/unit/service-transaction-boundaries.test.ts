@@ -1,11 +1,19 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TenantBootstrapService } from '../../src/application/services/tenant-bootstrap-service.js';
 import { UserRegistrationService } from '../../src/application/services/user-registration-service.js';
 
+const runInTransactionSpy = vi.fn();
 const transactionRunner = {
-  runInTransaction: vi.fn(async <T>(callback: () => Promise<T>) => callback()),
+  runInTransaction<T>(callback: () => Promise<T>): Promise<T> {
+    runInTransactionSpy();
+    return callback();
+  },
 };
+
+beforeEach(() => {
+  runInTransactionSpy.mockClear();
+});
 
 describe('service transaction boundaries', () => {
   it('wraps tenant bootstrap repository orchestration in a transaction', async () => {
@@ -15,6 +23,7 @@ describe('service transaction boundaries', () => {
         organizationId: input.organization.id,
         branchId: input.branch.id,
         userId: input.administrator.id,
+        roleId: input.role.id,
       })),
     };
     const service = new TenantBootstrapService(repository, undefined, transactionRunner);
@@ -32,7 +41,7 @@ describe('service transaction boundaries', () => {
 
     await service.bootstrapTenant(input);
 
-    expect(transactionRunner.runInTransaction).toHaveBeenCalledTimes(1);
+    expect(runInTransactionSpy).toHaveBeenCalledTimes(1);
     expect(repository.bootstrapTenant).toHaveBeenCalledTimes(1);
   });
 
@@ -52,7 +61,7 @@ describe('service transaction boundaries', () => {
       assignUserToOrganization: vi.fn(async () => true),
       assignUserRole: vi.fn(async () => undefined),
     };
-    const passwordHasher = { hash: vi.fn(async () => 'password-hash') };
+    const passwordHasher = { hash: vi.fn(async () => 'password-hash'), verify: vi.fn(async () => true) };
     const service = new UserRegistrationService(repository, passwordHasher, undefined, transactionRunner);
 
     const result = await service.registerUser('tenant', 'actor', {
@@ -62,7 +71,7 @@ describe('service transaction boundaries', () => {
     });
 
     expect(result.username).toBe('new-user');
-    expect(transactionRunner.runInTransaction).toHaveBeenCalledTimes(1);
+    expect(runInTransactionSpy).toHaveBeenCalledTimes(1);
     expect(repository.createUser).toHaveBeenCalledTimes(1);
     expect(repository.assignUserToOrganization).toHaveBeenCalledTimes(1);
     expect(repository.assignUserRole).toHaveBeenCalledTimes(1);
@@ -70,7 +79,11 @@ describe('service transaction boundaries', () => {
 
   it('propagates transaction failure without returning a partially created user', async () => {
     const failure = new Error('transaction failed');
-    const failingRunner = { runInTransaction: vi.fn(async () => { throw failure; }) };
+    const failingRunner = {
+      async runInTransaction<T>(_callback: () => Promise<T>): Promise<T> {
+        throw failure;
+      },
+    };
     const repository = {
       findById: vi.fn(async () => ({
         id: 'actor', tenantId: 'tenant', organizationId: 'org', defaultBranchId: 'branch',
@@ -83,7 +96,7 @@ describe('service transaction boundaries', () => {
       assignUserToOrganization: vi.fn(),
       assignUserRole: vi.fn(),
     };
-    const passwordHasher = { hash: vi.fn(async () => 'password-hash') };
+    const passwordHasher = { hash: vi.fn(async () => 'password-hash'), verify: vi.fn(async () => true) };
     const service = new UserRegistrationService(repository, passwordHasher, undefined, failingRunner);
 
     await expect(service.registerUser('tenant', 'actor', {

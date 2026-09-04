@@ -5,7 +5,7 @@ import { UnitOfWork } from '../../src/infrastructure/database/unit-of-work.js';
 import { withTenantContext } from '../../src/infrastructure/database/tenant-context.js';
 
 function createMockPool() {
-  const query = vi.fn(async () => ({ rows: [] }));
+  const query = vi.fn(async (..._args: unknown[]) => ({ rows: [] }));
   const release = vi.fn();
   const client = { query, release } as unknown as PoolClient;
   const connect = vi.fn(async () => client);
@@ -18,9 +18,9 @@ describe('transaction context and tenant RLS boundary', () => {
     const uow = new UnitOfWork(mock.pool);
     const tenantId = 'a7f2f4b0-2f11-4d2f-9a8a-4d7d9b2e1001';
 
-    await uow.runInTransaction(async (client) => {
+    await uow.runInTransaction(async () => {
       await withTenantContext(mock.pool, 'app.current_tenant_id', tenantId, async (scopedClient) => {
-        expect(scopedClient).toBe(client);
+        expect(scopedClient).toBe(mock.client);
       });
     });
 

@@ -1,5 +1,6 @@
-import type { PlatformBootstrapRepository, ReferenceDataSummary } from '../../domain/contracts/repositories.js';
+import type { PlatformBootstrapRepository } from '../../domain/contracts/repositories.js';
 import type { PlatformModuleSeed, PlatformPermissionSeed, PlatformSubscriptionPlanSeed } from '../../domain/contracts/bootstrap.js';
+import type { ReferenceDataSummary } from '../contracts/security.js';
 
 const DEFAULT_SUBSCRIPTION_PLANS: PlatformSubscriptionPlanSeed[] = [
   {

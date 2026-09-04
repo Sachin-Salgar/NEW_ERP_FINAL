@@ -21,7 +21,7 @@
 | `JWT_SIGNING_ALGORITHM` | `HS256` \| `RS256` | No | `HS256` | JWT issuance mode. RS256 is the approved production migration target; HS256 remains the compatibility default until deployment key material is configured. |
 | `JWT_RS256_KEYS_JSON` | string | No | `[]` | JSON-encoded RS256 key ring. Entries contain kid, lifecycle state, public key PEM, and private PEM only for the active signing key. Store private material in deployment secret storage. |
 | `JWT_ACCEPT_LEGACY_HS256` | boolean | No | `false` | Allows already-issued HS256 tokens to verify during a bounded RS256 migration window. Do not leave enabled indefinitely. |
-| `MFA_ENCRYPTION_KEY` | string | No | `development-mfa-encryption-key-change-me-32` | Secret used to encrypt persisted TOTP secrets with AES-256-GCM. The development placeholder is rejected in production. |
+| `MFA_ENCRYPTION_KEY` | string | No | `development-mfa-encryption-key-change-me-32` |  |
 | `TENANT_CONTEXT_KEY` | string | No | `app.current_tenant_id` | PostgreSQL session setting used to propagate tenant context for RLS. |
 | `AUTH_LOGIN_RATE_LIMIT` | number | No | `5` | Maximum login requests allowed within the configured auth rate-limit window. |
 | `AUTH_REGISTER_RATE_LIMIT` | number | No | `5` | Maximum registration requests allowed within the configured auth rate-limit window. |
@@ -51,7 +51,6 @@ These variables are used by development, testing, or PostgreSQL tooling but are 
 - Production HS256 compatibility deployments must provide a strong `JWT_SECRET`; the development default is rejected.
 - When `JWT_SIGNING_ALGORITHM=RS256`, `JWT_RS256_KEYS_JSON` must contain exactly one active signing key plus any verification-only overlap keys. Retired keys are not published in JWKS or accepted for verification.
 - `JWT_ACCEPT_LEGACY_HS256=true` is only for the controlled migration window and requires a real legacy secret in production.
-- `MFA_ENCRYPTION_KEY` must be a strong deployment secret in production. Never commit the real key to the repository.
 - `DATABASE_SSL_MODE` defaults to `require`. Use `disable` only where the deployment/database network is explicitly designed for it.
 - Tenant identity is not configured through an environment variable. Tenant context is derived by the application and propagated to PostgreSQL using `TENANT_CONTEXT_KEY`; do not bypass the established RLS flow.
 - Keep secrets in deployment/environment secret stores. Do not commit real credentials or private signing keys to repository files.

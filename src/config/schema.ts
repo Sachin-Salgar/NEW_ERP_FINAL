@@ -32,7 +32,12 @@ export const appConfigSchema = z.object({
   JWT_SIGNING_ALGORITHM: z.enum(jwtSigningAlgorithms).default('HS256'),
   JWT_RS256_KEYS_JSON: z.string().trim().default('[]'),
   JWT_ACCEPT_LEGACY_HS256: envBoolean(false),
-  MFA_ENCRYPTION_KEY: z.string().trim().min(32).default('development-mfa-encryption-key-change-me-32'),
+  MFA_ENCRYPTION_KEY: z
+    .string()
+    .trim()
+    .min(32)
+    .default('development-mfa-encryption-key-change-me-32')
+    .describe('Secret used to encrypt persisted TOTP secrets with AES-256-GCM. The development placeholder is rejected in production.'),
   TENANT_CONTEXT_KEY: z.string().trim().min(1).default('app.current_tenant_id'),
   AUTH_LOGIN_RATE_LIMIT: z.coerce.number().int().positive().default(5),
   AUTH_REGISTER_RATE_LIMIT: z.coerce.number().int().positive().default(5),

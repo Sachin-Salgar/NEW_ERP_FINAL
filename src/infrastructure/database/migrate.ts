@@ -238,43 +238,48 @@ export async function runMigrations(databaseUrl?: string, sslMode?: DatabaseSslM
 
   try {
     await client.connect();
-    await ensureMigrationTable(client);
+    await client.query(`SELECT pg_advisory_lock(hashtext('new-erp-final:migrations'))`);
+    try {
+      await ensureMigrationTable(client);
 
-    const migrationDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
-    const journalEntries = await readMigrationJournal();
+      const migrationDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
+      const journalEntries = await readMigrationJournal();
 
-    for (const entry of journalEntries) {
-      const fileName = `${entry.tag}.sql`;
-      const filePath = path.join(migrationDir, fileName);
+      for (const entry of journalEntries) {
+        const fileName = `${entry.tag}.sql`;
+        const filePath = path.join(migrationDir, fileName);
 
-      if (!existsSync(filePath)) {
-        throw new Error(`Migration file not found for journal entry: ${fileName}`);
-      }
+        if (!existsSync(filePath)) {
+          throw new Error(`Migration file not found for journal entry: ${fileName}`);
+        }
 
-      const migrationHash = createHash('sha256').update(readFileSync(filePath)).digest('hex');
+        const migrationHash = createHash('sha256').update(readFileSync(filePath)).digest('hex');
 
-      if (await migrationAlreadyTracked(client, migrationHash)) {
-        console.log(`Skipping already-applied migration: ${fileName}`);
-        continue;
-      }
+        if (await migrationAlreadyTracked(client, migrationHash)) {
+          console.log(`Skipping already-applied migration: ${fileName}`);
+          continue;
+        }
 
-      const migrationAlreadyExists = migrationChecks[entry.tag]
-        ? await migrationChecks[entry.tag](client)
-        : false;
+        const migrationAlreadyExists = migrationChecks[entry.tag]
+          ? await migrationChecks[entry.tag](client)
+          : false;
 
-      if (migrationAlreadyExists) {
-        console.log(`Migration ${fileName} is already present in the database schema; recording migration state without replay.`);
+        if (migrationAlreadyExists) {
+          console.log(`Migration ${fileName} is already present in the database schema; recording migration state without replay.`);
+          await markMigrationApplied(client, migrationHash);
+          continue;
+        }
+
+        console.log(`Applying migration: ${fileName}`);
+        await applyMigrationFile(client, filePath);
         await markMigrationApplied(client, migrationHash);
-        continue;
+        console.log(`Applied migration: ${fileName}`);
       }
 
-      console.log(`Applying migration: ${fileName}`);
-      await applyMigrationFile(client, filePath);
-      await markMigrationApplied(client, migrationHash);
-      console.log(`Applied migration: ${fileName}`);
+      console.log('Database migration check complete.');
+    } finally {
+      await client.query(`SELECT pg_advisory_unlock(hashtext('new-erp-final:migrations'))`);
     }
-
-    console.log('Database migration check complete.');
   } finally {
     await client.end();
   }

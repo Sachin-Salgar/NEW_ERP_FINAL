@@ -68,6 +68,7 @@ describe('parseAppConfig', () => {
       PORT: '3000',
       DATABASE_URL: 'postgresql://postgres:password@localhost:5432/newerp',
       JWT_SECRET: 'a'.repeat(32),
+      MFA_ENCRYPTION_KEY: 'b'.repeat(32),
       CORS_ALLOWED_ORIGINS: 'https://erp.example.com,https://admin.example.com',
     });
 
@@ -86,6 +87,6 @@ describe('parseAppConfig', () => {
         DATABASE_URL: 'postgresql://postgres:password@localhost:5432/newerp',
         JWT_SECRET: 'development-jwt-secret-change-me',
       }),
-    ).toThrow('JWT_SECRET must be configured for production deployments.');
+    ).toThrow('JWT_SECRET must be configured for production HS256 compatibility deployments.');
   });
 });

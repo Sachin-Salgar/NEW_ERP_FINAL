@@ -1,4 +1,4 @@
-import { ValidationError } from '../../../domain/errors.js';
+import { ValidationError } from '../../domain/errors.js';
 
 export interface PaginationQuery {
   page: number;

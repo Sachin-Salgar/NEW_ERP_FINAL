@@ -15,8 +15,8 @@ function createMockClient() {
 
 describe('PostgresAuditLogger', () => {
   it('rejects required transactional audit records outside an active transaction', async () => {
-    const pool = { connect: vi.fn() } as never;
-    const logger = new PostgresAuditLogger(pool, {
+    const pool = { connect: vi.fn() };
+    const logger = new PostgresAuditLogger(pool as never, {
       tenantContextKey: 'app.current_tenant_id',
     });
 
@@ -37,8 +37,8 @@ describe('PostgresAuditLogger', () => {
 
   it('reuses the active transaction client for a tenant-scoped audit insert', async () => {
     const client = createMockClient();
-    const pool = { connect: vi.fn() } as never;
-    const logger = new PostgresAuditLogger(pool, {
+    const pool = { connect: vi.fn() };
+    const logger = new PostgresAuditLogger(pool as never, {
       tenantContextKey: 'app.current_tenant_id',
       allowedMetadataKeys: ['reason'],
     });

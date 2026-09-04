@@ -106,7 +106,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('tenantMembershipService', tenantMembershipService); app.decorate('accountSecurityService', accountSecurityService); app.decorate('mfaService', mfaService);
 
   app.addHook('preHandler', async (request, reply) => {
-    if (request.method !== 'POST' || !request.routeOptions.url.replace(/\/$/, '').endsWith('/auth/refresh')) return;
+    if (request.method !== 'POST' || !request.routeOptions.url?.replace(/\/$/, '').endsWith('/auth/refresh')) return;
     const body = request.body as { refreshToken?: unknown };
     if (typeof body?.refreshToken !== 'string' || body.refreshToken.length === 0) return;
     const rotated = await refreshTokenRotationService.rotate(body.refreshToken);
