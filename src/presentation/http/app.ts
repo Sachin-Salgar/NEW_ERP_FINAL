@@ -26,6 +26,7 @@ import branchRoutes from './routes/branch.js';
 import coreEnterpriseRoutes from './routes/core-enterprise.js';
 import locationRoutes from './routes/location.js';
 import rbacRoutes from './routes/rbac.js';
+import { paginateListResponse } from './pagination.js';
 import { schemaForRoute, setupSwagger } from './swagger.js';
 
 export async function createApplication(config: AppConfig, providedPool?: Pool): Promise<FastifyInstance> {
@@ -49,6 +50,23 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
       ...routeOptions.schema,
       ...schemaForRoute(routeOptions.method as string, routeOptions.url),
     };
+  });
+
+  app.addHook('onSend', async (request, _reply, payload) => {
+    if (request.method !== 'GET') return payload;
+    if (request.url.includes('/rbac/roles') || request.url.includes('/rbac/permissions')) return payload;
+    if (typeof payload !== 'string' && !Buffer.isBuffer(payload)) return payload;
+
+    const raw = Buffer.isBuffer(payload) ? payload.toString('utf8') : payload;
+    if (!raw.trim().startsWith('{')) return payload;
+
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const paginated = paginateListResponse(request.url, parsed, request.query);
+      return JSON.stringify(paginated);
+    } catch (error) {
+      throw error;
+    }
   });
 
   applyCorrelationIdHooks(app);
