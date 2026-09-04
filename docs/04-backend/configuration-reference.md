@@ -19,7 +19,7 @@
 | `JWT_SECRET` | string | No | `development-jwt-secret-change-me` | HS256 signing secret and temporary legacy verification secret during an explicitly enabled RS256 migration window. |
 | `JWT_ISSUER` | string | No | `new-erp-final` | Issuer claim used for JWT creation and validation. |
 | `JWT_SIGNING_ALGORITHM` | `HS256` \| `RS256` | No | `HS256` | JWT issuance mode. RS256 is the approved production migration target; HS256 remains the compatibility default until deployment key material is configured. |
-| `JWT_RS256_KEYS_JSON` | string | No | `[]` | JSON-encoded RS256 key ring. Entries contain `kid`, lifecycle `state`, public key PEM, and private PEM only for the active signing key. Store private material in deployment secret storage. |
+| `JWT_RS256_KEYS_JSON` | string | No | `[]` | JSON-encoded RS256 key ring. Entries contain kid, lifecycle state, public key PEM, and private PEM only for the active signing key. Store private material in deployment secret storage. |
 | `JWT_ACCEPT_LEGACY_HS256` | boolean | No | `false` | Allows already-issued HS256 tokens to verify during a bounded RS256 migration window. Do not leave enabled indefinitely. |
 | `TENANT_CONTEXT_KEY` | string | No | `app.current_tenant_id` | PostgreSQL session setting used to propagate tenant context for RLS. |
 | `AUTH_LOGIN_RATE_LIMIT` | number | No | `5` | Maximum login requests allowed within the configured auth rate-limit window. |
