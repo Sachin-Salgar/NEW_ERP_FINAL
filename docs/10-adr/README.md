@@ -59,23 +59,23 @@ If an ADR conflicts with another authoritative document and the scope cannot be 
 | [0005](./0005-uuid-version-standard.md) | UUID Version Standard | Approved | 2026-08-07 | UUID primary identifier generation |
 | [0006](./0006-identity-based-tenant-context.md) | Identity-Based Tenant Context and PostgreSQL RLS | Approved | 2026-08-27 | Authentication, tenant context, tenant isolation, web/mobile clients, SaaS and on-premises deployments |
 | [0007](./0007-zero-downtime-migrations.md) | Zero-Downtime Migration Strategy | Approved | 2026-08-07 | Production database migrations |
-| [0008](./0008-event-contracts-versioning.md) | Event Contracts & Versioning | Proposed | 2026-08-07 | Cross-module/integration event contract versioning |
-| [0009](./0009-token-refresh-rotation.md) | Token Strategy — Refresh Token Rotation | Proposed | 2026-08-07 | Refresh-token lifecycle |
+| [0008](./0008-event-contracts-versioning.md) | Event Contracts & Versioning | Approved | 2026-08-07 | Cross-module/integration event contract versioning |
+| [0009](./0009-token-refresh-rotation.md) | Token Strategy — Refresh Token Rotation | Approved | 2026-08-07 | Refresh-token lifecycle |
 | [0010](./0010-organization-module-access.md) | Organization Module Access Boundary | Approved | 2026-08-26 | Tenant entitlement, organization module enablement, and effective permission access |
 | [0011](./0011-organization-branch-location-context.md) | Organization, Branch, and Location Context Model | Approved | 2026-09-01 | Core enterprise context, business hierarchy, operational authorization, transaction scoping |
 | [0012](./0012-branch-access-representation.md) | Branch Access Representation | Approved | 2026-09-03 | Tenant-scoped user authorization for Branch records |
 | [0013](./0013-centralized-tls-managed-postgresql.md) | Centralized PostgreSQL Connection Policy for Managed Endpoints | Approved | 2026-09-03 | Centralized PostgreSQL connection configuration, endpoint selection, and transport security |
-| [0014](./0014-audit-logging-foundation.md) | Audit Logging Foundation | Proposed | 2026-09-04 | Security, authorization, identity, and business audit records |
-| [0015](./0015-email-verification-password-recovery.md) | Email Verification and Password Recovery | Proposed | 2026-09-04 | Local-account verification and password recovery |
-| [0016](./0016-mfa-totp.md) | Multi-Factor Authentication with TOTP | Proposed | 2026-09-04 | TOTP-based MFA |
-| [0017](./0017-notification-service.md) | Notification Service | Proposed | 2026-09-04 | Notification orchestration and delivery abstraction |
-| [0018](./0018-file-storage-service.md) | File Storage Service | Proposed | 2026-09-04 | ERP-managed file and attachment storage |
-| [0019](./0019-scheduler-service.md) | Scheduler Service | Proposed | 2026-09-04 | Durable scheduled and recurring background work |
-| [0020](./0020-event-driven-architecture.md) | Event-Driven Architecture | Proposed | 2026-09-04 | Domain and integration events |
-| [0021](./0021-jwt-key-rotation-jwks.md) | JWT Signing-Key Rotation and JWKS | Proposed | 2026-09-04 | JWT signing-key lifecycle and public-key distribution |
-| [0022](./0022-query-performance-monitoring.md) | Query Performance Monitoring | Proposed | 2026-09-04 | PostgreSQL query performance measurement and diagnosis |
-| [0023](./0023-table-partitioning.md) | Table Partitioning Strategy | Proposed | 2026-09-04 | Selective partitioning of high-volume PostgreSQL tables |
-| [0024](./0024-api-versioning-strategy.md) | API Versioning Strategy | Proposed | 2026-09-04 | Public HTTP API compatibility and version lifecycle |
+| [0014](./0014-audit-logging-foundation.md) | Audit Logging Foundation | Approved | 2026-09-04 | Security, authorization, identity, and business audit records |
+| [0015](./0015-email-verification-password-recovery.md) | Email Verification and Password Recovery | Approved | 2026-09-04 | Local-account verification and password recovery |
+| [0016](./0016-mfa-totp.md) | Multi-Factor Authentication with TOTP | Approved | 2026-09-04 | TOTP-based MFA |
+| [0017](./0017-notification-service.md) | Notification Service | Approved | 2026-09-04 | Notification orchestration and delivery abstraction |
+| [0018](./0018-file-storage-service.md) | File Storage Service | Approved | 2026-09-04 | ERP-managed file and attachment storage |
+| [0019](./0019-scheduler-service.md) | Scheduler Service | Approved | 2026-09-04 | Durable scheduled and recurring background work |
+| [0020](./0020-event-driven-architecture.md) | Event-Driven Architecture | Approved | 2026-09-04 | Domain and integration events |
+| [0021](./0021-jwt-key-rotation-jwks.md) | JWT Signing-Key Rotation and JWKS | Approved | 2026-09-04 | JWT signing-key lifecycle and public-key distribution |
+| [0022](./0022-query-performance-monitoring.md) | Query Performance Monitoring | Approved | 2026-09-04 | PostgreSQL query performance measurement and diagnosis |
+| [0023](./0023-table-partitioning.md) | Table Partitioning Strategy | Approved | 2026-09-04 | Selective partitioning of high-volume PostgreSQL tables |
+| [0024](./0024-api-versioning-strategy.md) | API Versioning Strategy | Approved | 2026-09-04 | Public HTTP API compatibility and version lifecycle |
 
 This table is the authoritative status index for the ADRs listed above. Each ADR's `Status` field must agree with this table.
 
