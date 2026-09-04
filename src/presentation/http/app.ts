@@ -16,6 +16,7 @@ import { UserRegistrationService } from '../../application/services/user-registr
 import { AccountSecurityService } from '../../application/services/account-security-service.js';
 import { MfaService } from '../../application/services/mfa-service.js';
 import { createDatabasePool } from '../../infrastructure/database/connection.js';
+import { PostgresQueryPerformanceMonitor } from '../../infrastructure/database/query-performance-monitor.js';
 import { IdentityAwarePostgresPlatformRepository } from '../../infrastructure/database/repositories/identity-aware-postgres-platform-repository.js';
 import { PostgresAccountSecurityRepository } from '../../infrastructure/database/repositories/postgres-account-security-repository.js';
 import { PostgresMfaRepository } from '../../infrastructure/database/repositories/postgres-mfa-repository.js';
@@ -39,6 +40,7 @@ import jwksRoutes from './routes/jwks.js';
 import locationRoutes from './routes/location.js';
 import rbacRoutes from './routes/rbac.js';
 import { paginateListResponse } from './pagination.js';
+import { requestObject } from './request-input.js';
 import { schemaForRoute, setupSwagger } from './swagger.js';
 
 const rotatedRefreshResponseSchema = {
@@ -54,9 +56,15 @@ const rotatedRefreshResponseSchema = {
   },
 } as const;
 
+function resolveApiVersion(apiPrefix: string): string {
+  const match = apiPrefix.match(/\/(v\d+)\/?$/i);
+  return match?.[1]?.toLowerCase() ?? 'v1';
+}
+
 export async function createApplication(config: AppConfig, providedPool?: Pool): Promise<FastifyInstance> {
   const app = Fastify({ logger: createLogger(config), requestIdHeader: 'x-request-id', requestIdLogLabel: 'requestId', ignoreTrailingSlash: true, bodyLimit: 1024 * 1024,
     ajv: { customOptions: { allErrors: true, coerceTypes: true, removeAdditional: false } } });
+  const apiVersion = resolveApiVersion(config.API_PREFIX);
 
   app.addHook('onRoute', (routeOptions) => {
     routeOptions.schema = { ...routeOptions.schema, ...schemaForRoute(routeOptions.method as string, routeOptions.url) };
@@ -66,7 +74,12 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     }
   });
 
-  app.addHook('onSend', async (request, _reply, payload) => {
+  app.addHook('onSend', async (request, reply, payload) => {
+    reply.header('x-api-version', apiVersion);
+    if (request.url.startsWith(config.API_PREFIX)) {
+      reply.header('x-api-version-policy', 'path');
+    }
+
     if (request.method !== 'GET' || request.url.includes('/rbac/roles') || request.url.includes('/rbac/permissions')) return payload;
     if (typeof payload !== 'string' && !Buffer.isBuffer(payload)) return payload;
     const raw = Buffer.isBuffer(payload) ? payload.toString('utf8') : payload;
@@ -77,6 +90,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
 
   applyCorrelationIdHooks(app);
   const pool = providedPool ?? createDatabasePool(config);
+  const queryPerformanceMonitor = new PostgresQueryPerformanceMonitor(pool);
   const repository = new IdentityAwarePostgresPlatformRepository(pool);
   const passwordHasher = new BcryptPasswordHasher();
   const jwtTokenService = new JwtTokenService(config);
@@ -105,11 +119,24 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('moduleAccessService', moduleAccessService); app.decorate('registrationService', registrationService); app.decorate('jwtTokenService', jwtTokenService);
   app.decorate('tenantMembershipService', tenantMembershipService); app.decorate('accountSecurityService', accountSecurityService); app.decorate('mfaService', mfaService);
 
+  app.addHook('onReady', async () => {
+    const snapshot = await queryPerformanceMonitor.snapshot({ minimumMeanExecMs: 100, limit: 25 });
+    app.log.info({
+      queryPerformance: {
+        available: snapshot.available,
+        unavailableReason: snapshot.unavailableReason,
+        slowStatementCount: snapshot.samples.length,
+        maxMeanExecMs: snapshot.samples.reduce((max, sample) => Math.max(max, sample.meanExecMs), 0),
+      },
+    }, 'Query performance monitor initialized');
+  });
+
   app.addHook('preHandler', async (request, reply) => {
     if (request.method !== 'POST' || !request.routeOptions.url?.replace(/\/$/, '').endsWith('/auth/refresh')) return;
-    const body = request.body as { refreshToken?: unknown };
-    if (typeof body?.refreshToken !== 'string' || body.refreshToken.length === 0) return;
-    const rotated = await refreshTokenRotationService.rotate(body.refreshToken);
+    const body = requestObject(request.body);
+    const refreshToken = body.refreshToken;
+    if (typeof refreshToken !== 'string' || refreshToken.length === 0) return;
+    const rotated = await refreshTokenRotationService.rotate(refreshToken);
     const user = await authService.validateSession(rotated.sessionId, rotated.tenantId);
     if (!user) throw new Error('Rotated session could not be resolved');
     return reply.code(200).send({ success: true, accessToken: rotated.accessToken, refreshToken: rotated.refreshToken, expiresAt: rotated.accessTokenExpiresAt, tokenType: 'bearer', user: {
@@ -118,7 +145,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     } });
   });
 
-  await app.register(cors, { origin: (origin, callback) => callback(null, isCorsOriginAllowed(config, origin)), methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id'], credentials: true, optionsSuccessStatus: 204 });
+  await app.register(cors, { origin: (origin, callback) => callback(null, isCorsOriginAllowed(config, origin)), methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id'], exposedHeaders: ['x-api-version', 'x-api-version-policy', 'x-request-id'], credentials: true, optionsSuccessStatus: 204 });
   await app.register(rateLimit, { global: false, keyGenerator: (request) => request.ip, errorResponseBuilder: (_request, context) => Object.assign(new Error(`Too many requests. Try again in ${Math.ceil(context.ttl / 1000)} seconds.`), { code: 'RATE_LIMIT_EXCEEDED', statusCode: context.statusCode }) });
   await setupSwagger(app);
   app.setErrorHandler(buildErrorHandler(config));
