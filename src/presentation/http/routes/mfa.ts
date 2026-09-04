@@ -10,7 +10,7 @@ const codeSchema = z.object({ token: z.string().trim().regex(/^\d{6}$/, 'MFA cod
 const recoveryOrCodeSchema = z.object({ token: z.string().trim().min(6).max(128) });
 
 const mfaRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.post('/auth/mfa/enroll', {
+  fastify.post<{ Body: z.infer<typeof beginSchema> }>('/auth/mfa/enroll', {
     schema: {
       tags: ['Authentication'],
       summary: 'Begin MFA enrollment for the current user',
@@ -38,7 +38,7 @@ const mfaRoutes: FastifyPluginAsync = async (fastify) => {
     };
   });
 
-  fastify.post('/auth/mfa/enroll/confirm', {
+  fastify.post<{ Body: z.infer<typeof codeSchema> }>('/auth/mfa/enroll/confirm', {
     schema: {
       tags: ['Authentication'],
       summary: 'Confirm MFA enrollment',
@@ -62,7 +62,7 @@ const mfaRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post('/auth/mfa/verify', {
+  fastify.post<{ Body: z.infer<typeof recoveryOrCodeSchema> }>('/auth/mfa/verify', {
     schema: {
       tags: ['Authentication'],
       summary: 'Verify MFA code or one-time recovery code',
