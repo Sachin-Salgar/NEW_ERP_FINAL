@@ -5,6 +5,17 @@ export const logLevels = ['fatal', 'error', 'warn', 'info', 'debug', 'trace'] as
 export const databaseSslModes = ['disable', 'require'] as const;
 export const jwtSigningAlgorithms = ['HS256', 'RS256'] as const;
 
+const envBoolean = (defaultValue: boolean) =>
+  z.preprocess((value) => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === 'true') return true;
+      if (normalized === 'false') return false;
+    }
+    return value;
+  }, z.boolean()).default(defaultValue);
+
 export const appConfigSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   APP_NAME: z.string().trim().min(1).default('new-erp-final'),
@@ -20,7 +31,7 @@ export const appConfigSchema = z.object({
   JWT_ISSUER: z.string().trim().min(1).default('new-erp-final'),
   JWT_SIGNING_ALGORITHM: z.enum(jwtSigningAlgorithms).default('HS256'),
   JWT_RS256_KEYS_JSON: z.string().trim().default('[]'),
-  JWT_ACCEPT_LEGACY_HS256: z.coerce.boolean().default(false),
+  JWT_ACCEPT_LEGACY_HS256: envBoolean(false),
   TENANT_CONTEXT_KEY: z.string().trim().min(1).default('app.current_tenant_id'),
   AUTH_LOGIN_RATE_LIMIT: z.coerce.number().int().positive().default(5),
   AUTH_REGISTER_RATE_LIMIT: z.coerce.number().int().positive().default(5),
@@ -29,10 +40,10 @@ export const appConfigSchema = z.object({
   AUTH_MAX_FAILED_ATTEMPTS: z.coerce.number().int().min(1).max(20).default(5),
   AUTH_LOCKOUT_MINUTES: z.coerce.number().int().min(1).max(1440).default(15),
   AUTH_PASSWORD_MIN_LENGTH: z.coerce.number().int().min(8).max(128).default(12),
-  AUTH_PASSWORD_REQUIRE_UPPERCASE: z.coerce.boolean().default(true),
-  AUTH_PASSWORD_REQUIRE_LOWERCASE: z.coerce.boolean().default(true),
-  AUTH_PASSWORD_REQUIRE_NUMBER: z.coerce.boolean().default(true),
-  AUTH_PASSWORD_REQUIRE_SYMBOL: z.coerce.boolean().default(true),
+  AUTH_PASSWORD_REQUIRE_UPPERCASE: envBoolean(true),
+  AUTH_PASSWORD_REQUIRE_LOWERCASE: envBoolean(true),
+  AUTH_PASSWORD_REQUIRE_NUMBER: envBoolean(true),
+  AUTH_PASSWORD_REQUIRE_SYMBOL: envBoolean(true),
   CORS_ALLOWED_ORIGINS: z
     .string()
     .transform((value) => value.split(',').map((origin) => origin.trim()).filter(Boolean))
