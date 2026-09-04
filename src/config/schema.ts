@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 export const logLevels = ['fatal', 'error', 'warn', 'info', 'debug', 'trace'] as const;
 export const databaseSslModes = ['disable', 'require'] as const;
+export const jwtSigningAlgorithms = ['HS256', 'RS256'] as const;
 
 export const appConfigSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -17,6 +18,8 @@ export const appConfigSchema = z.object({
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).default(25),
   JWT_SECRET: z.string().trim().min(32).default('development-jwt-secret-change-me'),
   JWT_ISSUER: z.string().trim().min(1).default('new-erp-final'),
+  JWT_SIGNING_ALGORITHM: z.enum(jwtSigningAlgorithms).default('HS256'),
+  JWT_RS256_KEYS_JSON: z.string().trim().default('[]'),
   TENANT_CONTEXT_KEY: z.string().trim().min(1).default('app.current_tenant_id'),
   AUTH_LOGIN_RATE_LIMIT: z.coerce.number().int().positive().default(5),
   AUTH_REGISTER_RATE_LIMIT: z.coerce.number().int().positive().default(5),
@@ -134,8 +137,24 @@ export function parseAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig 
   const isTest = config.NODE_ENV === 'test';
   const isProduction = config.NODE_ENV === 'production';
 
-  if (isProduction && (config.JWT_SECRET === 'development-jwt-secret-change-me' || !config.JWT_SECRET)) {
-    throw new Error('JWT_SECRET must be configured for production deployments.');
+  if (
+    isProduction &&
+    config.JWT_SIGNING_ALGORITHM === 'HS256' &&
+    (config.JWT_SECRET === 'development-jwt-secret-change-me' || !config.JWT_SECRET)
+  ) {
+    throw new Error('JWT_SECRET must be configured for production HS256 compatibility deployments.');
+  }
+
+  if (config.JWT_SIGNING_ALGORITHM === 'RS256') {
+    try {
+      const keys = JSON.parse(config.JWT_RS256_KEYS_JSON) as unknown;
+      if (!Array.isArray(keys) || keys.length === 0) {
+        throw new Error('no keys configured');
+      }
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'invalid JSON';
+      throw new Error(`JWT_RS256_KEYS_JSON must contain the configured RS256 key ring: ${detail}`);
+    }
   }
 
   return {
