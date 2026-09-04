@@ -95,8 +95,13 @@ describe('PostgreSQL tenant isolation', () => {
       const rollbackClient = await pool.connect();
       try {
         await rollbackClient.query('BEGIN');
-        await rollbackClient.query(`SET LOCAL "${tenantContextKey.replace(/"/g, '""')}" = '${tenantC.replace(/'/g, "''")}'`);
-        await rollbackClient.query('INSERT INTO tenant_rls_demo (tenant_id, value) VALUES ($1, $2)', [tenantC, 'discarded']);
+        await rollbackClient.query(
+          `SET LOCAL "${tenantContextKey.replace(/"/g, '""')}" = '${tenantC.replace(/'/g, "''")}'`,
+        );
+        await rollbackClient.query('INSERT INTO tenant_rls_demo (tenant_id, value) VALUES ($1, $2)', [
+          tenantC,
+          'discarded',
+        ]);
         await rollbackClient.query('ROLLBACK');
       } finally {
         rollbackClient.release();
@@ -116,7 +121,9 @@ describe('PostgreSQL tenant isolation', () => {
 
         const connectionB = await pool.connect();
         try {
-          const bSetting = await connectionB.query("SELECT current_setting('app.current_tenant_id', true) AS tenant_id;");
+          const bSetting = await connectionB.query(
+            "SELECT current_setting('app.current_tenant_id', true) AS tenant_id;",
+          );
           expect(bSetting.rows[0]?.tenant_id).toBeNull();
         } finally {
           connectionB.release();

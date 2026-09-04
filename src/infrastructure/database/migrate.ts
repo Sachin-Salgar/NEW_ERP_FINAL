@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -81,13 +81,17 @@ const migrationChecks: Record<string, (client: Client) => Promise<boolean>> = {
   '0006-default-location-context': async (client) =>
     (await columnExists(client, 'users', 'default_location_id')) &&
     (await constraintExists(client, 'users', 'fk_user_location_tenant')),
+  '0007-audit-events': async (client) =>
+    (await tableExists(client, 'audit_events')) &&
+    (await policyExists(client, 'audit_events', 'audit_events_tenant_isolation_policy')) &&
+    (await triggerExists(client, 'trg_prevent_audit_event_update', 'audit_events')) &&
+    (await triggerExists(client, 'trg_prevent_audit_event_delete', 'audit_events')),
 };
 
 async function tableExists(client: Client, tableName: string): Promise<boolean> {
-  const result = await client.query<{ exists: boolean }>(
-    'SELECT to_regclass($1) IS NOT NULL AS exists',
-    [`public.${tableName}`],
-  );
+  const result = await client.query<{ exists: boolean }>('SELECT to_regclass($1) IS NOT NULL AS exists', [
+    `public.${tableName}`,
+  ]);
   return result.rows[0]?.exists ?? false;
 }
 
@@ -107,10 +111,9 @@ async function columnExists(client: Client, tableName: string, columnName: strin
 }
 
 async function functionExists(client: Client, functionName: string): Promise<boolean> {
-  const result = await client.query<{ exists: boolean }>(
-    'SELECT to_regprocedure($1) IS NOT NULL AS exists',
-    [`public.${functionName}`],
-  );
+  const result = await client.query<{ exists: boolean }>('SELECT to_regprocedure($1) IS NOT NULL AS exists', [
+    `public.${functionName}`,
+  ]);
   return result.rows[0]?.exists ?? false;
 }
 
@@ -170,10 +173,9 @@ async function constraintExists(client: Client, tableName: string, constraintNam
 }
 
 async function typeExists(client: Client, typeName: string): Promise<boolean> {
-  const result = await client.query<{ exists: boolean }>(
-    'SELECT to_regtype($1) IS NOT NULL AS exists',
-    [`public.${typeName}`],
-  );
+  const result = await client.query<{ exists: boolean }>('SELECT to_regtype($1) IS NOT NULL AS exists', [
+    `public.${typeName}`,
+  ]);
   return result.rows[0]?.exists ?? false;
 }
 
@@ -208,10 +210,9 @@ async function migrationAlreadyTracked(client: Client, hash: string): Promise<bo
 }
 
 async function markMigrationApplied(client: Client, hash: string): Promise<void> {
-  await client.query(
-    `INSERT INTO public."${MIGRATION_TABLE}" (hash) VALUES ($1) ON CONFLICT (hash) DO NOTHING`,
-    [hash],
-  );
+  await client.query(`INSERT INTO public."${MIGRATION_TABLE}" (hash) VALUES ($1) ON CONFLICT (hash) DO NOTHING`, [
+    hash,
+  ]);
 }
 
 async function applyMigrationFile(client: Client, filePath: string): Promise<void> {
@@ -229,47 +230,54 @@ async function applyMigrationFile(client: Client, filePath: string): Promise<voi
 export async function runMigrations(databaseUrl?: string, sslMode?: DatabaseSslMode): Promise<void> {
   const config = databaseUrl ? undefined : loadConfig();
   const resolvedUrl = databaseUrl ?? config!.DATABASE_URL;
-  const client = new Client(createDatabaseClientOptions(resolvedUrl, sslMode ?? config?.DATABASE_SSL_MODE ?? 'require'));
+  const client = new Client(
+    createDatabaseClientOptions(resolvedUrl, sslMode ?? config?.DATABASE_SSL_MODE ?? 'require'),
+  );
 
   try {
     await client.connect();
-    await ensureMigrationTable(client);
+    await client.query(`SELECT pg_advisory_lock(hashtext('new-erp-final:migrations'))`);
+    try {
+      await ensureMigrationTable(client);
 
-    const migrationDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
-    const journalEntries = await readMigrationJournal();
+      const migrationDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
+      const journalEntries = await readMigrationJournal();
 
-    for (const entry of journalEntries) {
-      const fileName = `${entry.tag}.sql`;
-      const filePath = path.join(migrationDir, fileName);
+      for (const entry of journalEntries) {
+        const fileName = `${entry.tag}.sql`;
+        const filePath = path.join(migrationDir, fileName);
 
-      if (!existsSync(filePath)) {
-        throw new Error(`Migration file not found for journal entry: ${fileName}`);
-      }
+        if (!existsSync(filePath)) {
+          throw new Error(`Migration file not found for journal entry: ${fileName}`);
+        }
 
-      const migrationHash = createHash('sha256').update(readFileSync(filePath)).digest('hex');
+        const migrationHash = createHash('sha256').update(readFileSync(filePath)).digest('hex');
 
-      if (await migrationAlreadyTracked(client, migrationHash)) {
-        console.log(`Skipping already-applied migration: ${fileName}`);
-        continue;
-      }
+        if (await migrationAlreadyTracked(client, migrationHash)) {
+          console.log(`Skipping already-applied migration: ${fileName}`);
+          continue;
+        }
 
-      const migrationAlreadyExists = migrationChecks[entry.tag]
-        ? await migrationChecks[entry.tag](client)
-        : false;
+        const migrationAlreadyExists = migrationChecks[entry.tag] ? await migrationChecks[entry.tag](client) : false;
 
-      if (migrationAlreadyExists) {
-        console.log(`Migration ${fileName} is already present in the database schema; recording migration state without replay.`);
+        if (migrationAlreadyExists) {
+          console.log(
+            `Migration ${fileName} is already present in the database schema; recording migration state without replay.`,
+          );
+          await markMigrationApplied(client, migrationHash);
+          continue;
+        }
+
+        console.log(`Applying migration: ${fileName}`);
+        await applyMigrationFile(client, filePath);
         await markMigrationApplied(client, migrationHash);
-        continue;
+        console.log(`Applied migration: ${fileName}`);
       }
 
-      console.log(`Applying migration: ${fileName}`);
-      await applyMigrationFile(client, filePath);
-      await markMigrationApplied(client, migrationHash);
-      console.log(`Applied migration: ${fileName}`);
+      console.log('Database migration check complete.');
+    } finally {
+      await client.query(`SELECT pg_advisory_unlock(hashtext('new-erp-final:migrations'))`);
     }
-
-    console.log('Database migration check complete.');
   } finally {
     await client.end();
   }

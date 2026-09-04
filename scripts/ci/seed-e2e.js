@@ -52,26 +52,32 @@ async function main() {
     await client.query(
       `INSERT INTO tenants (id, name, display_name, subdomain, slug, timezone, currency, locale, status, created_at)
        VALUES ($1, 'E2E Tenant', 'E2E Tenant', 'localhost', 'e2e', 'UTC', 'USD', 'en_US', 'active', NOW())
-       ON CONFLICT (id) DO NOTHING`, [TENANT_ID]);
+       ON CONFLICT (id) DO NOTHING`,
+      [TENANT_ID],
+    );
 
     await client.query(
       `INSERT INTO organizations (id, tenant_id, code, name, legal_name, status, is_default, created_at)
        VALUES ($1, $2, 'E2E_ORG', 'E2E Organization', 'E2E Organization', 'active', true, NOW()),
               ($3, $2, 'E2E_ORG_2', 'E2E Secondary Organization', 'E2E Secondary Organization', 'active', false, NOW())
-       ON CONFLICT (id) DO NOTHING`, [ORGANIZATION_ID, TENANT_ID, ORGANIZATION_TWO_ID]);
+       ON CONFLICT (id) DO NOTHING`,
+      [ORGANIZATION_ID, TENANT_ID, ORGANIZATION_TWO_ID],
+    );
 
     await client.query(
       `INSERT INTO tenant_modules (tenant_id, module_id, enabled, enabled_at)
        SELECT $1, m.id, true, NOW() FROM modules m WHERE m.code = ANY($2)
        ON CONFLICT (tenant_id, module_id) DO UPDATE SET enabled = true, disabled_at = NULL`,
-      [TENANT_ID, CORE_MODULES.map(([code]) => code)]);
+      [TENANT_ID, CORE_MODULES.map(([code]) => code)],
+    );
 
     await client.query(
       `INSERT INTO organization_modules (tenant_id, organization_id, module_id, enabled, enabled_at)
        SELECT $1, o.id, m.id, true, NOW() FROM organizations o CROSS JOIN modules m
        WHERE o.tenant_id = $1 AND m.code = ANY($2)
        ON CONFLICT (organization_id, module_id) DO UPDATE SET enabled = true, disabled_at = NULL`,
-      [TENANT_ID, CORE_MODULES.map(([code]) => code)]);
+      [TENANT_ID, CORE_MODULES.map(([code]) => code)],
+    );
 
     await client.query(
       `INSERT INTO branches (
@@ -90,61 +96,100 @@ async function main() {
       `INSERT INTO locations (id, tenant_id, organization_id, code, name, status, is_default, timezone, created_at)
        VALUES ($1, $2, $3, 'E2E_LOC_1', 'E2E Main Location', 'active', true, 'UTC', NOW()),
               ($4, $2, $3, 'E2E_LOC_2', 'E2E Secondary Location', 'active', false, 'UTC', NOW())
-       ON CONFLICT (id) DO NOTHING`, [LOCATION_ONE_ID, TENANT_ID, ORGANIZATION_ID, LOCATION_TWO_ID]);
+       ON CONFLICT (id) DO NOTHING`,
+      [LOCATION_ONE_ID, TENANT_ID, ORGANIZATION_ID, LOCATION_TWO_ID],
+    );
 
     const passwordHash = await bcrypt.hash(PASSWORD, 10);
     await client.query(
       `INSERT INTO roles (id, tenant_id, code, name, description, is_system, sort_order, created_at)
        VALUES ($1, $2, 'e2e_admin', 'E2E Admin', 'Administrative role used by the E2E suite.', false, 100, NOW()),
               ($3, $2, 'e2e_limited', 'E2E Limited', 'Restricted role used by the E2E suite.', false, 200, NOW())
-       ON CONFLICT (id) DO NOTHING`, [ADMIN_ROLE_ID, TENANT_ID, LIMITED_ROLE_ID]);
+       ON CONFLICT (id) DO NOTHING`,
+      [ADMIN_ROLE_ID, TENANT_ID, LIMITED_ROLE_ID],
+    );
 
     await client.query(
       `INSERT INTO users (id, tenant_id, organization_id, username, email, password_hash, status, created_at)
        VALUES ($1, $2, $3, 'e2e@example.com', $4, $5, 'active', NOW()),
               ($6, $2, $3, 'e2e-limited', $7, $5, 'active', NOW())
-       ON CONFLICT (id) DO NOTHING`, [ADMIN_USER_ID, TENANT_ID, ORGANIZATION_ID, ADMIN_EMAIL, passwordHash, LIMITED_USER_ID, LIMITED_EMAIL]);
+       ON CONFLICT (id) DO NOTHING`,
+      [ADMIN_USER_ID, TENANT_ID, ORGANIZATION_ID, ADMIN_EMAIL, passwordHash, LIMITED_USER_ID, LIMITED_EMAIL],
+    );
 
     await client.query(
       `INSERT INTO auth_login_identifiers (identifier_type, identifier, tenant_id, user_id)
        VALUES ('email', $1, $2, $3), ('username', 'e2e@example.com', $2, $3),
               ('email', $4, $2, $5), ('username', 'e2e-limited', $2, $5)
        ON CONFLICT (identifier_type, identifier, tenant_id) DO UPDATE SET user_id = EXCLUDED.user_id, is_active = true`,
-      [ADMIN_EMAIL, TENANT_ID, ADMIN_USER_ID, LIMITED_EMAIL, LIMITED_USER_ID]);
+      [ADMIN_EMAIL, TENANT_ID, ADMIN_USER_ID, LIMITED_EMAIL, LIMITED_USER_ID],
+    );
 
-    const adminPermissions = ['tenant.manage', 'organization.read', 'organization.manage', 'branch.read', 'branch.manage', 'user.read', 'user.manage', 'role.read', 'role.manage', 'permission.read', 'permission.manage'];
+    const adminPermissions = [
+      'tenant.manage',
+      'organization.read',
+      'organization.manage',
+      'branch.read',
+      'branch.manage',
+      'user.read',
+      'user.manage',
+      'role.read',
+      'role.manage',
+      'permission.read',
+      'permission.manage',
+    ];
     const limitedPermissions = ['organization.read', 'user.read'];
     for (const permissionKey of [...new Set([...adminPermissions, ...limitedPermissions])]) {
       const [resource, action] = permissionKey.split('.');
-      const moduleCode = resource === 'tenant' ? 'tenant-configuration' : resource === 'user' ? 'user-management' : resource === 'branch' ? 'branch' : resource === 'organization' ? 'organization' : 'security';
+      const moduleCode =
+        resource === 'tenant'
+          ? 'tenant-configuration'
+          : resource === 'user'
+            ? 'user-management'
+            : resource === 'branch'
+              ? 'branch'
+              : resource === 'organization'
+                ? 'organization'
+                : 'security';
       await client.query(
         `INSERT INTO permissions (id, module_code, resource, action, scope, permission_key, display_name, description, is_system)
          VALUES ($1, $2, $3, $4, 'tenant', $5, $5, $6, false)
          ON CONFLICT (permission_key) DO UPDATE SET module_code = EXCLUDED.module_code`,
-        [randomUUID(), moduleCode, resource, action, permissionKey, `${permissionKey} permission`]);
+        [randomUUID(), moduleCode, resource, action, permissionKey, `${permissionKey} permission`],
+      );
     }
 
-    for (const [roleId, permissions] of [[ADMIN_ROLE_ID, adminPermissions], [LIMITED_ROLE_ID, limitedPermissions]]) {
+    for (const [roleId, permissions] of [
+      [ADMIN_ROLE_ID, adminPermissions],
+      [LIMITED_ROLE_ID, limitedPermissions],
+    ]) {
       await client.query(
         `INSERT INTO role_permissions (tenant_id, role_id, permission_id)
          SELECT $1, $2, p.id FROM permissions p WHERE p.permission_key = ANY($3)
-         ON CONFLICT (role_id, permission_id, tenant_id) DO NOTHING`, [TENANT_ID, roleId, permissions]);
+         ON CONFLICT (role_id, permission_id, tenant_id) DO NOTHING`,
+        [TENANT_ID, roleId, permissions],
+      );
     }
 
     await client.query(
       `INSERT INTO user_roles (tenant_id, user_id, role_id) VALUES ($1, $2, $3), ($1, $4, $5)
-       ON CONFLICT (user_id, role_id, tenant_id) DO NOTHING`, [TENANT_ID, ADMIN_USER_ID, ADMIN_ROLE_ID, LIMITED_USER_ID, LIMITED_ROLE_ID]);
+       ON CONFLICT (user_id, role_id, tenant_id) DO NOTHING`,
+      [TENANT_ID, ADMIN_USER_ID, ADMIN_ROLE_ID, LIMITED_USER_ID, LIMITED_ROLE_ID],
+    );
 
     await client.query(
       `INSERT INTO user_organization_access (tenant_id, user_id, organization_id)
        VALUES ($1, $2, $3), ($1, $2, $4), ($1, $5, $3)
-       ON CONFLICT (user_id, organization_id, tenant_id) DO NOTHING`, [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, ORGANIZATION_TWO_ID, LIMITED_USER_ID]);
+       ON CONFLICT (user_id, organization_id, tenant_id) DO NOTHING`,
+      [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, ORGANIZATION_TWO_ID, LIMITED_USER_ID],
+    );
 
     await client.query(
       `INSERT INTO user_location_access (tenant_id, user_id, organization_id, location_id, is_active)
        VALUES ($1, $2, $3, $4, true), ($1, $2, $3, $5, true), ($1, $6, $3, $4, true)
        ON CONFLICT (user_id, location_id, tenant_id) DO UPDATE SET is_active = true`,
-      [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, LOCATION_ONE_ID, LOCATION_TWO_ID, LIMITED_USER_ID]);
+      [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, LOCATION_ONE_ID, LOCATION_TWO_ID, LIMITED_USER_ID],
+    );
 
     await client.query('COMMIT');
     console.log('E2E seed completed successfully.');

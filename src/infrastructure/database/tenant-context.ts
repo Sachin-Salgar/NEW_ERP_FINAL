@@ -3,6 +3,7 @@ import type { Pool, PoolClient } from 'pg';
 
 import type { TenantContext, TenantContextProvider } from '../../domain/contracts/tenant-context.js';
 import { TenantContextError } from '../../domain/errors.js';
+import { getTransactionContext, setTransactionTenant } from './transaction-context.js';
 
 export class PostgresTenantContextProvider implements TenantContextProvider {
   constructor(
@@ -33,23 +34,7 @@ export class PostgresTenantContextProvider implements TenantContextProvider {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
-      const safeKey = this.tenantContextKey.replace(/"/g, '""');
-      await client.query(`SET LOCAL "${safeKey}" = '${tenantId.replace(/'/g, "''")}'`);
-      if (context) {
-        await client.query(`SELECT set_config('${this.tenantContextKey}_context', '${JSON.stringify(context).replace(/'/g, "''")}', true)`);
-        const contextEntries: Array<[string, string | null]> = [
-          [`${this.tenantContextKey}_user_id`, context.userId ?? null],
-          [`${this.tenantContextKey}_organization_id`, context.organizationId ?? context.activeOrganizationId ?? null],
-          [`${this.tenantContextKey}_location_id`, context.activeLocationId ?? context.locationAccess?.[0] ?? null],
-        ];
-        for (const [settingKey, rawValue] of contextEntries) {
-          if (rawValue === null || rawValue === undefined || rawValue.trim() === '') {
-            await client.query(`SELECT set_config('${settingKey}', NULL, true)`);
-            continue;
-          }
-          await client.query(`SELECT set_config('${settingKey}', '${String(rawValue).replace(/'/g, "''")}', true)`);
-        }
-      }
+      await setTenantSettingsForClient(client, this.tenantContextKey, tenantId, context);
       await client.query('COMMIT');
     } catch (error) {
       await client.query('ROLLBACK').catch(() => undefined);
@@ -59,7 +44,11 @@ export class PostgresTenantContextProvider implements TenantContextProvider {
     }
   }
 
-  async withTenantContext<T>(tenantId: string, callback: (client: PoolClient) => Promise<T>, context?: Partial<TenantContext>): Promise<T> {
+  async withTenantContext<T>(
+    tenantId: string,
+    callback: (client: PoolClient) => Promise<T>,
+    context?: Partial<TenantContext>,
+  ): Promise<T> {
     return withTenantContext(this.pool, this.tenantContextKey, tenantId, callback, context);
   }
 
@@ -70,6 +59,12 @@ export class PostgresTenantContextProvider implements TenantContextProvider {
 }
 
 export async function clearTenantContextSettings(pool: Pool, tenantContextKey: string): Promise<void> {
+  const transaction = getTransactionContext();
+  if (transaction) {
+    await clearTenantContextSettingsForClient(transaction.client, tenantContextKey);
+    return;
+  }
+
   const client = await pool.connect();
   try {
     await clearTenantContextSettingsForClient(client, tenantContextKey);
@@ -91,32 +86,64 @@ export async function clearTenantContextSettingsForClient(client: PoolClient, te
   }
 }
 
-export async function withTenantContext<T>(pool: Pool, tenantContextKey: string, tenantId: string, callback: (client: PoolClient) => Promise<T>, context?: Partial<TenantContext>): Promise<T> {
+async function setTenantSettingsForClient(
+  client: PoolClient,
+  tenantContextKey: string,
+  tenantId: string,
+  context?: Partial<TenantContext>,
+): Promise<void> {
+  const safeKey = tenantContextKey.replace(/"/g, '""');
+  await client.query(`SET LOCAL "${safeKey}" = '${tenantId.replace(/'/g, "''")}'`);
+
+  if (!context) {
+    return;
+  }
+
+  await client.query(
+    `SELECT set_config('${tenantContextKey}_context', '${JSON.stringify(context).replace(/'/g, "''")}', true)`,
+  );
+  const contextEntries: Array<[string, string | null]> = [
+    [`${tenantContextKey}_user_id`, context.userId ?? null],
+    [`${tenantContextKey}_organization_id`, context.organizationId ?? context.activeOrganizationId ?? null],
+    [`${tenantContextKey}_location_id`, context.activeLocationId ?? context.locationAccess?.[0] ?? null],
+  ];
+
+  for (const [settingKey, rawValue] of contextEntries) {
+    if (rawValue === null || rawValue === undefined || rawValue.trim() === '') {
+      await client.query(`SELECT set_config('${settingKey}', NULL, true)`);
+      continue;
+    }
+    await client.query(`SELECT set_config('${settingKey}', '${String(rawValue).replace(/'/g, "''")}', true)`);
+  }
+}
+
+export async function withTenantContext<T>(
+  pool: Pool,
+  tenantContextKey: string,
+  tenantId: string,
+  callback: (client: PoolClient) => Promise<T>,
+  context?: Partial<TenantContext>,
+): Promise<T> {
   if (!isUuid(tenantId)) {
     throw new TenantContextError(`The tenant identifier is not a valid UUID: ${tenantId}`);
+  }
+
+  const transaction = getTransactionContext();
+  if (transaction) {
+    setTransactionTenant(tenantId);
+    await setTenantSettingsForClient(transaction.client, tenantContextKey, tenantId, context);
+    try {
+      return await callback(transaction.client);
+    } finally {
+      await clearTenantContextSettingsForClient(transaction.client, tenantContextKey).catch(() => undefined);
+    }
   }
 
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
-    const safeKey = tenantContextKey.replace(/"/g, '""');
-    await client.query(`SET LOCAL "${safeKey}" = '${tenantId.replace(/'/g, "''")}'`);
-    if (context) {
-      await client.query(`SELECT set_config('${tenantContextKey}_context', '${JSON.stringify(context).replace(/'/g, "''")}', true)`);
-      const contextEntries: Array<[string, string | null]> = [
-        [`${tenantContextKey}_user_id`, context.userId ?? null],
-        [`${tenantContextKey}_organization_id`, context.organizationId ?? context.activeOrganizationId ?? null],
-        [`${tenantContextKey}_location_id`, context.activeLocationId ?? context.locationAccess?.[0] ?? null],
-      ];
-      for (const [settingKey, rawValue] of contextEntries) {
-        if (rawValue === null || rawValue === undefined || rawValue.trim() === '') {
-          await client.query(`SELECT set_config('${settingKey}', NULL, true)`);
-          continue;
-        }
-        await client.query(`SELECT set_config('${settingKey}', '${String(rawValue).replace(/'/g, "''")}', true)`);
-      }
-    }
+    await setTenantSettingsForClient(client, tenantContextKey, tenantId, context);
     const result = await callback(client);
     await client.query('COMMIT');
     return result;

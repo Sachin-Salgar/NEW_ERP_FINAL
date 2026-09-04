@@ -1,12 +1,10 @@
 import { sql } from 'drizzle-orm';
 import {
-  bigint,
   boolean,
   check,
   date,
   foreignKey,
   integer,
-  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -33,23 +31,13 @@ export const subscriptionStatusEnum = pgEnum('subscription_status_enum', [
   'trialing',
 ]);
 
-export const userStatusEnum = pgEnum('user_status_enum', [
-  'active',
-  'inactive',
-  'locked',
-  'pending_verification',
-]);
+export const userStatusEnum = pgEnum('user_status_enum', ['active', 'inactive', 'locked', 'pending_verification']);
 
 export const orgStatusEnum = pgEnum('org_status_enum', ['active', 'inactive', 'archived']);
 
 export const fyStatusEnum = pgEnum('fy_status_enum', ['open', 'closed', 'locked']);
 
-export const resetPolicyEnum = pgEnum('reset_policy_enum', [
-  'financial_year',
-  'calendar_year',
-  'monthly',
-  'never',
-]);
+export const resetPolicyEnum = pgEnum('reset_policy_enum', ['financial_year', 'calendar_year', 'monthly', 'never']);
 
 export const permissionScopeEnum = pgEnum('permission_scope_enum', [
   'own',
@@ -81,8 +69,12 @@ export const tenants = pgTable(
     version: integer('version').notNull().default(1),
   },
   (table) => ({
-    uqTenantSubdomainActive: uniqueIndex('uq_tenant_subdomain_active').on(table.subdomain).where(sql`${table.isDeleted} = false`),
-    uqTenantSlugActive: uniqueIndex('uq_tenant_slug_active').on(table.slug).where(sql`${table.isDeleted} = false`),
+    uqTenantSubdomainActive: uniqueIndex('uq_tenant_subdomain_active')
+      .on(table.subdomain)
+      .where(sql`${table.isDeleted} = false`),
+    uqTenantSlugActive: uniqueIndex('uq_tenant_slug_active')
+      .on(table.slug)
+      .where(sql`${table.isDeleted} = false`),
     checkTenantSoftDelete: check(
       'check_tenant_soft_delete',
       sql`(((${table.isDeleted}) = false AND (${table.deletedAt}) IS NULL) OR ((${table.isDeleted}) = true AND (${table.deletedAt}) IS NOT NULL))`,
@@ -94,7 +86,9 @@ export const tenantSubscriptions = pgTable(
   'tenant_subscriptions',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     subscriptionPlanId: uuid('subscription_plan_id').notNull(),
     status: subscriptionStatusEnum('status').notNull().default('active'),
     startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
@@ -121,7 +115,9 @@ export const tenantModules = pgTable(
   'tenant_modules',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     moduleId: uuid('module_id').notNull(),
     enabled: boolean('enabled').notNull().default(true),
     enabledAt: timestamp('enabled_at', { withTimezone: true }).notNull().defaultNow(),
@@ -143,7 +139,9 @@ export const organizations = pgTable(
   'organizations',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     code: varchar('code', { length: 50 }).notNull(),
     name: varchar('name', { length: 255 }).notNull(),
     legalName: varchar('legal_name', { length: 255 }),
@@ -169,26 +167,38 @@ export const organizations = pgTable(
   },
   (table) => ({
     uqOrgIdTenant: uniqueIndex('uq_org_id_tenant').on(table.id, table.tenantId),
-    uqTenantOrgCodeActive: uniqueIndex('uq_tenant_org_code_active').on(table.tenantId, table.code).where(sql`${table.isDeleted} = false`),
-    uqDefaultOrganization: uniqueIndex('uq_default_organization').on(table.tenantId).where(sql`${table.isDefault} = true AND ${table.isDeleted} = false`),
+    uqTenantOrgCodeActive: uniqueIndex('uq_tenant_org_code_active')
+      .on(table.tenantId, table.code)
+      .where(sql`${table.isDeleted} = false`),
+    uqDefaultOrganization: uniqueIndex('uq_default_organization')
+      .on(table.tenantId)
+      .where(sql`${table.isDefault} = true AND ${table.isDeleted} = false`),
     checkOrgSoftDelete: check(
       'check_org_soft_delete',
       sql`(((${table.isDeleted}) = false AND (${table.deletedAt}) IS NULL) OR ((${table.isDeleted}) = true AND (${table.deletedAt}) IS NOT NULL))`,
     ),
-    checkOrgDefaultStatus: check('check_org_default_status', sql`NOT ((${table.isDefault}) = true AND (${table.status}) = 'archived')`),
+    checkOrgDefaultStatus: check(
+      'check_org_default_status',
+      sql`NOT ((${table.isDefault}) = true AND (${table.status}) = 'archived')`,
+    ),
   }),
 );
 
 export const codeCounters = pgTable(
   'code_counters',
   {
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     entityType: varchar('entity_type', { length: 32 }).notNull(),
     scopeKey: varchar('scope_key', { length: 64 }).notNull(),
     lastValue: integer('last_value').notNull().default(0),
   },
   (table) => ({
-    pkCodeCounter: primaryKey({ columns: [table.tenantId, table.entityType, table.scopeKey], name: 'code_counters_pkey' }),
+    pkCodeCounter: primaryKey({
+      columns: [table.tenantId, table.entityType, table.scopeKey],
+      name: 'code_counters_pkey',
+    }),
   }),
 );
 
@@ -196,7 +206,9 @@ export const branches = pgTable(
   'branches',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     organizationId: uuid('organization_id').notNull(),
     code: varchar('code', { length: 50 }).notNull(),
     name: varchar('name', { length: 255 }).notNull(),
@@ -228,9 +240,15 @@ export const branches = pgTable(
       name: 'fk_branch_org_tenant',
     }),
     uqBranchIdTenant: uniqueIndex('uq_branch_id_tenant').on(table.id, table.tenantId),
-    uqTenantBranchCodeActive: uniqueIndex('uq_tenant_branch_code_active').on(table.tenantId, table.code).where(sql`${table.isDeleted} = false`),
-    uqHeadOffice: uniqueIndex('uq_head_office').on(table.organizationId).where(sql`${table.isHeadOffice} = true AND ${table.isDeleted} = false`),
-    uqDefaultBranch: uniqueIndex('uq_default_branch').on(table.organizationId).where(sql`${table.isDefault} = true AND ${table.isDeleted} = false`),
+    uqTenantBranchCodeActive: uniqueIndex('uq_tenant_branch_code_active')
+      .on(table.tenantId, table.code)
+      .where(sql`${table.isDeleted} = false`),
+    uqHeadOffice: uniqueIndex('uq_head_office')
+      .on(table.organizationId)
+      .where(sql`${table.isHeadOffice} = true AND ${table.isDeleted} = false`),
+    uqDefaultBranch: uniqueIndex('uq_default_branch')
+      .on(table.organizationId)
+      .where(sql`${table.isDefault} = true AND ${table.isDeleted} = false`),
     checkBranchSoftDelete: check(
       'check_branch_soft_delete',
       sql`(((${table.isDeleted}) = false AND (${table.deletedAt}) IS NULL) OR ((${table.isDeleted}) = true AND (${table.deletedAt}) IS NOT NULL))`,
@@ -242,7 +260,9 @@ export const locations = pgTable(
   'locations',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     organizationId: uuid('organization_id').notNull(),
     code: varchar('code', { length: 50 }).notNull(),
     name: varchar('name', { length: 255 }).notNull(),
@@ -272,8 +292,12 @@ export const locations = pgTable(
       name: 'fk_location_org_tenant',
     }),
     uqLocationIdTenant: uniqueIndex('uq_location_id_tenant').on(table.id, table.tenantId),
-    uqTenantOrgLocationCodeActive: uniqueIndex('uq_tenant_org_location_code_active').on(table.tenantId, table.organizationId, table.code).where(sql`${table.isDeleted} = false`),
-    uqDefaultLocation: uniqueIndex('uq_default_location').on(table.organizationId).where(sql`${table.isDefault} = true AND ${table.isDeleted} = false`),
+    uqTenantOrgLocationCodeActive: uniqueIndex('uq_tenant_org_location_code_active')
+      .on(table.tenantId, table.organizationId, table.code)
+      .where(sql`${table.isDeleted} = false`),
+    uqDefaultLocation: uniqueIndex('uq_default_location')
+      .on(table.organizationId)
+      .where(sql`${table.isDefault} = true AND ${table.isDeleted} = false`),
     checkLocationSoftDelete: check(
       'check_location_soft_delete',
       sql`(((${table.isDeleted}) = false AND (${table.deletedAt}) IS NULL) OR ((${table.isDeleted}) = true AND (${table.deletedAt}) IS NOT NULL))`,
@@ -285,7 +309,9 @@ export const users = pgTable(
   'users',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     organizationId: uuid('organization_id'),
     defaultBranchId: uuid('default_branch_id'),
     defaultLocationId: uuid('default_location_id'),
@@ -331,8 +357,12 @@ export const users = pgTable(
       name: 'fk_user_location_tenant',
     }),
     uqUserIdTenant: uniqueIndex('uq_user_id_tenant').on(table.id, table.tenantId),
-    uqTenantEmailActive: uniqueIndex('uq_tenant_email_active').on(table.tenantId, table.email).where(sql`${table.isDeleted} = false`),
-    uqTenantUsernameActive: uniqueIndex('uq_tenant_username_active').on(table.tenantId, table.username).where(sql`${table.isDeleted} = false`),
+    uqTenantEmailActive: uniqueIndex('uq_tenant_email_active')
+      .on(table.tenantId, table.email)
+      .where(sql`${table.isDeleted} = false`),
+    uqTenantUsernameActive: uniqueIndex('uq_tenant_username_active')
+      .on(table.tenantId, table.username)
+      .where(sql`${table.isDeleted} = false`),
     checkUserSoftDelete: check(
       'check_user_soft_delete',
       sql`(((${table.isDeleted}) = false AND (${table.deletedAt}) IS NULL) OR ((${table.isDeleted}) = true AND (${table.deletedAt}) IS NOT NULL))`,
@@ -348,7 +378,9 @@ export const userSessions = pgTable(
   'user_sessions',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     userId: uuid('user_id').notNull(),
     organizationId: uuid('organization_id'),
     locationId: uuid('location_id'),
@@ -393,7 +425,10 @@ export const userSessions = pgTable(
     }),
     checkSessionExpiry: check('check_session_expiry', sql`${table.expiresAt} > ${table.loginAt}`),
     checkSessionActivity: check('check_session_activity', sql`${table.lastActivityAt} >= ${table.loginAt}`),
-    checkSessionLogout: check('check_session_logout', sql`${table.logoutAt} IS NULL OR ${table.logoutAt} >= ${table.loginAt}`),
+    checkSessionLogout: check(
+      'check_session_logout',
+      sql`${table.logoutAt} IS NULL OR ${table.logoutAt} >= ${table.loginAt}`,
+    ),
     checkSessionRevocationCoherence: check(
       'check_session_revocation_coherence',
       sql`(((${table.revokedAt}) IS NULL AND (${table.terminationReason}) IS NULL) OR ((${table.revokedAt}) IS NOT NULL))`,
@@ -405,7 +440,9 @@ export const roles = pgTable(
   'roles',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     code: varchar('code', { length: 50 }).notNull(),
     name: varchar('name', { length: 100 }).notNull(),
     description: text('description'),
@@ -422,8 +459,12 @@ export const roles = pgTable(
   },
   (table) => ({
     uqRoleIdTenant: uniqueIndex('uq_role_id_tenant').on(table.id, table.tenantId),
-    uqTenantRoleNameActive: uniqueIndex('uq_tenant_role_name_active').on(table.tenantId, table.name).where(sql`${table.isDeleted} = false`),
-    uqTenantRoleCodeActive: uniqueIndex('uq_tenant_role_code_active').on(table.tenantId, table.code).where(sql`${table.isDeleted} = false`),
+    uqTenantRoleNameActive: uniqueIndex('uq_tenant_role_name_active')
+      .on(table.tenantId, table.name)
+      .where(sql`${table.isDeleted} = false`),
+    uqTenantRoleCodeActive: uniqueIndex('uq_tenant_role_code_active')
+      .on(table.tenantId, table.code)
+      .where(sql`${table.isDeleted} = false`),
     checkRoleSoftDelete: check(
       'check_role_soft_delete',
       sql`(((${table.isDeleted}) = false AND (${table.deletedAt}) IS NULL) OR ((${table.isDeleted}) = true AND (${table.deletedAt}) IS NOT NULL))`,
@@ -446,12 +487,19 @@ export const permissions = pgTable('permissions', {
 export const rolePermissions = pgTable(
   'role_permissions',
   {
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     roleId: uuid('role_id').notNull(),
-    permissionId: uuid('permission_id').notNull().references(() => permissions.id, { onDelete: 'cascade' }),
+    permissionId: uuid('permission_id')
+      .notNull()
+      .references(() => permissions.id, { onDelete: 'cascade' }),
   },
   (table) => ({
-    pkRolePermissionTenant: primaryKey({ columns: [table.roleId, table.permissionId, table.tenantId], name: 'role_permissions_pkey' }),
+    pkRolePermissionTenant: primaryKey({
+      columns: [table.roleId, table.permissionId, table.tenantId],
+      name: 'role_permissions_pkey',
+    }),
     fkRolePermissionsRole: foreignKey({
       columns: [table.roleId, table.tenantId],
       foreignColumns: [roles.id, roles.tenantId],
@@ -464,7 +512,9 @@ export const rolePermissions = pgTable(
 export const userRoles = pgTable(
   'user_roles',
   {
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     userId: uuid('user_id').notNull(),
     roleId: uuid('role_id').notNull(),
   },
@@ -487,13 +537,20 @@ export const userRoles = pgTable(
 export const userPermissions = pgTable(
   'user_permissions',
   {
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     userId: uuid('user_id').notNull(),
-    permissionId: uuid('permission_id').notNull().references(() => permissions.id, { onDelete: 'cascade' }),
+    permissionId: uuid('permission_id')
+      .notNull()
+      .references(() => permissions.id, { onDelete: 'cascade' }),
     allow: boolean('allow').notNull().default(true),
   },
   (table) => ({
-    pkUserPermissionTenant: primaryKey({ columns: [table.userId, table.permissionId, table.tenantId], name: 'user_permissions_pkey' }),
+    pkUserPermissionTenant: primaryKey({
+      columns: [table.userId, table.permissionId, table.tenantId],
+      name: 'user_permissions_pkey',
+    }),
     fkUserPermsUser: foreignKey({
       columns: [table.userId, table.tenantId],
       foreignColumns: [users.id, users.tenantId],
@@ -506,12 +563,17 @@ export const userPermissions = pgTable(
 export const userOrganizationAccess = pgTable(
   'user_organization_access',
   {
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     userId: uuid('user_id').notNull(),
     organizationId: uuid('organization_id').notNull(),
   },
   (table) => ({
-    pkUserOrgAccessTenant: primaryKey({ columns: [table.userId, table.organizationId, table.tenantId], name: 'user_organization_access_pkey' }),
+    pkUserOrgAccessTenant: primaryKey({
+      columns: [table.userId, table.organizationId, table.tenantId],
+      name: 'user_organization_access_pkey',
+    }),
     fkUoAccessUser: foreignKey({
       columns: [table.userId, table.tenantId],
       foreignColumns: [users.id, users.tenantId],
@@ -522,19 +584,27 @@ export const userOrganizationAccess = pgTable(
       foreignColumns: [organizations.id, organizations.tenantId],
       name: 'fk_uo_access_org',
     }),
-    idxUserOrgAccessTenantUser: uniqueIndex('idx_user_organization_access_tenant_user').on(table.tenantId, table.userId),
+    idxUserOrgAccessTenantUser: uniqueIndex('idx_user_organization_access_tenant_user').on(
+      table.tenantId,
+      table.userId,
+    ),
   }),
 );
 
 export const userBranchAccess = pgTable(
   'user_branch_access',
   {
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     userId: uuid('user_id').notNull(),
     branchId: uuid('branch_id').notNull(),
   },
   (table) => ({
-    pkUserBranchAccessTenant: primaryKey({ columns: [table.userId, table.branchId, table.tenantId], name: 'user_branch_access_pkey' }),
+    pkUserBranchAccessTenant: primaryKey({
+      columns: [table.userId, table.branchId, table.tenantId],
+      name: 'user_branch_access_pkey',
+    }),
     fkUbAccessUser: foreignKey({
       columns: [table.userId, table.tenantId],
       foreignColumns: [users.id, users.tenantId],
@@ -552,7 +622,9 @@ export const userBranchAccess = pgTable(
 export const userLocationAccess = pgTable(
   'user_location_access',
   {
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     userId: uuid('user_id').notNull(),
     organizationId: uuid('organization_id').notNull(),
     locationId: uuid('location_id').notNull(),
@@ -562,7 +634,10 @@ export const userLocationAccess = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }),
   },
   (table) => ({
-    pkUserLocationAccessTenant: primaryKey({ columns: [table.userId, table.locationId, table.tenantId], name: 'user_location_access_pkey' }),
+    pkUserLocationAccessTenant: primaryKey({
+      columns: [table.userId, table.locationId, table.tenantId],
+      name: 'user_location_access_pkey',
+    }),
     fkUlaAccessUser: foreignKey({
       columns: [table.userId, table.tenantId],
       foreignColumns: [users.id, users.tenantId],
@@ -578,8 +653,14 @@ export const userLocationAccess = pgTable(
       foreignColumns: [locations.id, locations.tenantId],
       name: 'fk_ula_access_location',
     }),
-    idxUserLocationAccessTenantUser: uniqueIndex('idx_user_location_access_tenant_user').on(table.tenantId, table.userId),
-    idxUserLocationAccessTenantOrg: uniqueIndex('idx_user_location_access_tenant_org').on(table.tenantId, table.organizationId),
+    idxUserLocationAccessTenantUser: uniqueIndex('idx_user_location_access_tenant_user').on(
+      table.tenantId,
+      table.userId,
+    ),
+    idxUserLocationAccessTenantOrg: uniqueIndex('idx_user_location_access_tenant_org').on(
+      table.tenantId,
+      table.organizationId,
+    ),
   }),
 );
 
@@ -587,7 +668,9 @@ export const financialYears = pgTable(
   'financial_years',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     organizationId: uuid('organization_id').notNull(),
     name: varchar('name', { length: 100 }).notNull(),
     startDate: date('start_date').notNull(),
@@ -612,13 +695,18 @@ export const financialYears = pgTable(
       name: 'fk_fy_org_tenant',
     }),
     uqFyIdTenant: uniqueIndex('uq_fy_id_tenant').on(table.id, table.tenantId),
-    uqActiveFinancialYear: uniqueIndex('uq_active_financial_year').on(table.tenantId, table.organizationId).where(sql`${table.isActive} = true AND ${table.isDeleted} = false`),
+    uqActiveFinancialYear: uniqueIndex('uq_active_financial_year')
+      .on(table.tenantId, table.organizationId)
+      .where(sql`${table.isActive} = true AND ${table.isDeleted} = false`),
     checkFinancialYearDates: check('check_financial_year_dates', sql`${table.startDate} < ${table.endDate}`),
     checkFySoftDelete: check(
       'check_fy_soft_delete',
       sql`(((${table.isDeleted}) = false AND (${table.deletedAt}) IS NULL) OR ((${table.isDeleted}) = true AND (${table.deletedAt}) IS NOT NULL))`,
     ),
-    checkFyLockedStatus: check('check_fy_locked_status', sql`NOT ((${table.isLocked}) = true AND (${table.status}) = 'open')`),
+    checkFyLockedStatus: check(
+      'check_fy_locked_status',
+      sql`NOT ((${table.isLocked}) = true AND (${table.status}) = 'open')`,
+    ),
   }),
 );
 

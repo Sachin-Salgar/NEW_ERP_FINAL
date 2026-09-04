@@ -3,19 +3,72 @@ import { v7 as uuidV7 } from 'uuid';
 import type { AuthenticatedUser, AuthenticationResult, SessionRecord } from '../../domain/contracts/authentication.js';
 import type { AuthenticationRepository, PasswordHasher, TokenService } from '../contracts/security.js';
 
+export interface AuthenticationLockoutOptions {
+  maxFailedAttempts?: number;
+  lockoutMinutes?: number;
+}
+
 export class AuthenticationService {
+  private readonly maxFailedAttempts: number;
+  private readonly lockoutMinutes: number;
+
   constructor(
     private readonly authenticationRepository: AuthenticationRepository,
     private readonly passwordHasher: PasswordHasher,
     private readonly tokenService?: TokenService,
-  ) {}
+    options: AuthenticationLockoutOptions = {},
+  ) {
+    this.maxFailedAttempts = options.maxFailedAttempts ?? 5;
+    this.lockoutMinutes = options.lockoutMinutes ?? 15;
+  }
 
   /**
    * Authenticate without deployment/host tenant resolution.
    * The identity lookup returns candidate tenant accounts; password verification then occurs
    * against each candidate through the tenant-scoped repository/RLS path.
    */
-  async authenticate(identifierOrTenantId: string, passwordOrIdentifier: string, maybePassword?: string): Promise<AuthenticationResult> {
+  private isUserLocked(user: { lockedUntil?: Date | string | null }): boolean {
+    if (!user.lockedUntil) {
+      return false;
+    }
+
+    const lockedUntil = user.lockedUntil instanceof Date ? user.lockedUntil : new Date(user.lockedUntil);
+    return Number.isFinite(lockedUntil.getTime()) && lockedUntil.getTime() > Date.now();
+  }
+
+  private async handleFailedAuthentication(
+    tenantId: string,
+    userId: string,
+  ): Promise<{ success: false; reason: string; retryAfterSeconds?: number } | null> {
+    if (!this.authenticationRepository.recordFailedLoginAttempt) {
+      return { success: false, reason: 'INVALID_CREDENTIALS' };
+    }
+
+    const state = await this.authenticationRepository.recordFailedLoginAttempt(tenantId, userId, {
+      maxFailedAttempts: this.maxFailedAttempts,
+      lockoutMinutes: this.lockoutMinutes,
+    });
+    const failedLoginCount = state.failedLoginCount ?? 0;
+    const lockedUntil = state.lockedUntil ? new Date(state.lockedUntil) : null;
+
+    if (lockedUntil && lockedUntil.getTime() > Date.now()) {
+      const retryAfterSeconds = Math.max(1, Math.ceil((lockedUntil.getTime() - Date.now()) / 1000));
+      return { success: false, reason: 'ACCOUNT_LOCKED', retryAfterSeconds };
+    }
+
+    if (failedLoginCount >= this.maxFailedAttempts) {
+      const retryAfterSeconds = this.lockoutMinutes * 60;
+      return { success: false, reason: 'ACCOUNT_LOCKED', retryAfterSeconds };
+    }
+
+    return { success: false, reason: 'INVALID_CREDENTIALS' };
+  }
+
+  async authenticate(
+    identifierOrTenantId: string,
+    passwordOrIdentifier: string,
+    maybePassword?: string,
+  ): Promise<AuthenticationResult> {
     let requestedTenantId: string | null = null;
     let identifier: string;
     let password: string;
@@ -35,10 +88,22 @@ export class AuthenticationService {
     if (requestedTenantId) {
       const user = await this.authenticationRepository.findByTenantAndIdentifier(requestedTenantId, identifier);
       if (user && user.status === 'active') {
+        if (this.isUserLocked(user)) {
+          return { success: false, reason: 'ACCOUNT_LOCKED' };
+        }
+
         const validPassword = await this.passwordHasher.verify(password, user.passwordHash);
         if (validPassword) {
+          if (this.authenticationRepository.resetFailedLoginState) {
+            await this.authenticationRepository.resetFailedLoginState(requestedTenantId, user.id);
+          }
           matchedUser = user;
           matchedTenantId = requestedTenantId;
+        } else {
+          const failedResult = await this.handleFailedAuthentication(requestedTenantId, user.id);
+          if (failedResult) {
+            return failedResult;
+          }
         }
       }
     } else {
@@ -47,12 +112,9 @@ export class AuthenticationService {
         return { success: false, reason: 'INVALID_CREDENTIALS' };
       }
 
-      // A single account may legitimately have multiple matching identifiers (for example,
-      // its email and username can be identical). Identity lookup therefore operates at the
-      // identifier level, while authentication must operate at the unique tenant/user level.
-      const uniqueCandidates = [...new Map(
-        candidates.map((candidate) => [`${candidate.tenantId}:${candidate.userId}`, candidate]),
-      ).values()];
+      const uniqueCandidates = [
+        ...new Map(candidates.map((candidate) => [`${candidate.tenantId}:${candidate.userId}`, candidate])).values(),
+      ];
 
       for (const candidate of uniqueCandidates) {
         if (!candidate.tenantId || !candidate.userId) {
@@ -64,13 +126,24 @@ export class AuthenticationService {
           continue;
         }
 
+        if (this.isUserLocked(user)) {
+          return { success: false, reason: 'ACCOUNT_LOCKED' };
+        }
+
         const validPassword = await this.passwordHasher.verify(password, user.passwordHash);
         if (!validPassword) {
+          const failedResult = await this.handleFailedAuthentication(candidate.tenantId, user.id);
+          if (failedResult) {
+            return failedResult;
+          }
           continue;
         }
 
+        if (this.authenticationRepository.resetFailedLoginState) {
+          await this.authenticationRepository.resetFailedLoginState(candidate.tenantId, user.id);
+        }
+
         if (matchedUser) {
-          // The same credentials identify multiple active tenant accounts. Do not guess the tenant.
           return { success: false, reason: 'INVALID_CREDENTIALS' };
         }
 
@@ -87,12 +160,14 @@ export class AuthenticationService {
     const resolvedTenantId = matchedTenantId!;
     const sessionId = uuidV7();
     const sessionExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 8);
-    const refreshToken = this.tokenService ? this.tokenService.createRefreshToken({
-      userId: user.id,
-      tenantId: resolvedTenantId,
-      sessionId,
-      expiresInSeconds: 60 * 60 * 24 * 14,
-    }) : 'internal-session-token';
+    const refreshToken = this.tokenService
+      ? this.tokenService.createRefreshToken({
+          userId: user.id,
+          tenantId: resolvedTenantId,
+          sessionId,
+          expiresInSeconds: 60 * 60 * 24 * 14,
+        })
+      : 'internal-session-token';
 
     const session = await this.authenticationRepository.createSession({
       id: sessionId,
@@ -109,12 +184,14 @@ export class AuthenticationService {
       refreshTokenHash: this.tokenService ? this.tokenService.hashTokenValue(refreshToken) : 'internal-session-token',
     });
 
-    const accessToken = this.tokenService ? this.tokenService.createAccessToken({
-      userId: user.id,
-      tenantId: resolvedTenantId,
-      sessionId: session.id,
-      expiresInSeconds: 60 * 60,
-    }) : undefined;
+    const accessToken = this.tokenService
+      ? this.tokenService.createAccessToken({
+          userId: user.id,
+          tenantId: resolvedTenantId,
+          sessionId: session.id,
+          expiresInSeconds: 60 * 60,
+        })
+      : undefined;
 
     return {
       success: true,
@@ -134,7 +211,13 @@ export class AuthenticationService {
     };
   }
 
-  async createSessionForUser(tenantId: string, userId: string, organizationId?: string | null, locationId?: string | null, branchId?: string | null): Promise<AuthenticationResult> {
+  async createSessionForUser(
+    tenantId: string,
+    userId: string,
+    organizationId?: string | null,
+    locationId?: string | null,
+    branchId?: string | null,
+  ): Promise<AuthenticationResult> {
     const user = await this.authenticationRepository.findById(tenantId, userId);
     if (!user) {
       return { success: false, reason: 'USER_NOT_FOUND' };
@@ -146,14 +229,16 @@ export class AuthenticationService {
 
     const sessionId = uuidV7();
     const sessionExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 8);
-    const refreshToken = this.tokenService ? this.tokenService.createRefreshToken({
-      userId: user.id,
-      tenantId,
-      sessionId,
-      expiresInSeconds: 60 * 60 * 24 * 14,
-    }) : 'internal-session-token';
+    const refreshToken = this.tokenService
+      ? this.tokenService.createRefreshToken({
+          userId: user.id,
+          tenantId,
+          sessionId,
+          expiresInSeconds: 60 * 60 * 24 * 14,
+        })
+      : 'internal-session-token';
 
-    const effectiveOrganizationId = organizationId === undefined ? user.organizationId ?? null : organizationId;
+    const effectiveOrganizationId = organizationId === undefined ? (user.organizationId ?? null) : organizationId;
     const effectiveLocationId = locationId ?? user.defaultLocationId ?? null;
     const effectiveBranchId = branchId ?? user.defaultBranchId ?? null;
     const session = await this.authenticationRepository.createSession({
@@ -171,12 +256,14 @@ export class AuthenticationService {
       refreshTokenHash: this.tokenService ? this.tokenService.hashTokenValue(refreshToken) : 'internal-session-token',
     });
 
-    const accessToken = this.tokenService ? this.tokenService.createAccessToken({
-      userId: user.id,
-      tenantId,
-      sessionId: session.id,
-      expiresInSeconds: 60 * 60,
-    }) : undefined;
+    const accessToken = this.tokenService
+      ? this.tokenService.createAccessToken({
+          userId: user.id,
+          tenantId,
+          sessionId: session.id,
+          expiresInSeconds: 60 * 60,
+        })
+      : undefined;
 
     return {
       success: true,
@@ -237,7 +324,16 @@ export class AuthenticationService {
   }
 }
 
-export const createAuthenticatedUser = (user: { id: string; tenantId: string; organizationId?: string | null; defaultLocationId?: string | null; defaultBranchId?: string | null; username: string; email: string; status: string }): AuthenticatedUser => ({
+export const createAuthenticatedUser = (user: {
+  id: string;
+  tenantId: string;
+  organizationId?: string | null;
+  defaultLocationId?: string | null;
+  defaultBranchId?: string | null;
+  username: string;
+  email: string;
+  status: string;
+}): AuthenticatedUser => ({
   ...user,
 });
 

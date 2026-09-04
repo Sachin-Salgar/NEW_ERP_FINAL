@@ -5,9 +5,10 @@ import { PlatformBootstrapService } from './src/application/services/platform-bo
 import { TenantBootstrapService } from './src/application/services/tenant-bootstrap-service.ts';
 import { BcryptPasswordHasher } from './src/infrastructure/security/bcrypt-password-hasher.ts';
 import { PostgresPlatformRepository } from './src/infrastructure/database/repositories/postgres-platform-repository.ts';
+import { UnitOfWork } from './src/infrastructure/database/unit-of-work.ts';
 
 async function main() {
-    const databaseUrl = resolveDatabaseUrl(process.env);
+  const databaseUrl = resolveDatabaseUrl(process.env);
 
   if (!databaseUrl) {
     throw new Error(
@@ -18,7 +19,7 @@ async function main() {
   const pool = new Pool({ connectionString: databaseUrl });
   const repo = new PostgresPlatformRepository(pool);
   const platformBootstrap = new PlatformBootstrapService(repo);
-  const tenantBootstrap = new TenantBootstrapService(repo, new BcryptPasswordHasher());
+  const tenantBootstrap = new TenantBootstrapService(repo, new BcryptPasswordHasher(), new UnitOfWork(pool));
 
   const uniqueSuffix = `${Date.now()}-${uuidV7()}`;
   const provider = {
@@ -52,10 +53,15 @@ async function main() {
       name: `Core Admin ${uniqueSuffix}`,
     },
     permissions: [
-      'organization.read', 'organization.manage',
-      'branch.read', 'branch.manage',
-      'user.read', 'user.manage',
-      'role.manage', 'role.read', 'permission.read',
+      'organization.read',
+      'organization.manage',
+      'branch.read',
+      'branch.manage',
+      'user.read',
+      'user.manage',
+      'role.manage',
+      'role.read',
+      'permission.read',
     ],
     subscriptionPlanName: 'Starter',
     initialFinancialYear: {
@@ -67,15 +73,21 @@ async function main() {
 
   await platformBootstrap.seedReferenceData();
   const result = await tenantBootstrap.bootstrapTenant(provider);
-  console.log(JSON.stringify({
-    tenantId: result.tenantId,
-    organizationId: result.organizationId,
-    branchId: result.branchId,
-    userId: result.userId,
-    username: provider.administrator.username,
-    email: provider.administrator.email,
-    password: provider.administrator.password,
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        tenantId: result.tenantId,
+        organizationId: result.organizationId,
+        branchId: result.branchId,
+        userId: result.userId,
+        username: provider.administrator.username,
+        email: provider.administrator.email,
+        password: provider.administrator.password,
+      },
+      null,
+      2,
+    ),
+  );
   await pool.end();
 }
 

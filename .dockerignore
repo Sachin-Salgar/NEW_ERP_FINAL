@@ -1,0 +1,19 @@
+.git
+.github
+.ai
+.env
+.env.*
+!.env.example
+node_modules
+dist
+coverage
+*.log
+npm-debug.log*
+frontend
+Version 1.1.0
+IMPROVEMENTS.md
+docs
+tests
+scripts
+*.md
+!README.md

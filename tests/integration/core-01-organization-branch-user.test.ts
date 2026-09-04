@@ -67,7 +67,17 @@ describe('CORE-01 organization and branch administration', () => {
         code: `coreadmin${uniqueSuffix}`.slice(0, 20),
         name: `Core Admin ${uniqueSuffix}`,
       },
-      permissions: ['organization.read', 'organization.manage', 'branch.read', 'branch.manage', 'user.read', 'user.manage', 'role.manage', 'role.read', 'permission.read'],
+      permissions: [
+        'organization.read',
+        'organization.manage',
+        'branch.read',
+        'branch.manage',
+        'user.read',
+        'user.manage',
+        'role.manage',
+        'role.read',
+        'permission.read',
+      ],
       subscriptionPlanName: 'Starter',
       initialFinancialYear: {
         name: `FY-${uniqueSuffix}`,
@@ -136,7 +146,9 @@ describe('CORE-01 organization and branch administration', () => {
     const organizations = listOrganizationsResponse.json().organizations;
     expect(organizations.length).toBeGreaterThanOrEqual(2);
     expect(organizations.filter((organization: any) => organization.isDefault).length).toBe(1);
-    expect(organizations.find((organization: any) => organization.id === tenantResult.organizationId)?.isDefault).toBe(true);
+    expect(organizations.find((organization: any) => organization.id === tenantResult.organizationId)?.isDefault).toBe(
+      true,
+    );
     expect(organizations.find((organization: any) => organization.id === createdOrg.id)?.isDefault).toBe(false);
 
     const getOrganizationResponse = await app.inject({
@@ -255,15 +267,11 @@ describe('CORE-01 organization and branch administration', () => {
     });
     expect(limitedUserRegister.statusCode).toBe(201);
     const limitedUser = limitedUserRegister.json().user;
-    const limitedUserRow = await withTenantContext(
-      pool,
-      'app.current_tenant_id',
-      tenantResult.tenantId,
-      (client) =>
-        client.query(
-          'SELECT id FROM users WHERE tenant_id = $1 AND username = $2',
-          [tenantResult.tenantId, `limited${uniqueSuffix}`],
-        ),
+    const limitedUserRow = await withTenantContext(pool, 'app.current_tenant_id', tenantResult.tenantId, (client) =>
+      client.query('SELECT id FROM users WHERE tenant_id = $1 AND username = $2', [
+        tenantResult.tenantId,
+        `limited${uniqueSuffix}`,
+      ]),
     );
     limitedUser.id = limitedUserRow.rows[0].id;
 
@@ -279,28 +287,24 @@ describe('CORE-01 organization and branch administration', () => {
     expect(limitedLogin.statusCode).toBe(200);
     const limitedToken = limitedLogin.json().accessToken as string;
 
-    await withTenantContext(
-      pool,
-      'app.current_tenant_id',
-      tenantResult.tenantId,
-      (client) =>
-        client
-          .query(
-            'DELETE FROM user_organization_access WHERE tenant_id = $1 AND user_id = $2',
-            [tenantResult.tenantId, limitedUser.id],
-          )
-          .then(() =>
-            client.query(
-              'DELETE FROM user_branch_access WHERE tenant_id = $1 AND user_id = $2',
-              [tenantResult.tenantId, limitedUser.id],
-            ),
-          )
-          .then(() =>
-            client.query(
-              'UPDATE users SET organization_id = $1, default_branch_id = $2 WHERE id = $3 AND tenant_id = $4',
-              [createdOrg.id, createdBranch.id, limitedUser.id, tenantResult.tenantId],
-            ),
+    await withTenantContext(pool, 'app.current_tenant_id', tenantResult.tenantId, (client) =>
+      client
+        .query('DELETE FROM user_organization_access WHERE tenant_id = $1 AND user_id = $2', [
+          tenantResult.tenantId,
+          limitedUser.id,
+        ])
+        .then(() =>
+          client.query('DELETE FROM user_branch_access WHERE tenant_id = $1 AND user_id = $2', [
+            tenantResult.tenantId,
+            limitedUser.id,
+          ]),
+        )
+        .then(() =>
+          client.query(
+            'UPDATE users SET organization_id = $1, default_branch_id = $2 WHERE id = $3 AND tenant_id = $4',
+            [createdOrg.id, createdBranch.id, limitedUser.id, tenantResult.tenantId],
           ),
+        ),
     );
 
     const emptyUserAccessResponse = await app.inject({
@@ -385,7 +389,14 @@ describe('CORE-01 organization and branch administration', () => {
         code: `otheradmin${secondTenantSuffix}`.slice(0, 20),
         name: `Other Admin ${secondTenantSuffix}`,
       },
-      permissions: ['organization.read', 'organization.manage', 'branch.read', 'branch.manage', 'user.read', 'user.manage'],
+      permissions: [
+        'organization.read',
+        'organization.manage',
+        'branch.read',
+        'branch.manage',
+        'user.read',
+        'user.manage',
+      ],
       subscriptionPlanName: 'Starter',
     };
 
@@ -397,7 +408,10 @@ describe('CORE-01 organization and branch administration', () => {
         host: secondTenantInput.tenant.subdomain,
         'x-tenant-id': otherTenantResult.tenantId,
       },
-      payload: { identifier: secondTenantInput.administrator.username, password: secondTenantInput.administrator.password },
+      payload: {
+        identifier: secondTenantInput.administrator.username,
+        password: secondTenantInput.administrator.password,
+      },
     });
     const otherToken = otherLogin.json().accessToken as string;
 
@@ -520,7 +534,14 @@ describe('CORE-01 organization and branch administration', () => {
         code: `concurrentadmin${uniqueSuffix}`.slice(0, 20),
         name: `Concurrent Admin ${uniqueSuffix}`,
       },
-      permissions: ['organization.read', 'organization.manage', 'branch.read', 'branch.manage', 'user.read', 'user.manage'],
+      permissions: [
+        'organization.read',
+        'organization.manage',
+        'branch.read',
+        'branch.manage',
+        'user.read',
+        'user.manage',
+      ],
       subscriptionPlanName: 'Starter',
     });
 
@@ -532,25 +553,33 @@ describe('CORE-01 organization and branch administration', () => {
     expect(maliciousOrganization.code).toMatch(/^ORG\d{6}$/);
 
     const organizationResults = await Promise.all(
-      Array.from({ length: 12 }, (_, index) => coreEnterpriseService.createOrganization(tenantResult.tenantId, {
-        name: `Concurrent Org ${index}-${uniqueSuffix}`,
-      })),
+      Array.from({ length: 12 }, (_, index) =>
+        coreEnterpriseService.createOrganization(tenantResult.tenantId, {
+          name: `Concurrent Org ${index}-${uniqueSuffix}`,
+        }),
+      ),
     );
     const organizationCodes = organizationResults.map((organization) => organization.code);
     expect(new Set(organizationCodes).size).toBe(organizationCodes.length);
     expect(organizationCodes.every((code) => /^ORG\d{6}$/.test(code))).toBe(true);
 
-    const maliciousBranch = await coreEnterpriseService.createBranch(tenantResult.tenantId, tenantResult.organizationId, {
-      code: 'ATTACK001',
-      name: `Malicious Branch ${uniqueSuffix}`,
-    });
+    const maliciousBranch = await coreEnterpriseService.createBranch(
+      tenantResult.tenantId,
+      tenantResult.organizationId,
+      {
+        code: 'ATTACK001',
+        name: `Malicious Branch ${uniqueSuffix}`,
+      },
+    );
     expect(maliciousBranch.code).not.toBe('ATTACK001');
     expect(maliciousBranch.code).toMatch(/^BR\d{3}$/);
 
     const branchResults = await Promise.all(
-      Array.from({ length: 12 }, (_, index) => coreEnterpriseService.createBranch(tenantResult.tenantId, tenantResult.organizationId, {
-        name: `Concurrent Branch ${index}-${uniqueSuffix}`,
-      })),
+      Array.from({ length: 12 }, (_, index) =>
+        coreEnterpriseService.createBranch(tenantResult.tenantId, tenantResult.organizationId, {
+          name: `Concurrent Branch ${index}-${uniqueSuffix}`,
+        }),
+      ),
     );
     const branchCodes = branchResults.map((branch) => branch.code);
     expect(new Set(branchCodes).size).toBe(branchCodes.length);

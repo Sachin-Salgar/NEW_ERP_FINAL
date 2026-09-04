@@ -150,20 +150,56 @@ class FakeAuthorizationRepository {
     ];
   }
 
-  async listRoles() { return []; }
-  async getRoleById() { return null; }
-  async createRole(_tenantId: string, input: any) { return { id: 'role-1', tenantId: _tenantId, ...input, isSystem: !!input.isSystem, sortOrder: input.sortOrder ?? 0, createdAt: new Date(), updatedAt: new Date() }; }
-  async updateRole() { return null; }
-  async listPermissions() { return []; }
-  async assignPermissionsToRole() { return 0; }
-  async removePermissionsFromRole() { return 0; }
-  async replacePermissionsForRole() { return 0; }
-  async getPermissionsForRole() { return []; }
-  async assignRoleToUser() { return false; }
-  async revokeRoleFromUser() { return false; }
-  async getRolesForUser() { return []; }
-  async getUserEffectivePermissions() { return []; }
-  async assignUserToOrganization() { return true; }
+  async listRoles() {
+    return [];
+  }
+  async getRoleById() {
+    return null;
+  }
+  async createRole(_tenantId: string, input: any) {
+    return {
+      id: 'role-1',
+      tenantId: _tenantId,
+      ...input,
+      isSystem: !!input.isSystem,
+      sortOrder: input.sortOrder ?? 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  }
+  async updateRole() {
+    return null;
+  }
+  async listPermissions() {
+    return [];
+  }
+  async assignPermissionsToRole() {
+    return 0;
+  }
+  async removePermissionsFromRole() {
+    return 0;
+  }
+  async replacePermissionsForRole() {
+    return 0;
+  }
+  async getPermissionsForRole() {
+    return [];
+  }
+  async assignRoleToUser() {
+    return false;
+  }
+  async revokeRoleFromUser() {
+    return false;
+  }
+  async getRolesForUser() {
+    return [];
+  }
+  async getUserEffectivePermissions() {
+    return [];
+  }
+  async assignUserToOrganization() {
+    return true;
+  }
 }
 
 describe('Phase 2 platform security services', () => {

@@ -1,0 +1,6 @@
+dist
+coverage
+node_modules
+frontend/build
+.ai/generated
+package-lock.json

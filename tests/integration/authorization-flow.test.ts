@@ -157,7 +157,11 @@ describe('Authorization RBAC vertical slice', () => {
       headers: { authorization: `Bearer ${adminAToken}`, 'x-tenant-id': tenantAResult.tenantId },
     });
     expect(permissionsResponse.statusCode).toBe(200);
-    expect(permissionsResponse.json().permissions.some((permission: { permissionKey: string }) => permission.permissionKey === 'branch.read')).toBe(true);
+    expect(
+      permissionsResponse
+        .json()
+        .permissions.some((permission: { permissionKey: string }) => permission.permissionKey === 'branch.read'),
+    ).toBe(true);
 
     const roleCreateResponse = await app.inject({
       method: 'POST',
@@ -239,7 +243,11 @@ describe('Authorization RBAC vertical slice', () => {
       headers: { authorization: `Bearer ${regularUserToken}`, 'x-tenant-id': tenantAResult.tenantId },
     });
     expect(effectivePermissions.statusCode).toBe(200);
-    expect(effectivePermissions.json().permissions.some((permission: { permissionKey: string }) => permission.permissionKey === 'branch.read')).toBe(true);
+    expect(
+      effectivePermissions
+        .json()
+        .permissions.some((permission: { permissionKey: string }) => permission.permissionKey === 'branch.read'),
+    ).toBe(true);
 
     const protectedRoute = await app.inject({
       method: 'GET',

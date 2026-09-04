@@ -78,7 +78,9 @@ describe('identity-based tenant authentication', () => {
 
     expect(result.success).toBe(true);
     expect(result.session?.locationId).toBe('location-1');
-    expect(repository.createSession).toHaveBeenCalledWith(expect.objectContaining({ locationId: 'location-1', branchId: 'branch-1' }));
+    expect(repository.createSession).toHaveBeenCalledWith(
+      expect.objectContaining({ locationId: 'location-1', branchId: 'branch-1' }),
+    );
   });
 
   it('fails closed when the same credentials match multiple active tenant accounts', async () => {

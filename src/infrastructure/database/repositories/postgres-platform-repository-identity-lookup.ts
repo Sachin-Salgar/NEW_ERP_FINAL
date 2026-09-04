@@ -1,6 +1,6 @@
 import type { Pool } from 'pg';
 
-import type { LoginCandidate } from '../../../application/contracts/security.js';
+import type { LoginCandidate } from '../../../domain/contracts/repositories.js';
 import { PostgresPlatformRepository } from './postgres-platform-repository.js';
 
 declare module './postgres-platform-repository.js' {
@@ -14,7 +14,9 @@ const repositoryPrototype = PostgresPlatformRepository.prototype as PostgresPlat
 };
 
 if (!repositoryPrototype.findLoginCandidates) {
-  repositoryPrototype.findLoginCandidates = async function findLoginCandidates(identifier: string): Promise<LoginCandidate[]> {
+  repositoryPrototype.findLoginCandidates = async function findLoginCandidates(
+    identifier: string,
+  ): Promise<LoginCandidate[]> {
     const normalized = identifier.trim();
     if (!normalized) {
       return [];
@@ -25,14 +27,14 @@ if (!repositoryPrototype.findLoginCandidates) {
 
     try {
       const result = await client.query<LoginCandidate>(
-       `SELECT i.user_id as "userId", i.tenant_id as "tenantId"
+        `SELECT i.user_id as "userId", i.tenant_id as "tenantId"
          FROM auth_login_identifiers i
          WHERE i.is_active = true
            AND i.tenant_id::text <> ''
            AND i.user_id::text <> ''
            AND i.identifier = $1::citext
          ORDER BY i.tenant_id, i.user_id`,
-       [normalized],
+        [normalized],
       );
 
       return result.rows;

@@ -34,6 +34,8 @@ This domain defines the authoritative database architecture for the Enterprise E
 
 ### Part VI: Governance
 18. [Lifecycle & Governance](./18-lifecycle-governance.md) - Migration strategy and Change Approval Process (CAP).
+19. [Trigger Governance](./19-trigger-governance.md) - Trigger lifecycle, testing, migration, and ownership requirements.
+20. [Migration Recovery Procedure](./20-migration-recovery-procedure.md) - Required rollback/recovery planning and verification for versioned migrations.
 
 ## Appendices
 - [Standard SQL Templates](./appendix-templates.md)
