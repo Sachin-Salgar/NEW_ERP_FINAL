@@ -1,7 +1,9 @@
 # ADR-0022: Query Performance Monitoring
 
 **Date**: 2026-09-04  
-**Status**: Proposed  
+**Status**: Approved  
+**Approval Date**: 2026-09-04  
+**Approved By**: Project Owner following architecture review  
 **Scope**: PostgreSQL query performance measurement, diagnosis, and application-level database timing
 
 ## Context
@@ -45,3 +47,4 @@ Define retention and alert thresholds with production workload measurements. Avo
 
 - `docs/03-database/11-multi-tenancy.md`
 - `docs/04-backend/21-pagination-implementation.md`
+- ADR-0023 Table Partitioning Strategy
