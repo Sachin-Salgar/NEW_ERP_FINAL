@@ -55,28 +55,30 @@ export class AccountSecurityService {
   }
 
   /**
-   * Deliberately returns no account-existence signal. Callers should always use
-   * the same generic response whether an account exists or not.
+   * Password recovery follows the same deployment-independent identity lookup
+   * as login. No client-supplied tenant ID becomes an authority. The method is
+   * intentionally silent when zero or multiple tenant accounts match.
    */
-  async requestPasswordReset(tenantId: string, identifier: string): Promise<void> {
-    const user = await this.repository.findUserByIdentifier(tenantId, identifier.trim());
-    if (!user) return;
+  async requestPasswordReset(identifier: string): Promise<void> {
+    const candidates = await this.repository.findAccountCandidates(identifier.trim());
 
-    const token = createOpaqueToken();
-    const expiresAt = new Date(Date.now() + this.passwordResetTtlMinutes * 60_000);
-    await this.repository.createPasswordResetToken({
-      tenantId,
-      userId: user.id,
-      tokenHash: hashOpaqueToken(token),
-      expiresAt,
-    });
-    await this.notifications.sendPasswordReset({
-      tenantId,
-      userId: user.id,
-      email: user.email,
-      token,
-      expiresAt,
-    });
+    for (const user of candidates) {
+      const token = createOpaqueToken();
+      const expiresAt = new Date(Date.now() + this.passwordResetTtlMinutes * 60_000);
+      await this.repository.createPasswordResetToken({
+        tenantId: user.tenantId,
+        userId: user.id,
+        tokenHash: hashOpaqueToken(token),
+        expiresAt,
+      });
+      await this.notifications.sendPasswordReset({
+        tenantId: user.tenantId,
+        userId: user.id,
+        email: user.email,
+        token,
+        expiresAt,
+      });
+    }
   }
 
   async resetPassword(tenantId: string, token: string, newPassword: string): Promise<boolean> {
