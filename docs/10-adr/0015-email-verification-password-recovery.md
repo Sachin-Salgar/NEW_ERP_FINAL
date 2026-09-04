@@ -1,7 +1,9 @@
 # ADR-0015: Email Verification and Password Recovery
 
 **Date**: 2026-09-04  
-**Status**: Proposed  
+**Status**: Approved  
+**Approval Date**: 2026-09-04  
+**Approved By**: Project Owner following architecture review  
 **Scope**: Local-account email verification and password recovery
 
 ## Context
@@ -23,7 +25,7 @@ Implement email verification and password recovery using short-lived, single-use
 
 ## Rationale
 
-Opaque hashed tokens limit the impact of database exposure. Generic responses reduce account enumeration. Provider abstraction keeps authentication independent from a future notification implementation.
+Opaque hashed tokens limit the impact of database exposure. Generic responses reduce account enumeration. Provider abstraction keeps authentication independent from the notification implementation.
 
 ## Alternatives Considered
 
@@ -44,4 +46,4 @@ Use a dedicated token-purpose record or equivalent lifecycle model. Consume toke
 
 - `docs/04-backend/07-authentication-and-authorization.md`
 - `docs/04-backend/10-password-policy.md`
-- ADR-0018 Notification Service
+- ADR-0017 Notification Service
