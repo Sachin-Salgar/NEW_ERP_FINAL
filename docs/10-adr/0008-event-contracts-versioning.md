@@ -1,9 +1,10 @@
 # ADR-0008: Event Contracts and Versioning
 
-**Status**: Proposed  
+**Status**: Approved  
 **Date**: 2026-08-07  
-**Decision Owner**: Architecture Review Board  
-**Scope**: Versioning and compatibility rules for events that cross module or integration boundaries
+**Approval Date**: 2026-09-04  
+**Approved By**: Project Owner following architecture review  
+**Scope**: Versioning and compatibility rules for event contracts that cross module or integration boundaries
 
 ## Context
 
@@ -24,13 +25,13 @@ How should event contracts be defined, versioned, and evolved so that producers 
 
 ## Decision
 
-**Proposed:** Use a schema-registry approach with explicit event-version metadata for event contracts that require governed versioning.
+Use a schema-registry approach with explicit event-version metadata for event contracts that require governed versioning.
 
 Event names should remain stable where practical. The event version identifies the payload contract used by the producer. Producers should publish business events only after the authoritative transaction has successfully committed, using an implementation that prevents publication of events for rolled-back transactions.
 
 Consumers must declare the versions they support and must tolerate additive fields they do not use.
 
-This ADR does not mandate a specific schema format or schema-registry product until those implementation choices are approved.
+This ADR deliberately leaves the concrete schema format and registry product as implementation choices subject to the platform's dependency and deployment constraints; selecting one does not require a new architectural direction unless it changes the contract model defined here.
 
 ## Compatibility Rules
 
@@ -52,23 +53,23 @@ This ADR does not mandate a specific schema format or schema-registry product un
 ### Negative
 
 - Requires schema governance and compatibility testing.
-- A schema registry introduces operational infrastructure if the proposal is approved.
+- A schema registry may introduce operational infrastructure if the selected implementation requires it.
 - Multiple supported versions can temporarily increase maintenance effort.
 
-## Implementation Notes / TODOs
+## Implementation Notes
 
-- Select a schema format (JSON Schema, Avro, Protobuf, or another approved format).
-- Decide whether the registry is an internal platform capability or an external product.
+- Select an appropriate schema format and registry approach during implementation.
 - Define event ownership and compatibility approval workflow.
 - Add automated backward/forward compatibility tests where applicable.
 - Define retention and deprecation rules for old event versions.
-- Define the transaction-to-event publication mechanism, such as an outbox pattern, before implementation.
+- Use the transactional outbox pattern where event publication must remain atomic with business state changes.
 
 ## Related Documents
 
 - [Event-Driven Architecture](../04-backend/12-event-driven-architecture.md)
 - [ADR Index](./README.md)
+- ADR-0020 Event-Driven Architecture
 
 ## Authority
 
-This ADR remains **Proposed**. It must not be treated as implementation authority until approved. Where it conflicts with an approved ADR or canonical architecture document, follow the repository ADR authority rules and **STOP and ask** if the conflict cannot be resolved unambiguously.
+This ADR is **Approved** and is authoritative within its stated scope. Implementation details must remain consistent with the compatibility rules above and with higher-priority approved security and tenancy architecture.
