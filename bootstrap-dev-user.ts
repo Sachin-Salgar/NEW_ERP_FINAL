@@ -5,6 +5,7 @@ import { PlatformBootstrapService } from './src/application/services/platform-bo
 import { TenantBootstrapService } from './src/application/services/tenant-bootstrap-service.ts';
 import { BcryptPasswordHasher } from './src/infrastructure/security/bcrypt-password-hasher.ts';
 import { PostgresPlatformRepository } from './src/infrastructure/database/repositories/postgres-platform-repository.ts';
+import { UnitOfWork } from './src/infrastructure/database/unit-of-work.ts';
 
 async function main() {
     const databaseUrl = resolveDatabaseUrl(process.env);
@@ -18,7 +19,7 @@ async function main() {
   const pool = new Pool({ connectionString: databaseUrl });
   const repo = new PostgresPlatformRepository(pool);
   const platformBootstrap = new PlatformBootstrapService(repo);
-  const tenantBootstrap = new TenantBootstrapService(repo, new BcryptPasswordHasher());
+  const tenantBootstrap = new TenantBootstrapService(repo, new BcryptPasswordHasher(), new UnitOfWork(pool));
 
   const uniqueSuffix = `${Date.now()}-${uuidV7()}`;
   const provider = {
