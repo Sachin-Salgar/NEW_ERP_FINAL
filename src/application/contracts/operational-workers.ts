@@ -30,7 +30,12 @@ export interface ClaimedOutboxEvent {
 }
 
 export interface OutboxStore {
-  claimPending(tenantId: string, batchSize?: number): Promise<ClaimedOutboxEvent[]>;
-  markPublished(tenantId: string, eventId: string, publishedAt?: Date): Promise<void>;
-  markFailed(tenantId: string, eventId: string, errorCode: string, retryAt: Date): Promise<void>;
+  claimPending(
+    tenantId: string,
+    workerId: string,
+    batchSize?: number,
+    leaseSeconds?: number,
+  ): Promise<ClaimedOutboxEvent[]>;
+  markPublished(tenantId: string, eventId: string, workerId: string, publishedAt?: Date): Promise<void>;
+  markFailed(tenantId: string, eventId: string, workerId: string, errorCode: string, retryAt: Date): Promise<void>;
 }
