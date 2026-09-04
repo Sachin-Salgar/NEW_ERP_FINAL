@@ -3,11 +3,13 @@ import { v7 as uuidV7 } from 'uuid';
 import type { TenantBootstrapInput, TenantBootstrapResult } from '../../domain/contracts/bootstrap.js';
 import type { PasswordHasher, TenantBootstrapServicePort } from '../contracts/security.js';
 import type { TenantBootstrapRepository } from '../contracts/security.js';
+import type { TransactionRunner } from '../contracts/transaction.js';
 
 export class TenantBootstrapService implements TenantBootstrapServicePort {
   constructor(
     private readonly tenantBootstrapRepository: TenantBootstrapRepository,
     private readonly passwordHasher?: PasswordHasher,
+    private readonly transactionRunner?: TransactionRunner,
   ) {}
 
   async bootstrapTenant(input: TenantBootstrapInput): Promise<TenantBootstrapResult> {
@@ -44,7 +46,7 @@ export class TenantBootstrapService implements TenantBootstrapServicePort {
       },
     };
 
-    const res = await this.tenantBootstrapRepository.bootstrapTenant(normalizedInput);
-    return res;
+    const bootstrap = () => this.tenantBootstrapRepository.bootstrapTenant(normalizedInput);
+    return this.transactionRunner ? this.transactionRunner.runInTransaction(bootstrap) : bootstrap();
   }
 }
