@@ -35,15 +35,12 @@ const descriptions: Record<string, string> = {
   CORS_ALLOWED_ORIGINS: 'Comma-separated exact browser origins allowed in production. Development/test also permit loopback HTTP origins.',
 };
 
-function unwrap(schema: z.ZodTypeAny): { base: z.ZodTypeAny; defaultValue?: unknown } {
+function getDefaultValue(schema: z.ZodTypeAny): unknown {
   let current = schema;
-  let defaultValue: unknown;
 
   while (true) {
     if (current instanceof z.ZodDefault) {
-      defaultValue = current._def.defaultValue();
-      current = current._def.innerType;
-      continue;
+      return current._def.defaultValue();
     }
 
     if (current instanceof z.ZodEffects) {
@@ -61,12 +58,40 @@ function unwrap(schema: z.ZodTypeAny): { base: z.ZodTypeAny; defaultValue?: unkn
       continue;
     }
 
-    return { base: current, defaultValue };
+    return undefined;
+  }
+}
+
+function unwrapForType(schema: z.ZodTypeAny): z.ZodTypeAny {
+  let current = schema;
+
+  while (true) {
+    if (current instanceof z.ZodDefault) {
+      current = current._def.innerType;
+      continue;
+    }
+
+    if (current instanceof z.ZodEffects) {
+      current = current._def.schema;
+      continue;
+    }
+
+    if (current instanceof z.ZodPipeline) {
+      current = current._def.out;
+      continue;
+    }
+
+    if (current instanceof z.ZodOptional || current instanceof z.ZodNullable) {
+      current = current.unwrap();
+      continue;
+    }
+
+    return current;
   }
 }
 
 function typeName(schema: z.ZodTypeAny): string {
-  const { base } = unwrap(schema);
+  const base = unwrapForType(schema);
 
   if (base instanceof z.ZodString) return 'string';
   if (base instanceof z.ZodNumber) return 'number';
@@ -74,7 +99,7 @@ function typeName(schema: z.ZodTypeAny): string {
   if (base instanceof z.ZodEnum) return base.options.map((value) => `\`${value}\``).join(' | ');
   if (base instanceof z.ZodArray) return `${typeName(base.element)}[]`;
 
-  return base._def.typeName ?? 'unknown';
+  return String(base._def.typeName ?? 'unknown');
 }
 
 function formatDefault(value: unknown): string {
@@ -90,7 +115,7 @@ function escapeCell(value: string): string {
 
 function buildDocument(): string {
   const rows = Object.entries(appConfigSchema.shape).map(([name, schema]) => {
-    const { defaultValue } = unwrap(schema);
+    const defaultValue = getDefaultValue(schema);
     const required = defaultValue === undefined ? 'Yes' : 'No';
 
     return `| \`${name}\` | ${escapeCell(typeName(schema))} | ${required} | ${escapeCell(formatDefault(defaultValue))} | ${escapeCell(descriptions[name] ?? '')} |`;
