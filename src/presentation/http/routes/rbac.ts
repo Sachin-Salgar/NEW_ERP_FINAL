@@ -3,6 +3,7 @@ import { type FastifyPluginAsync, type FastifyRequest } from 'fastify';
 import { NotFoundError, ValidationError } from '../../../domain/errors.js';
 import { requireAuth, requirePermission, requirePermissionOrSelf } from '../middleware/auth.js';
 import { requestObject, requestParam } from '../request-input.js';
+import { paginate, parsePaginationQuery } from '../pagination.js';
 
 const getTenantIdFromRequest = (request: FastifyRequest): string | null => request.tenantId ?? null;
 
@@ -44,8 +45,22 @@ const rbacRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
+    const query = parsePaginationQuery(request.query);
     const roles = await request.server.authorizationService.listRoles(tenantId);
-    return { success: true, roles };
+    const result = paginate(roles, query, {
+      searchable: [
+        (role) => role.code,
+        (role) => role.name,
+        (role) => role.description,
+      ],
+      sortable: {
+        code: (role) => role.code,
+        name: (role) => role.name,
+        sortOrder: (role) => role.sortOrder,
+        createdAt: (role) => role.createdAt,
+      },
+    });
+    return { success: true, roles: result.data, metadata: result.metadata };
   });
 
   fastify.get('/rbac/roles/:roleId', { preHandler: [requireAuth, requirePermission('role.read')] }, async (request) => {
@@ -93,8 +108,25 @@ const rbacRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
+    const query = parsePaginationQuery(request.query);
     const permissions = await request.server.authorizationService.listPermissions(tenantId);
-    return { success: true, permissions };
+    const result = paginate(permissions, query, {
+      searchable: [
+        (permission) => permission.permissionKey,
+        (permission) => permission.displayName,
+        (permission) => permission.moduleCode,
+        (permission) => permission.resource,
+        (permission) => permission.action,
+      ],
+      sortable: {
+        permissionKey: (permission) => permission.permissionKey,
+        displayName: (permission) => permission.displayName,
+        moduleCode: (permission) => permission.moduleCode,
+        resource: (permission) => permission.resource,
+        action: (permission) => permission.action,
+      },
+    });
+    return { success: true, permissions: result.data, metadata: result.metadata };
   });
 
   fastify.put('/rbac/roles/:roleId/permissions', { preHandler: [requireAuth, requirePermission('role.manage')] }, async (request) => {
