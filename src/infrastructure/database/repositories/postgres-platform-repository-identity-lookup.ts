@@ -1,6 +1,6 @@
 import type { Pool } from 'pg';
 
-import type { LoginCandidate } from '../../../application/contracts/security.js';
+import type { LoginCandidate } from '../../../domain/contracts/repositories.js';
 import { PostgresPlatformRepository } from './postgres-platform-repository.js';
 
 declare module './postgres-platform-repository.js' {
