@@ -1,7 +1,9 @@
 # ADR-0014: Audit Logging Foundation
 
 **Date**: 2026-09-04  
-**Status**: Proposed  
+**Status**: Approved  
+**Approval Date**: 2026-09-04  
+**Approved By**: Project Owner following architecture review  
 **Scope**: Security, authorization, identity, and business audit records across the ERP
 
 ## Context
@@ -52,3 +54,4 @@ Define event types and metadata allowlists before broad adoption. Add indexes fo
 - `docs/04-backend/07-authentication-and-authorization.md`
 - `docs/03-database/11-multi-tenancy.md`
 - `docs/04-backend/20-correlation-id.md`
+- ADR-0016 Multi-Factor Authentication with TOTP
