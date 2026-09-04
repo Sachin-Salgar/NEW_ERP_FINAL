@@ -1,7 +1,9 @@
 # ADR-0016: Multi-Factor Authentication with TOTP
 
 **Date**: 2026-09-04  
-**Status**: Proposed  
+**Status**: Approved  
+**Approval Date**: 2026-09-04  
+**Approved By**: Project Owner following architecture review  
 **Scope**: Time-based one-time-password MFA for ERP user accounts
 
 ## Context
