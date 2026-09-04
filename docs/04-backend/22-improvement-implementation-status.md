@@ -1,8 +1,8 @@
 # Improvement Implementation Status — 2026-09-04
 
-**Branch**: `feat/improvements`  
-**Scope**: IMP-001 through IMP-032 from `/IMPROVEMENTS.md`  
-**Implementation state**: Complete. No backlog item remains `PENDING` or `PARTIAL`. Runtime/provider/deployment evidence is tracked separately.
+**Repository state**: Final reconciled implementation baseline
+**Scope**: IMP-001 through IMP-032
+**Implementation state**: Complete. No item remains `PENDING` or `PARTIAL`. Runtime/provider/deployment evidence is tracked separately.
 
 ---
 
@@ -185,4 +185,4 @@ Docker/image publishing, external provider delivery, production key rotation, wo
 - Do not encode organization-specific behavior in application code; configuration remains data.
 - Do not treat deployment/provider validation as missing source-code implementation.
 
-`IMPROVEMENTS.md` is the authoritative item-by-item status; this file is the backend implementation handoff summary.
+This document is the permanent item-by-item status record for IMP-001 through IMP-032. It records final implementation state without depending on temporary audit or backlog files.

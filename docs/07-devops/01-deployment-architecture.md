@@ -90,6 +90,16 @@ Validation should include, as applicable:
 
 Deployment architecture provides a controlled path from validated software changes to reliable operation while preserving environment isolation, recovery capability, and operational observability.
 
+## 11. Current Deployment Boundaries
+
+The repository's current deployment split is a frontend build on Vercel and a backend service connected to PostgreSQL through the configured deployment environment. The Vercel configuration builds the Flutter web output and rewrites browser routes to the frontend entry point; it does not establish tenant identity or connect directly to PostgreSQL. The backend endpoint and production CORS allowlist are deployment configuration concerns.
+
+Render-managed PostgreSQL endpoint selection and TLS behavior are governed by the approved managed-PostgreSQL ADR. Production smoke validation must verify frontend-to-backend connectivity, backend CORS acceptance, health behavior, migrations, and background processing separately from repository CI.
+
+Dependency installation in deployment must use the repository lockfile consistently with its manifest and must preserve frozen/reproducible lockfile validation. A stale lockfile is a release defect; disabling frozen-lockfile validation is not an acceptable workaround.
+
+The repository does not claim production evidence for worker supervision, external providers, key rotation, backup restoration, database-role separation for pre-authentication lookup, registry attestations, or graceful shutdown until those checks are executed in the target environment.
+
 ## Cross References
 
 - [DevOps Architecture](./01-devops-architecture.md)

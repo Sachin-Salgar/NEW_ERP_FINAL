@@ -87,6 +87,21 @@ Deployment systems should retain sufficient information to identify the released
 
 CI/CD provides repeatable validation and controlled software delivery while leaving provider-specific implementation to the actual repository and deployment configuration.
 
+## 12. Repository Quality and Supply-Chain Gates
+
+The current backend CI and release workflows provide the repository-controlled evidence for:
+
+- reproducible dependency installation;
+- lint/format quality checks;
+- generated-configuration drift detection;
+- migration-recovery verification;
+- typecheck, unit tests, build, and PostgreSQL integration tests using an application-like `NOSUPERUSER NOBYPASSRLS` role;
+- production container build and Trivy HIGH/CRITICAL vulnerability scanning;
+- dependency auditing at the configured severity threshold;
+- immutable image tags, SBOM generation, and build provenance on release images.
+
+These workflow controls document repository capability. Successful execution, registry publication, deployment configuration, provider delivery, production key rotation, backup restoration, and operational monitoring remain environment-specific evidence.
+
 ## Cross References
 
 - [DevOps Architecture](./01-devops-architecture.md)
