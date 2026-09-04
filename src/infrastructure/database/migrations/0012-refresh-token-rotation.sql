@@ -1,3 +1,6 @@
+CREATE UNIQUE INDEX IF NOT EXISTS "uq_user_sessions_id_tenant"
+  ON "user_sessions" ("id", "tenant_id");
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "refresh_token_history" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "tenant_id" uuid NOT NULL,
@@ -28,6 +31,3 @@ ON "refresh_token_history"
 AS PERMISSIVE FOR ALL
 USING ("tenant_id" = current_setting('app.current_tenant_id', true)::uuid)
 WITH CHECK ("tenant_id" = current_setting('app.current_tenant_id', true)::uuid);
---> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS "uq_user_sessions_id_tenant"
-  ON "user_sessions" ("id", "tenant_id");
