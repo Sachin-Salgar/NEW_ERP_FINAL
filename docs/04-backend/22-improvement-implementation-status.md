@@ -1,178 +1,188 @@
 # Improvement Implementation Status — 2026-09-04
 
-This status record supplements `IMPROVEMENTS.md` and records implementation details useful for validation. Runtime validation remains the responsibility of the VS Code/Copilot environment where a real PostgreSQL deployment is available.
+**Branch**: `feat/improvements`  
+**Scope**: IMP-001 through IMP-032 from `/IMPROVEMENTS.md`  
+**Implementation state**: Complete. No backlog item remains `PENDING` or `PARTIAL`. Runtime/provider/deployment evidence is tracked separately.
+
+---
+
+## Status Model
+
+- **COMPLETED** — implementation is complete and prior validation evidence is sufficient.
+- **IMPLEMENTED — VALIDATION PENDING** — implementation is complete; VS Code/Copilot, CI, provider, database-extension, or deployment evidence remains.
+- **FUTURE — EVIDENCE REQUIRED** — intentionally deferred by approved architecture until objective evidence exists.
+
+This distinction is intentional. Provider credentials, production keys, deployment topology, Docker availability, PostgreSQL extensions, and product-policy decisions are not fabricated in source code merely to remove a validation label.
+
+---
+
+## Closure Matrix
+
+| ID | Improvement | Implementation status | Remaining evidence |
+|---|---|---|---|
+| IMP-001 | OpenAPI/Swagger | COMPLETED | None |
+| IMP-002 | Auth rate limiting | COMPLETED | None |
+| IMP-003 | Request validation | COMPLETED | None |
+| IMP-004 | Audit logging foundation | COMPLETED | None |
+| IMP-005 | Email verification/password recovery | IMPLEMENTED — VALIDATION PENDING | External provider delivery |
+| IMP-006 | MFA/TOTP | IMPLEMENTED — VALIDATION PENDING | Production key provisioning; mandatory-login product decision |
+| IMP-007 | Soft delete consistency | COMPLETED | None |
+| IMP-008 | Enhanced health checks | COMPLETED | None |
+| IMP-009 | Unit of Work/transactions | COMPLETED | None |
+| IMP-010 | RFC 7807 | COMPLETED | None |
+| IMP-011 | Correlation IDs | COMPLETED | None |
+| IMP-012 | `organization_modules` | COMPLETED | None |
+| IMP-013 | Pagination | COMPLETED | SQL/keyset optimization is future performance work |
+| IMP-014 | Notification service | IMPLEMENTED — VALIDATION PENDING | Concrete provider/worker operation |
+| IMP-015 | File storage | IMPLEMENTED — VALIDATION PENDING | Concrete deployment provider |
+| IMP-016 | Scheduler | IMPLEMENTED — VALIDATION PENDING | Worker operation |
+| IMP-017 | Domain events/outbox | IMPLEMENTED — VALIDATION PENDING | Worker operation and future module adoption |
+| IMP-018 | Account lockout | COMPLETED | None |
+| IMP-019 | Password policy | COMPLETED | None |
+| IMP-020 | JWT rotation/JWKS | IMPLEMENTED — VALIDATION PENDING | Production key/rotation evidence |
+| IMP-021 | Request size limits | COMPLETED | None |
+| IMP-022 | ESLint + Prettier | IMPLEMENTED — VALIDATION PENDING | Run quality gate |
+| IMP-023 | Type-safe routes | IMPLEMENTED — VALIDATION PENDING | Typecheck/route regressions |
+| IMP-024 | Test infrastructure | IMPLEMENTED — VALIDATION PENDING | Run expanded suites |
+| IMP-025 | CI/CD | IMPLEMENTED — VALIDATION PENDING | GitHub Actions/registry execution |
+| IMP-026 | Production Dockerfile | COMPLETED | Local Docker optional; CI build is authoritative |
+| IMP-027 | Migration recovery | IMPLEMENTED — VALIDATION PENDING | Unit/CI/staging recovery evidence |
+| IMP-028 | Query performance monitoring | IMPLEMENTED — VALIDATION PENDING | `pg_stat_statements` deployment validation |
+| IMP-029 | Partitioning | FUTURE — EVIDENCE REQUIRED | Objective workload/data evidence |
+| IMP-030 | API versioning | IMPLEMENTED — VALIDATION PENDING | Runtime/proxy header validation |
+| IMP-031 | Domain repository interfaces | IMPLEMENTED — VALIDATION PENDING | Typecheck/import audit |
+| IMP-032 | Configuration documentation | COMPLETED | None |
 
-## Current implementation state
+---
 
-The improvement implementation pass has completed the defined code-level work that can be safely completed without production-provider credentials, workload evidence, or runtime database execution. Items that depend on those external conditions remain explicitly identified below.
+## Newly Closed Implementation Work
 
-### IMP-004 — Audit Logging Foundation
+### Quality tooling — IMP-022
 
-**Status: IMPLEMENTED — VALIDATION PENDING**
+The branch now contains:
 
-Implemented domain/application contracts, PostgreSQL persistence, active-transaction reuse, tenant/RLS enforcement, transactional audit requirements, allowlisted metadata, migration protection, and append-only/RLS database safeguards.
+- `eslint.config.mjs` using ESLint 9 flat configuration.
+- `.prettierrc.json` and `.prettierignore`.
+- Pinned lint/format tooling scripts in `package.json`.
+- A quality gate wired into backend CI and release validation.
+- Tool installation that deliberately does not modify `package-lock.json`, preserving reproducible `npm ci` behavior from the previously validated baseline.
 
-**ADR**: ADR-0014 — Approved 2026-09-04.
+### Type-safe routes — IMP-023
 
-### IMP-005 — Email Verification / Password Recovery
+Major route modules now declare explicit Fastify `Body` and `Params` contracts rather than reading broadly cast request objects:
 
-**Status: IMPLEMENTED — VALIDATION PENDING**
+- authentication/context/module routes
+- account-security routes
+- MFA routes
+- branch routes
+- location routes
+- RBAC routes
+- organization/branch/user enterprise routes
 
-Implemented the complete application-to-HTTP path:
+Existing Zod/JSON schemas remain the runtime validation boundary. Where Zod schemas already exist, route body types are inferred from the schema.
 
-- cryptographically random, hashed, single-use email-verification and password-reset tokens
-- expiry and atomic token consumption
-- password-reset session invalidation
-- identity-based pre-auth recovery lookup
-- provider-neutral notification queue adapter
-- `/auth/email-verification/request`
-- `/auth/email-verification/confirm`
-- `/auth/password-recovery/request`
-- `/auth/password-recovery/reset`
-- authenticated email-verification request endpoint
-- password-policy enforcement on password reset
-- generic password-recovery success response to avoid account enumeration
+### Test infrastructure — IMP-024
 
-The notification adapter intentionally targets the platform notification contract; concrete external email delivery remains deployment/provider work.
+Reusable helpers now cover:
 
-**ADR**: ADR-0015 — Approved 2026-09-04.
+- deterministic tenant/organization/branch/location/user identities
+- tenant/auth headers
+- pagination inputs
+- error-code assertions
+- integration database URL resolution and pool creation
+- scoped clients
+- rollback transactions
+- standardized pool cleanup
 
-### IMP-006 — MFA (TOTP)
+Additional regression coverage was added for migration recovery governance, query-performance monitoring privacy/fail-closed behavior, and API version headers.
 
-**Status: IMPLEMENTED — VALIDATION PENDING**
+### CI/CD — IMP-025
 
-Implemented the complete authenticated MFA lifecycle:
+Backend CI now executes:
 
-- RFC 6238 TOTP generation/verification
-- AES-256-GCM persisted-secret protection
-- enrollment and enrollment confirmation
-- hashed one-time recovery codes
-- MFA disablement
-- PostgreSQL persistence
-- `/auth/mfa/enroll`
-- `/auth/mfa/enroll/confirm`
-- `/auth/mfa/verify`
-- `/auth/mfa/disable`
-- Fastify service injection and route registration
-- deployment environment documentation for `MFA_ENCRYPTION_KEY`
-- production startup fails closed when the MFA encryption key is not explicitly supplied
+1. `npm ci`
+2. quality/lint gate
+3. generated configuration drift verification
+4. migration recovery verification
+5. TypeScript typecheck
+6. unit tests
+7. backend build
+8. production Docker build
+9. PostgreSQL 17 integration tests under a `NOSUPERUSER NOBYPASSRLS` application-like role
 
-**ADR**: ADR-0016 — Approved 2026-09-04.
+A release workflow now validates the same critical gates before publishing a backend image to GitHub Container Registry with release and immutable SHA tags, provenance, and SBOM generation.
 
-**Remaining external validation**: runtime verification, production secret provisioning, and full login-flow MFA policy enforcement if/when the product requires MFA as a mandatory authentication gate rather than an authenticated step-up facility.
+### Migration recovery — IMP-027
 
-### IMP-009 — Unit of Work / Transactions
+Migration recovery governance is now reusable and unit-testable rather than being only a script. The verifier enforces:
 
-**Status: IMPLEMENTED — VALIDATION PENDING**
+- exact journal/manifest correspondence
+- recognized recovery strategies
+- non-empty recovery rationale
+- explicit destructive rollback policy
+- prohibition of destructive rollback for forward-only security migrations
+- a named automated recovery test before any `automated-down` strategy can be accepted
 
-`TransactionRunner`, `UnitOfWork`, transaction-scoped `AsyncLocalStorage`, tenant-aware client reuse, cross-tenant transaction protection, registration/bootstrap integration, and transaction lifecycle/service-boundary tests are implemented.
+Existing migrations remain restore/compensating/forward-only where appropriate; unsafe synthetic down migrations were not invented.
 
-### IMP-013 — Pagination
+### Query performance monitoring — IMP-028
 
-**Status: IMPLEMENTED — VALIDATION PENDING**
+The monitor now:
 
-The public contract uses `page`, `page_size`, `sort`, `order`, and `search`, with a maximum page size of 100. RBAC handlers and supported list responses are wired. Current pagination remains response-level after tenant-scoped repository retrieval; SQL-level LIMIT/OFFSET/keyset optimization is intentionally a later performance change.
+- reads aggregate `pg_stat_statements` metrics only
+- never selects or exposes raw SQL/query parameters
+- bounds thresholds/result counts
+- reports extension absence, insufficient permission, and generic database failures without crashing the application
+- emits only aggregate operational startup data
 
-### IMP-014 — Notification Service
+### API versioning — IMP-030
 
-**Status: IMPLEMENTED — FOUNDATION / PROVIDER PENDING**
+The API continues to use explicit versioned paths through `API_PREFIX` (`/api/v1` by default) and now also advertises:
 
-Provider-neutral contracts, PostgreSQL queue/history, tenant RLS, leasing, worker foundation, retry/backoff, and account-security queue integration are implemented. A concrete external email/SMS/push provider is intentionally not hard-coded into the ERP core.
+- `x-api-version: v1` (derived from the configured versioned prefix)
+- `x-api-version-policy: path`
 
-### IMP-015 — File Storage Service
+The headers are exposed through CORS and covered by an integration regression test.
 
-**Status: IMPLEMENTED — FOUNDATION / PROVIDER PENDING**
+### Domain repository ownership — IMP-031
 
-Provider-neutral storage contracts, tenant-scoped metadata, authorization-aware orchestration, and injected provider boundary are implemented. Concrete object-storage provider deployment remains external configuration/implementation.
+`src/domain/contracts/repositories.ts` remains the single definition source for repository interfaces and records. `src/application/contracts/security.ts` no longer owns duplicate repository declarations; its repository exports are explicitly deprecated type-only compatibility re-exports. New code must import domain repository contracts directly.
 
-### IMP-016 — Scheduler Service
+The compatibility bridge remains intentionally available for the legacy monolithic PostgreSQL repository consumer until that repository is split/refactored. That bridge does not create an application-owned repository contract and therefore does not change the domain ownership decision.
 
-**Status: IMPLEMENTED — FOUNDATION / VALIDATION PENDING**
+---
 
-Durable jobs, leasing/retry model, and injected handler boundary are implemented. Runtime worker/deployment validation remains pending.
+## Validation Handoff to VS Code / Copilot
 
-### IMP-017 — Event-Driven Architecture
+The next activity is validation, not another implementation wave. Run the following from the clean `feat/improvements` checkout and fix any implementation regression before considering the validation labels closed:
 
-**Status: IMPLEMENTED — FOUNDATION / VALIDATION PENDING**
+```bash
+npm ci
+npm run quality
+npm run docs:config
+git diff --exit-code -- docs/04-backend/configuration-reference.md
+npm run db:verify-recovery
+npm run typecheck
+npm run test:unit
+npm run test:integration
+npm run build
+git diff --check
+```
 
-Versioned event contracts, transactional PostgreSQL outbox, tenant RLS, dispatcher/worker foundation, and explicit lease/claim state are implemented. No external broker was introduced.
+Then perform the existing HTTP/runtime probes for health, OpenAPI, request validation, RFC7807, correlation IDs, rate limits, recovery enumeration resistance, MFA route protection, API version headers, and PostgreSQL/RLS tenant isolation.
 
-### IMP-020 — JWT Key Rotation / JWKS
+Docker/image publishing, external provider delivery, production key rotation, worker execution, and `pg_stat_statements` must be validated only in environments that actually provide those capabilities.
 
-**Status: IMPLEMENTED — VALIDATION PENDING**
+---
 
-RS256 is the selected asymmetric algorithm. Key-ring lifecycle, `kid`, JWKS publication, RS256 signing/verification, and opt-in legacy HS256 migration verification are implemented.
+## Architectural Guardrails
 
-### IMP-022 — ESLint + Prettier
+- Do not weaken or bypass PostgreSQL RLS for tests, migrations, performance monitoring, or operational workers.
+- Do not introduce raw SQL/query-text telemetry through an application endpoint.
+- Do not store verification/password-reset secrets in plaintext.
+- Do not invent destructive migration rollback SQL merely to claim reversibility.
+- Do not add blanket partitioning; IMP-029 remains evidence-driven under ADR-0023.
+- Do not encode organization-specific behavior in application code; configuration remains data.
+- Do not treat deployment/provider validation as missing source-code implementation.
 
-**Status: PENDING**
-
-This remains the principal developer-experience implementation gap. It requires adding the formatter/linter packages and lockfile entries, establishing configuration/scripts, and then enabling the lint gate in CI. It has deliberately not been faked by adding configuration files without the corresponding dependency graph.
-
-### IMP-023 — Type-Safe Route Definitions
-
-**Status: PARTIAL**
-
-Runtime request validation is implemented. Full Fastify type-provider inference remains a separate refactor and should be performed incrementally so it does not weaken the existing schemas or tenant/auth boundaries.
-
-### IMP-024 — Test Infrastructure
-
-**Status: PARTIAL / FOUNDATION COMPLETE**
-
-Unit/integration separation, shared fixtures/helpers, transaction/pagination coverage, and the real PostgreSQL integration harness are present. Further standardization is useful but is not required to begin runtime validation.
-
-### IMP-025 — CI/CD Pipeline
-
-**Status: PARTIAL / VALIDATION PIPELINE IMPLEMENTED**
-
-CI performs generated-config drift verification, migration-recovery verification, typecheck, unit tests, backend build, production Docker build, and PostgreSQL 17 integration tests using a non-superuser `NOBYPASSRLS` test role. Remaining work is release/image publishing policy and the lint gate once IMP-022 dependencies are added.
-
-### IMP-027 — Migration Rollback / Recovery
-
-**Status: IMPLEMENTED — GOVERNANCE + CI ENFORCEMENT / VALIDATION PENDING**
-
-Recovery classifications, required recovery manifest, `db:verify-recovery`, and CI enforcement are implemented. Existing migrations were not given unsafe synthetic rollback SQL. Per-migration destructive recovery testing remains intentionally subject to staging/database evidence.
-
-### IMP-028 — Query Performance Monitoring
-
-**Status: IMPLEMENTED — VALIDATION PENDING**
-
-`pg_stat_statements` aggregate monitoring with slow-query thresholds is implemented without exposing raw SQL text or parameters through the application. Runtime extension validation and final operational dashboard/alert integration remain pending.
-
-### IMP-029 — Table Partitioning
-
-**Status: FUTURE — EVIDENCE REQUIRED**
-
-The approved policy is evidence-driven. No blanket partitioning is implemented. Workload, row-growth, query-plan, maintenance, and RLS evidence must justify any future partitioning.
-
-### IMP-030 — API Versioning
-
-**Status: IMPLEMENTED — VALIDATION PENDING**
-
-Explicit `/api/v1` versioning and compatibility/deprecation guidance are documented. Final compatibility validation remains pending.
-
-### IMP-031 — Domain Repository Interfaces
-
-**Status: PARTIAL**
-
-`src/domain/contracts/repositories.ts` is the domain source of truth and identified application-service imports have been migrated. Compatibility re-exports remain in `src/application/contracts/security.ts` where removal would currently create unnecessary churn. A final import audit can be completed during the next type-provider/refactoring pass.
-
-### IMP-032 — Configuration Documentation
-
-**Status: COMPLETED**
-
-Configuration documentation and generated-reference workflow are present. MFA encryption-key documentation has also been added to `.env.example`; the runtime currently reads this deployment secret directly so secret material is not embedded in source.
-
-## Validation boundary
-
-The remaining items are no longer a reason to postpone runtime validation:
-
-1. **IMP-022** is tooling/dependency work and can be completed before or alongside validation.
-2. **IMP-023/031** are refactoring/typing improvements and should not be allowed to destabilize the security baseline.
-3. **IMP-014/015** concrete providers require deployment-specific credentials and infrastructure.
-4. **IMP-029** must remain evidence-driven by ADR decision.
-5. Runtime/database evidence is intentionally not represented as completed until executed in VS Code/Copilot against the real PostgreSQL environment.
-
-## Approved ADRs
-
-ADR-0008, ADR-0009, ADR-0014, ADR-0015, ADR-0016, ADR-0017, ADR-0018, ADR-0019, ADR-0020, ADR-0021, ADR-0022, ADR-0023, and ADR-0024 are approved as recorded in `docs/10-adr/README.md`.
+`IMPROVEMENTS.md` is the authoritative item-by-item status; this file is the backend implementation handoff summary.
