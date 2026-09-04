@@ -40,6 +40,9 @@ jobs:
           npm run docs:config
           git diff --exit-code -- docs/04-backend/configuration-reference.md
 
+      - name: Verify migration recovery manifest
+        run: npm run db:verify-recovery
+
       - name: Typecheck
         run: npm run typecheck
 
