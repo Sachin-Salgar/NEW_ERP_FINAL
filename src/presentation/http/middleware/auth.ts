@@ -63,11 +63,7 @@ export function requireModule(moduleCode: string) {
     if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication is required to access a module.');
     if (!request.user.organizationId) throw new ForbiddenError('An active organization is required to access modules.');
 
-    const enabled = await request.server.moduleAccessService.isModuleEnabled(
-      request.tenantId,
-      request.user.organizationId,
-      moduleCode,
-    );
+    const enabled = await request.server.moduleAccessService.isModuleEnabled(request.tenantId, request.user.organizationId, moduleCode);
     if (!enabled) throw new ForbiddenError('Module access denied.');
   };
 }
@@ -80,33 +76,36 @@ function moduleCodeForPermission(permissionKey: string): string {
     case 'role':
     case 'permission':
     case 'session': return 'security';
-    case 'organization':
-    case 'branch':
-    case 'location': return 'core-enterprise';
-    default: return prefix || 'core';
+    default: return prefix;
   }
 }
 
 export function requirePermission(permissionKey: string) {
   return async function requirePermissionHandler(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
-    if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication is required to access this resource.');
-    if (!request.user.organizationId && permissionKey !== 'tenant.manage') {
-      throw new ForbiddenError('An active organization is required for this permission.');
-    }
-    const moduleCode = moduleCodeForPermission(permissionKey);
-    if (request.user.organizationId) {
-      const enabled = await request.server.moduleAccessService.isModuleEnabled(
-        request.tenantId,
-        request.user.organizationId,
-        moduleCode,
-      );
-      if (!enabled) throw new ForbiddenError('Module access denied.');
-    }
-    const authorized = await request.server.authorizationService.hasPermission(
-      request.tenantId,
-      request.user.id,
-      permissionKey,
-    );
-    if (!authorized) throw new ForbiddenError('Permission denied.');
+    if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication is required to perform this action.');
+    if (!request.user.organizationId) throw new ForbiddenError('An active organization is required to perform this action.');
+
+    const moduleEnabled = await request.server.moduleAccessService.isModuleEnabled(request.tenantId, request.user.organizationId, moduleCodeForPermission(permissionKey));
+    if (!moduleEnabled) throw new ForbiddenError('Module access denied.');
+
+    const allowed = await request.server.authorizationService.hasPermission(request.tenantId, request.user.id, permissionKey);
+    if (!allowed) throw new ForbiddenError('Permission denied.');
+  };
+}
+
+export function requirePermissionOrSelf(permissionKey: string, selfIdGetter?: (request: FastifyRequest) => string | null | undefined) {
+  return async function requirePermissionOrSelfHandler(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
+    if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication is required to perform this action.');
+
+    const resolvedSelfId = selfIdGetter ? selfIdGetter(request) : null;
+    if (resolvedSelfId && request.user.id === resolvedSelfId) return;
+
+    if (!request.user.organizationId) throw new ForbiddenError('An active organization is required to perform this action.');
+
+    const moduleEnabled = await request.server.moduleAccessService.isModuleEnabled(request.tenantId, request.user.organizationId, moduleCodeForPermission(permissionKey));
+    if (!moduleEnabled) throw new ForbiddenError('Module access denied.');
+
+    const allowed = await request.server.authorizationService.hasPermission(request.tenantId, request.user.id, permissionKey);
+    if (!allowed) throw new ForbiddenError('Permission denied.');
   };
 }
