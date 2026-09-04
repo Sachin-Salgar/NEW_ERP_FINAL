@@ -1,5 +1,5 @@
 import { ValidationError } from '../../domain/errors.js';
-import type { CoreEnterpriseRepository, LocationRecord } from '../contracts/security.js';
+import type { CoreEnterpriseRepository, LocationRecord } from '../../domain/contracts/repositories.js';
 
 export class LocationService {
   constructor(private readonly repository: CoreEnterpriseRepository) {}
