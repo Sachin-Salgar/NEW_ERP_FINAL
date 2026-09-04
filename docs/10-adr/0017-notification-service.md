@@ -1,7 +1,9 @@
 # ADR-0017: Notification Service
 
 **Date**: 2026-09-04  
-**Status**: Proposed  
+**Status**: Approved  
+**Approval Date**: 2026-09-04  
+**Approved By**: Project Owner following architecture review  
 **Scope**: In-application notification orchestration and delivery abstraction
 
 ## Context
