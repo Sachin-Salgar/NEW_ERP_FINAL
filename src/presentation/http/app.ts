@@ -20,7 +20,7 @@ import { IdentityAwarePostgresPlatformRepository } from '../../infrastructure/da
 import { PostgresAccountSecurityRepository } from '../../infrastructure/database/repositories/postgres-account-security-repository.js';
 import { PostgresMfaRepository } from '../../infrastructure/database/repositories/postgres-mfa-repository.js';
 import { PostgresNotificationService } from '../../infrastructure/database/repositories/postgres-operational-services.js';
-import { AccountSecurityNotificationPortAdapter } from '../../infrastructure/notifications/account-security-notification-port.js';
+import { AccountSecurityNotificationAdapter } from '../../application/adapters/account-security-notifications.js';
 import { buildErrorHandler } from '../../infrastructure/http/error-handler.js';
 import { applyCorrelationIdHooks } from '../../infrastructure/http/correlation-id.js';
 import { BcryptPasswordHasher } from '../../infrastructure/security/bcrypt-password-hasher.js';
@@ -96,7 +96,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
 
   const accountSecurityRepository = new PostgresAccountSecurityRepository(pool, config.TENANT_CONTEXT_KEY);
   const notificationService = new PostgresNotificationService(pool, config.TENANT_CONTEXT_KEY);
-  const accountSecurityService = new AccountSecurityService(accountSecurityRepository, passwordHasher, new AccountSecurityNotificationPortAdapter(notificationService));
+  const accountSecurityService = new AccountSecurityService(accountSecurityRepository, passwordHasher, new AccountSecurityNotificationAdapter(notificationService));
   const mfaRepository = new PostgresMfaRepository(pool, config.TENANT_CONTEXT_KEY);
   const mfaKey = process.env.MFA_ENCRYPTION_KEY ?? (config.isProduction ? '' : 'development-mfa-encryption-key-change-me-32');
   const mfaService = new MfaService(mfaRepository, new Rfc6238TotpProvider(), new AesGcmSecretProtector(mfaKey), { issuer: config.APP_NAME });
