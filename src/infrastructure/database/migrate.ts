@@ -81,6 +81,11 @@ const migrationChecks: Record<string, (client: Client) => Promise<boolean>> = {
   '0006-default-location-context': async (client) =>
     (await columnExists(client, 'users', 'default_location_id')) &&
     (await constraintExists(client, 'users', 'fk_user_location_tenant')),
+  '0007-audit-events': async (client) =>
+    (await tableExists(client, 'audit_events')) &&
+    (await policyExists(client, 'audit_events', 'audit_events_tenant_isolation_policy')) &&
+    (await triggerExists(client, 'trg_prevent_audit_event_update', 'audit_events')) &&
+    (await triggerExists(client, 'trg_prevent_audit_event_delete', 'audit_events')),
 };
 
 async function tableExists(client: Client, tableName: string): Promise<boolean> {
