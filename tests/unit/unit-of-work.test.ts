@@ -41,6 +41,24 @@ describe('UnitOfWork', () => {
     expect(mock.release).toHaveBeenCalledTimes(1);
   });
 
+  it('attempts rollback when COMMIT fails and still releases the client', async () => {
+    const mock = createMockPool();
+    const commitFailure = new Error('commit failed');
+    mock.query.mockResolvedValueOnce(undefined); // BEGIN
+    mock.query.mockRejectedValueOnce(commitFailure); // COMMIT
+    mock.query.mockResolvedValueOnce(undefined); // ROLLBACK
+    const uow = new UnitOfWork(mock.pool);
+
+    await uow.begin();
+    await expect(uow.commit()).rejects.toBe(commitFailure);
+
+    expect(mock.query).toHaveBeenNthCalledWith(1, 'BEGIN');
+    expect(mock.query).toHaveBeenNthCalledWith(2, 'COMMIT');
+    expect(mock.query).toHaveBeenNthCalledWith(3, 'ROLLBACK');
+    expect(mock.release).toHaveBeenCalledTimes(1);
+    expect(() => uow.getClient()).toThrow('no active transaction');
+  });
+
   it('does not leak a client when BEGIN fails', async () => {
     const mock = createMockPool();
     mock.query.mockRejectedValueOnce(new Error('begin failed'));
