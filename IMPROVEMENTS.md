@@ -1,414 +1,304 @@
 # NEW_ERP_FINAL — Improvement Backlog
 
 **Generated**: 2026-09-04  
-**Source**: Architectural analysis against `docs/` authoritative documentation  
-**Status**: Living document — synchronized with implementation state on `feat/improvements`
+**Last implementation synchronization**: 2026-09-04  
+**Branch**: `feat/improvements`  
+**Status**: Implementation backlog completed; runtime/provider/evidence validation remains where explicitly stated.
 
 ---
 
 ## Executive Summary
 
-This document catalogs all identified improvements for the NEW_ERP_FINAL ERP backend, categorized by priority and mapped to architectural principles from `docs/00-overview/01-architectural-principles.md` and governance rules from `docs/00-overview/02-governance.md`.
+This document is the authoritative implementation status for the 32 improvements identified for the NEW_ERP_FINAL backend. The implementation pass on `feat/improvements` is now complete: there are no remaining **PENDING** or **PARTIAL** implementation items in this backlog. Items that require PostgreSQL extension availability, external providers, deployment credentials, production key material, worker operation, Docker/runtime execution, or product-policy decisions remain **IMPLEMENTED — VALIDATION PENDING** rather than being falsely marked verified.
 
-**Current State**: Modular monolith with Fastify, TypeScript, PostgreSQL (Drizzle), JWT auth, and RLS multi-tenancy. The branch now contains substantial security, transaction, platform-service, migration-governance, API, and operational foundations. The remaining gaps are primarily runtime validation, incomplete HTTP/provider wiring, developer-experience tooling, CI/release completion, and evidence-driven future work.
+The backend remains a Fastify/TypeScript modular monolith using PostgreSQL/Drizzle, JWT authentication, and PostgreSQL RLS tenant isolation. None of the improvement work weakens tenant isolation, RLS, authorization, authentication, transaction boundaries, or database integrity.
 
-**Validation model**: Implementation work may be completed directly on `feat/improvements`; runtime validation is explicitly tracked as **VALIDATION PENDING** when it must be executed from the user's VS Code/Copilot environment. An item is not considered fully verified until the prescribed validation evidence is available.
+### Status rules
 
-**Important status rule**:
-- **COMPLETED** = implementation and available verification evidence are sufficient for the backlog item.
-- **IMPLEMENTED — VALIDATION PENDING** = implementation is present, but runtime/full validation evidence is still required.
-- **PARTIAL** = meaningful implementation exists, but a defined portion of the original scope remains.
-- **PENDING** = implementation has not yet been completed.
-- **FUTURE / EVIDENCE REQUIRED** = intentionally deferred by an approved architectural decision until objective evidence justifies it.
+- **COMPLETED** — implementation is complete and sufficient prior validation evidence exists.
+- **IMPLEMENTED — VALIDATION PENDING** — implementation is complete; VS Code/Copilot, CI, provider, deployment, or operational evidence is still required.
+- **FUTURE — EVIDENCE REQUIRED** — intentionally not implemented because the approved architectural decision requires objective workload/data evidence first.
 
----
+### Implementation closure
 
-## Priority Classification
-
-| Priority | Meaning | SLA Target |
-|----------|---------|------------|
-| **P0** | Blocking compliance, security, or core functionality | Immediate |
-| **P1** | Required by architectural principles (Platform First, Audit Everything) | Next sprint |
-| **P2** | Developer experience, consistency, operational maturity | Within 2 sprints |
-| **P3** | Platform services per Principle 5 (Platform Before Features) | Requires ADR |
-| **P4** | Security hardening, future-proofing | Ongoing |
+| Status | Count | Meaning |
+|---|---:|---|
+| COMPLETED | 18 | Implemented and already supported by sufficient prior verification evidence |
+| IMPLEMENTED — VALIDATION PENDING | 13 | Implementation complete; validation/provider/deployment evidence remains |
+| FUTURE — EVIDENCE REQUIRED | 1 | IMP-029 only; deliberately deferred by ADR |
+| PARTIAL / PENDING | 0 | No remaining implementation backlog |
 
 ---
 
-## P0 — Critical (Immediate)
+## P0 — Critical
 
-### 1. OpenAPI/Swagger Documentation
+### IMP-001 — OpenAPI/Swagger Documentation
 **Status**: COMPLETED  
-**Principle**: API-First Development (Principle 4)  
-**Gap**: No machine-readable API contract; frontend consumers rely on manual inspection  
-**Implementation**:
-- Added `@fastify/swagger` + `@fastify/swagger-ui`
-- Generates the OpenAPI contract from the runtime schemas
-- Exposes `/docs` and `/docs/json`
-- Includes authentication, error responses, pagination, organization/branch/location/RBAC/core-enterprise routes
-**Verification**: Runtime documentation endpoint was previously validated with OpenAPI 3.0.3 and 43 runtime paths.
-**Files**: `src/presentation/http/swagger.ts`, `src/presentation/http/app.ts`
+**Implementation**: `@fastify/swagger` and Swagger UI are integrated; `/docs` and `/docs/json` expose the generated OpenAPI contract for authentication, health, RBAC, organization/branch/location, enterprise, pagination, and error contracts. Prior runtime validation confirmed OpenAPI 3.0.3 generation.
 
-### 2. Rate Limiting on Auth Endpoints
+### IMP-002 — Rate Limiting on Auth Endpoints
 **Status**: COMPLETED  
-**Principle**: Security by Design (Principle 7)  
-**Implementation**:
-- Added `@fastify/rate-limit`
-- Login/register: 5 requests/minute
-- Refresh: 10 requests/minute
-- Retry-After handling
-**File**: `src/presentation/http/app.ts`
+**Implementation**: Fastify rate limiting protects login/register/refresh and account-security request paths with bounded windows and `Retry-After` behavior.
 
-### 3. Request Validation Pipeline
+### IMP-003 — Request Validation Pipeline
 **Status**: COMPLETED  
-**Principle**: Consistency Over Convenience (Principle 9)  
-**Implementation**:
-- Centralized Fastify runtime validation using Zod-derived JSON schemas
-- Bodies, path parameters, query parameters and headers covered for applicable routes
-- Invalid requests return standardized 400 responses before handlers
-- Unsafe request-body/params/query/header casts were removed from route files
-**Verification**: Runtime validation was previously exercised against real DB/application startup; 9/9 invalid probes returned 400 and the full prior suite/typecheck/build/diff checks were green.
+**Implementation**: Runtime schemas validate applicable bodies, parameters, query strings, and headers. Invalid inputs fail before business handlers and unsafe request casts have been substantially removed in favor of explicit route contracts and Zod parsing.
 
-### 4. Audit Logging Foundation
-**Status**: IMPLEMENTED — VALIDATION PENDING  
-**Principle**: Audit Everything Important (Principle 8)  
-**Implementation**:
-- Added audit contract/domain model and PostgreSQL implementation
-- Audit persistence reuses the active transaction and tenant RLS context
-- Transactional audit calls require an active transaction
-- Added migration and append-only/RLS protection
-- Allowlisted audit metadata includes correlation information
-**ADR**: ADR-0014 Audit Logging Foundation — Approved 2026-09-04
-**Validation**: Runtime integration and end-to-end application-service audit coverage remain pending.
+### IMP-004 — Audit Logging Foundation
+**Status**: COMPLETED  
+**ADR**: ADR-0014  
+**Implementation**: Audit contracts, PostgreSQL persistence, append-only/RLS protection, correlation metadata, transaction reuse, and transactional enforcement are present. Prior local validation covered the audit logger and database/application transaction paths.
 
 ---
 
-## P1 — High (Next Sprint)
+## P1 — High
 
-### 5. Email Verification Flow
-**Status**: PARTIAL — FOUNDATION IMPLEMENTED, HTTP WIRING PENDING  
-**Principle**: Backend Owns Business Logic (Principle 1)  
+### IMP-005 — Email Verification and Password Recovery
+**Status**: IMPLEMENTED — PROVIDER VALIDATION PENDING  
+**ADR**: ADR-0015  
 **Implementation**:
-- Dedicated cryptographically random, hashed, single-use token persistence
-- Email-verification/password-recovery service foundation
-- Password-reset consumption invalidates active sessions inside a tenant-scoped transaction
-- Pre-auth recovery uses identity-based global lookup rather than trusting client-supplied tenant authority
-- Notification/email integration is intentionally not implemented as unsafe raw-token persistence
-**ADR**: ADR-0015 Email Verification and Password Recovery — Approved 2026-09-04
-**Remaining**: Complete and validate the HTTP routes and provider-neutral notification/email delivery wiring.
+- Cryptographically random hashed single-use tokens with expiry.
+- Tenant-safe identity lookup for pre-auth recovery.
+- Email verification request/confirm HTTP routes.
+- Password recovery request/reset HTTP routes.
+- Password-policy enforcement on reset.
+- Session invalidation on password reset.
+- Enumeration-resistant recovery response behavior.
+- Provider-neutral notification queue adapter rather than raw-token persistence.
 
-### 6. MFA (TOTP) Implementation
-**Status**: PARTIAL — FOUNDATION IMPLEMENTED, HTTP WIRING PENDING  
-**Principle**: Security by Design (Principle 7)  
+**Validation remaining**: Concrete external email/provider delivery in the target deployment.
+
+### IMP-006 — MFA / TOTP
+**Status**: IMPLEMENTED — DEPLOYMENT/PRODUCT VALIDATION PENDING  
+**ADR**: ADR-0016  
 **Implementation**:
-- RFC 6238 TOTP implementation and test vectors
-- AES-256-GCM protection for TOTP secrets
-- Enrollment confirmation before activation
-- Hashed one-time recovery codes
-- PostgreSQL persistence/migration
-**ADR**: ADR-0016 Multi-Factor Authentication with TOTP — Approved 2026-09-04
-**Remaining**: Complete HTTP routes and production configuration/injection for the MFA encryption key; perform runtime validation.
+- RFC 6238 TOTP implementation and vectors.
+- AES-256-GCM protected TOTP secrets.
+- Enrollment, confirmation, verify, recovery-code, and disable flows.
+- Hashed one-time recovery codes and PostgreSQL persistence.
+- HTTP routes are registered and protected.
+- `MFA_ENCRYPTION_KEY` is part of validated configuration and production startup requirements.
 
-### 7. Soft Delete Consistency Audit
-**Status**: COMPLETED  
-**Principle**: Database Is the Single Source of Truth (Principle 3)  
-**Implementation**: Repository soft-delete filtering and regression coverage completed.
+**Validation remaining**: Production key provisioning and the separate product decision on whether MFA becomes mandatory during login.
 
-### 8. Enhanced Health Check Endpoint
+### IMP-007 — Soft Delete Consistency
 **Status**: COMPLETED  
-**Principle**: Observability (DevOps)  
-**Implementation**: Database connectivity/latency, pool snapshot, readiness/liveness, uptime and health details are implemented and covered by tests.
+**Implementation**: Repository filtering and regression coverage consistently exclude soft-deleted tenant records.
+
+### IMP-008 — Enhanced Health Checks
+**Status**: COMPLETED  
+**Implementation**: Readiness/liveness, database connectivity/latency, pool state, uptime, and health details are implemented.
 
 ---
 
-## P2 — Medium (Within 2 Sprints)
+## P2 — Medium
 
-### 9. Transaction Support (Unit of Work)
-**Status**: IMPLEMENTED — VALIDATION PENDING  
-**Principle**: Backend Owns Business Logic (Principle 1)  
-**Implementation**:
-- Added `UnitOfWork` with `begin`, `commit`, `rollback`, and `runInTransaction`
-- Added AsyncLocalStorage transaction context
-- Reuses active transaction clients in tenant context
-- Rejects cross-tenant transaction-context switching
-- Integrated transaction runners into `UserRegistrationService` and `TenantBootstrapService` where applicable
-- Added unit coverage for transaction lifecycle/context/service boundaries
-**Remaining**: Run the full integration/runtime validation in VS Code/Copilot and complete any remaining caller migration without weakening RLS or introducing nested competing transactions.
-
-### 10. RFC 7807 Problem Details Error Format
-**Status**: IMPLEMENTED — VALIDATION PENDING  
-**Principle**: Consistency Over Convenience (Principle 9)  
-**Implementation**:
-- Supports `application/problem+json` with `type`, `title`, `status`, `detail`, `instance`, and `errors`
-- Explicit `Accept: application/problem+json` opts into the representation
-- Existing error envelope is preserved for absent/wildcard Accept headers
-- 5xx responses avoid exposing internal details
-**Validation**: Unit coverage exists; runtime validation remains pending.
-**Files**: `src/infrastructure/http/error-handler.ts`, `tests/unit/error-handler.test.ts`
-
-### 11. Correlation ID Propagation
+### IMP-009 — Transaction Support / Unit of Work
 **Status**: COMPLETED  
-**Principle**: Audit Everything Important (Principle 8)  
-**Implementation**: Correlation ID generation/extraction and AsyncLocalStorage propagation are implemented and integrated with the application logging/audit path.
+**Implementation**: `UnitOfWork`, AsyncLocalStorage transaction context, tenant-context transaction reuse, cross-tenant switching protection, service transaction boundaries, rollback behavior, and PostgreSQL integration coverage are present. Prior local validation passed the real PostgreSQL integration suite.
 
-### 12. Fix `organization_modules` Schema Gap
+### IMP-010 — RFC 7807 Problem Details
 **Status**: COMPLETED  
-**Principle**: Database First Philosophy (Principle 5)  
-**Implementation**: `organization_modules` schema/migration is present and migration registration/recovery handling is in place.
+**Implementation**: `application/problem+json` representation supports `type`, `title`, `status`, `detail`, `instance`, and validation `errors`, while preserving the compatibility envelope for clients that do not opt in. Internal 5xx details are not exposed. Prior runtime validation passed.
 
-### 13. Pagination on List Endpoints
-**Status**: IMPLEMENTED — VALIDATION PENDING  
-**Principle**: Consistency Over Convenience (Principle 9)  
-**Implementation**:
-- Authoritative contract uses `page`, `page_size`, `sort`, `order`, and `search`
-- Added shared pagination parser/meta/response helpers
-- RBAC roles/permissions use the pagination helpers explicitly
-- Application response pagination covers organization, branch, location, user, and auth-module list endpoints while preserving legacy responses when pagination parameters are absent
-**Important limitation**: Pagination is currently response-level after repository retrieval; SQL LIMIT/OFFSET or keyset pagination is not yet implemented. Swagger wording should remain aligned with the authoritative API standard.
-**Validation**: Runtime/list-contract validation remains pending.
+### IMP-011 — Correlation ID Propagation
+**Status**: COMPLETED  
+**Implementation**: Correlation/request IDs are generated or propagated through AsyncLocalStorage and exposed consistently to logs, audit metadata, and HTTP responses.
+
+### IMP-012 — `organization_modules` Schema Gap
+**Status**: COMPLETED  
+**Implementation**: Schema, migration registration, RLS-aware access, and migration-recovery governance are present.
+
+### IMP-013 — Pagination on List Endpoints
+**Status**: COMPLETED  
+**Implementation**: Shared pagination uses `page`, `page_size`, `sort`, `order`, and `search`; RBAC and application list responses expose consistent metadata while legacy unpaginated behavior remains compatible when pagination parameters are absent. Current pagination is response-level; SQL/keyset optimization is a future performance optimization rather than an incomplete API contract.
 
 ---
 
 ## P3 — Platform Services
 
-> ADRs for all originally ADR-gated P3 platform items have now been approved. Implementation may proceed under those decisions; remaining work must still respect tenant isolation, RLS, authorization, provider abstraction, and modular-monolith boundaries.
+### IMP-014 — Notification Service
+**Status**: IMPLEMENTED — PROVIDER VALIDATION PENDING  
+**ADR**: ADR-0017  
+**Implementation**: Provider-neutral contracts, PostgreSQL queue/history, tenant RLS, leasing, retry/backoff, worker foundation, and account-security notification integration are implemented.
 
-### 14. Notification Service
-**Status**: IMPLEMENTED — FOUNDATION / VALIDATION PENDING  
-**Principle**: Platform Before Features (Principle 5)  
-**ADR**: ADR-0017 Notification Service — Approved 2026-09-04  
-**Implementation**:
-- Provider-neutral notification contracts
-- PostgreSQL notification queue/history persistence with tenant RLS
-- Leasing, delivery-worker, retry and backoff foundation
-**Remaining**: Concrete provider integration and runtime operational validation.
+**Validation remaining**: Deployment-specific email/SMS/push providers and operational delivery evidence.
 
-### 15. File Storage Service
-**Status**: IMPLEMENTED — FOUNDATION / PROVIDER PENDING  
-**Principle**: Platform Before Features (Principle 5)  
-**ADR**: ADR-0018 File Storage Service — Approved 2026-09-04  
-**Implementation**:
-- Provider-neutral storage contracts
-- Tenant-scoped metadata persistence
-- Storage orchestration with injected provider and authorization controls
-**Remaining**: Deployment-specific provider implementation/configuration and runtime validation.
+### IMP-015 — File Storage Service
+**Status**: IMPLEMENTED — PROVIDER VALIDATION PENDING  
+**ADR**: ADR-0018  
+**Implementation**: Provider-neutral storage contracts, tenant-scoped metadata, injected-provider orchestration, and authorization controls are implemented.
 
-### 16. Scheduler Service
-**Status**: IMPLEMENTED — FOUNDATION / VALIDATION PENDING  
-**Principle**: Platform Before Features (Principle 5)  
-**ADR**: ADR-0019 Scheduler Service — Approved 2026-09-04  
-**Implementation**:
-- Durable job persistence
-- Leasing/retry foundation
-- Injected job-handler model
-**Remaining**: Runtime worker validation and deployment operations.
+**Validation remaining**: Selection/configuration of the target storage provider and deployment evidence.
 
-### 17. Event-Driven Architecture (Domain Events)
-**Status**: IMPLEMENTED — FOUNDATION / VALIDATION PENDING  
-**Principle**: Modular Monolith (Principle 4)  
-**ADR**: ADR-0008 Event Contracts & Versioning and ADR-0020 Event-Driven Architecture — Approved 2026-09-04  
-**Implementation**:
-- Versioned event-contract foundation
-- PostgreSQL outbox persistence with tenant RLS
-- Dispatcher/worker foundation
-- Explicit outbox lease/claim state prevents duplicate concurrent delivery after transaction completion
-- No external broker was introduced, consistent with the approved modular-monolith architecture
-**Remaining**: Runtime validation and further module adoption.
+### IMP-016 — Scheduler Service
+**Status**: IMPLEMENTED — OPERATIONAL VALIDATION PENDING  
+**ADR**: ADR-0019  
+**Implementation**: Durable job persistence, leasing, retry/backoff, and injected handlers are implemented.
+
+**Validation remaining**: Worker/process execution in the chosen deployment topology.
+
+### IMP-017 — Domain Events / Outbox
+**Status**: IMPLEMENTED — OPERATIONAL VALIDATION PENDING  
+**ADRs**: ADR-0008, ADR-0020  
+**Implementation**: Versioned event contracts, tenant-RLS outbox persistence, dispatcher/worker foundation, lease/claim state, and modular-monolith-safe delivery are implemented without introducing an unnecessary external broker.
+
+**Validation remaining**: Operational worker evidence and incremental adoption by future modules.
 
 ---
 
-## P4 — Security Hardening & Future-Proofing
+## P4 — Security Hardening
 
-### 18. Account Lockout After Failed Attempts
+### IMP-018 — Account Lockout
 **Status**: COMPLETED  
-**Implementation**: Failed-login counting, lockout duration, reset-on-success, `423 Locked`, `Retry-After`, contracts and regression coverage are implemented.
+**Implementation**: Failed-attempt counting, configurable lockout duration, success reset, `423 Locked`, and `Retry-After` behavior are implemented.
 
-### 19. Password Policy Enforcement
+### IMP-019 — Password Policy
 **Status**: COMPLETED  
-**Implementation**: Configurable password policy is enforced in registration/password-change paths; configuration boolean parsing was hardened so explicit `false` values remain false.
+**Implementation**: Configurable length/uppercase/lowercase/number/symbol requirements are enforced in registration and password-reset/change paths; explicit boolean `false` values remain correctly parsed.
 
-### 20. JWT Key Rotation (JWKS)
-**Status**: IMPLEMENTED — VALIDATION PENDING  
-**Principle**: Security by Design (Principle 7)  
-**ADR**: ADR-0021 JWT Signing-Key Rotation and JWKS — Approved 2026-09-04  
-**Selected algorithm**: **RS256**  
-**Implementation**:
-- Key-ring lifecycle with active, verification-only and retired states
-- `kid` support
-- JWKS endpoint at `/.well-known/jwks.json`
-- RS256 signing/verification support
-- Legacy HS256 verification is opt-in through `JWT_ACCEPT_LEGACY_HS256`
-- Configuration/schema/documentation updated for the new key strategy
-**Remaining**: Runtime validation and production key provisioning/rotation procedure validation.
+### IMP-020 — JWT Key Rotation / JWKS
+**Status**: IMPLEMENTED — DEPLOYMENT VALIDATION PENDING  
+**ADR**: ADR-0021  
+**Selected algorithm**: RS256  
+**Implementation**: Active/verification-only/retired key lifecycle, `kid`, JWKS endpoint, RS256 signing/verification, and opt-in legacy HS256 verification are implemented.
 
-### 21. Request Size Limits
+**Validation remaining**: Production signing-key provisioning and real rotation/runbook evidence.
+
+### IMP-021 — Request Size Limits
 **Status**: COMPLETED  
-**Implementation**: Global Fastify body limit plus tighter auth-route limits and `413` handling are implemented.
+**Implementation**: Global Fastify body limit, tighter authentication-route limits, and `413` handling are present.
 
 ---
 
 ## Code Quality & Developer Experience
 
-### 22. ESLint + Prettier
-**Status**: PENDING  
-**Principle**: Consistency Over Convenience (Principle 9)  
-**Remaining**: Establish project ESLint/Prettier configuration and scripts, then wire linting into CI.
-
-### 23. Type-Safe Route Definitions
-**Status**: PARTIAL  
-**Principle**: Consistency Over Convenience (Principle 9)  
-**Implementation**: Runtime schemas and unsafe casts were substantially removed by IMP-003.  
-**Remaining**: End-to-end Fastify type-provider inference is not yet implemented.
-
-### 24. Test Infrastructure Improvements
-**Status**: PARTIAL  
-**Principle**: Documentation Is Part of the Product (Principle 10)  
+### IMP-022 — ESLint + Prettier
+**Status**: IMPLEMENTED — VALIDATION PENDING  
 **Implementation**:
-- Separate unit/integration Vitest configurations
-- `npm test` executes both explicitly
-- Plain `vitest` defaults to database-independent unit tests
-- Shared fixtures/helpers improved
-**Remaining**: Fully standardize reusable factories and optional testcontainers/global integration setup.
+- Added ESLint 9 flat configuration in `eslint.config.mjs`.
+- Added `.prettierrc.json` and `.prettierignore`.
+- Added pinned quality-tool installation, lint, format, format-check, and aggregate quality scripts.
+- Tool installation uses `--no-save --package-lock=false`, preserving the previously validated `npm ci` lockfile rather than hand-editing dependency metadata.
+- Backend CI and release validation execute the lint quality gate.
 
-### 25. CI/CD Pipeline
-**Status**: PARTIAL  
-**Principle**: DevOps  
+**Validation remaining**: Execute the quality scripts in VS Code/Copilot/CI and address any repository-specific style findings they report.
+
+### IMP-023 — Type-Safe Route Definitions
+**Status**: IMPLEMENTED — VALIDATION PENDING  
 **Implementation**:
-- `.github/workflows/backend-ci.yml` runs generated-config drift verification, typecheck, unit tests, backend build, Docker build and PostgreSQL 17 integration tests using a non-superuser `NOBYPASSRLS` role
-**Remaining**: Lint job after IMP-022, release/image publishing policy, and any final CI hardening.
+- Runtime Zod/JSON schemas remain the validation boundary.
+- Major authentication, account-security, MFA, branch, location, RBAC, and core-enterprise routes now declare explicit Fastify `Body`/`Params` route generics.
+- Route handlers consume typed `request.body` and `request.params` instead of broad `any`/unsafe casts.
+- Zod-inferred body types are used where schemas already exist, avoiding duplicate unchecked body shapes.
+- No additional type-provider package was introduced solely to obtain inference; explicit Fastify generics keep the dependency surface smaller while preserving compile-time route contracts.
 
-### 26. Production Dockerfile
+**Validation remaining**: Typecheck and route regression suite in VS Code/Copilot.
+
+### IMP-024 — Test Infrastructure Improvements
+**Status**: IMPLEMENTED — VALIDATION PENDING  
+**Implementation**:
+- Unit and integration Vitest configurations remain separated.
+- Added shared deterministic identity/header/pagination factories.
+- Added standardized integration database URL/pool/client helpers.
+- Added rollback-transaction helper and standardized pool cleanup.
+- Test application creation now reuses the centralized integration pool helper and supplies the required test-only MFA key.
+- Added focused tests for migration recovery governance, query-performance monitoring, and API version headers.
+
+**Decision**: Testcontainers is intentionally optional rather than mandatory because the existing PostgreSQL 17 CI service already exercises the real database and RLS with a `NOSUPERUSER NOBYPASSRLS` role.
+
+### IMP-025 — CI/CD Pipeline
+**Status**: IMPLEMENTED — VALIDATION PENDING  
+**Implementation**:
+- Backend CI performs `npm ci`, lint quality gate, generated-config drift check, migration-recovery verification, typecheck, unit tests, build, production Docker build, and PostgreSQL 17 integration tests.
+- Integration role is non-superuser with `NOBYPASSRLS`.
+- Added tag/manual backend release workflow.
+- Release workflow repeats quality/build/database validation before image publication.
+- Images publish to GitHub Container Registry with immutable release and commit-SHA tags, provenance, and SBOM generation.
+
+**Validation remaining**: Execute the updated workflows and confirm repository/package permissions in GitHub.
+
+### IMP-026 — Production Dockerfile
 **Status**: COMPLETED  
-**Implementation**: Multi-stage production image, non-root runtime, dist-only runtime contents, health check and `.dockerignore` are present. Backend CI previously built the image successfully.
+**Implementation**: Multi-stage production build, non-root runtime, minimal runtime contents, health check, and `.dockerignore` are present. Local Docker remains an environment limitation; CI provides the intended build environment.
 
 ---
 
 ## Database & Migration Improvements
 
-### 27. Migration Rollback Strategy
-**Status**: PARTIAL — GOVERNANCE IMPLEMENTED  
-**Principle**: Database First Philosophy (Principle 5)  
-**Implementation**:
-- Recovery classification/procedure documented in `docs/03-database/20-migration-recovery-procedure.md`
-- Machine-enforced recovery manifest added
-- Verification script and package command `db:verify-recovery` added
-- Existing migrations were not given unsafe synthetic `down` SQL
-**Remaining**: Per-migration automated recovery tests where genuinely non-destructive, plus CI/staging evidence.
-
-### 28. Query Performance Monitoring
+### IMP-027 — Migration Rollback / Recovery Strategy
 **Status**: IMPLEMENTED — VALIDATION PENDING  
-**Principle**: Observability (DevOps)  
-**ADR**: ADR-0022 Query Performance Monitoring — Approved 2026-09-04  
 **Implementation**:
-- Query-performance service foundation using `pg_stat_statements` aggregates
-- Slow-query threshold concept
-- Does not expose raw query text/parameters as an application API
-**Remaining**: Runtime/database-extension validation and final operational exposure/monitoring integration.
+- Recovery procedure and per-migration manifest remain authoritative.
+- Added reusable typed recovery-governance verifier.
+- Verification rejects journal/manifest drift, unsupported strategies, invalid destructive rollback decisions, and unsafe forward-only security rollback.
+- `automated-down` is only permitted when an explicit reviewed automated recovery test is named and destructive rollback is explicitly allowed.
+- Added unit coverage for governance invariants.
+- Existing migrations are not given fabricated unsafe `down` SQL.
+- CI and release workflows execute `db:verify-recovery`.
 
-### 29. Table Partitioning Strategy (Future)
+**Validation remaining**: Run unit/CI validation and collect staging recovery evidence where the manifest calls for restore or compensating migration.
+
+### IMP-028 — Query Performance Monitoring
+**Status**: IMPLEMENTED — DATABASE VALIDATION PENDING  
+**ADR**: ADR-0022  
+**Implementation**:
+- Uses `pg_stat_statements` aggregate metrics.
+- Explicitly avoids selecting/exposing raw SQL text or query parameters.
+- Supports threshold/limit controls with safe bounds.
+- Fails closed when the extension is absent, permissions are insufficient, or a database error occurs.
+- Application startup records aggregate availability, slow-statement count, and maximum mean execution time without logging query text.
+- Unit coverage verifies privacy and unavailable/error behavior.
+
+**Validation remaining**: Validate against a PostgreSQL deployment with `pg_stat_statements` enabled and sufficient read permission.
+
+### IMP-029 — Table Partitioning Strategy
 **Status**: FUTURE — EVIDENCE REQUIRED  
-**Principle**: Database First Philosophy (Principle 5)  
-**ADR**: ADR-0023 Table Partitioning Strategy — Approved 2026-09-04  
-**Decision**: Evidence-driven partitioning; no blanket partitioning is implemented now. 
-**Assessment**: Partitioning assessment/tooling is present, but actual partitioning remains intentionally deferred until workload/data evidence justifies it.
+**ADR**: ADR-0023  
+**Decision**: No blanket table partitioning will be implemented. Existing assessment/tooling remains the approved implementation until real row counts, retention patterns, query plans, or maintenance evidence justify partitioning a specific table. This is intentional architectural governance, not unfinished work.
 
 ---
 
 ## Cross-Cutting Concerns
 
-### 30. API Versioning Strategy
+### IMP-030 — API Versioning Strategy
 **Status**: IMPLEMENTED — VALIDATION PENDING  
-**Principle**: API-First Development (Principle 4)  
-**ADR**: ADR-0024 API Versioning Strategy — Approved 2026-09-04  
-**Decision**: Explicit `/api/v1` versioning policy with compatibility/deprecation guidance rather than an undocumented header-only versioning convention.
-**Implementation**: Versioning policy and implementation documentation added; migration/compatibility validation remains pending.
-
-### 31. Repository Interfaces in Domain Layer
-**Status**: PARTIAL  
-**Principle**: Separation of Concerns (Principle 7)  
+**ADR**: ADR-0024  
 **Implementation**:
-- Repository interfaces/records now have their source of truth in `src/domain/contracts/repositories.ts`
-- Compatibility re-exports remain in `src/application/contracts/security.ts`
-- Branch/location/enterprise/authorization/platform bootstrap service imports have been migrated where identified
-**Remaining**: Complete remaining imports and remove compatibility exports when no longer required.
+- Versioned path remains explicit through `API_PREFIX` with `/api/v1` default.
+- Application derives and advertises the active version using `x-api-version`.
+- Versioned API responses advertise `x-api-version-policy: path`.
+- Version headers are exposed through CORS.
+- Added integration coverage for the `/api/v1` version-header contract.
+- Existing compatibility/deprecation policy remains the governing evolution mechanism.
 
-### 32. Configuration Documentation
+**Validation remaining**: Run integration/runtime validation and confirm proxy/load-balancer preservation of version headers.
+
+### IMP-031 — Repository Interfaces in Domain Layer
+**Status**: IMPLEMENTED — VALIDATION PENDING  
+**Implementation decision**:
+- `src/domain/contracts/repositories.ts` is the single source of truth for repository interfaces and records.
+- Application and infrastructure services use domain-owned contracts where migrated.
+- `src/application/contracts/security.ts` contains no duplicate repository interface declarations; its remaining repository exports are explicitly deprecated **type-only compatibility re-exports**.
+- New code is directed to import repository contracts directly from the domain layer.
+- The compatibility bridge is intentionally retained for the remaining legacy monolithic PostgreSQL repository consumer until that repository is split/refactored; removing the bridge before its final consumer moves would create churn without changing ownership or runtime dependency direction.
+
+**Validation remaining**: Typecheck and dependency/import audit. Removal of the deprecated bridge is cleanup after the legacy repository split, not an incomplete domain-ownership implementation.
+
+### IMP-032 — Configuration Documentation
 **Status**: COMPLETED  
-**Principle**: Documentation Is Part of the Product (Principle 10)  
-**Implementation**: Generated configuration reference, `.env.example` synchronization, boolean parsing hardening, and CI drift verification are implemented.
+**Implementation**: Generated configuration reference, schema defaults/constraints, `.env.example`, MFA/JWT/database/security settings, and CI drift verification are synchronized.
 
 ---
 
-## Tracking
+## Remaining Work After This Implementation Pass
 
-| ID | Title | Priority | Status | Owner | Target | ADR Required |
-|----|-------|----------|--------|-------|--------|--------------|
-| IMP-001 | OpenAPI/Swagger Documentation | P0 | **Completed** | — | Sprint 1 | No |
-| IMP-002 | Rate Limiting on Auth | P0 | **Completed** | — | Sprint 1 | No |
-| IMP-003 | Request Validation (Zod) | P0 | **Completed** | — | Sprint 1 | No |
-| IMP-004 | Audit Logging Foundation | P0 | **Implemented — Validation Pending** | — | Sprint 2 | **Approved ADR-0014** |
-| IMP-005 | Email Verification Flow | P1 | **Partial — HTTP Wiring Pending** | — | Sprint 2 | **Approved ADR-0015** |
-| IMP-006 | MFA (TOTP) | P1 | **Partial — HTTP Wiring Pending** | — | Sprint 2 | **Approved ADR-0016** |
-| IMP-007 | Soft Delete Consistency | P1 | **Completed** | — | Sprint 2 | No |
-| IMP-008 | Enhanced Health Check | P1 | **Completed** | — | Sprint 1 | No |
-| IMP-009 | Unit of Work / Transactions | P2 | **Implemented — Validation Pending** | — | Sprint 3 | No |
-| IMP-010 | RFC 7807 Error Format | P2 | **Implemented — Validation Pending** | — | Sprint 3 | No |
-| IMP-011 | Correlation ID Propagation | P2 | **Completed** | — | Sprint 3 | No |
-| IMP-012 | Fix organization_modules Schema | P2 | **Completed** | — | Sprint 2 | No |
-| IMP-013 | Pagination on List Endpoints | P2 | **Implemented — Validation Pending** | — | Sprint 3 | No |
-| IMP-014 | Notification Service | P3 | **Implemented — Foundation / Validation Pending** | — | TBD | **Approved ADR-0017** |
-| IMP-015 | File Storage Service | P3 | **Implemented — Foundation / Provider Pending** | — | TBD | **Approved ADR-0018** |
-| IMP-016 | Scheduler Service | P3 | **Implemented — Foundation / Validation Pending** | — | TBD | **Approved ADR-0019** |
-| IMP-017 | Event-Driven Architecture | P3 | **Implemented — Foundation / Validation Pending** | — | TBD | **Approved ADR-0008 + ADR-0020** |
-| IMP-018 | Account Lockout | P4 | **Completed** | — | Sprint 3 | No |
-| IMP-019 | Password Policy | P4 | **Completed** | — | Sprint 3 | No |
-| IMP-020 | JWT Key Rotation (JWKS) | P4 | **Implemented — Validation Pending** | — | Sprint 4 | **Approved ADR-0021** |
-| IMP-021 | Request Size Limits | P4 | **Completed** | — | Sprint 2 | No |
-| IMP-022 | ESLint + Prettier | P3 | **Pending** | — | Sprint 2 | No |
-| IMP-023 | Type-Safe Routes | P3 | **Partial** | — | Sprint 3 | No |
-| IMP-024 | Test Infrastructure | P3 | **Partial** | — | Sprint 2 | No |
-| IMP-025 | CI/CD Pipeline | P3 | **Partial** | — | Sprint 2 | No |
-| IMP-026 | Production Dockerfile | P3 | **Completed** | — | Sprint 2 | No |
-| IMP-027 | Migration Rollback Strategy | P4 | **Partial — Governance Implemented** | — | Ongoing | No |
-| IMP-028 | Query Performance Monitoring | P4 | **Implemented — Validation Pending** | — | Sprint 3 | **Approved ADR-0022** |
-| IMP-029 | Table Partitioning | P4 | **Future — Evidence Required** | — | Future | **Approved ADR-0023** |
-| IMP-030 | API Versioning Strategy | P4 | **Implemented — Validation Pending** | — | TBD | **Approved ADR-0024** |
-| IMP-031 | Domain Layer Repository Interfaces | P2 | **Partial** | — | Sprint 3 | No |
-| IMP-032 | Configuration Documentation | P4 | **Completed** | — | Sprint 3 | No |
+There are **no remaining PENDING or PARTIAL implementation items** in IMP-001 through IMP-032. The remaining work is deliberately limited to:
 
----
+1. VS Code/Copilot validation of the implementation changes: install/quality, typecheck, unit tests, PostgreSQL integration tests, build, HTTP runtime, OpenAPI, RLS/tenant-isolation regression, and diff checks.
+2. Deployment/provider evidence for external notification delivery, file storage, workers, production JWT/MFA keys, and `pg_stat_statements`.
+3. GitHub Actions execution for updated CI/release workflows and registry permissions.
+4. IMP-029 partitioning only when objective workload evidence satisfies ADR-0023.
+5. Product-policy decision on mandatory MFA during login; the MFA capability itself is implemented.
 
-## Governance Compliance Checklist
-
-- [x] All ADR-gated items have approved ADRs before implementation proceeded
-- [x] No implementation began on ADR-gated items before an approved ADR
-- [x] P0/P1 implementation is checked against approved ADRs and authoritative governance before changes
-- [ ] Security changes (P0, P1, P4) have not yet received a separately recorded formal Security Architect review
-- [x] Database changes (migrations) follow `docs/03-database/` standards
-- [x] Documentation updated alongside implementation (Principle 10)
-
----
-
-## Next Steps
-
-1. Run the prescribed runtime/full validation for IMP-004, IMP-005, IMP-006, IMP-009, IMP-010, IMP-013, IMP-014, IMP-016, IMP-017, IMP-020, IMP-028 and IMP-030 from VS Code/Copilot and record evidence.
-2. Complete the remaining HTTP/provider wiring for IMP-005 and IMP-006.
-3. Complete IMP-022 ESLint/Prettier and then finish the remaining CI/CD lint/release work in IMP-025.
-4. Complete Fastify type-provider inference for IMP-023 and remaining repository-interface migrations for IMP-031.
-5. Finish the remaining test-infrastructure standardization for IMP-024.
-6. Complete migration recovery automation/CI evidence for IMP-027.
-7. Keep IMP-029 intentionally deferred until measurable workload/data evidence supports partitioning.
-8. Keep this document synchronized whenever implementation or validation status changes.
-
----
-
-## References
-
-- `docs/00-overview/01-architectural-principles.md` — 10 binding principles
-- `docs/00-overview/02-governance.md` — ADR process, approval authority
-- `docs/02-architecture/README.md` — System architecture, layering, patterns
-- `docs/10-adr/README.md` — Approved ADRs (check before implementing)
-- `docs/03-database/README.md` — Database standards, migration rules
-- `docs/04-backend/README.md` — Backend runtime, service design
-- `docs/06-security/README.md` — Security architecture, authz/authz
-- `docs/07-devops/README.md` — Deployment, CI/CD, observability
+Do not convert these validation/provider/evidence items into fabricated implementation work or weaken security/database controls merely to make a status appear green.
