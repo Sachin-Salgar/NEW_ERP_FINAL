@@ -1,7 +1,9 @@
 # ADR-0018: File Storage Service
 
 **Date**: 2026-09-04  
-**Status**: Proposed  
+**Status**: Approved  
+**Approval Date**: 2026-09-04  
+**Approved By**: Project Owner following architecture review  
 **Scope**: ERP-managed file and attachment storage
 
 ## Context
