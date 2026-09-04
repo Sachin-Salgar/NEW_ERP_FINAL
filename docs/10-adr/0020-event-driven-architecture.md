@@ -1,7 +1,9 @@
 # ADR-0020: Event-Driven Architecture
 
 **Date**: 2026-09-04  
-**Status**: Proposed  
+**Status**: Approved  
+**Approval Date**: 2026-09-04  
+**Approved By**: Project Owner following architecture review  
 **Scope**: Domain and integration events across ERP modules and external boundaries
 
 ## Context
@@ -16,7 +18,7 @@ Adopt a transactional-outbox-based event architecture with in-process domain eve
 2. Business state changes and their durable outbox records are committed in the same database transaction.
 3. A background dispatcher delivers outbox events to registered handlers and, where required, external brokers/integrations.
 4. In-process handlers are idempotent and failures do not silently delete the source event.
-5. External event contracts are versioned and backward-compatible according to the event-contract governance defined by ADR-0008 once that ADR is approved.
+5. External event contracts are versioned according to the compatibility rules established by approved ADR-0008.
 6. Events carry tenant identity when they represent tenant-owned data. Consumers must establish and enforce tenant context rather than trusting event payloads alone.
 7. The outbox is delivery infrastructure, not a replacement for authoritative business tables or audit records.
 8. No message broker is required for the initial implementation; a broker can be added behind the dispatcher when throughput or integration topology requires it.
