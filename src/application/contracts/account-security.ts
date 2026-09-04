@@ -5,8 +5,17 @@ export interface AccountSecurityTokenRecord {
   expiresAt: Date;
 }
 
+export interface AccountSecurityAccount {
+  id: string;
+  tenantId: string;
+  email: string;
+  status: string;
+}
+
 export interface AccountSecurityRepository {
-  findUserByIdentifier(tenantId: string, identifier: string): Promise<{ id: string; tenantId: string; email: string; status: string } | null>;
+  /** Global identity lookup returns only candidate accounts; tenant-owned data is loaded under RLS. */
+  findAccountCandidates(identifier: string): Promise<AccountSecurityAccount[]>;
+  findUserByIdentifier(tenantId: string, identifier: string): Promise<AccountSecurityAccount | null>;
   createEmailVerificationToken(record: AccountSecurityTokenRecord): Promise<void>;
   consumeEmailVerificationToken(tenantId: string, tokenHash: string, consumedAt: Date): Promise<boolean>;
   createPasswordResetToken(record: AccountSecurityTokenRecord): Promise<void>;
