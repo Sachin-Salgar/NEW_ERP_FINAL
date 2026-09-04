@@ -10,6 +10,7 @@ import { BranchService } from '../../application/services/branch-service.js';
 import { CoreEnterpriseService } from '../../application/services/core-enterprise-service.js';
 import { LocationService } from '../../application/services/location-service.js';
 import { ModuleAccessService } from '../../application/services/module-access-service.js';
+import { RefreshTokenRotationService } from '../../application/services/refresh-token-rotation-service.js';
 import { TenantMembershipService } from '../../application/services/tenant-membership-service.js';
 import { UserRegistrationService } from '../../application/services/user-registration-service.js';
 import { createDatabasePool } from '../../infrastructure/database/connection.js';
@@ -28,6 +29,33 @@ import locationRoutes from './routes/location.js';
 import rbacRoutes from './routes/rbac.js';
 import { paginateListResponse } from './pagination.js';
 import { schemaForRoute, setupSwagger } from './swagger.js';
+
+const rotatedRefreshResponseSchema = {
+  type: 'object',
+  required: ['success', 'accessToken', 'refreshToken', 'expiresAt', 'tokenType', 'user'],
+  properties: {
+    success: { type: 'boolean', const: true },
+    accessToken: { type: 'string' },
+    refreshToken: { type: 'string' },
+    expiresAt: { type: 'string', format: 'date-time' },
+    tokenType: { type: 'string', const: 'bearer' },
+    user: {
+      type: 'object',
+      required: ['id', 'tenantId', 'organizationId', 'activeLocationId', 'defaultLocationId', 'defaultBranchId', 'username', 'email', 'status'],
+      properties: {
+        id: { type: 'string', format: 'uuid' },
+        tenantId: { type: 'string', format: 'uuid' },
+        organizationId: { type: ['string', 'null'], format: 'uuid' },
+        activeLocationId: { type: ['string', 'null'], format: 'uuid' },
+        defaultLocationId: { type: ['string', 'null'], format: 'uuid' },
+        defaultBranchId: { type: ['string', 'null'], format: 'uuid' },
+        username: { type: 'string' },
+        email: { type: 'string', format: 'email' },
+        status: { type: 'string' },
+      },
+    },
+  },
+} as const;
 
 export async function createApplication(config: AppConfig, providedPool?: Pool): Promise<FastifyInstance> {
   const app = Fastify({
@@ -50,6 +78,20 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
       ...routeOptions.schema,
       ...schemaForRoute(routeOptions.method as string, routeOptions.url),
     };
+
+    if (
+      String(routeOptions.method).includes('POST') &&
+      routeOptions.url.replace(/\/$/, '').endsWith('/auth/refresh')
+    ) {
+      const existingResponse = (routeOptions.schema?.response ?? {}) as Record<string | number, unknown>;
+      routeOptions.schema = {
+        ...routeOptions.schema,
+        response: {
+          ...existingResponse,
+          200: rotatedRefreshResponseSchema,
+        },
+      };
+    }
   });
 
   app.addHook('onSend', async (request, _reply, payload) => {
@@ -85,6 +127,11 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   const locationService = new LocationService(repository);
   const moduleAccessService = new ModuleAccessService(pool);
   const transactionRunner = new UnitOfWork(pool);
+  const refreshTokenRotationService = new RefreshTokenRotationService(
+    pool,
+    config.TENANT_CONTEXT_KEY,
+    jwtTokenService,
+  );
   const registrationService = new UserRegistrationService(repository, passwordHasher, {
     minLength: config.AUTH_PASSWORD_MIN_LENGTH,
     requireUppercase: config.AUTH_PASSWORD_REQUIRE_UPPERCASE,
@@ -105,6 +152,45 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('registrationService', registrationService);
   app.decorate('jwtTokenService', jwtTokenService);
   app.decorate('tenantMembershipService', tenantMembershipService);
+
+  app.addHook('preHandler', async (request, reply) => {
+    if (
+      request.method !== 'POST' ||
+      !request.routeOptions.url.replace(/\/$/, '').endsWith('/auth/refresh')
+    ) {
+      return;
+    }
+
+    const body = request.body as { refreshToken?: unknown };
+    if (typeof body?.refreshToken !== 'string' || body.refreshToken.length === 0) {
+      return;
+    }
+
+    const rotated = await refreshTokenRotationService.rotate(body.refreshToken);
+    const user = await authService.validateSession(rotated.sessionId, rotated.tenantId);
+    if (!user) {
+      throw new Error('Rotated session could not be resolved');
+    }
+
+    return reply.code(200).send({
+      success: true,
+      accessToken: rotated.accessToken,
+      refreshToken: rotated.refreshToken,
+      expiresAt: rotated.accessTokenExpiresAt,
+      tokenType: 'bearer',
+      user: {
+        id: user.id,
+        tenantId: user.tenantId,
+        organizationId: user.organizationId ?? null,
+        activeLocationId: user.activeLocationId ?? null,
+        defaultLocationId: user.defaultLocationId ?? null,
+        defaultBranchId: user.defaultBranchId ?? null,
+        username: user.username,
+        email: user.email,
+        status: user.status,
+      },
+    });
+  });
 
   await app.register(cors, {
     origin: (origin, callback) => {
