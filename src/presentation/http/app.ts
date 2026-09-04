@@ -18,6 +18,7 @@ import { buildErrorHandler } from '../../infrastructure/http/error-handler.js';
 import { applyCorrelationIdHooks } from '../../infrastructure/http/correlation-id.js';
 import { BcryptPasswordHasher } from '../../infrastructure/security/bcrypt-password-hasher.js';
 import { JwtTokenService } from '../../infrastructure/security/jwt-token-service.js';
+import { UnitOfWork } from '../../infrastructure/database/unit-of-work.js';
 import { createLogger } from '../../infrastructure/logging/logger.js';
 import healthRoutes from './routes/health.js';
 import authRoutes from './routes/auth.js';
@@ -65,13 +66,14 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   const coreEnterpriseService = new CoreEnterpriseService(repository);
   const locationService = new LocationService(repository);
   const moduleAccessService = new ModuleAccessService(pool);
+  const transactionRunner = new UnitOfWork(pool);
   const registrationService = new UserRegistrationService(repository, passwordHasher, {
     minLength: config.AUTH_PASSWORD_MIN_LENGTH,
     requireUppercase: config.AUTH_PASSWORD_REQUIRE_UPPERCASE,
     requireLowercase: config.AUTH_PASSWORD_REQUIRE_LOWERCASE,
     requireNumber: config.AUTH_PASSWORD_REQUIRE_NUMBER,
     requireSymbol: config.AUTH_PASSWORD_REQUIRE_SYMBOL,
-  });
+  }, transactionRunner);
   const tenantMembershipService = new TenantMembershipService(repository);
 
   app.decorate('appConfig', config);
