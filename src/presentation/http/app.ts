@@ -25,6 +25,7 @@ import healthRoutes from './routes/health.js';
 import authRoutes from './routes/auth.js';
 import branchRoutes from './routes/branch.js';
 import coreEnterpriseRoutes from './routes/core-enterprise.js';
+import jwksRoutes from './routes/jwks.js';
 import locationRoutes from './routes/location.js';
 import rbacRoutes from './routes/rbac.js';
 import { paginateListResponse } from './pagination.js';
@@ -215,6 +216,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
 
   app.setErrorHandler(buildErrorHandler(config));
 
+  await app.register(jwksRoutes);
   await app.register(healthRoutes, { prefix: config.API_PREFIX });
   await app.register(authRoutes, { prefix: config.API_PREFIX });
   await app.register(rbacRoutes, { prefix: config.API_PREFIX });
