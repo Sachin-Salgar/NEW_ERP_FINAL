@@ -2,6 +2,7 @@ import { type FastifyPluginAsync, type FastifyRequest } from 'fastify';
 
 import { NotFoundError, ValidationError } from '../../../domain/errors.js';
 import { requireAuth, requirePermission } from '../middleware/auth.js';
+import { requestObject, requestParam } from '../request-input.js';
 
 const getTenantIdFromRequest = (request: FastifyRequest): string | null => request.tenantId ?? null;
 
@@ -14,7 +15,7 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const body = request.body as Record<string, unknown> | undefined;
+    const body = requestObject(request.body);
     const organization = await request.server.coreEnterpriseService.createOrganization(tenantId, {
       name: asString(body?.name) ?? undefined,
       legalName: asString(body?.legalName) ?? undefined,
@@ -51,7 +52,7 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const organizationId = asString((request.params as { id?: string }).id) ?? '';
+    const organizationId = asString(requestParam(request.params, 'id')) ?? '';
     const organization = await request.server.coreEnterpriseService.getOrganization(tenantId, organizationId);
     if (!organization) {
       throw new NotFoundError('Organization not found.');
@@ -66,8 +67,8 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const body = request.body as Record<string, unknown> | undefined;
-    const organizationId = asString((request.params as { id?: string }).id) ?? '';
+    const body = requestObject(request.body);
+    const organizationId = asString(requestParam(request.params, 'id')) ?? '';
     const updated = await request.server.coreEnterpriseService.updateOrganization(tenantId, organizationId, {
       code: typeof body?.code === 'string' ? body.code : undefined,
       name: typeof body?.name === 'string' ? body.name : undefined,
@@ -98,7 +99,7 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const organizationId = asString((request.params as { id?: string }).id) ?? '';
+    const organizationId = asString(requestParam(request.params, 'id')) ?? '';
     const deactivated = await request.server.coreEnterpriseService.deactivateOrganization(tenantId, organizationId);
     if (!deactivated) {
       throw new NotFoundError('Organization not found.');
@@ -113,8 +114,8 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const body = request.body as Record<string, unknown> | undefined;
-    const organizationId = asString((request.params as { organizationId?: string }).organizationId) ?? '';
+    const body = requestObject(request.body);
+    const organizationId = asString(requestParam(request.params, 'organizationId')) ?? '';
     const branch = await request.server.coreEnterpriseService.createBranch(tenantId, organizationId, {
       name: asString(body?.name) ?? undefined,
       status: typeof body?.status === 'string' ? (body.status as 'active' | 'inactive' | 'archived') : 'active',
@@ -141,7 +142,7 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const organizationId = asString((request.params as { organizationId?: string }).organizationId) ?? '';
+    const organizationId = asString(requestParam(request.params, 'organizationId')) ?? '';
     const branches = await request.server.coreEnterpriseService.listBranches(tenantId, organizationId);
     return { success: true, branches };
   });
@@ -152,8 +153,8 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const organizationId = asString((request.params as { organizationId?: string }).organizationId) ?? '';
-    const branchId = asString((request.params as { branchId?: string }).branchId) ?? '';
+    const organizationId = asString(requestParam(request.params, 'organizationId')) ?? '';
+    const branchId = asString(requestParam(request.params, 'branchId')) ?? '';
     const branch = await request.server.coreEnterpriseService.getBranch(tenantId, organizationId, branchId);
     if (!branch) {
       throw new NotFoundError('Branch not found.');
@@ -167,9 +168,9 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const body = request.body as Record<string, unknown> | undefined;
-    const organizationId = asString((request.params as { organizationId?: string }).organizationId) ?? '';
-    const branchId = asString((request.params as { branchId?: string }).branchId) ?? '';
+    const body = requestObject(request.body);
+    const organizationId = asString(requestParam(request.params, 'organizationId')) ?? '';
+    const branchId = asString(requestParam(request.params, 'branchId')) ?? '';
     const updated = await request.server.coreEnterpriseService.updateBranch(tenantId, organizationId, branchId, {
       code: typeof body?.code === 'string' ? body.code : undefined,
       name: typeof body?.name === 'string' ? body.name : undefined,
@@ -200,8 +201,8 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const organizationId = asString((request.params as { organizationId?: string }).organizationId) ?? '';
-    const branchId = asString((request.params as { branchId?: string }).branchId) ?? '';
+    const organizationId = asString(requestParam(request.params, 'organizationId')) ?? '';
+    const branchId = asString(requestParam(request.params, 'branchId')) ?? '';
     const deactivated = await request.server.coreEnterpriseService.deactivateBranch(tenantId, organizationId, branchId);
     if (!deactivated) {
       throw new NotFoundError('Branch not found.');
@@ -226,7 +227,7 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const userId = asString((request.params as { id?: string }).id) ?? '';
+    const userId = asString(requestParam(request.params, 'id')) ?? '';
     const user = await request.server.coreEnterpriseService.getUser(tenantId, userId);
     if (!user) {
       throw new NotFoundError('User not found.');
@@ -241,7 +242,7 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const userId = asString((request.params as { id?: string }).id) ?? '';
+    const userId = asString(requestParam(request.params, 'id')) ?? '';
     const user = await request.server.coreEnterpriseService.getUser(tenantId, userId);
     if (!user) {
       throw new NotFoundError('User not found.');
@@ -257,8 +258,8 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const body = request.body as Record<string, unknown> | undefined;
-    const userId = asString((request.params as { id?: string }).id) ?? '';
+    const body = requestObject(request.body);
+    const userId = asString(requestParam(request.params, 'id')) ?? '';
     const updated = await request.server.coreEnterpriseService.updateUser(tenantId, userId, {
       username: typeof body?.username === 'string' ? body.username : undefined,
       email: typeof body?.email === 'string' ? body.email : undefined,
@@ -280,8 +281,8 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const userId = asString((request.params as { userId?: string }).userId) ?? '';
-    const organizationId = asString((request.params as { organizationId?: string }).organizationId) ?? '';
+    const userId = asString(requestParam(request.params, 'userId')) ?? '';
+    const organizationId = asString(requestParam(request.params, 'organizationId')) ?? '';
     const assigned = await request.server.coreEnterpriseService.assignUserToOrganization(tenantId, userId, organizationId);
     if (!assigned) {
       throw new NotFoundError('User or organization not found.');
@@ -296,8 +297,8 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const userId = asString((request.params as { userId?: string }).userId) ?? '';
-    const branchId = asString((request.params as { branchId?: string }).branchId) ?? '';
+    const userId = asString(requestParam(request.params, 'userId')) ?? '';
+    const branchId = asString(requestParam(request.params, 'branchId')) ?? '';
     const assigned = await request.server.coreEnterpriseService.assignUserToBranch(tenantId, userId, branchId);
     if (!assigned) {
       throw new NotFoundError('User or branch not found.');
@@ -312,7 +313,7 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const userId = asString((request.params as { id?: string }).id) ?? '';
+    const userId = asString(requestParam(request.params, 'id')) ?? '';
     const activated = await request.server.coreEnterpriseService.activateUser(tenantId, userId);
     if (!activated) {
       throw new NotFoundError('User not found.');
@@ -327,7 +328,7 @@ const coreEnterpriseRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const userId = asString((request.params as { id?: string }).id) ?? '';
+    const userId = asString(requestParam(request.params, 'id')) ?? '';
     const deactivated = await request.server.coreEnterpriseService.deactivateUser(tenantId, userId);
     if (!deactivated) {
       throw new NotFoundError('User not found.');

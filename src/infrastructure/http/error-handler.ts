@@ -4,14 +4,20 @@ import type { AppConfig } from '../../config/schema.js';
 
 export function buildErrorHandler(config: AppConfig) {
   return (error: FastifyError, request: FastifyRequest, reply: FastifyReply) => {
-    const statusCode = error.statusCode ?? 500;
+    const isValidationError = error.code === 'FST_ERR_VALIDATION';
+    const statusCode = isValidationError ? 400 : error.statusCode ?? 500;
     const body = {
       error: {
-        code: error.code ?? 'INTERNAL_SERVER_ERROR',
-        message: error.message ?? 'Internal Server Error',
+        code: isValidationError ? 'VALIDATION_ERROR' : error.code ?? 'INTERNAL_SERVER_ERROR',
+        message: isValidationError ? 'Request validation failed.' : error.message ?? 'Internal Server Error',
         requestId: request.id,
         timestamp: new Date().toISOString(),
-        details: config.NODE_ENV === 'development' ? error : undefined,
+        details: isValidationError
+          ? error.validation?.map((issue) => ({
+            field: issue.instancePath || issue.params?.missingProperty || issue.schemaPath,
+            message: issue.message,
+          }))
+          : config.NODE_ENV === 'development' ? error : undefined,
       },
     };
 

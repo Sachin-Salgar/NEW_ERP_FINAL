@@ -265,6 +265,8 @@ export class PostgresPlatformRepository
     email: string;
     passwordHash: string;
     status: string;
+    failedLoginCount?: number;
+    lockedUntil?: Date | string | null;
   }) | null> {
     if (!tenantId || tenantId.trim() === '' || !userId || userId.trim() === '') {
       return null;
@@ -273,7 +275,7 @@ export class PostgresPlatformRepository
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
         `SELECT id, tenant_id as "tenantId", organization_id as "organizationId", default_branch_id as "defaultBranchId", default_location_id as "defaultLocationId",
-                username, email, password_hash as "passwordHash", status
+                username, email, password_hash as "passwordHash", status, failed_login_count as "failedLoginCount", locked_until as "lockedUntil"
          FROM users
          WHERE tenant_id = $1 AND id = $2 AND is_deleted = false
          LIMIT 1`,
@@ -296,7 +298,56 @@ export class PostgresPlatformRepository
       email: row.email,
       passwordHash: row.passwordHash,
       status: row.status,
+      failedLoginCount: row.failedLoginCount ?? 0,
+      lockedUntil: row.lockedUntil ? new Date(row.lockedUntil) : null,
     };
+  }
+
+  async recordFailedLoginAttempt(
+    tenantId: string,
+    userId: string,
+    options: { maxFailedAttempts?: number; lockoutMinutes?: number } = {},
+  ): Promise<{ failedLoginCount: number; lockedUntil: Date | null }> {
+    const maxFailedAttempts = options.maxFailedAttempts ?? 5;
+    const lockoutMinutes = options.lockoutMinutes ?? 15;
+
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `UPDATE users
+         SET failed_login_count = failed_login_count + 1,
+             locked_until = CASE
+               WHEN failed_login_count + 1 >= $3 THEN NOW() + ($4 * INTERVAL '1 minute')
+               ELSE NULL
+             END,
+             updated_at = NOW()
+         WHERE tenant_id = $1 AND id = $2 AND is_deleted = false
+         RETURNING failed_login_count as "failedLoginCount", locked_until as "lockedUntil"`,
+        [tenantId, userId, maxFailedAttempts, lockoutMinutes],
+      );
+    });
+
+    if (result.rows.length === 0) {
+      return { failedLoginCount: 0, lockedUntil: null };
+    }
+
+    const row = result.rows[0];
+    return {
+      failedLoginCount: Number(row.failedLoginCount ?? 0),
+      lockedUntil: row.lockedUntil ? new Date(row.lockedUntil) : null,
+    };
+  }
+
+  async resetFailedLoginState(tenantId: string, userId: string): Promise<void> {
+    await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      await client.query(
+        `UPDATE users
+         SET failed_login_count = 0,
+             locked_until = NULL,
+             updated_at = NOW()
+         WHERE tenant_id = $1 AND id = $2 AND is_deleted = false`,
+        [tenantId, userId],
+      );
+    });
   }
 
   async getTenantById(tenantId: string): Promise<{

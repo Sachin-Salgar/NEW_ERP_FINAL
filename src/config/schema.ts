@@ -18,6 +18,17 @@ export const appConfigSchema = z.object({
   JWT_SECRET: z.string().trim().min(32).default('development-jwt-secret-change-me'),
   JWT_ISSUER: z.string().trim().min(1).default('new-erp-final'),
   TENANT_CONTEXT_KEY: z.string().trim().min(1).default('app.current_tenant_id'),
+  AUTH_LOGIN_RATE_LIMIT: z.coerce.number().int().positive().default(5),
+  AUTH_REGISTER_RATE_LIMIT: z.coerce.number().int().positive().default(5),
+  AUTH_REFRESH_RATE_LIMIT: z.coerce.number().int().positive().default(10),
+  AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
+  AUTH_MAX_FAILED_ATTEMPTS: z.coerce.number().int().min(1).max(20).default(5),
+  AUTH_LOCKOUT_MINUTES: z.coerce.number().int().min(1).max(1440).default(15),
+  AUTH_PASSWORD_MIN_LENGTH: z.coerce.number().int().min(8).max(128).default(12),
+  AUTH_PASSWORD_REQUIRE_UPPERCASE: z.coerce.boolean().default(true),
+  AUTH_PASSWORD_REQUIRE_LOWERCASE: z.coerce.boolean().default(true),
+  AUTH_PASSWORD_REQUIRE_NUMBER: z.coerce.boolean().default(true),
+  AUTH_PASSWORD_REQUIRE_SYMBOL: z.coerce.boolean().default(true),
   CORS_ALLOWED_ORIGINS: z
     .string()
     .transform((value) => value.split(',').map((origin) => origin.trim()).filter(Boolean))

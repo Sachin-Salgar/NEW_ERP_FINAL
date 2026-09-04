@@ -2,6 +2,7 @@ import { type FastifyPluginAsync, type FastifyRequest } from 'fastify';
 
 import { NotFoundError, ValidationError } from '../../../domain/errors.js';
 import { requireAuth, requirePermission, requirePermissionOrSelf } from '../middleware/auth.js';
+import { requestObject, requestParam } from '../request-input.js';
 
 const getTenantIdFromRequest = (request: FastifyRequest): string | null => request.tenantId ?? null;
 
@@ -19,7 +20,7 @@ const normalizePermissionKeys = (input: unknown): string[] => {
 
 const rbacRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/rbac/roles', { preHandler: [requireAuth, requirePermission('role.manage')] }, async (request) => {
-    const body = request.body as Record<string, unknown> | undefined;
+    const body = requestObject(request.body);
     const tenantId = request.tenantId ?? getTenantIdFromRequest(request);
     if (!tenantId) {
       throw new ValidationError('Tenant context is required.');
@@ -53,7 +54,7 @@ const rbacRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const roleId = String((request.params as { roleId?: string }).roleId ?? '');
+    const roleId = requestParam(request.params, 'roleId') ?? '';
     const role = await request.server.authorizationService.getRole(tenantId, roleId);
     if (!role) {
       throw new NotFoundError('Role not found.');
@@ -68,8 +69,8 @@ const rbacRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const body = request.body as Record<string, unknown> | undefined;
-    const roleId = String((request.params as { roleId?: string }).roleId ?? '');
+    const body = requestObject(request.body);
+    const roleId = requestParam(request.params, 'roleId') ?? '';
 
     const updated = await request.server.authorizationService.updateRole(tenantId, roleId, {
       code: typeof body?.code === 'string' ? body.code.trim() : undefined,
@@ -102,8 +103,8 @@ const rbacRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const body = request.body as Record<string, unknown> | undefined;
-    const roleId = String((request.params as { roleId?: string }).roleId ?? '');
+    const body = requestObject(request.body);
+    const roleId = requestParam(request.params, 'roleId') ?? '';
     const permissionKeys = normalizePermissionKeys(body?.permissionKeys ?? body?.permissionKey ?? body?.permissions);
 
     const role = await request.server.authorizationService.getRole(tenantId, roleId);
@@ -121,8 +122,8 @@ const rbacRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const body = request.body as Record<string, unknown> | undefined;
-    const roleId = String((request.params as { roleId?: string }).roleId ?? '');
+    const body = requestObject(request.body);
+    const roleId = requestParam(request.params, 'roleId') ?? '';
     const permissionKeys = normalizePermissionKeys(body?.permissionKeys ?? body?.permissionKey ?? body?.permissions);
 
     if (permissionKeys.length === 0) {
@@ -139,8 +140,8 @@ const rbacRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const body = request.body as Record<string, unknown> | undefined;
-    const roleId = String((request.params as { roleId?: string }).roleId ?? '');
+    const body = requestObject(request.body);
+    const roleId = requestParam(request.params, 'roleId') ?? '';
     const permissionKeys = normalizePermissionKeys(body?.permissionKeys ?? body?.permissionKey ?? body?.permissions);
 
     if (permissionKeys.length === 0) {
@@ -157,7 +158,7 @@ const rbacRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const roleId = String((request.params as { roleId?: string }).roleId ?? '');
+    const roleId = requestParam(request.params, 'roleId') ?? '';
     const permissions = await request.server.authorizationService.getPermissionsForRole(tenantId, roleId);
     return { success: true, permissions };
   });
@@ -168,8 +169,8 @@ const rbacRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const body = request.body as Record<string, unknown> | undefined;
-    const userId = String((request.params as { userId?: string }).userId ?? '');
+    const body = requestObject(request.body);
+    const userId = requestParam(request.params, 'userId') ?? '';
     const roleId = typeof body?.roleId === 'string' ? body.roleId.trim() : '';
 
     if (!roleId) {
@@ -186,8 +187,8 @@ const rbacRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const userId = String((request.params as { userId?: string }).userId ?? '');
-    const roleId = String((request.params as { roleId?: string }).roleId ?? '');
+    const userId = requestParam(request.params, 'userId') ?? '';
+    const roleId = requestParam(request.params, 'roleId') ?? '';
 
     const revoked = await request.server.authorizationService.revokeRoleFromUser(tenantId, userId, roleId);
     return { success: true, revoked };
@@ -196,7 +197,7 @@ const rbacRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/rbac/users/:userId/roles', {
     preHandler: [
       requireAuth,
-      requirePermissionOrSelf('user.read', (request) => String((request.params as { userId?: string }).userId ?? '')),
+      requirePermissionOrSelf('user.read', (request) => requestParam(request.params, 'userId') ?? ''),
     ],
   }, async (request) => {
     const tenantId = request.tenantId ?? getTenantIdFromRequest(request);
@@ -204,7 +205,7 @@ const rbacRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const userId = String((request.params as { userId?: string }).userId ?? '');
+    const userId = requestParam(request.params, 'userId') ?? '';
     const roles = await request.server.authorizationService.getRolesForUser(tenantId, userId);
     return { success: true, userId, roles };
   });
@@ -212,7 +213,7 @@ const rbacRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/rbac/users/:userId/effective-permissions', {
     preHandler: [
       requireAuth,
-      requirePermissionOrSelf('user.read', (request) => String((request.params as { userId?: string }).userId ?? '')),
+      requirePermissionOrSelf('user.read', (request) => requestParam(request.params, 'userId') ?? ''),
     ],
   }, async (request) => {
     const tenantId = request.tenantId ?? getTenantIdFromRequest(request);
@@ -220,7 +221,7 @@ const rbacRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Tenant context is required.');
     }
 
-    const userId = String((request.params as { userId?: string }).userId ?? '');
+    const userId = requestParam(request.params, 'userId') ?? '';
     const permissions = await request.server.authorizationService.getEffectivePermissions(tenantId, userId);
     return { success: true, userId, permissions };
   });

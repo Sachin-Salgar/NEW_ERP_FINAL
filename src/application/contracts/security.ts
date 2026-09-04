@@ -26,30 +26,26 @@ export interface LoginCandidate {
   tenantId: string;
 }
 
+export interface UserAccountRecord {
+  id: string;
+  tenantId: string;
+  organizationId?: string | null;
+  defaultBranchId?: string | null;
+  defaultLocationId?: string | null;
+  username: string;
+  email: string;
+  passwordHash: string;
+  status: string;
+  failedLoginCount?: number;
+  lockedUntil?: Date | string | null;
+}
+
 export interface UserRepository {
   findLoginCandidates(identifier: string): Promise<LoginCandidate[]>;
-  findByTenantAndIdentifier(tenantId: string, identifier: string): Promise<({
-    id: string;
-    tenantId: string;
-    organizationId?: string | null;
-    defaultBranchId?: string | null;
-    defaultLocationId?: string | null;
-    username: string;
-    email: string;
-    passwordHash: string;
-    status: string;
-  }) | null>;
-  findById(tenantId: string, userId: string): Promise<({
-    id: string;
-    tenantId: string;
-    organizationId?: string | null;
-    defaultBranchId?: string | null;
-    defaultLocationId?: string | null;
-    username: string;
-    email: string;
-    passwordHash: string;
-    status: string;
-  }) | null>;
+  findByTenantAndIdentifier(tenantId: string, identifier: string): Promise<UserAccountRecord | null>;
+  findById(tenantId: string, userId: string): Promise<UserAccountRecord | null>;
+  recordFailedLoginAttempt?(tenantId: string, userId: string, options?: { maxFailedAttempts?: number; lockoutMinutes?: number }): Promise<{ failedLoginCount: number; lockedUntil: Date | null }>;
+  resetFailedLoginState?(tenantId: string, userId: string): Promise<void>;
   getPermissionKeysForUser(tenantId: string, userId: string): Promise<UserPermissionRecord[]>;
 }
 
@@ -82,28 +78,8 @@ export interface UserRegistrationRecord {
 }
 
 export interface UserRegistrationRepository {
-  findById(tenantId: string, userId: string): Promise<({
-    id: string;
-    tenantId: string;
-    organizationId?: string | null;
-    defaultBranchId?: string | null;
-    defaultLocationId?: string | null;
-    username: string;
-    email: string;
-    passwordHash: string;
-    status: string;
-  }) | null>;
-  findByTenantAndIdentifier(tenantId: string, identifier: string): Promise<({
-    id: string;
-    tenantId: string;
-    organizationId?: string | null;
-    defaultBranchId?: string | null;
-    defaultLocationId?: string | null;
-    username: string;
-    email: string;
-    passwordHash: string;
-    status: string;
-  }) | null>;
+  findById(tenantId: string, userId: string): Promise<UserAccountRecord | null>;
+  findByTenantAndIdentifier(tenantId: string, identifier: string): Promise<UserAccountRecord | null>;
   findRoleByTenantAndCode(tenantId: string, code: string): Promise<{ id: string; tenantId: string; code: string; name: string } | null>;
   createRole(tenantId: string, code: string, name: string): Promise<{ id: string; tenantId: string; code: string; name: string }>;
   createUser(input: {

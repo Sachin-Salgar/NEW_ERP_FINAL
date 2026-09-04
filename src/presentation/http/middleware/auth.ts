@@ -15,6 +15,7 @@ import type { AppConfig } from '../../../config/schema.js';
 declare module 'fastify' {
   interface FastifyInstance {
     appConfig: AppConfig;
+    dbPool: import('pg').Pool;
     authService: AuthenticationService;
     authorizationService: AuthorizationService;
     branchService: import('../../../application/services/branch-service.js').BranchService;

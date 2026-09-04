@@ -1,12 +1,14 @@
 import { v7 as uuidV7 } from 'uuid';
 
 import { UnauthorizedError, ValidationError } from '../../domain/errors.js';
+import { DEFAULT_PASSWORD_POLICY, type PasswordPolicy, validatePassword } from '../../infrastructure/security/password-policy.js';
 import type { PasswordHasher, UserRegistrationInput, UserRegistrationRepository, UserRegistrationRecord } from '../contracts/security.js';
 
 export class UserRegistrationService {
   constructor(
     private readonly repository: UserRegistrationRepository,
     private readonly passwordHasher: PasswordHasher,
+    private readonly passwordPolicy: PasswordPolicy = DEFAULT_PASSWORD_POLICY,
   ) {}
 
   async registerUser(tenantId: string, actorUserId: string, input: UserRegistrationInput): Promise<UserRegistrationRecord> {
@@ -30,6 +32,11 @@ export class UserRegistrationService {
     const existingUser = await this.repository.findByTenantAndIdentifier(tenantId, username) ?? await this.repository.findByTenantAndIdentifier(tenantId, email);
     if (existingUser) {
       throw new ValidationError('A user with that username or email already exists in this tenant.');
+    }
+
+    const passwordIssues = validatePassword(password, this.passwordPolicy);
+    if (passwordIssues.length > 0) {
+      throw new ValidationError(passwordIssues.join(' '));
     }
 
     const defaultRoleCode = input.roleCode ?? 'member';

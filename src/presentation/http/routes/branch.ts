@@ -2,6 +2,7 @@ import { type FastifyPluginAsync } from 'fastify';
 
 import { NotFoundError, ValidationError } from '../../../domain/errors.js';
 import { requireAuth, requirePermission } from '../middleware/auth.js';
+import { requestParam } from '../request-input.js';
 
 const asString = (value: unknown): string | null => (typeof value === 'string' ? value.trim() : null);
 
@@ -18,7 +19,7 @@ const branchRoutes: FastifyPluginAsync = async (fastify) => {
     if (!request.tenantId || !request.user) throw new ValidationError('Authenticated tenant context is required.');
     const organizationId = request.user.organizationId ?? null;
     if (!organizationId) throw new ValidationError('An active organization is required before selecting a branch.');
-    const branchId = asString((request.params as { id?: string }).id) ?? '';
+    const branchId = asString(requestParam(request.params, 'id')) ?? '';
     if (!branchId) throw new ValidationError('Branch ID is required.');
 
     const branch = await request.server.branchService.getAccessibleBranchByIdForUser(request.tenantId, request.user.id, branchId, organizationId);

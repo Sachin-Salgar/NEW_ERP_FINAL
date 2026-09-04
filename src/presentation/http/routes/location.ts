@@ -2,6 +2,7 @@ import { type FastifyPluginAsync } from 'fastify';
 
 import { NotFoundError, ValidationError } from '../../../domain/errors.js';
 import { requireAuth, requirePermission } from '../middleware/auth.js';
+import { requestObject, requestParam } from '../request-input.js';
 
 const asString = (value: unknown): string | null => (typeof value === 'string' ? value.trim() : null);
 
@@ -18,7 +19,7 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
     if (!request.tenantId || !request.user) throw new ValidationError('Authenticated tenant context is required.');
     const organizationId = request.user.organizationId ?? null;
     if (!organizationId) throw new ValidationError('An active organization is required before resolving locations.');
-    const locationId = asString((request.params as { id?: string }).id) ?? '';
+    const locationId = asString(requestParam(request.params, 'id')) ?? '';
     const location = await request.server.locationService.getAccessibleLocationByIdForUser(request.tenantId, request.user.id, locationId, organizationId);
     if (!location) throw new NotFoundError('Location not found or access denied.');
     return { success: true, location };
@@ -37,7 +38,7 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
     if (!request.tenantId || !request.user) throw new ValidationError('Authenticated tenant context is required.');
     const organizationId = request.user.organizationId ?? null;
     if (!organizationId) throw new ValidationError('An active organization is required before selecting a location.');
-    const locationId = asString((request.params as { id?: string }).id) ?? '';
+    const locationId = asString(requestParam(request.params, 'id')) ?? '';
     const location = await request.server.locationService.getAccessibleLocationByIdForUser(request.tenantId, request.user.id, locationId, organizationId);
     if (!location) throw new NotFoundError('Location not found or access denied.');
     const result = await request.server.authService.createSessionForUser(request.tenantId, request.user.id, organizationId, location.id);
@@ -57,7 +58,7 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post('/locations', { preHandler: [requireAuth, requirePermission('organization.manage')] }, async (request, reply) => {
     if (!request.tenantId || !request.user) throw new ValidationError('Authenticated tenant context is required.');
-    const body = request.body as Record<string, unknown> | undefined;
+    const body = requestObject(request.body);
     const organizationId = asString(body?.organizationId) ?? request.user.organizationId ?? '';
     if (!organizationId) throw new ValidationError('Organization context is required.');
     const location = await request.server.locationService.createLocation(request.tenantId, organizationId, {
@@ -73,8 +74,8 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.patch('/locations/:id', { preHandler: [requireAuth, requirePermission('organization.manage')] }, async (request) => {
     if (!request.tenantId || !request.user) throw new ValidationError('Authenticated tenant context is required.');
-    const locationId = asString((request.params as { id?: string }).id) ?? '';
-    const body = request.body as Record<string, unknown> | undefined;
+    const locationId = asString(requestParam(request.params, 'id')) ?? '';
+    const body = requestObject(request.body);
     const currentLocation = await request.server.locationService.getAccessibleLocationByIdForUser(request.tenantId, request.user.id, locationId, request.user.organizationId ?? null);
     if (!currentLocation) throw new NotFoundError('Location not found or access denied.');
     const location = await request.server.locationService.updateLocation(request.tenantId, currentLocation.organizationId, locationId, {
@@ -96,7 +97,7 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post('/locations/:id/deactivate', { preHandler: [requireAuth, requirePermission('organization.manage')] }, async (request) => {
     if (!request.tenantId || !request.user) throw new ValidationError('Authenticated tenant context is required.');
-    const locationId = asString((request.params as { id?: string }).id) ?? '';
+    const locationId = asString(requestParam(request.params, 'id')) ?? '';
     const currentLocation = await request.server.locationService.getAccessibleLocationByIdForUser(request.tenantId, request.user.id, locationId, request.user.organizationId ?? null);
     if (!currentLocation) throw new NotFoundError('Location not found or access denied.');
     const deactivated = await request.server.locationService.deactivateLocation(request.tenantId, currentLocation.organizationId, locationId);
