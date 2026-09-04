@@ -98,8 +98,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   const notificationService = new PostgresNotificationService(pool, config.TENANT_CONTEXT_KEY);
   const accountSecurityService = new AccountSecurityService(accountSecurityRepository, passwordHasher, new AccountSecurityNotificationAdapter(notificationService));
   const mfaRepository = new PostgresMfaRepository(pool, config.TENANT_CONTEXT_KEY);
-  const mfaKey = process.env.MFA_ENCRYPTION_KEY ?? (config.isProduction ? '' : 'development-mfa-encryption-key-change-me-32');
-  const mfaService = new MfaService(mfaRepository, new Rfc6238TotpProvider(), new AesGcmSecretProtector(mfaKey), { issuer: config.APP_NAME });
+  const mfaService = new MfaService(mfaRepository, new Rfc6238TotpProvider(), new AesGcmSecretProtector(config.MFA_ENCRYPTION_KEY), { issuer: config.APP_NAME });
 
   app.decorate('appConfig', config); app.decorate('dbPool', pool); app.decorate('authService', authService); app.decorate('authorizationService', authorizationService);
   app.decorate('branchService', branchService); app.decorate('coreEnterpriseService', coreEnterpriseService); app.decorate('locationService', locationService);
