@@ -8,10 +8,21 @@ export interface QueryPerformanceSample {
   rows: number;
 }
 
+export type QueryPerformanceUnavailableReason =
+  | 'extension-not-installed'
+  | 'insufficient-permission'
+  | 'database-error';
+
 export interface QueryPerformanceSnapshot {
   available: boolean;
   collectedAt: Date;
   samples: QueryPerformanceSample[];
+  unavailableReason?: QueryPerformanceUnavailableReason;
+}
+
+interface AvailabilityResult {
+  available: boolean;
+  reason?: QueryPerformanceUnavailableReason;
 }
 
 /**
@@ -24,47 +35,75 @@ export class PostgresQueryPerformanceMonitor {
   constructor(private readonly pool: Pool) {}
 
   async snapshot(options: { minimumMeanExecMs?: number; limit?: number } = {}): Promise<QueryPerformanceSnapshot> {
-    const available = await this.isAvailable();
-    if (!available) {
-      return { available: false, collectedAt: new Date(), samples: [] };
+    const availability = await this.getAvailability();
+    if (!availability.available) {
+      return {
+        available: false,
+        unavailableReason: availability.reason,
+        collectedAt: new Date(),
+        samples: [],
+      };
     }
 
     const minimumMeanExecMs = Math.max(0, options.minimumMeanExecMs ?? 100);
     const limit = Math.max(1, Math.min(options.limit ?? 50, 200));
-    const result = await this.pool.query<{
-      queryid: string | number;
-      calls: string | number;
-      total_exec_time: string | number;
-      mean_exec_time: string | number;
-      rows: string | number;
-    }>(
-      `SELECT queryid, calls, total_exec_time, mean_exec_time, rows
-       FROM pg_stat_statements
-       WHERE mean_exec_time >= $1
-       ORDER BY total_exec_time DESC
-       LIMIT $2`,
-      [minimumMeanExecMs, limit],
-    );
 
-    return {
-      available: true,
-      collectedAt: new Date(),
-      samples: result.rows.map((row) => ({
-        queryId: String(row.queryid),
-        calls: Number(row.calls),
-        totalExecMs: Number(row.total_exec_time),
-        meanExecMs: Number(row.mean_exec_time),
-        rows: Number(row.rows),
-      })),
-    };
+    try {
+      const result = await this.pool.query<{
+        queryid: string | number;
+        calls: string | number;
+        total_exec_time: string | number;
+        mean_exec_time: string | number;
+        rows: string | number;
+      }>(
+        `SELECT queryid, calls, total_exec_time, mean_exec_time, rows
+         FROM pg_stat_statements
+         WHERE mean_exec_time >= $1
+         ORDER BY total_exec_time DESC
+         LIMIT $2`,
+        [minimumMeanExecMs, limit],
+      );
+
+      return {
+        available: true,
+        collectedAt: new Date(),
+        samples: result.rows.map((row) => ({
+          queryId: String(row.queryid),
+          calls: Number(row.calls),
+          totalExecMs: Number(row.total_exec_time),
+          meanExecMs: Number(row.mean_exec_time),
+          rows: Number(row.rows),
+        })),
+      };
+    } catch (error) {
+      return {
+        available: false,
+        unavailableReason: this.classifyDatabaseError(error),
+        collectedAt: new Date(),
+        samples: [],
+      };
+    }
   }
 
-  private async isAvailable(): Promise<boolean> {
-    const result = await this.pool.query<{ installed: boolean }>(
-      `SELECT EXISTS (
-         SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements'
-       ) AS installed`,
-    );
-    return result.rows[0]?.installed ?? false;
+  private async getAvailability(): Promise<AvailabilityResult> {
+    try {
+      const result = await this.pool.query<{ installed: boolean }>(
+        `SELECT EXISTS (
+           SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements'
+         ) AS installed`,
+      );
+      const installed = result.rows[0]?.installed ?? false;
+      return installed
+        ? { available: true }
+        : { available: false, reason: 'extension-not-installed' };
+    } catch (error) {
+      return { available: false, reason: this.classifyDatabaseError(error) };
+    }
+  }
+
+  private classifyDatabaseError(error: unknown): QueryPerformanceUnavailableReason {
+    const code = (error as { code?: unknown } | null)?.code;
+    if (code === '42501') return 'insufficient-permission';
+    return 'database-error';
   }
 }
