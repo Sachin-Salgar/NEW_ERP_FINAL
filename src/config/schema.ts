@@ -20,6 +20,7 @@ export const appConfigSchema = z.object({
   JWT_ISSUER: z.string().trim().min(1).default('new-erp-final'),
   JWT_SIGNING_ALGORITHM: z.enum(jwtSigningAlgorithms).default('HS256'),
   JWT_RS256_KEYS_JSON: z.string().trim().default('[]'),
+  JWT_ACCEPT_LEGACY_HS256: z.coerce.boolean().default(false),
   TENANT_CONTEXT_KEY: z.string().trim().min(1).default('app.current_tenant_id'),
   AUTH_LOGIN_RATE_LIMIT: z.coerce.number().int().positive().default(5),
   AUTH_REGISTER_RATE_LIMIT: z.coerce.number().int().positive().default(5),
@@ -154,6 +155,10 @@ export function parseAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig 
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'invalid JSON';
       throw new Error(`JWT_RS256_KEYS_JSON must contain the configured RS256 key ring: ${detail}`);
+    }
+
+    if (isProduction && config.JWT_ACCEPT_LEGACY_HS256 && config.JWT_SECRET === 'development-jwt-secret-change-me') {
+      throw new Error('A production legacy HS256 verification window requires an explicitly configured JWT_SECRET.');
     }
   }
 
