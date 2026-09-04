@@ -1,7 +1,9 @@
 # ADR-0024: API Versioning Strategy
 
 **Date**: 2026-09-04  
-**Status**: Proposed  
+**Status**: Approved  
+**Approval Date**: 2026-09-04  
+**Approved By**: Project Owner following architecture review  
 **Scope**: Public HTTP API compatibility and version lifecycle
 
 ## Context
