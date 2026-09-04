@@ -1,8 +1,9 @@
 # ADR-0009: Token Strategy — Refresh Token Rotation
 
-**Status**: Proposed  
+**Status**: Approved  
 **Date**: 2026-08-07  
-**Decision Owner**: Security / Architecture Review Board  
+**Approval Date**: 2026-09-04  
+**Approved By**: Project Owner following architecture review  
 **Scope**: Refresh-token lifecycle for token-based authentication
 
 ## Context
@@ -22,19 +23,19 @@ What refresh-token strategy should be adopted to provide strong security while m
 
 ## Decision
 
-**Proposed:** Adopt single-use refresh-token rotation for authentication flows that use refresh tokens.
+Adopt single-use refresh-token rotation for authentication flows that use refresh tokens.
 
 On a successful refresh operation, the previous refresh token is invalidated and a replacement is issued. Refresh tokens shall be bound to a server-tracked session/device context where appropriate, and suspicious reuse shall be detectable.
 
 A server-side mechanism for session/revocation state shall support explicit logout, administrative invalidation, credential/security events, and emergency revocation.
 
-This ADR does not yet fix concrete token TTL values, storage technology, or device-binding mechanics. Those require implementation/security decisions consistent with the approved security architecture.
+This ADR intentionally leaves concrete TTL values, storage technology, and device-binding mechanics to the approved security configuration and implementation design. Those choices must not weaken rotation, replay detection, revocation, or tenant authorization.
 
 ## Replay and Reuse Handling
 
 - A refresh token must not be accepted repeatedly after successful rotation.
 - Reuse of an invalidated refresh token should be treated as a security signal.
-- The response to suspected token-family compromise must be defined by the security implementation, including whether the associated session/token family is revoked.
+- The response to suspected token-family compromise must include revocation of the affected token family/session where technically supported.
 - Refresh-token material must be stored/transmitted according to the approved authentication security design.
 
 ## Consequences
@@ -51,15 +52,15 @@ This ADR does not yet fix concrete token TTL values, storage technology, or devi
 - Requires careful handling of concurrent refresh requests and token-family state.
 - Adds migration and implementation complexity compared with static refresh tokens.
 
-## Implementation Notes / TODOs
+## Implementation Notes
 
-- Define access-token TTL and refresh-token TTL through the approved security configuration.
+- Define access-token TTL and refresh-token TTL through approved security configuration.
 - Define refresh-token storage and hashing requirements.
 - Define session/device identifiers and their lifecycle.
 - Define concurrent-refresh behavior to avoid accidental session invalidation during legitimate races.
 - Define logout and administrative revocation procedures.
 - Add automated tests for rotation, replay, expiry, revocation, concurrency, and recovery scenarios.
-- Update API documentation and SDK guidance after the decision is approved.
+- Update API documentation and SDK guidance after implementation.
 
 ## Related Documents
 
@@ -69,4 +70,4 @@ This ADR does not yet fix concrete token TTL values, storage technology, or devi
 
 ## Authority
 
-This ADR remains **Proposed**. It is not implementation authority until approved. If implementation requirements conflict with the approved security architecture, **STOP and ask** rather than choosing a local interpretation.
+This ADR is **Approved** and is authoritative within its stated scope. Implementation must remain consistent with the approved security architecture and tenant-isolation requirements.
