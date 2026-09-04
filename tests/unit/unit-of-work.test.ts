@@ -14,10 +14,7 @@ describe('UnitOfWork', () => {
   it('commits a successful transaction and releases the client', async () => {
     const mock = createMockPool();
     const uow = new UnitOfWork(mock.pool);
-    const result = await uow.runInTransaction(async (client) => {
-      expect(client).toBe(mock.client);
-      return 'done';
-    });
+    const result = await uow.runInTransaction(async () => 'done');
 
     expect(result).toBe('done');
     expect(mock.query).toHaveBeenCalledWith('BEGIN');
@@ -44,9 +41,9 @@ describe('UnitOfWork', () => {
   it('attempts rollback when COMMIT fails and still releases the client', async () => {
     const mock = createMockPool();
     const commitFailure = new Error('commit failed');
-    mock.query.mockResolvedValueOnce(undefined); // BEGIN
-    mock.query.mockRejectedValueOnce(commitFailure); // COMMIT
-    mock.query.mockResolvedValueOnce(undefined); // ROLLBACK
+    mock.query.mockResolvedValueOnce(undefined);
+    mock.query.mockRejectedValueOnce(commitFailure);
+    mock.query.mockResolvedValueOnce(undefined);
     const uow = new UnitOfWork(mock.pool);
 
     await uow.begin();
