@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "migrations": {
+    "0000_core-platform-phase-1": {
+      "strategy": "restore-backup",
+      "destructiveDownAllowed": false,
+      "note": "Foundational schema. Recover through application rollback plus database restore/forward compensation; do not synthesize destructive down SQL."
+    },
+    "0001_location-domain": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Preserve location data and compensate forward if a schema correction is required."
+    },
+    "0002-organization-module-access": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Module-access data and RLS changes are corrected forward; verify tenant policies after recovery."
+    },
+    "0003-identity-based-login": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Identity mapping participates in authentication and must not be dropped as an automated rollback."
+    },
+    "0004-sync-login-identifiers": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Trigger/function changes are restored or replaced through a reviewed forward migration."
+    },
+    "0005-code-counters": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Counter state may be business-significant; preserve state and compensate forward."
+    },
+    "0006-default-location-context": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Context relationships are corrected forward with FK/RLS validation."
+    },
+    "0007-audit-events": {
+      "strategy": "forward-only-security",
+      "destructiveDownAllowed": false,
+      "note": "Audit history is append-only evidence and must not be automatically removed during rollback."
+    },
+    "0008-account-security-tokens": {
+      "strategy": "forward-only-security",
+      "destructiveDownAllowed": false,
+      "note": "Recovery tokens are security state. Disable affected flows or compensate forward rather than restoring consumed tokens."
+    },
+    "0009-mfa-state": {
+      "strategy": "forward-only-security",
+      "destructiveDownAllowed": false,
+      "note": "MFA state must fail closed. Use reviewed forward correction and explicit account recovery procedures."
+    },
+    "0010-operational-services": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Notification, file, scheduler, and outbox records may carry durable work; preserve data and compensate forward."
+    },
+    "0011-outbox-leasing": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Lease columns are additive. A corrective migration may safely supersede them after workers are stopped."
+    },
+    "0012-refresh-token-rotation": {
+      "strategy": "forward-only-security",
+      "destructiveDownAllowed": false,
+      "note": "Consumed-token history is replay-detection security evidence and must not be rolled back into reusable credentials."
+    },
+    "0013-notification-leasing": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Lease/retry state is durable operational data; stop workers and compensate forward if required."
+    }
+  }
+}
