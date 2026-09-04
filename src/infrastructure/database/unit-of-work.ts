@@ -23,6 +23,7 @@ export class UnitOfWork {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
+      this.completed = false;
       this.client = client;
       return client;
     } catch (error) {
@@ -45,6 +46,14 @@ export class UnitOfWork {
     try {
       await client.query('COMMIT');
       this.completed = true;
+    } catch (error) {
+      try {
+        await client.query('ROLLBACK');
+      } catch {
+        // Preserve the original COMMIT failure; the connection is still released below.
+      }
+      this.completed = true;
+      throw error;
     } finally {
       client.release();
       this.client = undefined;
