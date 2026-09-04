@@ -1,0 +1,112 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'feat/**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Typecheck, unit tests, build, Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify generated configuration reference
+        run: |
+          npm run docs:config
+          git diff --exit-code -- docs/04-backend/configuration-reference.md
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Build backend
+        run: npm run build
+
+      - name: Build production container
+        run: docker build --tag newerp-backend:ci .
+
+  integration:
+    name: PostgreSQL integration tests
+    runs-on: ubuntu-latest
+    needs: validate
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres-ci-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client
+
+      - name: Create isolated non-superuser test database
+        env:
+          PGPASSWORD: postgres-ci-only
+        run: |
+          set -euo pipefail
+          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE newerp_test_runner WITH LOGIN PASSWORD 'newerp-test-runner-ci-only' NOSUPERUSER NOBYPASSRLS;
+          CREATE DATABASE newerp_test OWNER newerp_test_runner;
+          SQL
+          psql -h 127.0.0.1 -U postgres -d newerp_test -v ON_ERROR_STOP=1 <<'SQL'
+          ALTER SCHEMA public OWNER TO newerp_test_runner;
+          GRANT ALL ON SCHEMA public TO newerp_test_runner;
+          SQL
+
+      - name: Integration tests
+        env:
+          NODE_ENV: test
+          TEST_DATABASE_URL: postgresql://newerp_test_runner:newerp-test-runner-ci-only@127.0.0.1:5432/newerp_test
+          DATABASE_SSL_MODE: disable
+          JWT_SECRET: integration-test-jwt-secret-change-me-123456789
+        run: npm run test:integration
