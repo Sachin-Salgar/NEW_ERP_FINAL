@@ -62,7 +62,7 @@ jobs:
         run: docker build --tag newerp-backend:ci .
 
       - name: Scan production container
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: newerp-backend:ci
           format: table
