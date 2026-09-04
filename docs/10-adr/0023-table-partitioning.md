@@ -1,7 +1,9 @@
 # ADR-0023: Table Partitioning Strategy
 
 **Date**: 2026-09-04  
-**Status**: Proposed  
+**Status**: Approved  
+**Approval Date**: 2026-09-04  
+**Approved By**: Project Owner following architecture review  
 **Scope**: Partitioning of high-volume PostgreSQL tables
 
 ## Context
