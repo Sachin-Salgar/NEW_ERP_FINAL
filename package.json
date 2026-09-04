@@ -11,6 +11,7 @@
     "test:unit": "vitest run --config vitest.unit.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "docs:config": "tsx scripts/generate-config-reference.ts",
+    "db:verify-recovery": "tsx scripts/verify-migration-recovery.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/infrastructure/database/migrate.ts",
     "db:push": "drizzle-kit push",
