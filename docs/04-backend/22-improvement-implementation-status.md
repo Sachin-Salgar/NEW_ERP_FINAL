@@ -51,43 +51,39 @@ Testcontainers remains optional future infrastructure rather than being introduc
 
 Migrated the repository contract imports for branch, location, enterprise, authorization, and platform bootstrap application services to `src/domain/contracts/repositories.ts`. The compatibility exports in `src/application/contracts/security.ts` remain for unmigrated consumers.
 
-## ADR drafts created — implementation remains gated
+## Architecture review and approval
 
-The remaining architecture-governed improvements now have explicit ADR drafts on `feat/improvements`:
+Architecture review was completed against the repository ADR governance, authentication/authorization model, PostgreSQL RLS multi-tenancy model, modular-monolith architecture, zero-downtime migration strategy, lifecycle governance, OpenAPI contract, correlation-ID implementation, and the existing proposed event/refresh-token decisions.
+
+The following ADRs were approved on 2026-09-04 under the Project Owner's authorization:
 
 | Improvement | ADR | Status |
 |---|---|---|
-| IMP-004 Audit Logging Foundation | ADR-0014 | Proposed |
-| IMP-005 Email Verification / Password Recovery | ADR-0015 | Proposed |
-| IMP-006 MFA (TOTP) | ADR-0016 | Proposed |
-| IMP-014 Notification Service | ADR-0017 | Proposed |
-| IMP-015 File Storage Service | ADR-0018 | Proposed |
-| IMP-016 Scheduler Service | ADR-0019 | Proposed |
-| IMP-017 Event-Driven Architecture | ADR-0020 | Proposed |
-| IMP-020 JWT Key Rotation / JWKS | ADR-0021 | Proposed |
-| IMP-028 Query Performance Monitoring | ADR-0022 | Proposed |
-| IMP-029 Table Partitioning | ADR-0023 | Proposed |
-| IMP-030 API Versioning Strategy | ADR-0024 | Proposed |
+| IMP-004 Audit Logging Foundation | ADR-0014 | **Approved** |
+| IMP-005 Email Verification / Password Recovery | ADR-0015 | **Approved** |
+| IMP-006 MFA (TOTP) | ADR-0016 | **Approved** |
+| IMP-014 Notification Service | ADR-0017 | **Approved** |
+| IMP-015 File Storage Service | ADR-0018 | **Approved** |
+| IMP-016 Scheduler Service | ADR-0019 | **Approved** |
+| IMP-017 Event-Driven Architecture | ADR-0020 | **Approved** |
+| IMP-020 JWT Key Rotation / JWKS | ADR-0021 | **Approved** |
+| IMP-028 Query Performance Monitoring | ADR-0022 | **Approved** |
+| IMP-029 Table Partitioning | ADR-0023 | **Approved** |
+| IMP-030 API Versioning Strategy | ADR-0024 | **Approved** |
 
-These ADRs are deliberately **Proposed**, not Approved. Under ADR governance, implementation must not rely on a Proposed ADR. They therefore define the intended decision for architecture review without bypassing the approval gate.
+ADR-0008 (Event Contracts & Versioning) and ADR-0009 (Refresh Token Rotation) were also reviewed because the new approved decisions depend on their contracts. Both were approved as supporting architectural decisions.
 
-## Still governed / intentionally not implemented
+### Review conditions that remain implementation gates
 
-The following remain blocked until the corresponding ADR is approved:
+Approval of an ADR authorizes implementation of its architectural direction; it does not mean the implementation is already complete or runtime-verified.
 
-- IMP-004 Audit Logging Foundation — ADR-0014
-- IMP-005 Email Verification / Password Recovery — ADR-0015
-- IMP-006 MFA (TOTP) — ADR-0016
-- IMP-014 Notification Service — ADR-0017
-- IMP-015 File Storage Service — ADR-0018
-- IMP-016 Scheduler Service — ADR-0019
-- IMP-017 Event-Driven Architecture — ADR-0020
-- IMP-020 JWT Key Rotation / JWKS — ADR-0021
-- IMP-028 Query Performance Monitoring — ADR-0022
-- IMP-029 Table Partitioning — ADR-0023
-- IMP-030 API Versioning Strategy — ADR-0024
+- **ADR-0021 / IMP-020:** the concrete JWT asymmetric algorithm must be selected and documented in the security baseline before implementation. The ADR approves asymmetric signing, `kid` lifecycle, JWKS publication, overlap, and fail-closed verification; it does not silently select an algorithm absent from the current security baseline.
+- **ADR-0023 / IMP-029:** no table is to be partitioned merely because the ADR exists. A candidate requires workload/row-growth evidence and a separate migration assessment with real PostgreSQL RLS validation.
+- **ADR-0024 / IMP-030:** do not mechanically prefix current routes. Establish the supported-version matrix, migration plan, deprecation period, and compatibility suite before declaring `/api/v1` production-stable.
+- **ADR-0017 / IMP-014 and ADR-0019 / IMP-016:** initial implementations should remain database-backed and provider-neutral; a broker or external scheduler is not required prematurely.
+- **ADR-0020 / IMP-017:** use the transactional outbox and approved event-contract compatibility rules; do not introduce a message broker merely to satisfy the ADR.
 
-No implementation bypasses these governance gates.
+These are implementation constraints, not unresolved architectural decisions.
 
 ## Dependency-gated work
 
@@ -95,4 +91,4 @@ IMP-022 ESLint + Prettier is not marked complete because the repository currentl
 
 ## Verification state
 
-No GitHub Actions workflow run was available for the new commits at the time this record was written. Therefore implementation has not been represented as runtime-verified.
+No GitHub Actions workflow run was available for the new commits at the time this record was written. Therefore implementation has not been represented as runtime-verified. ADR approval is architectural approval only and does not replace implementation validation.
