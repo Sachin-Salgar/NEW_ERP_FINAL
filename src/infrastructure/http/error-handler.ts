@@ -6,10 +6,11 @@ import type { AppConfig } from '../../config/schema.js';
 function acceptsProblemJson(request: FastifyRequest): boolean {
   const accept = request.headers.accept;
   if (!accept) return false;
+
   return accept
     .split(',')
     .map((value) => value.split(';', 1)[0]?.trim().toLowerCase())
-    .some((value) => value === 'application/problem+json' || value === '*/*');
+    .some((value) => value === 'application/problem+json');
 }
 
 export function buildErrorHandler(config: AppConfig) {
