@@ -1,13 +1,13 @@
 import type { Pool, PoolClient } from 'pg';
 
+import { runInTransactionContext } from './transaction-context.js';
+
 /**
  * Explicit PostgreSQL transaction boundary for application/service orchestration.
  *
- * Tenant/RLS context must be established on the same client before repository
- * work is executed. This class deliberately does not create or clear tenant
- * context itself; callers that require RLS should use the tenant-context
- * boundary with the transaction client rather than moving context to a pool
- * connection.
+ * Repository tenant context can safely reuse the same client through the
+ * transaction async context. This prevents nested BEGIN/COMMIT transactions
+ * when a service owns the transaction boundary.
  */
 export class UnitOfWork {
   private client: PoolClient | undefined;
@@ -79,9 +79,11 @@ export class UnitOfWork {
     const client = await this.begin();
 
     try {
-      const result = await callback(client);
-      await this.commit();
-      return result;
+      return await runInTransactionContext(client, async () => {
+        const result = await callback(client);
+        await this.commit();
+        return result;
+      });
     } catch (error) {
       await this.rollback();
       throw error;
