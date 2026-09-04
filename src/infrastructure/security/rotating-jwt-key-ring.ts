@@ -1,10 +1,9 @@
-import { createPublicKey, type KeyObject } from 'node:crypto';
+import { createHash, createPublicKey } from 'node:crypto';
 import jwt, { decode, type JwtPayload } from 'jsonwebtoken';
 
+import type { TokenService } from '../../application/contracts/security.js';
 import type { AccessTokenClaims, RefreshTokenClaims } from '../../domain/contracts/authentication.js';
 import { UnauthorizedError } from '../../domain/errors.js';
-import type { TokenService } from '../../application/contracts/security.js';
-import { createHash } from 'node:crypto';
 
 export type JwtSigningKeyState = 'active' | 'verification-only' | 'retired';
 
