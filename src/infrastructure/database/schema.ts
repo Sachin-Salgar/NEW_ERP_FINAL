@@ -309,6 +309,8 @@ export const salesQuotations = pgTable(
       .notNull()
       .references(() => tenants.id, { onDelete: 'cascade' }),
     organizationId: uuid('organization_id').notNull(),
+    branchId: uuid('branch_id'),
+    financialYearId: uuid('financial_year_id'),
     quotationNumber: varchar('quotation_number', { length: 50 }).notNull(),
     customerId: uuid('customer_id').notNull(),
     quotationDate: date('quotation_date').notNull(),
@@ -341,6 +343,16 @@ export const salesQuotations = pgTable(
       foreignColumns: [organizations.id, organizations.tenantId],
       name: 'fk_sales_quotation_org_tenant',
     }),
+    fkSalesQuotationBranchTenant: foreignKey({
+      columns: [table.branchId, table.tenantId],
+      foreignColumns: [branches.id, branches.tenantId],
+      name: 'fk_sales_quotation_branch_tenant',
+    }),
+    fkSalesQuotationFinancialYearTenant: foreignKey({
+      columns: [table.financialYearId, table.tenantId],
+      foreignColumns: [financialYears.id, financialYears.tenantId],
+      name: 'fk_sales_quotation_financial_year_tenant',
+    }),
     fkSalesQuotationCustomerTenant: foreignKey({
       columns: [table.customerId, table.tenantId],
       foreignColumns: [customers.id, customers.tenantId],
@@ -358,6 +370,8 @@ export const salesQuotationItems = pgTable(
       .notNull()
       .references(() => tenants.id, { onDelete: 'cascade' }),
     organizationId: uuid('organization_id').notNull(),
+    branchId: uuid('branch_id'),
+    financialYearId: uuid('financial_year_id'),
     quotationId: uuid('quotation_id').notNull(),
     lineNumber: integer('line_number').notNull(),
     description: varchar('description', { length: 500 }).notNull(),
@@ -516,6 +530,7 @@ export const userSessions = pgTable(
     organizationId: uuid('organization_id'),
     locationId: uuid('location_id'),
     branchId: uuid('branch_id'),
+    financialYearId: uuid('financial_year_id'),
     accessTokenId: varchar('access_token_id', { length: 255 }),
     refreshTokenHash: varchar('refresh_token_hash', { length: 255 }).notNull(),
     device: varchar('device', { length: 255 }),

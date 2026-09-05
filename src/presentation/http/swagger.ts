@@ -236,6 +236,7 @@ export const authSchemas = {
     organizationId: z.string().uuid(),
     branchId: z.string().uuid(),
     locationId: z.string().uuid(),
+    financialYearId: z.string().uuid(),
   }),
   contextSelectResponse: z.object({
     success: z.boolean().describe('Always true'),

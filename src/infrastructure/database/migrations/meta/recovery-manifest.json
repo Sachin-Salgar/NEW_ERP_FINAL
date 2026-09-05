@@ -95,6 +95,16 @@
       "strategy": "compensating-migration",
       "destructiveDownAllowed": false,
       "note": "Quotation audit and optimistic-concurrency columns are corrected forward while preserving existing quotation and item data."
+    },
+    "0019-sales-quotation-context": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Quotation branch and financial-year context is added forward; existing rows are backfilled only from explicit organization defaults and otherwise preserved as nullable data requiring explicit reclassification."
+    },
+    "0020-session-financial-year-context": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Session financial-year ownership is additive and tenant-safe; preserve existing sessions and correct context forward."
     }
   }
 }

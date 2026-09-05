@@ -187,6 +187,8 @@ export interface QuotationRecord {
   id: string;
   tenantId: string;
   organizationId: string;
+  branchId: string;
+  financialYearId: string;
   quotationNumber: string;
   customerId: string;
   quotationDate: Date;
@@ -207,6 +209,8 @@ export interface QuotationRepository {
   create(input: {
     tenantId: string;
     organizationId: string;
+    branchId: string;
+    financialYearId: string;
     customerId: string;
     quotationDate: string;
     validUntil: string;
@@ -214,14 +218,30 @@ export interface QuotationRepository {
     items: QuotationItemInput[];
     actorUserId: string;
   }): Promise<QuotationRecord>;
-  getById(tenantId: string, organizationId: string, id: string): Promise<QuotationRecord | null>;
+  getById(
+    tenantId: string,
+    organizationId: string,
+    branchId: string,
+    financialYearId: string,
+    id: string,
+  ): Promise<QuotationRecord | null>;
   list(
     tenantId: string,
-    q: { organizationId: string; page: number; pageSize: number; order: 'asc' | 'desc'; search?: string },
+    q: {
+      organizationId: string;
+      branchId: string;
+      financialYearId: string;
+      page: number;
+      pageSize: number;
+      order: 'asc' | 'desc';
+      search?: string;
+    },
   ): Promise<{ items: QuotationRecord[]; total: number }>;
   update(input: {
     tenantId: string;
     organizationId: string;
+    branchId: string;
+    financialYearId: string;
     quotationId: string;
     customerId: string;
     quotationDate: string;
@@ -233,6 +253,8 @@ export interface QuotationRepository {
   transition(input: {
     tenantId: string;
     organizationId: string;
+    branchId: string;
+    financialYearId: string;
     quotationId: string;
     status: import('./quotation.js').QuotationStatus;
     actorUserId: string;
@@ -240,6 +262,8 @@ export interface QuotationRepository {
   softDelete(input: {
     tenantId: string;
     organizationId: string;
+    branchId: string;
+    financialYearId: string;
     quotationId: string;
     actorUserId: string;
   }): Promise<QuotationRecord | null>;
@@ -350,6 +374,11 @@ export interface UserBranchAccessRecord {
 }
 
 export interface CoreEnterpriseRepository {
+  validateFinancialYear(
+    tenantId: string,
+    organizationId: string,
+    financialYearId: string,
+  ): Promise<boolean>;
   generateOrganizationCode(tenantId: string): Promise<string>;
   createOrganization(
     tenantId: string,

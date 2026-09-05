@@ -971,12 +971,12 @@ export class PostgresPlatformRepository
     const result = await withTenantContext(this.pool, this.tenantContextKey, input.tenantId, async (client) => {
       return client.query(
         `INSERT INTO user_sessions (
-           id, tenant_id, user_id, organization_id, location_id, branch_id, access_token_id, refresh_token_hash, device,
+           id, tenant_id, user_id, organization_id, location_id, branch_id, financial_year_id, access_token_id, refresh_token_hash, device,
            user_agent, ip_address, location, is_active, revoked_at, revoked_by, termination_reason,
            login_at, last_activity_at, expires_at, logout_at, updated_at, version
-         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW(),NOW(),$17,$18,NOW(),1)
+         ) VALUES ($1,$2,$3,$4,$5,$6,COALESCE($7,(SELECT id FROM financial_years WHERE tenant_id=$2 AND organization_id=$4 AND is_active=true AND status='open' AND is_locked=false AND is_deleted=false)),$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,NOW(),NOW(),$18,$19,NOW(),1)
          RETURNING id, tenant_id as "tenantId", user_id as "userId", organization_id as "organizationId", location_id as "locationId",
-                   branch_id as "branchId", access_token_id as "accessTokenId", is_active as "isActive", expires_at as "expiresAt",
+                   branch_id as "branchId", financial_year_id as "financialYearId", access_token_id as "accessTokenId", is_active as "isActive", expires_at as "expiresAt",
                    login_at as "loginAt", last_activity_at as "lastActivityAt", revoked_at as "revokedAt", logout_at as "logoutAt"`,
         [
           id,
@@ -985,6 +985,7 @@ export class PostgresPlatformRepository
           input.organizationId ?? null,
           input.locationId ?? null,
           input.branchId ?? null,
+          input.financialYearId ?? null,
           input.accessTokenId ?? null,
           input.refreshTokenHash,
           input.device ?? null,
@@ -1009,6 +1010,7 @@ export class PostgresPlatformRepository
       organizationId: row.organizationId,
       locationId: row.locationId ?? null,
       branchId: row.branchId,
+      financialYearId: row.financialYearId ?? null,
       accessTokenId: row.accessTokenId,
       isActive: row.isActive,
       expiresAt: new Date(row.expiresAt),
@@ -1022,7 +1024,7 @@ export class PostgresPlatformRepository
   async findSession(sessionId: string, tenantId: string): Promise<SessionRecord | null> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
-        `SELECT id, tenant_id as "tenantId", user_id as "userId", organization_id as "organizationId", location_id as "locationId", branch_id as "branchId",
+        `SELECT id, tenant_id as "tenantId", user_id as "userId", organization_id as "organizationId", location_id as "locationId", branch_id as "branchId", financial_year_id as "financialYearId",
                 access_token_id as "accessTokenId", is_active as "isActive", expires_at as "expiresAt",
                 login_at as "loginAt", last_activity_at as "lastActivityAt", revoked_at as "revokedAt", logout_at as "logoutAt"
          FROM user_sessions
@@ -1044,6 +1046,7 @@ export class PostgresPlatformRepository
       organizationId: row.organizationId,
       locationId: row.locationId ?? null,
       branchId: row.branchId,
+      financialYearId: row.financialYearId ?? null,
       accessTokenId: row.accessTokenId,
       isActive: row.isActive,
       expiresAt: new Date(row.expiresAt),
@@ -1057,7 +1060,7 @@ export class PostgresPlatformRepository
   async findSessionByRefreshTokenHash(tenantId: string, refreshTokenHash: string): Promise<SessionRecord | null> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
-        `SELECT id, tenant_id as "tenantId", user_id as "userId", organization_id as "organizationId", location_id as "locationId", branch_id as "branchId",
+        `SELECT id, tenant_id as "tenantId", user_id as "userId", organization_id as "organizationId", location_id as "locationId", branch_id as "branchId", financial_year_id as "financialYearId",
                 access_token_id as "accessTokenId", is_active as "isActive", expires_at as "expiresAt",
                 login_at as "loginAt", last_activity_at as "lastActivityAt", revoked_at as "revokedAt", logout_at as "logoutAt"
          FROM user_sessions
@@ -1079,6 +1082,7 @@ export class PostgresPlatformRepository
       organizationId: row.organizationId,
       locationId: row.locationId ?? null,
       branchId: row.branchId,
+      financialYearId: row.financialYearId ?? null,
       accessTokenId: row.accessTokenId,
       isActive: row.isActive,
       expiresAt: new Date(row.expiresAt),
@@ -2010,6 +2014,25 @@ export class PostgresPlatformRepository
     });
 
     return result.rows.length > 0 ? this.mapBranchRow(result.rows[0]) : null;
+  }
+
+  async validateFinancialYear(tenantId: string, organizationId: string, financialYearId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) =>
+      client.query(
+        `SELECT 1
+           FROM financial_years
+          WHERE tenant_id = $1
+            AND organization_id = $2
+            AND id = $3
+            AND is_deleted = false
+            AND is_active = true
+            AND status = 'open'
+            AND is_locked = false
+          LIMIT 1`,
+        [tenantId, organizationId, financialYearId],
+      ),
+    );
+    return result.rows.length > 0;
   }
 
   async getAccessibleBranchByIdForUser(

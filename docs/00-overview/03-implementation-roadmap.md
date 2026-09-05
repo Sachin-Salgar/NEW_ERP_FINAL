@@ -165,12 +165,12 @@ Business modules must not open until the Core Enterprise gate is completed unles
 
 ### Current Sales implementation step
 
-The implemented Sales capability is quotation management only. Canonical audit
-and optimistic-concurrency remediation is complete, including the forward
-migration, repository/schema contracts, and validation. The quotation still
-requires branch and financial-year references before it can be considered fully
-architecturally compliant; their selection and authorization semantics remain
-a business decision. The remaining Sales architecture is now documented as an
+The implemented Sales capability is quotation management only. Canonical audit,
+optimistic-concurrency, and session-scoped branch/financial-year context
+remediation are complete, including forward migrations, repository/schema
+contracts, authorization, and validation. Legacy quotation rows without
+authoritative context remain a documented data-remediation residual. The
+remaining Sales architecture is now documented as an
 authorization/specification package without source-code implementation. Sales Order, Delivery, Invoice, Return,
 Credit Note, Pricing, Discounts, Workflow, integrations, and Reporting require
 the decisions and dependency contracts identified in their specifications

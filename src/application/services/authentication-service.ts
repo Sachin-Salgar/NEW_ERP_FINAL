@@ -235,6 +235,7 @@ export class AuthenticationService {
     organizationId?: string | null,
     locationId?: string | null,
     branchId?: string | null,
+    financialYearId?: string | null,
   ): Promise<AuthenticationResult> {
     const user = await this.authenticationRepository.findById(tenantId, userId);
     if (!user) {
@@ -266,6 +267,7 @@ export class AuthenticationService {
       organizationId: effectiveOrganizationId,
       locationId: effectiveLocationId,
       branchId: effectiveBranchId,
+      financialYearId,
       accessTokenId: null,
       expiresAt: sessionExpiresAt,
       userAgent: 'erp-client',
@@ -299,6 +301,7 @@ export class AuthenticationService {
       session: {
         ...session,
         branchId: effectiveBranchId,
+        financialYearId: session.financialYearId ?? null,
       },
       accessToken,
       refreshToken: this.tokenService ? refreshToken : undefined,
@@ -331,6 +334,7 @@ export class AuthenticationService {
       activeLocationId: session.locationId ?? null,
       defaultLocationId: user.defaultLocationId ?? null,
       defaultBranchId: user.defaultBranchId,
+      financialYearId: session.financialYearId ?? null,
       username: user.username,
       email: user.email,
       status: user.status,

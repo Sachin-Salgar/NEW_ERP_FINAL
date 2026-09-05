@@ -9,7 +9,13 @@ import type {
 } from '../../src/domain/contracts/repositories.js';
 import { ForbiddenError, ValidationError } from '../../src/domain/errors.js';
 
-const context = { tenantId: randomUUID(), organizationId: randomUUID(), userId: randomUUID() };
+const context = {
+  tenantId: randomUUID(),
+  organizationId: randomUUID(),
+  branchId: randomUUID(),
+  financialYearId: randomUUID(),
+  userId: randomUUID(),
+};
 const item: QuotationItemInput = { description: 'Service', quantity: 2, unitPrice: 10, unitOfMeasure: 'hour' };
 function record(status: QuotationRecord['status'] = 'DRAFT'): QuotationRecord {
   return {

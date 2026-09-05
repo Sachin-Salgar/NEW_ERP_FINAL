@@ -62,6 +62,7 @@ const sanitizeSession = (session: {
   organizationId?: string | null;
   locationId?: string | null;
   branchId?: string | null;
+  financialYearId?: string | null;
   isActive: boolean;
   expiresAt: Date;
   loginAt: Date;
@@ -72,6 +73,7 @@ const sanitizeSession = (session: {
   organizationId: session.organizationId ?? null,
   locationId: session.locationId ?? null,
   branchId: session.branchId ?? null,
+  financialYearId: session.financialYearId ?? null,
   isActive: session.isActive,
   expiresAt: session.expiresAt,
   loginAt: session.loginAt,
@@ -397,6 +399,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       const organizationId = body.organizationId.trim();
       const branchId = body.branchId.trim();
       const locationId = body.locationId.trim();
+      const financialYearId = body.financialYearId.trim();
 
       await request.server.tenantMembershipService.resolveOrganizationMemberships(
         request.tenantId,
@@ -410,6 +413,12 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         organizationId,
       );
       if (!branch) throw new ForbiddenError('Branch is not available for the selected organization.');
+      const financialYearValid = await request.server.branchService.validateFinancialYear(
+        request.tenantId,
+        organizationId,
+        financialYearId,
+      );
+      if (!financialYearValid) throw new ForbiddenError('Financial year is not available for the selected organization.');
       const location = await request.server.locationService.getAccessibleLocationByIdForUser(
         request.tenantId,
         request.user.id,
@@ -424,6 +433,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         organizationId,
         location.id,
         branch.id,
+        financialYearId,
       );
       if (!result.success || !result.user || !result.session)
         throw new UnauthorizedError('Failed to establish the selected working context.');

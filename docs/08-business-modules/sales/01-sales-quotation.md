@@ -20,14 +20,16 @@ customer model or table.
 
 The current implementation is tenant-owned and organization-owned with:
 
-`id`, `tenant_id`, `organization_id`, `quotation_number`, `customer_id`,
+`id`, `tenant_id`, `organization_id`, `branch_id`, `financial_year_id`,
+`quotation_number`, `customer_id`,
 `quotation_date`, `valid_until`, `status`, `notes`, `created_at`, `created_by`,
 `updated_at`, `updated_by`, `deleted_at`, `deleted_by`, `is_deleted`, and
 canonical `version_number`.
 
 `sales_quotation_items` contains:
 
-`id`, `tenant_id`, `organization_id`, `quotation_id`, `line_number`,
+`id`, `tenant_id`, `organization_id`, `branch_id`, `financial_year_id`,
+`quotation_id`, `line_number`,
 `description`, `quantity`, `unit_price`, `unit_of_measure`, `created_at`,
 `created_by`, `updated_at`, `updated_by`, and `version_number`.
 
@@ -38,7 +40,7 @@ tenant/organization scope. Item line numbers are unique per quotation. A
 quotation requires at least one item; quantities are positive, unit prices are
 non-negative, and dates satisfy `valid_until >= quotation_date`.
 
-### Authoritative target and remediation gate
+### Organizational transaction context
 
 The organizational-isolation standard requires every transactional Sales record
 to reference `tenant_id`, `organization_id`, `branch_id`, and
@@ -47,20 +49,13 @@ to reference `tenant_id`, `organization_id`, `branch_id`, and
 `version_number`. No approved exception for Sales Quotation exists in the
 governing documentation or ADRs.
 
-Accordingly, the current quotation implementation is **non-conformant with the
-authoritative target architecture**. It lacks `branch_id` and
-`financial_year_id`. The canonical audit and concurrency fields are now represented in the
-implementation, with migration and validation completed in this remediation
-milestone.
-
-Required future implementation remediation, subject to an authorized
-implementation task, is to add and validate the mandatory branch and
-financial-year references and update the repository, service, API, migrations,
-RLS/authorization checks, frontend context, and tests consistently. The exact
-business semantics for branch and financial year remain **BUSINESS DECISION
-REQUIRED**; this specification does not invent them.
-Until that remediation and its validation are complete, the quotation slice is
-not fully architecturally compliant.
+The session-scoped policy in ADR-0025 supplies the authorized branch and
+financial-year context. New quotations require both values and store them
+immutably; list, read, update, and lifecycle operations are scoped to the
+authenticated session context. Existing rows are backfilled only from
+authoritative organization defaults. Rows without such evidence are preserved
+as nullable legacy data and require explicit reclassification before they can
+participate in new-context operations.
 
 ## Lifecycle
 
@@ -126,10 +121,9 @@ templates are outside this slice.
 
 ## IMPLEMENTATION STATUS
 
-**PARTIAL — CANONICAL AUDIT/CONCURRENCY REMEDIATION COMPLETE; ORGANIZATIONAL
-CONTEXT REMEDIATION BLOCKED** — the quotation slice satisfies the canonical
-audit and optimistic-concurrency requirements and has migration, unit, API, RLS,
-typecheck, lint, build, and recovery validation evidence. It still lacks
-`branch_id` and `financial_year_id`; their selection and authorization
-semantics remain **BUSINESS DECISION REQUIRED**. The remaining Sales
-capabilities are specified separately and are not authorized by this document.
+**PARTIAL — QUOTATION CONTEXT IMPLEMENTED** — the quotation slice satisfies the
+canonical audit, optimistic-concurrency, tenant/organization/branch/financial-
+year context, migration, unit, API, RLS, typecheck, lint, build, and recovery
+validation requirements. Legacy rows without authoritative context remain a
+documented data-remediation residual. The remaining Sales capabilities are
+specified separately and are not authorized by this document.
