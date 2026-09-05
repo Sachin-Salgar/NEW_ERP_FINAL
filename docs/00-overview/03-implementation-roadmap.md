@@ -149,7 +149,7 @@ Project Management is explicitly removed/deferred and is not an implementation t
 | Sequence | Module | Status |
 |---|---|---|
 | 1 | Core Enterprise | **COMPLETED WITH KNOWN VALIDATION RESIDUAL — READY FOR SALES** |
-| 2 | Sales | **PENDING** |
+| 2 | Sales | **QUOTATION MANAGEMENT COMPLETED WITH KNOWN VALIDATION RESIDUAL** — authoritative scope: [Sales Quotation Management](../08-business-modules/03-sales-quotation.md) |
 | 3 | Procurement | **PENDING** |
 | 4 | Inventory | **PENDING** |
 | 5 | Manufacturing | **PENDING** |
@@ -162,6 +162,30 @@ Project Management is explicitly removed/deferred and is not an implementation t
 | 12 | Workflow / BPM | **PENDING** |
 
 Business modules must not open until the Core Enterprise gate is completed unless an approved architectural decision changes the sequence.
+
+### Current Sales implementation step
+
+The approved current-phase Sales capability is quotation management only. The
+implementation order is database/RLS, domain and repository, application
+authorization and lifecycle use cases, API and backend validation, then
+Flutter service/screens/routing and frontend validation. Sales orders and the
+other capabilities listed as deferred in the quotation specification remain
+out of scope.
+
+The Sales quotation slice has passed its documented backend, PostgreSQL/RLS,
+frontend, routing, security, and documentation validation gates. The existing
+Browser Matrix E2E teardown residual remains unchanged and must not be hidden
+or weakened.
+
+Implementation evidence: backend unit and integration suites pass,
+including quotation HTTP authentication coverage and restricted-role
+PostgreSQL tenant/organization isolation, soft-delete, rollback, search, and
+RLS/FORCE RLS validation. Backend typecheck, lint, build, migration-recovery
+verification, production dependency audit, Flutter analyzer, full Flutter
+tests, focused Sales route/service tests, and Flutter Web build pass. Full
+focused Sales route/service/widget coverage and Flutter Web build pass. Docker
+and Trivy were unavailable in the validation environment and remain CI-pending;
+the Browser Matrix E2E teardown residual remains unchanged.
 
 ## 8. Verification gate disposition
 

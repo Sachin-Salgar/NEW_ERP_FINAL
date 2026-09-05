@@ -16,12 +16,14 @@ import { UserRegistrationService } from '../../application/services/user-registr
 import { AccountSecurityService } from '../../application/services/account-security-service.js';
 import { MfaService } from '../../application/services/mfa-service.js';
 import { CustomerService } from '../../application/services/customer-service.js';
+import { QuotationService } from '../../application/services/quotation-service.js';
 import { createDatabasePool } from '../../infrastructure/database/connection.js';
 import { PostgresQueryPerformanceMonitor } from '../../infrastructure/database/query-performance-monitor.js';
 import { IdentityAwarePostgresPlatformRepository } from '../../infrastructure/database/repositories/identity-aware-postgres-platform-repository.js';
 import { PostgresAccountSecurityRepository } from '../../infrastructure/database/repositories/postgres-account-security-repository.js';
 import { PostgresMfaRepository } from '../../infrastructure/database/repositories/postgres-mfa-repository.js';
 import { PostgresCustomerRepository } from '../../infrastructure/database/repositories/postgres-customer-repository.js';
+import { PostgresQuotationRepository } from '../../infrastructure/database/repositories/postgres-quotation-repository.js';
 import { PostgresNotificationService } from '../../infrastructure/database/repositories/postgres-operational-services.js';
 import { AccountSecurityNotificationAdapter } from '../../application/adapters/account-security-notifications.js';
 import { buildErrorHandler } from '../../infrastructure/http/error-handler.js';
@@ -42,6 +44,7 @@ import coreEnterpriseRoutes from './routes/core-enterprise.js';
 import jwksRoutes from './routes/jwks.js';
 import locationRoutes from './routes/location.js';
 import customerRoutes from './routes/customer.js';
+import quotationRoutes from './routes/quotation.js';
 import rbacRoutes from './routes/rbac.js';
 import { paginateListResponse } from './pagination.js';
 import { requestObject } from './request-input.js';
@@ -166,6 +169,13 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     auditLogger,
     transactionRunner,
   );
+  const quotationService = new QuotationService(
+    new PostgresQuotationRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+    transactionRunner,
+  );
   const refreshTokenRotationService = new RefreshTokenRotationService(pool, config.TENANT_CONTEXT_KEY, jwtTokenService);
   const registrationService = new UserRegistrationService(
     repository,
@@ -211,6 +221,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('mfaService', mfaService);
   app.decorate('auditLogger', auditLogger);
   app.decorate('customerService', customerService);
+  app.decorate('quotationService', quotationService);
 
   app.addHook('onReady', async () => {
     const snapshot = await queryPerformanceMonitor.snapshot({ minimumMeanExecMs: 100, limit: 25 });
@@ -310,5 +321,6 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(coreEnterpriseRoutes, { prefix: config.API_PREFIX });
   await app.register(locationRoutes, { prefix: config.API_PREFIX });
   await app.register(customerRoutes, { prefix: config.API_PREFIX });
+  await app.register(quotationRoutes, { prefix: config.API_PREFIX });
   return app;
 }

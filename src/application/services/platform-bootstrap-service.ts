@@ -47,6 +47,7 @@ const DEFAULT_MODULES: PlatformModuleSeed[] = [
     sortOrder: 6,
   },
   { code: 'crm', name: 'Customer Relationship Management', moduleGroup: 'CRM', isCore: false, sortOrder: 20 },
+  { code: 'sales', name: 'Sales', moduleGroup: 'Sales', isCore: false, sortOrder: 30 },
 ];
 
 const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
@@ -186,6 +187,16 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
     permissionKey: 'customer.delete',
     displayName: 'Delete customers',
   },
+  ...(['read', 'create', 'update', 'delete', 'send', 'accept', 'reject', 'expire', 'cancel'] as const).map(
+    (action) => ({
+      moduleCode: 'sales',
+      resource: 'quotation',
+      action,
+      scope: 'organization' as const,
+      permissionKey: `sales.quotation.${action}`,
+      displayName: `${action[0].toUpperCase()}${action.slice(1)} quotations`,
+    }),
+  ),
 ];
 
 export class PlatformBootstrapService {

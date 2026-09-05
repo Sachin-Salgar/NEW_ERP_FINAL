@@ -66,6 +66,10 @@ export function schemaForRoute(method: string, url: string) {
     schema.body = toJsonSchema(customerSchemas.createRequest);
   else if (method === 'PATCH' && normalizedUrl === '/customers/:id')
     schema.body = toJsonSchema(customerSchemas.updateRequest);
+  else if (method === 'POST' && normalizedUrl === '/sales/quotations')
+    schema.body = toJsonSchema(salesQuotationSchemas.createRequest);
+  else if (method === 'PATCH' && normalizedUrl === '/sales/quotations/:id')
+    schema.body = toJsonSchema(salesQuotationSchemas.updateRequest);
   return schema;
 }
 
@@ -562,6 +566,71 @@ export const customerSchemas = {
   }),
 };
 
+export const salesQuotationSchemas = {
+  item: z.object({
+    lineNumber: z.number().int().positive().optional(),
+    description: z.string().trim().min(1).max(500),
+    quantity: z.number().positive(),
+    unitPrice: z.number().nonnegative(),
+    unitOfMeasure: z.string().trim().min(1).max(50),
+  }),
+  quotation: z.object({
+    id: z.string().uuid(),
+    tenantId: z.string().uuid(),
+    organizationId: z.string().uuid(),
+    quotationNumber: z.string(),
+    customerId: z.string().uuid(),
+    quotationDate: z.string().date(),
+    validUntil: z.string().date(),
+    status: z.enum(['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'CANCELLED']),
+    notes: z.string().nullable(),
+    items: z.array(
+      z.object({
+        id: z.string().uuid(),
+        lineNumber: z.number().int().positive(),
+        description: z.string(),
+        quantity: z.number(),
+        unitPrice: z.number(),
+        unitOfMeasure: z.string(),
+      }),
+    ),
+  }),
+  createRequest: z.object({
+    customerId: z.string().uuid(),
+    quotationDate: z.string().date(),
+    validUntil: z.string().date(),
+    notes: z.string().nullable().optional(),
+    items: z
+      .array(
+        z.object({
+          lineNumber: z.number().int().positive().optional(),
+          description: z.string().trim().min(1).max(500),
+          quantity: z.number().positive(),
+          unitPrice: z.number().nonnegative(),
+          unitOfMeasure: z.string().trim().min(1).max(50),
+        }),
+      )
+      .min(1),
+  }),
+  updateRequest: z.object({
+    customerId: z.string().uuid(),
+    quotationDate: z.string().date(),
+    validUntil: z.string().date(),
+    notes: z.string().nullable().optional(),
+    items: z
+      .array(
+        z.object({
+          lineNumber: z.number().int().positive().optional(),
+          description: z.string().trim().min(1).max(500),
+          quantity: z.number().positive(),
+          unitPrice: z.number().nonnegative(),
+          unitOfMeasure: z.string().trim().min(1).max(50),
+        }),
+      )
+      .min(1),
+  }),
+};
+
 export const locationSchemas = {
   location: z.object({
     id: z.string().uuid(),
@@ -628,6 +697,7 @@ export async function setupSwagger(app: FastifyInstance) {
           ...Object.fromEntries(Object.entries(enterpriseSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
           ...Object.fromEntries(Object.entries(locationSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
           ...Object.fromEntries(Object.entries(customerSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
+          ...Object.fromEntries(Object.entries(salesQuotationSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
         },
       },
       security: [{ bearerAuth: [] }],
@@ -639,6 +709,7 @@ export async function setupSwagger(app: FastifyInstance) {
         { name: 'Enterprise', description: 'Organization and branch management' },
         { name: 'Locations', description: 'Location management' },
         { name: 'Customers', description: 'Customer management' },
+        { name: 'Sales Quotations', description: 'Sales quotation management' },
       ],
     },
   });

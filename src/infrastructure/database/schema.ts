@@ -6,6 +6,7 @@ import {
   foreignKey,
   integer,
   index,
+  numeric,
   pgEnum,
   pgTable,
   primaryKey,
@@ -37,6 +38,14 @@ export const userStatusEnum = pgEnum('user_status_enum', ['active', 'inactive', 
 export const orgStatusEnum = pgEnum('org_status_enum', ['active', 'inactive', 'archived']);
 
 export const fyStatusEnum = pgEnum('fy_status_enum', ['open', 'closed', 'locked']);
+export const quotationStatusEnum = pgEnum('quotation_status_enum', [
+  'DRAFT',
+  'SENT',
+  'ACCEPTED',
+  'REJECTED',
+  'EXPIRED',
+  'CANCELLED',
+]);
 
 export const resetPolicyEnum = pgEnum('reset_policy_enum', ['financial_year', 'calendar_year', 'monthly', 'never']);
 
@@ -289,6 +298,89 @@ export const customers = pgTable(
       'check_customer_soft_delete',
       sql`(((${table.isDeleted}) = false AND (${table.deletedAt}) IS NULL) OR ((${table.isDeleted}) = true AND (${table.deletedAt}) IS NOT NULL))`,
     ),
+  }),
+);
+
+export const salesQuotations = pgTable(
+  'sales_quotations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    organizationId: uuid('organization_id').notNull(),
+    quotationNumber: varchar('quotation_number', { length: 50 }).notNull(),
+    customerId: uuid('customer_id').notNull(),
+    quotationDate: date('quotation_date').notNull(),
+    validUntil: date('valid_until').notNull(),
+    status: quotationStatusEnum('status').notNull().default('DRAFT'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid('created_by'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }),
+    updatedBy: uuid('updated_by'),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    deletedBy: uuid('deleted_by'),
+    isDeleted: boolean('is_deleted').notNull().default(false),
+    version: integer('version').notNull().default(1),
+  },
+  (table) => ({
+    uqSalesQuotationNumber: uniqueIndex('uq_sales_quotation_number').on(
+      table.tenantId,
+      table.organizationId,
+      table.quotationNumber,
+    ),
+    idxSalesQuotationList: index('idx_sales_quotation_list').on(
+      table.tenantId,
+      table.organizationId,
+      table.quotationNumber,
+      table.id,
+    ),
+    fkSalesQuotationOrgTenant: foreignKey({
+      columns: [table.organizationId, table.tenantId],
+      foreignColumns: [organizations.id, organizations.tenantId],
+      name: 'fk_sales_quotation_org_tenant',
+    }),
+    fkSalesQuotationCustomerTenant: foreignKey({
+      columns: [table.customerId, table.tenantId],
+      foreignColumns: [customers.id, customers.tenantId],
+      name: 'fk_sales_quotation_customer_tenant',
+    }),
+    checkSalesQuotationDates: check('check_sales_quotation_dates', sql`${table.validUntil} >= ${table.quotationDate}`),
+  }),
+);
+
+export const salesQuotationItems = pgTable(
+  'sales_quotation_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    organizationId: uuid('organization_id').notNull(),
+    quotationId: uuid('quotation_id').notNull(),
+    lineNumber: integer('line_number').notNull(),
+    description: varchar('description', { length: 500 }).notNull(),
+    quantity: numeric('quantity', { precision: 18, scale: 4 }).notNull(),
+    unitPrice: numeric('unit_price', { precision: 18, scale: 4 }).notNull(),
+    unitOfMeasure: varchar('unit_of_measure', { length: 50 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }),
+  },
+  (table) => ({
+    uqSalesQuotationItemLine: uniqueIndex('uq_sales_quote_item_line').on(table.quotationId, table.lineNumber),
+    fkSalesQuoteItemQuote: foreignKey({
+      columns: [table.quotationId, table.tenantId],
+      foreignColumns: [salesQuotations.id, salesQuotations.tenantId],
+      name: 'fk_sales_quote_item_quote',
+    }),
+    fkSalesQuoteItemOrgTenant: foreignKey({
+      columns: [table.organizationId, table.tenantId],
+      foreignColumns: [organizations.id, organizations.tenantId],
+      name: 'fk_sales_quote_item_org_tenant',
+    }),
+    checkSalesQuoteItemQuantity: check('check_sales_quote_item_quantity', sql`${table.quantity} > 0`),
+    checkSalesQuoteItemPrice: check('check_sales_quote_item_price', sql`${table.unitPrice} >= 0`),
   }),
 );
 

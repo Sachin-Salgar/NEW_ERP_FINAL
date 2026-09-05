@@ -11,6 +11,10 @@ import '../modules/customer/create_screen.dart';
 import '../modules/customer/details_screen.dart';
 import '../modules/customer/edit_screen.dart';
 import '../modules/customer/list_screen.dart';
+import '../modules/sales/create_screen.dart';
+import '../modules/sales/details_screen.dart';
+import '../modules/sales/edit_screen.dart';
+import '../modules/sales/list_screen.dart';
 import '../modules/dashboard/dashboard_screen.dart';
 import '../modules/organization/create_screen.dart';
 import '../modules/organization/details_screen.dart';
@@ -45,12 +49,16 @@ class AppRouter {
     if (arguments is Map && arguments['id'] is String) {
       return arguments['id'] as String;
     }
+
     final segments = path
         .split('/')
         .where((segment) => segment.isNotEmpty)
         .toList();
     return segments.length > 1 ? segments[1] : '';
   }
+
+  static String _quotationId(String path, Object? arguments) =>
+      _extractDetailId(path, arguments) ?? '';
 
   static String? _extractDetailId(
     String routeName,
@@ -116,6 +124,36 @@ class AppRouter {
           routeName: '/customers/details',
           child: CustomerDetailsScreen(
             id: _customerId(path, settings.arguments),
+          ),
+        ),
+      );
+    }
+    if (path.startsWith('/sales/quotations/') &&
+        path.endsWith('/edit') &&
+        path != '/sales/quotations/create') {
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => _protected(
+          context,
+          routeName: '/sales/quotations/edit',
+          child: EditSalesQuotationScreen(
+            id: _quotationId(
+              path.substring(0, path.length - 5),
+              settings.arguments,
+            ),
+          ),
+        ),
+      );
+    }
+    if (path.startsWith('/sales/quotations/') &&
+        path != '/sales/quotations/create') {
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => _protected(
+          context,
+          routeName: '/sales/quotations/details',
+          child: SalesQuotationDetailsScreen(
+            id: _quotationId(path, settings.arguments),
           ),
         ),
       );
@@ -271,6 +309,24 @@ class AppRouter {
             context,
             routeName: '/customers/create',
             child: const CreateCustomerScreen(),
+          ),
+        );
+      case '/sales/quotations':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/sales/quotations',
+            child: const SalesQuotationListScreen(),
+          ),
+        );
+      case '/sales/quotations/create':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/sales/quotations/create',
+            child: const CreateSalesQuotationScreen(),
           ),
         );
       case '/login':

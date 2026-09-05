@@ -175,3 +175,11 @@ Implementation requirements are complete. Release completion remains gated by ac
 - [Frontend Testing Strategy](./22-frontend-testing-strategy.md)
 - [Frontend Development Standards](./23-development-standards.md)
 - [Implementation Roadmap](../00-overview/03-implementation-roadmap.md)
+
+## Sales quotation routes
+
+The first Sales route family is `/sales/quotations` with list, create, detail,
+and edit paths. It uses canonical route metadata, the `sales` module gate, and
+the documented `sales.quotation.*` permissions while preserving the existing
+Router 2.0 persistent shell. The browser matrix teardown residual remains
+unchanged.

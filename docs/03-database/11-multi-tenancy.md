@@ -152,3 +152,9 @@ Organization, branch, location, plant, role, and permission constraints are addi
 - [Backend Authentication and Authorization](../04-backend/07-authentication-and-authorization.md)
 - [Enterprise Security Architecture](../06-security/04-enterprise-security-architecture.md)
 - [ADR-0006: Identity-Based Tenant Context and PostgreSQL RLS](../10-adr/0006-identity-based-tenant-context.md)
+# Sales quotation tenancy
+
+Sales quotation and quotation-item records are tenant-owned and
+organization-owned. They use tenant-safe composite foreign keys, transaction
+local `app.current_tenant_id`, RLS and FORCE RLS, and retain soft-deleted
+records. See the current-phase [Sales Quotation Management specification](../08-business-modules/03-sales-quotation.md).

@@ -43,6 +43,14 @@ class AppRoutes {
     moduleCode: 'crm',
     icon: Icons.people_alt_outlined,
   );
+  static const salesQuotations = AppRouteConfig(
+    path: '/sales/quotations',
+    title: 'Sales Quotations',
+    group: 'SALES',
+    permissionKey: 'sales.quotation.read',
+    moduleCode: 'sales',
+    icon: Icons.request_quote_outlined,
+  );
   static const settings = AppRouteConfig(
     path: '/settings',
     title: 'Settings',
@@ -140,7 +148,12 @@ class AppRoutes {
     settingsPermissions,
   ];
 
-  static const topLevel = <AppRouteConfig>[dashboard, settings, customers];
+  static const topLevel = <AppRouteConfig>[
+    dashboard,
+    settings,
+    customers,
+    salesQuotations,
+  ];
 
   static const routePermissions = <String, String?>{
     '/dashboard': null,
@@ -148,6 +161,10 @@ class AppRoutes {
     '/customers/create': 'customer.create',
     '/customers/details': 'customer.read',
     '/customers/edit': 'customer.update',
+    '/sales/quotations': 'sales.quotation.read',
+    '/sales/quotations/create': 'sales.quotation.create',
+    '/sales/quotations/details': 'sales.quotation.read',
+    '/sales/quotations/edit': 'sales.quotation.update',
     '/settings': null,
     '/settings/organizations': 'organization.read',
     '/settings/organizations/create': 'organization.manage',

@@ -158,21 +158,91 @@ export interface CustomerRepository {
   }): Promise<CustomerRecord>;
   getById(tenantId: string, organizationId: string, customerId: string): Promise<CustomerRecord | null>;
   list(tenantId: string, query: CustomerListQuery): Promise<CustomerListResult>;
-  update(
-    input: {
-      tenantId: string;
-      organizationId: string;
-      customerId: string;
-      name: string;
-      actorUserId: string;
-    },
-  ): Promise<CustomerRecord | null>;
+  update(input: {
+    tenantId: string;
+    organizationId: string;
+    customerId: string;
+    name: string;
+    actorUserId: string;
+  }): Promise<CustomerRecord | null>;
   softDelete(input: {
     tenantId: string;
     organizationId: string;
     customerId: string;
     actorUserId: string;
   }): Promise<CustomerRecord | null>;
+}
+
+export interface QuotationItemInput {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  unitOfMeasure: string;
+}
+export interface QuotationItemRecord extends QuotationItemInput {
+  id: string;
+  lineNumber: number;
+}
+export interface QuotationRecord {
+  id: string;
+  tenantId: string;
+  organizationId: string;
+  quotationNumber: string;
+  customerId: string;
+  quotationDate: Date;
+  validUntil: Date;
+  status: import('./quotation.js').QuotationStatus;
+  notes: string | null;
+  items: QuotationItemRecord[];
+  createdAt: Date;
+  createdBy: string | null;
+  updatedAt: Date | null;
+  updatedBy: string | null;
+  deletedAt: Date | null;
+  deletedBy: string | null;
+  isDeleted: boolean;
+  version: number;
+}
+export interface QuotationRepository {
+  create(input: {
+    tenantId: string;
+    organizationId: string;
+    customerId: string;
+    quotationDate: string;
+    validUntil: string;
+    notes?: string | null;
+    items: QuotationItemInput[];
+    actorUserId: string;
+  }): Promise<QuotationRecord>;
+  getById(tenantId: string, organizationId: string, id: string): Promise<QuotationRecord | null>;
+  list(
+    tenantId: string,
+    q: { organizationId: string; page: number; pageSize: number; order: 'asc' | 'desc'; search?: string },
+  ): Promise<{ items: QuotationRecord[]; total: number }>;
+  update(input: {
+    tenantId: string;
+    organizationId: string;
+    quotationId: string;
+    customerId: string;
+    quotationDate: string;
+    validUntil: string;
+    notes?: string | null;
+    items: QuotationItemInput[];
+    actorUserId: string;
+  }): Promise<QuotationRecord | null>;
+  transition(input: {
+    tenantId: string;
+    organizationId: string;
+    quotationId: string;
+    status: import('./quotation.js').QuotationStatus;
+    actorUserId: string;
+  }): Promise<QuotationRecord | null>;
+  softDelete(input: {
+    tenantId: string;
+    organizationId: string;
+    quotationId: string;
+    actorUserId: string;
+  }): Promise<QuotationRecord | null>;
 }
 
 export interface OrganizationRecord {

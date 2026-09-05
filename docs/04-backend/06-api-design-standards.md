@@ -306,3 +306,10 @@ By adopting uniform resource design, predictable workflows, and standardized res
 - [Modular Monolith](./03-modular-monolith.md)
 - [Error Handling Framework](./11-error-handling-framework.md)
 - [Backend Security](../06-security/01-backend-security.md)
+# Sales quotation API implementation
+
+The current Sales slice exposes the documented quotation collection, detail,
+draft mutation, soft-delete, and explicit lifecycle endpoints under
+`/api/v1/sales/quotations`. The authoritative contract, permissions, validation,
+and deferred scope are maintained in
+[Sales Quotation Management](../08-business-modules/03-sales-quotation.md).

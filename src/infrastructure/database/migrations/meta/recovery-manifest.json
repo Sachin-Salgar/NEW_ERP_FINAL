@@ -80,6 +80,16 @@
       "strategy": "compensating-migration",
       "destructiveDownAllowed": false,
       "note": "Corrects tenant bootstrap trigger behavior under FORCE RLS by temporarily binding the new tenant context during core entitlement initialization and restoring the prior context."
+    },
+    "0016-sales-quotation": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Quotation business records, item lines, and numbering counters are preserved and corrected forward if recovery is required."
+    },
+    "0017-sales-quotation-item-organization-integrity": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Quotation item organization ownership is tightened through a forward-only tenant-safe composite foreign key."
     }
   }
 }

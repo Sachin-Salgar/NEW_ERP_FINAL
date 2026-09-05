@@ -28,6 +28,14 @@ Security shall be incorporated throughout the architecture through appropriate c
 
 Security shall not be treated as a feature added after implementation.
 
+## Sales quotation security scope
+
+The current Sales quotation slice applies backend RBAC and module enablement,
+authenticated tenant authority, active-organization checks, customer
+relationship boundaries, audit logging, and PostgreSQL RLS/FORCE RLS. It does
+not change the existing Core Enterprise security model. Details are in the
+[Sales Quotation Management specification](../08-business-modules/03-sales-quotation.md).
+
 ## Current Baseline
 
 The current documented authentication baseline uses JWT-based access and refresh tokens. Token lifecycle and refresh/rotation behavior are governed by the canonical backend authentication documentation and applicable ADRs.
