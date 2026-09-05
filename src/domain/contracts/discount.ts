@@ -14,6 +14,7 @@ export interface DiscountUpdateInput{tenantId:string;organizationId:string;id:st
 export interface DiscountRuleRepository{
   create(i:DiscountCreateInput):Promise<DiscountRuleRecord>;
   list(t:string,o:string):Promise<DiscountRuleRecord[]>;
+  get(t:string,o:string,id:string):Promise<DiscountRuleRecord|null>;
   transition(i:DiscountTransitionInput):Promise<DiscountRuleRecord|null>;
   update(i:DiscountUpdateInput):Promise<DiscountRuleRecord|null>;
   resolve(t:string,o:string,asOf:string):Promise<ResolvedDiscountRule|null>;

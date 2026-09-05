@@ -51,6 +51,7 @@ class _SalesAdminListScreenState extends State<SalesAdminListScreen> {
               return ListTile(
                 title: Text('${row['name'] ?? row['code'] ?? ''}'),
                 subtitle: Text('${row['status'] ?? ''} • ${row['effectiveFrom'] ?? ''}'),
+                onTap: () => Navigator.pushNamed(context, '/sales/${widget.kind}/${row['id']}').then((_) => _refresh()),
                 trailing: Wrap(
                   children: [
                     if (status == 'DRAFT' && auth.hasPermission('$permission.publish'))

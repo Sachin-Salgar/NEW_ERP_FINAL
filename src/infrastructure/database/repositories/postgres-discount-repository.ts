@@ -45,6 +45,13 @@ export class PostgresDiscountRepository implements DiscountRuleRepository {
     }, { organizationId }) as Promise<DiscountRuleRecord[]>;
   }
 
+  async get(tenantId: string, organizationId: string, id: string): Promise<DiscountRuleRecord | null> {
+    return withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      const result = await client.query(`SELECT ${C} FROM sales_discount_rules WHERE tenant_id=$1 AND organization_id=$2 AND id=$3`, [tenantId, organizationId, id]);
+      return result.rows[0] ? mapRule(result.rows[0]) : null;
+    }, { organizationId });
+  }
+
   async resolve(tenantId: string, organizationId: string, asOf: string): Promise<ResolvedDiscountRule | null> {
     return withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       const result = await client.query(`SELECT id,code,percentage,effective_from AS "effectiveFrom",

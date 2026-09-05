@@ -31,4 +31,21 @@ describe('SalesReturnService', () => {
     repository.value = record('CLOSED');
     await expect(service.transition(context, repository.value.id, 'CANCELLED', 1)).rejects.toBeInstanceOf(ValidationError);
   });
+  it('rejects duplicate or non-positive requested quantities', async () => {
+    const { service } = createService();
+    const invoiceItemId = randomUUID();
+    await expect(service.create(context, {
+      invoiceId: randomUUID(),
+      idempotencyKey: 'request-2',
+      items: [
+        { invoiceItemId, quantity: 1 },
+        { invoiceItemId, quantity: 2 },
+      ],
+    })).rejects.toBeInstanceOf(ValidationError);
+    await expect(service.create(context, {
+      invoiceId: randomUUID(),
+      idempotencyKey: 'request-3',
+      items: [{ invoiceItemId: randomUUID(), quantity: 0 }],
+    })).rejects.toBeInstanceOf(ValidationError);
+  });
 });

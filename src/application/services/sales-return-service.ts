@@ -14,10 +14,20 @@ const transitions: Record<SalesReturnStatus, SalesReturnStatus[]> = {
 };
 export class SalesReturnService {
   constructor(private readonly repository: SalesReturnRepository, private readonly auth: Pick<AuthorizationService, 'hasPermission'>, private readonly modules: Pick<ModuleAccessService, 'isModuleEnabled'>, private readonly audit: AuditLogger, private readonly tx: SalesReturnTransactionRunner) {}
-  async create(context: SalesReturnContext, input: { invoiceId: string; idempotencyKey: string; notes?: string | null }): Promise<SalesReturnRecord> {
+  async create(context: SalesReturnContext, input: { invoiceId: string; idempotencyKey: string; notes?: string | null; items?: Array<{ invoiceItemId: string; quantity: number }> }): Promise<SalesReturnRecord> {
     await this.authorize(context, SALES_RETURN_PERMISSIONS.create); this.id(input.invoiceId, 'Invoice ID');
     const key = input.idempotencyKey?.trim(); if (!key || key.length > 128) throw new ValidationError('Idempotency key is required and must be at most 128 characters.');
-    return this.tx.runInTransaction(async () => { const value = await this.repository.create({ ...context, invoiceId: input.invoiceId, idempotencyKey: key, notes: input.notes ?? null, actorUserId: context.userId }); await this.audit.record({ tenantId: context.tenantId, actorUserId: context.userId, action: 'sales_return.created', resourceType: 'sales_return', resourceId: value.id, outcome: 'success' }, { requireTransaction: true }); return value; });
+    if (input.items) {
+      if (input.items.length === 0) throw new ValidationError('At least one return line is required.');
+      const seen = new Set<string>();
+      for (const item of input.items) {
+        this.id(item.invoiceItemId, 'Invoice item ID');
+        if (seen.has(item.invoiceItemId) || !Number.isFinite(item.quantity) || item.quantity <= 0)
+          throw new ValidationError('Return lines must contain unique invoice items and positive quantities.');
+        seen.add(item.invoiceItemId);
+      }
+    }
+    return this.tx.runInTransaction(async () => { const value = await this.repository.create({ ...context, invoiceId: input.invoiceId, idempotencyKey: key, notes: input.notes ?? null, items: input.items, actorUserId: context.userId }); await this.audit.record({ tenantId: context.tenantId, actorUserId: context.userId, action: 'sales_return.created', resourceType: 'sales_return', resourceId: value.id, outcome: 'success' }, { requireTransaction: true }); return value; });
   }
   async get(context: SalesReturnContext, id: string) { await this.authorize(context, SALES_RETURN_PERMISSIONS.read); this.id(id, 'Return ID'); const value = await this.repository.getById(context.tenantId, context.organizationId, context.branchId, context.financialYearId, id); if (!value) throw new NotFoundError('Sales Return not found.'); return value; }
   async list(context: SalesReturnContext, input: { page: number; pageSize: number; order: 'asc' | 'desc'; search?: string }) { await this.authorize(context, SALES_RETURN_PERMISSIONS.read); return this.repository.list(context.tenantId, { ...input, organizationId: context.organizationId, branchId: context.branchId, financialYearId: context.financialYearId }); }

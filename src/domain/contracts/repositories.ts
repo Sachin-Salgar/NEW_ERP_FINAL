@@ -471,7 +471,7 @@ export interface SalesReturnRecord {
   updatedAt: Date | null; updatedBy: string | null; versionNumber: number;
 }
 export interface SalesReturnRepository {
-  create(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; invoiceId: string; idempotencyKey: string; notes: string | null; actorUserId: string }): Promise<SalesReturnRecord>;
+  create(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; invoiceId: string; idempotencyKey: string; notes: string | null; items?: Array<{ invoiceItemId: string; quantity: number }>; actorUserId: string }): Promise<SalesReturnRecord>;
   getById(tenantId: string, organizationId: string, branchId: string, financialYearId: string, id: string): Promise<SalesReturnRecord | null>;
   list(tenantId: string, q: { organizationId: string; branchId: string; financialYearId: string; page: number; pageSize: number; order: 'asc' | 'desc'; search?: string }): Promise<{ items: SalesReturnRecord[]; total: number }>;
   update(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; returnId: string; notes: string | null; expectedVersion: number; actorUserId: string }): Promise<SalesReturnRecord | null>;

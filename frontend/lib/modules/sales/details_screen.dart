@@ -51,6 +51,9 @@ class _SalesQuotationDetailsScreenState extends State<SalesQuotationDetailsScree
       if (status == 'SENT' && auth.hasPermission('sales.quotation.expire')) 'expire': 'Expire',
       if (status == 'SENT' && auth.hasPermission('sales.quotation.cancel')) 'cancel': 'Cancel',
     };
+    if (status == 'ACCEPTED' && auth.hasPermission('sales.order.create')) {
+      actions['convert'] = 'Convert to order';
+    }
     final items = (quotation!['items'] as List<dynamic>?) ?? const [];
     return Scaffold(
       appBar: AppBar(
@@ -74,7 +77,15 @@ class _SalesQuotationDetailsScreenState extends State<SalesQuotationDetailsScree
             title: Text('${item['description']}'),
             subtitle: Text('${item['quantity']} ${item['unitOfMeasure'] ?? item['unit_of_measure']} @ ${item['unitPrice'] ?? item['unit_price']}'),
           )),
-          if (actions.isNotEmpty) Wrap(spacing: 8, children: actions.entries.map((entry) => FilledButton(onPressed: () => _transition(entry.key), child: Text(entry.value))).toList()),
+          if (actions.isNotEmpty) Wrap(spacing: 8, children: actions.entries.map((entry) => FilledButton(onPressed: () async {
+            if (entry.key == 'convert') {
+              final result = await service.convertQuotationToOrder(widget.id);
+              if (mounted && result != null) setState(() => error = result);
+              if (mounted && result == null) Navigator.pushNamed(context, '/sales/orders');
+            } else {
+              _transition(entry.key);
+            }
+          }, child: Text(entry.value))).toList()),
           if (error != null) Text(error!, style: const TextStyle(color: Colors.red)),
         ],
       ),

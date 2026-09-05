@@ -59,6 +59,8 @@ class AppRoutes {
     moduleCode: 'sales',
     icon: Icons.receipt_long_outlined,
   );
+  static const salesOrders = AppRouteConfig(path: '/sales/orders', title: 'Sales Orders', group: 'SALES', permissionKey: 'sales.order.read', moduleCode: 'sales', icon: Icons.shopping_cart_outlined);
+  static const salesDeliveries = AppRouteConfig(path: '/sales/deliveries', title: 'Sales Deliveries', group: 'SALES', permissionKey: 'sales.delivery.read', moduleCode: 'sales', icon: Icons.local_shipping_outlined);
   static const salesReturns = AppRouteConfig(path: '/sales/returns', title: 'Sales Returns', group: 'SALES', permissionKey: 'sales.return.read', moduleCode: 'sales', icon: Icons.assignment_return_outlined);
   static const salesCreditNotes = AppRouteConfig(path: '/sales/credit-notes', title: 'Credit Notes', group: 'SALES', permissionKey: 'sales.credit_note.read', moduleCode: 'sales', icon: Icons.note_alt_outlined);
   static const salesReports = AppRouteConfig(path: '/sales/reports', title: 'Sales Reports', group: 'SALES', permissionKey: 'sales.reporting.read', moduleCode: 'sales', icon: Icons.analytics_outlined);
@@ -166,6 +168,8 @@ class AppRoutes {
     settings,
     customers,
     salesQuotations,
+    salesOrders,
+    salesDeliveries,
     salesInvoices,
     salesReturns,
     salesCreditNotes,
@@ -185,6 +189,8 @@ class AppRoutes {
     '/sales/quotations/details': 'sales.quotation.read',
     '/sales/quotations/edit': 'sales.quotation.update',
     '/sales/invoices': 'sales.invoice.read',
+    '/sales/orders': 'sales.order.read',
+    '/sales/deliveries': 'sales.delivery.read',
     '/sales/invoices/create': 'sales.invoice.create',
     '/sales/invoices/details': 'sales.invoice.read',
     '/sales/returns': 'sales.return.read',

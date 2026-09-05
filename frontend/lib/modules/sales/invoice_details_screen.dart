@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
 import 'sales_service.dart';
+import '../../core/auth/auth_service.dart';
 
 class SalesInvoiceDetailsScreen extends StatefulWidget {
   final String id;
@@ -13,6 +14,7 @@ class SalesInvoiceDetailsScreen extends StatefulWidget {
 
 class _SalesInvoiceDetailsScreenState extends State<SalesInvoiceDetailsScreen> {
   late final SalesService service;
+  late final AuthService auth;
   Map<String, dynamic>? invoice;
   String? error;
 
@@ -20,7 +22,22 @@ class _SalesInvoiceDetailsScreenState extends State<SalesInvoiceDetailsScreen> {
   void initState() {
     super.initState();
     service = GetIt.instance.get<SalesService>();
+    auth = GetIt.instance.get<AuthService>();
     _load();
+  }
+
+  Future<void> _transition(String action) async {
+    final result = await service.transitionInvoice(
+      widget.id,
+      action,
+      (invoice?['versionNumber'] as num?)?.toInt() ?? 0,
+    );
+    if (!mounted) return;
+    if (result == null) {
+      await _load();
+    } else {
+      setState(() => error = result);
+    }
   }
 
   Future<void> _load() async {
@@ -52,6 +69,10 @@ class _SalesInvoiceDetailsScreenState extends State<SalesInvoiceDetailsScreen> {
           Text('Delivery: ${current['deliveryId'] ?? ''}'),
           Text('Finance: ${current['financeStatus'] ?? 'NOT_CONNECTED'}'),
           Text('Tax: ${current['taxStatus'] ?? 'NOT_CONNECTED'}'),
+          if (status == 'DRAFT' && auth.hasPermission('sales.invoice.issue'))
+           FilledButton(onPressed: () => _transition('issue'), child: const Text('Issue')),
+          if (status == 'DRAFT' && auth.hasPermission('sales.invoice.cancel'))
+           OutlinedButton(onPressed: () => _transition('cancel'), child: const Text('Cancel')),
           const SizedBox(height: 16),
           ...(current['items'] as List<dynamic>? ?? const []).map((item) {
             final line = Map<String, dynamic>.from(item as Map);

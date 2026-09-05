@@ -203,8 +203,40 @@ class SalesService extends ChangeNotifier {
           return _message(response);
         } catch (e) {
           return e.toString().replaceFirst('Exception: ', '');
+        }
   }
+
+  Future<Map<String, dynamic>?> getSalesAdministration(String kind, String id) async {
+    try {
+      final response = await apiClient.get('/api/v1/sales/$kind/$id');
+      if (response.statusCode != 200) throw Exception(_message(response));
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      return Map<String, dynamic>.from(body[kind == 'price-lists' ? 'priceList' : 'discountRule'] as Map);
+    } catch (e) {
+      error = e.toString().replaceFirst('Exception: ', '');
+      return null;
     }
+  }
+
+  Future<String?> addPriceListItem(String id, Map<String, dynamic> input) async {
+    try {
+      final response = await apiClient.post('/api/v1/sales/price-lists/$id/items', body: input);
+      if (response.statusCode == 201) return null;
+      return _message(response);
+    } catch (e) {
+      return e.toString().replaceFirst('Exception: ', '');
+    }
+  }
+
+  Future<String?> updateDiscountRule(String id, Map<String, dynamic> input) async {
+    try {
+      final response = await apiClient.patch('/api/v1/sales/discount-rules/$id', body: input);
+      if (response.statusCode == 200) return null;
+      return _message(response);
+    } catch (e) {
+      return e.toString().replaceFirst('Exception: ', '');
+    }
+  }
 
   Future<void> fetchQuotations({String? search, int? page}) async {
     if (auth.currentOrganizationId == null) {
@@ -266,6 +298,53 @@ class SalesService extends ChangeNotifier {
         '/api/v1/sales/quotations',
         body: input,
       );
+      if (response.statusCode == 201) return null;
+      return _message(response);
+    } catch (e) {
+      return e.toString().replaceFirst('Exception: ', '');
+    }
+
+  }
+
+  Future<List<Map<String, dynamic>>> fetchSalesDocuments(String kind, {String? search}) async {
+    try {
+      final query = search == null || search.trim().isEmpty ? '' : '&search=${Uri.encodeQueryComponent(search.trim())}';
+      final response = await apiClient.get('/api/v1/sales/$kind?page=1&page_size=$pageSize&order=desc$query');
+      if (response.statusCode != 200) throw Exception(_message(response));
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final key = kind == 'orders' ? 'orders' : 'deliveries';
+      return ((body[key] as List<dynamic>?) ?? const []).map((item) => Map<String, dynamic>.from(item as Map)).toList();
+    } catch (e) {
+      error = e.toString().replaceFirst('Exception: ', '');
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>?> getSalesDocument(String kind, String id) async {
+    try {
+      final response = await apiClient.get('/api/v1/sales/$kind/$id');
+      if (response.statusCode != 200) throw Exception(_message(response));
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      return Map<String, dynamic>.from(body[kind == 'orders' ? 'order' : 'delivery'] as Map);
+    } catch (e) {
+      error = e.toString().replaceFirst('Exception: ', '');
+      return null;
+    }
+  }
+
+  Future<String?> transitionSalesDocument(String kind, String id, String action, int expectedVersion) async {
+    try {
+      final response = await apiClient.post('/api/v1/sales/$kind/$id/$action', body: {'expectedVersion': expectedVersion});
+      if (response.statusCode == 200) return null;
+      return _message(response);
+    } catch (e) {
+      return e.toString().replaceFirst('Exception: ', '');
+    }
+  }
+
+  Future<String?> convertQuotationToOrder(String quotationId) async {
+    try {
+      final response = await apiClient.post('/api/v1/sales/orders', body: {'quotationId': quotationId});
       if (response.statusCode == 201) return null;
       return _message(response);
     } catch (e) {
