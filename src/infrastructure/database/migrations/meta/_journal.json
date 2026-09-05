@@ -41,6 +41,7 @@
     { "idx": 36, "version": "7", "when": 1788617400000, "tag": "0036-sales-invoice-tax-snapshot", "breakpoints": true },
     { "idx": 37, "version": "7", "when": 1788618000000, "tag": "0037-bounded-finance-posting", "breakpoints": true },
     { "idx": 38, "version": "7", "when": 1788618600000, "tag": "0038-sales-commercial-snapshots", "breakpoints": true },
-    { "idx": 39, "version": "7", "when": 1788624600000, "tag": "0039-enable-crm-sales-baseline", "breakpoints": true }
+    { "idx": 39, "version": "7", "when": 1788624600000, "tag": "0039-enable-crm-sales-baseline", "breakpoints": true },
+    { "idx": 40, "version": "7", "when": 1788625200000, "tag": "0040-grant-crm-sales-admin-permissions", "breakpoints": true }
   ]
 }
