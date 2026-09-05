@@ -1,205 +1,46 @@
 {
   "version": 1,
   "migrations": {
-    "0000_core-platform-phase-1": {
-      "strategy": "restore-backup",
-      "destructiveDownAllowed": false,
-      "note": "Foundational schema. Recover through application rollback plus database restore/forward compensation; do not synthesize destructive down SQL."
-    },
-    "0001_location-domain": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Preserve location data and compensate forward if a schema correction is required."
-    },
-    "0002-organization-module-access": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Module-access data and RLS changes are corrected forward; verify tenant policies after recovery."
-    },
-    "0003-identity-based-login": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Identity mapping participates in authentication and must not be dropped as an automated rollback."
-    },
-    "0004-sync-login-identifiers": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Trigger/function changes are restored or replaced through a reviewed forward migration."
-    },
-    "0005-code-counters": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Counter state may be business-significant; preserve state and compensate forward."
-    },
-    "0006-default-location-context": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Context relationships are corrected forward with FK/RLS validation."
-    },
-    "0007-audit-events": {
-      "strategy": "forward-only-security",
-      "destructiveDownAllowed": false,
-      "note": "Audit history is append-only evidence and must not be automatically removed during rollback."
-    },
-    "0008-account-security-tokens": {
-      "strategy": "forward-only-security",
-      "destructiveDownAllowed": false,
-      "note": "Recovery tokens are security state. Disable affected flows or compensate forward rather than restoring consumed tokens."
-    },
-    "0009-mfa-state": {
-      "strategy": "forward-only-security",
-      "destructiveDownAllowed": false,
-      "note": "MFA state must fail closed. Use reviewed forward correction and explicit account recovery procedures."
-    },
-    "0010-operational-services": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Notification, file, scheduler, and outbox records may carry durable work; preserve data and compensate forward."
-    },
-    "0011-outbox-leasing": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Lease columns are additive. A corrective migration may safely supersede them after workers are stopped."
-    },
-    "0012-refresh-token-rotation": {
-      "strategy": "forward-only-security",
-      "destructiveDownAllowed": false,
-      "note": "Consumed-token history is replay-detection security evidence and must not be rolled back into reusable credentials."
-    },
-    "0013-notification-leasing": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Lease/retry state is durable operational data; stop workers and compensate forward if required."
-    },
-    "0014-customer-foundation": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Customer records are business data; preserve them and correct forward if recovery is required."
-    },
-    "0015-tenant-module-trigger-rls": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Corrects tenant bootstrap trigger behavior under FORCE RLS by temporarily binding the new tenant context during core entitlement initialization and restoring the prior context."
-    },
-    "0016-sales-quotation": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Quotation business records, item lines, and numbering counters are preserved and corrected forward if recovery is required."
-    },
-    "0017-sales-quotation-item-organization-integrity": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Quotation item organization ownership is tightened through a forward-only tenant-safe composite foreign key."
-    },
-    "0018-sales-quotation-canonical-audit": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Quotation audit and optimistic-concurrency columns are corrected forward while preserving existing quotation and item data."
-    },
-    "0019-sales-quotation-context": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Quotation branch and financial-year context is added forward; existing rows are backfilled only from explicit organization defaults and otherwise preserved as nullable data requiring explicit reclassification."
-    },
-    "0020-session-financial-year-context": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Session financial-year ownership is additive and tenant-safe; preserve existing sessions and correct context forward."
-    },
-    "0021-sales-order": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Sales order and audit data are business records; preserve and correct forward."
-    },
-    "0022-sales-delivery": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Sales delivery traceability and line snapshots are business records; preserve and correct forward."
-    },
-    "0023-sales-invoice": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Sales invoice traceability and immutable line snapshots are business records; preserve and correct forward."
-    },
-    "0024-sales-return": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Sales return coordination records and line snapshots are business records; preserve and correct forward."
-    },
-    "0025-sales-credit-note": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Sales credit note traceability and immutable line snapshots are business records; preserve and correct forward."
-    },
-    "0026-sales-pricing": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Price-list definitions are business data; preserve and correct forward."
-    },
-    "0027-sales-discount": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Discount rules are business data; preserve and correct forward."
-    },
-    "0028-sales-quotation-context-guard": {
-      "strategy": "forward-only-security",
-      "destructiveDownAllowed": false,
-      "note": "Prevent implicit legacy quotation context assignment; explicit reclassification must be reviewed and authorized."
-    },
-    "0029-inventory-item-master": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Item master records are organization-owned business data; preserve and correct forward."
-    },
-    "0030-inventory-foundation": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Warehouse, stock, reservation, and movement records are authoritative Inventory business data; preserve and correct forward."
-    },
-    "0031-sales-inventory-contract": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Sales item and warehouse references are additive and historical rows remain nullable; preserve transaction data and correct forward."
-    },
-    "0032-sales-inventory-contract-correction": {
-      "strategy": "forward-only-security",
-      "destructiveDownAllowed": false,
-      "note": "Correct the composite foreign-key support index without removing Sales or Inventory business data."
-    },
-    "0033-sales-delivery-inventory-fulfillment": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Add nullable delivery warehouse, item, and reservation references without rewriting historical delivery records."
-    },
-    "0034-sales-return-inventory": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Add nullable return warehouse and item references and permit the persisted Inventory completion state without rewriting historical returns."
-    },
-    "0035-bounded-tax-foundation": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Tax configuration is authoritative organization business data; preserve and correct forward."
-    },
-    "0036-sales-invoice-tax-snapshot": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Invoice tax snapshots are immutable transaction data; preserve and correct forward."
-    },
-    "0037-bounded-finance-posting": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Finance postings and Sales financial references are authoritative transaction data; preserve and correct forward."
-    },
-    "0038-sales-commercial-snapshots": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "Commercial price and discount snapshots are historical transaction evidence; preserve them and compensate forward."
-    },
-    "0039-enable-crm-sales-baseline": {
-      "strategy": "compensating-migration",
-      "destructiveDownAllowed": false,
-      "note": "CRM and Sales module entitlements are current product-baseline access data. Preserve tenant and organization module history and correct forward if the baseline changes."
-    }
+    "0000_core-platform-phase-1": {"strategy":"restore-backup","destructiveDownAllowed":false,"note":"Foundational schema. Recover through application rollback plus database restore/forward compensation; do not synthesize destructive down SQL."},
+    "0001_location-domain": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Preserve location data and compensate forward if a schema correction is required."},
+    "0002-organization-module-access": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Module-access data and RLS changes are corrected forward; verify tenant policies after recovery."},
+    "0003-identity-based-login": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Identity mapping participates in authentication and must not be dropped as an automated rollback."},
+    "0004-sync-login-identifiers": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Trigger/function changes are restored or replaced through a reviewed forward migration."},
+    "0005-code-counters": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Counter state may be business-significant; preserve state and compensate forward."},
+    "0006-default-location-context": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Context relationships are corrected forward with FK/RLS validation."},
+    "0007-audit-events": {"strategy":"forward-only-security","destructiveDownAllowed":false,"note":"Audit history is append-only evidence and must not be automatically removed during rollback."},
+    "0008-account-security-tokens": {"strategy":"forward-only-security","destructiveDownAllowed":false,"note":"Recovery tokens are security state. Disable affected flows or compensate forward rather than restoring consumed tokens."},
+    "0009-mfa-state": {"strategy":"forward-only-security","destructiveDownAllowed":false,"note":"MFA state must fail closed. Use reviewed forward correction and explicit account recovery procedures."},
+    "0010-operational-services": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Notification, file, scheduler, and outbox records may carry durable work; preserve data and compensate forward."},
+    "0011-outbox-leasing": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Lease columns are additive. A corrective migration may safely supersede them after workers are stopped."},
+    "0012-refresh-token-rotation": {"strategy":"forward-only-security","destructiveDownAllowed":false,"note":"Consumed-token history is replay-detection security evidence and must not be rolled back into reusable credentials."},
+    "0013-notification-leasing": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Lease/retry state is durable operational data; stop workers and compensate forward if required."},
+    "0014-customer-foundation": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Customer records are business data; preserve them and correct forward if recovery is required."},
+    "0015-tenant-module-trigger-rls": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Corrects tenant bootstrap trigger behavior under FORCE RLS by temporarily binding the new tenant context during core entitlement initialization and restoring the prior context."},
+    "0016-sales-quotation": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Quotation business records, item lines, and numbering counters are preserved and corrected forward if recovery is required."},
+    "0017-sales-quotation-item-organization-integrity": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Quotation item organization ownership is tightened through a forward-only tenant-safe composite foreign key."},
+    "0018-sales-quotation-canonical-audit": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Quotation audit and optimistic-concurrency columns are corrected forward while preserving existing quotation and item data."},
+    "0019-sales-quotation-context": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Quotation branch and financial-year context is added forward; existing rows are backfilled only from explicit organization defaults and otherwise preserved as nullable data requiring explicit reclassification."},
+    "0020-session-financial-year-context": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Session financial-year ownership is additive and tenant-safe; preserve existing sessions and correct context forward."},
+    "0021-sales-order": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Sales order and audit data are business records; preserve and correct forward."},
+    "0022-sales-delivery": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Sales delivery traceability and line snapshots are business records; preserve and correct forward."},
+    "0023-sales-invoice": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Sales invoice traceability and immutable line snapshots are business records; preserve and correct forward."},
+    "0024-sales-return": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Sales return coordination records and line snapshots are business records; preserve and correct forward."},
+    "0025-sales-credit-note": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Sales credit note traceability and immutable line snapshots are business records; preserve and correct forward."},
+    "0026-sales-pricing": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Price-list definitions are business data; preserve and correct forward."},
+    "0027-sales-discount": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Discount rules are business data; preserve and correct forward."},
+    "0028-sales-quotation-context-guard": {"strategy":"forward-only-security","destructiveDownAllowed":false,"note":"Prevent implicit legacy quotation context assignment; explicit reclassification must be reviewed and authorized."},
+    "0029-inventory-item-master": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Item master records are organization-owned business data; preserve and correct forward."},
+    "0030-inventory-foundation": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Warehouse, stock, reservation, and movement records are authoritative Inventory business data; preserve and correct forward."},
+    "0031-sales-inventory-contract": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Sales item and warehouse references are additive and historical rows remain nullable; preserve transaction data and correct forward."},
+    "0032-sales-inventory-contract-correction": {"strategy":"forward-only-security","destructiveDownAllowed":false,"note":"Correct the composite foreign-key support index without removing Sales or Inventory business data."},
+    "0033-sales-delivery-inventory-fulfillment": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Add nullable delivery warehouse, item, and reservation references without rewriting historical delivery records."},
+    "0034-sales-return-inventory": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Add nullable return warehouse and item references and permit the persisted Inventory completion state without rewriting historical returns."},
+    "0035-bounded-tax-foundation": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Tax configuration is authoritative organization business data; preserve and correct forward."},
+    "0036-sales-invoice-tax-snapshot": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Invoice tax snapshots are immutable transaction data; preserve and correct forward."},
+    "0037-bounded-finance-posting": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Finance postings and Sales financial references are authoritative transaction data; preserve and correct forward."},
+    "0038-sales-commercial-snapshots": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Commercial price and discount snapshots are historical transaction evidence; preserve them and compensate forward."},
+    "0039-enable-crm-sales-baseline": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"CRM and Sales module entitlements are current product-baseline access data. Preserve tenant and organization module history and correct forward if the baseline changes."},
+    "0040-grant-crm-sales-admin-permissions": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Grants CRM and Sales read/navigation permissions only to roles that already possess tenant.manage; preserve role history and correct forward if baseline authorization changes."}
   }
 }
