@@ -90,6 +90,11 @@
       "strategy": "compensating-migration",
       "destructiveDownAllowed": false,
       "note": "Quotation item organization ownership is tightened through a forward-only tenant-safe composite foreign key."
+    },
+    "0018-sales-quotation-canonical-audit": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Quotation audit and optimistic-concurrency columns are corrected forward while preserving existing quotation and item data."
     }
   }
 }

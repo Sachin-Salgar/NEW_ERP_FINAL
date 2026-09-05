@@ -29,7 +29,7 @@ function record(status: QuotationRecord['status'] = 'DRAFT'): QuotationRecord {
     deletedAt: null,
     deletedBy: null,
     isDeleted: false,
-    version: 1,
+    versionNumber: 1,
   };
 }
 class FakeRepository implements QuotationRepository {

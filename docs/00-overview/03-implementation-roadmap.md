@@ -149,7 +149,7 @@ Project Management is explicitly removed/deferred and is not an implementation t
 | Sequence | Module | Status |
 |---|---|---|
 | 1 | Core Enterprise | **COMPLETED WITH KNOWN VALIDATION RESIDUAL — READY FOR SALES** |
-| 2 | Sales | **QUOTATION SLICE PARTIAL — ARCHITECTURAL REMEDIATION REQUIRED; REMAINING SALES CAPABILITIES AUTHORIZED FOR SPECIFICATION ONLY** — [Sales specification package](../08-business-modules/03-sales-module-architecture.md) |
+| 2 | Sales | **QUOTATION SLICE PARTIAL — CANONICAL AUDIT/CONCURRENCY REMEDIATION COMPLETE; BRANCH/YEAR SEMANTICS BLOCKED** — [Sales specification package](../08-business-modules/03-sales-module-architecture.md) |
 | 3 | Procurement | **PENDING** |
 | 4 | Inventory | **PENDING** |
 | 5 | Manufacturing | **PENDING** |
@@ -165,13 +165,13 @@ Business modules must not open until the Core Enterprise gate is completed unles
 
 ### Current Sales implementation step
 
-The implemented Sales capability is quotation management only, but the current
-quotation persistence is not fully conformant with the authoritative
-organizational-isolation, audit, and concurrency standards. The quotation
-requires future implementation remediation before it can be considered fully
-architecturally compliant. The remaining Sales architecture is now documented
-as an authorization/specification package
-without source-code implementation. Sales Order, Delivery, Invoice, Return,
+The implemented Sales capability is quotation management only. Canonical audit
+and optimistic-concurrency remediation is complete, including the forward
+migration, repository/schema contracts, and validation. The quotation still
+requires branch and financial-year references before it can be considered fully
+architecturally compliant; their selection and authorization semantics remain
+a business decision. The remaining Sales architecture is now documented as an
+authorization/specification package without source-code implementation. Sales Order, Delivery, Invoice, Return,
 Credit Note, Pricing, Discounts, Workflow, integrations, and Reporting require
 the decisions and dependency contracts identified in their specifications
 before implementation begins.

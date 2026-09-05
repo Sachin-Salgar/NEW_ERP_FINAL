@@ -322,7 +322,7 @@ export const salesQuotations = pgTable(
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     deletedBy: uuid('deleted_by'),
     isDeleted: boolean('is_deleted').notNull().default(false),
-    version: integer('version').notNull().default(1),
+    versionNumber: integer('version_number').notNull().default(1),
   },
   (table) => ({
     uqSalesQuotationNumber: uniqueIndex('uq_sales_quotation_number').on(
@@ -365,7 +365,10 @@ export const salesQuotationItems = pgTable(
     unitPrice: numeric('unit_price', { precision: 18, scale: 4 }).notNull(),
     unitOfMeasure: varchar('unit_of_measure', { length: 50 }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid('created_by'),
     updatedAt: timestamp('updated_at', { withTimezone: true }),
+    updatedBy: uuid('updated_by'),
+    versionNumber: integer('version_number').notNull().default(1),
   },
   (table) => ({
     uqSalesQuotationItemLine: uniqueIndex('uq_sales_quote_item_line').on(table.quotationId, table.lineNumber),

@@ -23,16 +23,16 @@ The current implementation is tenant-owned and organization-owned with:
 `id`, `tenant_id`, `organization_id`, `quotation_number`, `customer_id`,
 `quotation_date`, `valid_until`, `status`, `notes`, `created_at`, `created_by`,
 `updated_at`, `updated_by`, `deleted_at`, `deleted_by`, `is_deleted`, and
-legacy `version`.
+canonical `version_number`.
 
 `sales_quotation_items` contains:
 
 `id`, `tenant_id`, `organization_id`, `quotation_id`, `line_number`,
-`description`, `quantity`, `unit_price`, `unit_of_measure`, `created_at`, and
-`updated_at`.
+`description`, `quantity`, `unit_price`, `unit_of_measure`, `created_at`,
+`created_by`, `updated_at`, `updated_by`, and `version_number`.
 
 The current implementation has tenant-safe and organization-safe foreign keys,
-soft delete, legacy `version` concurrency, deterministic indexes, RLS, and
+soft delete, canonical `version_number` concurrency, deterministic indexes, RLS, and
 FORCE RLS. A quotation number is generated server-side and is unique within the
 tenant/organization scope. Item line numbers are unique per quotation. A
 quotation requires at least one item; quantities are positive, unit prices are
@@ -49,16 +49,16 @@ governing documentation or ADRs.
 
 Accordingly, the current quotation implementation is **non-conformant with the
 authoritative target architecture**. It lacks `branch_id` and
-`financial_year_id`, uses `version` instead of `version_number`, and does not
-provide the complete canonical audit column set on quotation items.
+`financial_year_id`. The canonical audit and concurrency fields are now represented in the
+implementation, with migration and validation completed in this remediation
+milestone.
 
 Required future implementation remediation, subject to an authorized
 implementation task, is to add and validate the mandatory branch and
-financial-year references, replace the legacy concurrency field with
-`version_number`, align audit persistence with the canonical audit columns, and
-update the repository, service, API, migrations, RLS/authorization checks, and
-tests consistently. The exact business semantics for branch and financial year
-remain **BUSINESS DECISION REQUIRED**; this specification does not invent them.
+financial-year references and update the repository, service, API, migrations,
+RLS/authorization checks, frontend context, and tests consistently. The exact
+business semantics for branch and financial year remain **BUSINESS DECISION
+REQUIRED**; this specification does not invent them.
 Until that remediation and its validation are complete, the quotation slice is
 not fully architecturally compliant.
 
@@ -126,8 +126,10 @@ templates are outside this slice.
 
 ## IMPLEMENTATION STATUS
 
-**PARTIAL — IMPLEMENTED WITH ARCHITECTURAL REMEDIATION REQUIRED** — the
-quotation slice exists and its current behavior has validation evidence, but it
-does not yet satisfy the authoritative organizational-isolation, audit, and
-concurrency standards. The remaining Sales capabilities are specified
-separately and are not authorized by this document.
+**PARTIAL — CANONICAL AUDIT/CONCURRENCY REMEDIATION COMPLETE; ORGANIZATIONAL
+CONTEXT REMEDIATION BLOCKED** — the quotation slice satisfies the canonical
+audit and optimistic-concurrency requirements and has migration, unit, API, RLS,
+typecheck, lint, build, and recovery validation evidence. It still lacks
+`branch_id` and `financial_year_id`; their selection and authorization
+semantics remain **BUSINESS DECISION REQUIRED**. The remaining Sales
+capabilities are specified separately and are not authorized by this document.

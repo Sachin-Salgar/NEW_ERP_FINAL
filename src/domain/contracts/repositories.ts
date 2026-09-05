@@ -201,7 +201,7 @@ export interface QuotationRecord {
   deletedAt: Date | null;
   deletedBy: string | null;
   isDeleted: boolean;
-  version: number;
+  versionNumber: number;
 }
 export interface QuotationRepository {
   create(input: {

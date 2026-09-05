@@ -19,6 +19,7 @@
     { "idx": 14, "version": "7", "when": 1788505200000, "tag": "0014-customer-foundation", "breakpoints": true },
     { "idx": 15, "version": "7", "when": 1788584077502, "tag": "0015-tenant-module-trigger-rls", "breakpoints": true },
     { "idx": 16, "version": "7", "when": 1788585000000, "tag": "0016-sales-quotation", "breakpoints": true },
-    { "idx": 17, "version": "7", "when": 1788600000000, "tag": "0017-sales-quotation-item-organization-integrity", "breakpoints": true }
+    { "idx": 17, "version": "7", "when": 1788600000000, "tag": "0017-sales-quotation-item-organization-integrity", "breakpoints": true },
+    { "idx": 18, "version": "7", "when": 1788603600000, "tag": "0018-sales-quotation-canonical-audit", "breakpoints": true }
   ]
 }
