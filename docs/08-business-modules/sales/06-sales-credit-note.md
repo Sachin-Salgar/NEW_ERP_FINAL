@@ -1,6 +1,6 @@
 # Sales Credit Note Specification
 
-**Status:** Authorization package — implementation specification
+**Status:** Backend slice implemented under ADR-0030; Finance/Tax providers not connected
 **Owner:** Sales/Finance boundary
 **Dependencies:** Sales Return, Sales Invoice, Finance, Tax, Workflow, Document
 
@@ -22,18 +22,15 @@ branch and financial-year references, credit-note ID, source invoice/return item
 reference, line number, quantity, unit, amount, discount/tax snapshots, and
 canonical audit columns.
 
-Exact fields, precision, partial-credit rules, tax treatment, numbering scope,
-financial-year relationship semantics, correction/reversal representation,
-uniqueness, and deletion are **BUSINESS DECISION REQUIRED**. The mandatory
-branch and financial-year references follow the organizational-isolation
-standard. Finalized records are immutable and header/detail tenant/org
-integrity is mandatory.
+The initial slice uses numeric(18,4) quantities and prices, one note per
+processed return/context, server-generated numbering, and immutable issued
+records. Finance and Tax status is explicitly `NOT_CONNECTED`.
 
 ## 3. Lifecycle and authorization
 
-The architecture requires credit-note processing but does not define states,
-approval, issuance, cancellation, reversal, or closure transitions. These are
-**BUSINESS DECISION REQUIRED**.
+The initial lifecycle is `DRAFT -> ISSUED` or `DRAFT -> CANCELLED`. Finance
+posting, payment balances, reversal, and tax calculation remain outside this
+slice.
 
 Candidate permissions requiring approval: `sales.credit_note.read`, `create`,
 `update`, `approve`, `issue`, `cancel`, `reverse`, and `close`.
@@ -59,7 +56,8 @@ Finance owns posting and balances; Tax owns tax; Workflow owns approval;
 Document Management owns document storage. No direct private-table access is
 allowed.
 
-**DEPENDENCY CONTRACT REQUIRED** and **BUSINESS DECISION REQUIRED**.
+**IMPLEMENTED — MINIMUM BACKEND POLICY** under ADR-0030. Finance, Tax,
+Workflow, and Document remain explicit not-connected integration boundaries.
 
 ## IMPLEMENTATION STATUS
 

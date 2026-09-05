@@ -478,6 +478,26 @@ export interface SalesReturnRepository {
   transition(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; returnId: string; status: import('./sales-return.js').SalesReturnStatus; expectedVersion: number; actorUserId: string }): Promise<SalesReturnRecord | null>;
 }
 
+export interface CreditNoteItemRecord {
+  id: string; lineNumber: number; returnItemId: string; description: string;
+  quantity: number; unitPrice: number; unitOfMeasure: string; lineTotal: number;
+}
+export interface CreditNoteRecord {
+  id: string; tenantId: string; organizationId: string; branchId: string; financialYearId: string;
+  creditNoteNumber: string; returnId: string; invoiceId: string; customerId: string;
+  status: import('./credit-note.js').CreditNoteStatus; idempotencyKey: string;
+  financeStatus: 'NOT_CONNECTED'; taxStatus: 'NOT_CONNECTED'; notes: string | null;
+  items: CreditNoteItemRecord[]; createdAt: Date; createdBy: string | null;
+  updatedAt: Date | null; updatedBy: string | null; versionNumber: number;
+}
+export interface CreditNoteRepository {
+  create(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; returnId: string; idempotencyKey: string; notes: string | null; actorUserId: string }): Promise<CreditNoteRecord>;
+  getById(tenantId: string, organizationId: string, branchId: string, financialYearId: string, id: string): Promise<CreditNoteRecord | null>;
+  list(tenantId: string, q: { organizationId: string; branchId: string; financialYearId: string; page: number; pageSize: number; order: 'asc' | 'desc'; search?: string }): Promise<{ items: CreditNoteRecord[]; total: number }>;
+  update(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; creditNoteId: string; notes: string | null; expectedVersion: number; actorUserId: string }): Promise<CreditNoteRecord | null>;
+  transition(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; creditNoteId: string; status: import('./credit-note.js').CreditNoteStatus; expectedVersion: number; actorUserId: string }): Promise<CreditNoteRecord | null>;
+}
+
 export interface OrganizationRecord {
   id: string;
   tenantId: string;

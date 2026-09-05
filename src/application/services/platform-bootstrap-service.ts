@@ -229,6 +229,14 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
     permissionKey: `sales.return.${action}`,
     displayName: `${action[0].toUpperCase()}${action.slice(1)} returns`,
   })),
+  ...(['read', 'create', 'update', 'issue', 'cancel'] as const).map((action) => ({
+    moduleCode: 'sales',
+    resource: 'credit_note',
+    action,
+    scope: 'organization' as const,
+    permissionKey: `sales.credit_note.${action}`,
+    displayName: `${action[0].toUpperCase()}${action.slice(1)} credit notes`,
+  })),
 ];
 
 export class PlatformBootstrapService {

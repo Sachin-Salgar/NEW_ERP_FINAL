@@ -173,7 +173,7 @@ remediation are complete, including forward migrations, repository/schema
 contracts, authorization, and validation. Legacy quotation rows without
 authoritative context remain a documented data-remediation residual. The
 remaining Sales architecture is now documented as an authorization/specification
-package without source-code implementation. Credit Note, Pricing,
+package without source-code implementation. Pricing,
 Discounts, Workflow, integrations, and Reporting remain deferred.
 
 The Sales quotation slice has passed its documented behavioral backend,

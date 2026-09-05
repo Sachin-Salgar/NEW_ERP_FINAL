@@ -17,6 +17,7 @@ import type { OrderService } from '../../../application/services/order-service.j
 import type { DeliveryService } from '../../../application/services/delivery-service.js';
 import type { InvoiceService } from '../../../application/services/invoice-service.js';
 import type { SalesReturnService } from '../../../application/services/sales-return-service.js';
+import type { CreditNoteService } from '../../../application/services/credit-note-service.js';
 import type { JwtTokenService } from '../../../infrastructure/security/jwt-token-service.js';
 import type { AppConfig } from '../../../config/schema.js';
 import type { AuditLogger } from '../../../application/contracts/audit.js';
@@ -43,6 +44,7 @@ declare module 'fastify' {
     deliveryService: DeliveryService;
     invoiceService: InvoiceService;
     salesReturnService: SalesReturnService;
+    creditNoteService: CreditNoteService;
   }
 
   interface FastifyRequest {
