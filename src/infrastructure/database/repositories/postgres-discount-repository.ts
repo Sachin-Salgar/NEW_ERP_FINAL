@@ -5,6 +5,7 @@ import type {
   DiscountRuleRecord,
   DiscountRuleRepository,
   DiscountTransitionInput,
+  DiscountUpdateInput,
   ResolvedDiscountRule,
 } from '../../../domain/contracts/discount.js';
 import { ValidationError } from '../../../domain/errors.js';
@@ -76,6 +77,20 @@ export class PostgresDiscountRepository implements DiscountRuleRepository {
           AND ((status='DRAFT' AND $1='PUBLISHED') OR (status='PUBLISHED' AND $1='ARCHIVED'))
         RETURNING ${C}`,
         [input.status, input.actorUserId, input.tenantId, input.organizationId, input.id, input.expectedVersion]);
+      return result.rows[0] ? mapRule(result.rows[0]) : null;
+    }, { organizationId: input.organizationId, userId: input.actorUserId }) as Promise<DiscountRuleRecord | null>;
+  }
+
+  async update(input: DiscountUpdateInput): Promise<DiscountRuleRecord | null> {
+    return withTenantContext(this.pool, this.tenantContextKey, input.tenantId, async (client) => {
+      const result = await client.query(`UPDATE sales_discount_rules
+        SET name=$1,percentage=$2,effective_from=$3,effective_to=$4,updated_at=now(),
+            updated_by=$5,version_number=version_number+1
+        WHERE tenant_id=$6 AND organization_id=$7 AND id=$8 AND status='DRAFT'
+          AND version_number=$9
+        RETURNING ${C}`,
+        [input.name, input.percentage, input.effectiveFrom, input.effectiveTo, input.actorUserId,
+          input.tenantId, input.organizationId, input.id, input.expectedVersion]);
       return result.rows[0] ? mapRule(result.rows[0]) : null;
     }, { organizationId: input.organizationId, userId: input.actorUserId }) as Promise<DiscountRuleRecord | null>;
   }

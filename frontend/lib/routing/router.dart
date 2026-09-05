@@ -23,6 +23,7 @@ import '../modules/sales/boundary_details_screen.dart';
 import '../modules/sales/report_screen.dart';
 import '../modules/sales/sales_admin_list_screen.dart';
 import '../modules/sales/boundary_create_screen.dart';
+import '../modules/sales/sales_admin_create_screen.dart';
 import '../modules/dashboard/dashboard_screen.dart';
 import '../modules/organization/create_screen.dart';
 import '../modules/organization/details_screen.dart';
@@ -173,6 +174,8 @@ class AppRouter {
     if (path == '/sales/reports') return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: path, child: const SalesReportScreen()));
     if (path == '/sales/pricing') return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: path, child: const SalesAdminListScreen(kind: 'price-lists', title: 'Sales Pricing')));
     if (path == '/sales/discounts') return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: path, child: const SalesAdminListScreen(kind: 'discount-rules', title: 'Sales Discounts')));
+    if (path == '/sales/pricing/create') return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: path, child: const SalesAdminCreateScreen(kind: 'price-lists', title: 'Create Price List')));
+    if (path == '/sales/discounts/create') return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: path, child: const SalesAdminCreateScreen(kind: 'discount-rules', title: 'Create Discount Rule')));
     if (path.startsWith('/sales/returns/') && path != '/sales/returns/create') return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/sales/returns/details', child: SalesBoundaryDetailsScreen(kind: 'returns', id: _extractDetailId(path, settings.arguments) ?? '', title: 'Sales Return')));
     if (path.startsWith('/sales/credit-notes/') && path != '/sales/credit-notes/create') return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/sales/credit-notes/details', child: SalesBoundaryDetailsScreen(kind: 'credit-notes', id: _extractDetailId(path, settings.arguments) ?? '', title: 'Credit Note')));
     if (path.startsWith('/sales/quotations/') &&

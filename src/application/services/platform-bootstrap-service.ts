@@ -245,7 +245,7 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
     permissionKey: `sales.pricing.${action}`,
     displayName: `${action[0].toUpperCase()}${action.slice(1)} price lists`,
   })),
-  ...(['read', 'create', 'publish', 'archive'] as const).map((action) => ({
+  ...(['read', 'create', 'update', 'publish', 'archive'] as const).map((action) => ({
     moduleCode: 'sales',
     resource: 'discount',
     action,

@@ -140,6 +140,19 @@ class SalesService extends ChangeNotifier {
       } catch (e) { return e.toString().replaceFirst('Exception: ', ''); }
   }
 
+  Future<String?> transitionBoundary(String kind, String id, String action, int expectedVersion) async {
+    try {
+      final response = await apiClient.post(
+        '/api/v1/sales/$kind/$id/$action',
+        body: {'expectedVersion': expectedVersion},
+      );
+      if (response.statusCode == 200) return null;
+      return _message(response);
+    } catch (e) {
+      return e.toString().replaceFirst('Exception: ', '');
+    }
+  }
+
   Future<List<Map<String, dynamic>>> fetchSalesReport() async {
     try {
       final response = await apiClient.get(
@@ -171,6 +184,26 @@ class SalesService extends ChangeNotifier {
         notifyListeners();
         return [];
       }
+  }
+
+  Future<String?> createSalesAdministration(String kind, Map<String, dynamic> input) async {
+        try {
+          final response = await apiClient.post('/api/v1/sales/$kind', body: input);
+          if (response.statusCode == 201) return null;
+          return _message(response);
+        } catch (e) {
+          return e.toString().replaceFirst('Exception: ', '');
+        }
+  }
+
+  Future<String?> transitionSalesAdministration(String kind, String id, String action, int expectedVersion) async {
+        try {
+          final response = await apiClient.post('/api/v1/sales/$kind/$id/$action', body: {'expectedVersion': expectedVersion});
+          if (response.statusCode == 200) return null;
+          return _message(response);
+        } catch (e) {
+          return e.toString().replaceFirst('Exception: ', '');
+  }
     }
 
   Future<void> fetchQuotations({String? search, int? page}) async {
