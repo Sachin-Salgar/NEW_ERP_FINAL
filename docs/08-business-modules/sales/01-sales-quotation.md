@@ -16,12 +16,14 @@ customer model or table.
 
 ## Data model
 
-`sales_quotations` is tenant-owned and organization-owned with:
+### Current implemented schema
+
+The current implementation is tenant-owned and organization-owned with:
 
 `id`, `tenant_id`, `organization_id`, `quotation_number`, `customer_id`,
 `quotation_date`, `valid_until`, `status`, `notes`, `created_at`, `created_by`,
 `updated_at`, `updated_by`, `deleted_at`, `deleted_by`, `is_deleted`, and
-`version_number`.
+legacy `version`.
 
 `sales_quotation_items` contains:
 
@@ -29,18 +31,36 @@ customer model or table.
 `description`, `quantity`, `unit_price`, `unit_of_measure`, `created_at`, and
 `updated_at`.
 
-UUIDs, tenant-safe and organization-safe foreign keys, soft delete, optimistic
-`version_number` concurrency, deterministic indexes, RLS, and FORCE RLS follow the existing
-database architecture. A quotation number is generated server-side and is
-unique within the tenant/organization scope. Item line numbers are unique per
-quotation. A quotation requires at least one item; quantities are positive,
-unit prices are non-negative, and dates satisfy `valid_until >= quotation_date`.
+The current implementation has tenant-safe and organization-safe foreign keys,
+soft delete, legacy `version` concurrency, deterministic indexes, RLS, and
+FORCE RLS. A quotation number is generated server-side and is unique within the
+tenant/organization scope. Item line numbers are unique per quotation. A
+quotation requires at least one item; quantities are positive, unit prices are
+non-negative, and dates satisfy `valid_until >= quotation_date`.
 
-Transactional Sales schemas must conform to the organizational-isolation
-standard's mandatory `tenant_id`, `organization_id`, `branch_id`, and
-`financial_year_id` references unless an explicit approved exception exists.
-No such exception is established by this specification; the exact branch and
-financial-year semantics for this implemented slice require review.
+### Authoritative target and remediation gate
+
+The organizational-isolation standard requires every transactional Sales record
+to reference `tenant_id`, `organization_id`, `branch_id`, and
+`financial_year_id`. The audit and concurrency standards require
+`created_at`, `created_by`, `updated_at`, `updated_by`, and
+`version_number`. No approved exception for Sales Quotation exists in the
+governing documentation or ADRs.
+
+Accordingly, the current quotation implementation is **non-conformant with the
+authoritative target architecture**. It lacks `branch_id` and
+`financial_year_id`, uses `version` instead of `version_number`, and does not
+provide the complete canonical audit column set on quotation items.
+
+Required future implementation remediation, subject to an authorized
+implementation task, is to add and validate the mandatory branch and
+financial-year references, replace the legacy concurrency field with
+`version_number`, align audit persistence with the canonical audit columns, and
+update the repository, service, API, migrations, RLS/authorization checks, and
+tests consistently. The exact business semantics for branch and financial year
+remain **BUSINESS DECISION REQUIRED**; this specification does not invent them.
+Until that remediation and its validation are complete, the quotation slice is
+not fully architecturally compliant.
 
 ## Lifecycle
 
@@ -106,7 +126,8 @@ templates are outside this slice.
 
 ## IMPLEMENTATION STATUS
 
-**READY FOR IMPLEMENTATION** — this specification is the authority for the
-implemented quotation slice and has been validated by the existing backend,
-PostgreSQL/RLS, Flutter, routing, and audit test evidence. The remaining Sales
-capabilities are specified separately and are not authorized by this document.
+**PARTIAL — IMPLEMENTED WITH ARCHITECTURAL REMEDIATION REQUIRED** — the
+quotation slice exists and its current behavior has validation evidence, but it
+does not yet satisfy the authoritative organizational-isolation, audit, and
+concurrency standards. The remaining Sales capabilities are specified
+separately and are not authorized by this document.

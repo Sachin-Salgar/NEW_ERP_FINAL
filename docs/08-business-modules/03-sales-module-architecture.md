@@ -172,7 +172,8 @@ This architecture document is conceptual and does not by itself authorize
 implementation of every listed capability. The implementation specification
 package is indexed in [Business Modules README](./README.md):
 
-- [Sales Quotation](./sales/01-sales-quotation.md) — current implemented slice.
+- [Sales Quotation](./sales/01-sales-quotation.md) — implemented quotation slice;
+  architectural remediation required before full compliance.
 - [Sales Order](./sales/02-sales-order.md)
 - [Sales Delivery](./sales/03-sales-delivery.md)
 - [Sales Invoice](./sales/04-sales-invoice.md)

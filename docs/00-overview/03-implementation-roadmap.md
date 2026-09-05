@@ -149,7 +149,7 @@ Project Management is explicitly removed/deferred and is not an implementation t
 | Sequence | Module | Status |
 |---|---|---|
 | 1 | Core Enterprise | **COMPLETED WITH KNOWN VALIDATION RESIDUAL — READY FOR SALES** |
-| 2 | Sales | **QUOTATION MANAGEMENT COMPLETED; REMAINING SALES CAPABILITIES AUTHORIZED FOR SPECIFICATION ONLY** — [Sales specification package](../08-business-modules/03-sales-module-architecture.md) |
+| 2 | Sales | **QUOTATION SLICE PARTIAL — ARCHITECTURAL REMEDIATION REQUIRED; REMAINING SALES CAPABILITIES AUTHORIZED FOR SPECIFICATION ONLY** — [Sales specification package](../08-business-modules/03-sales-module-architecture.md) |
 | 3 | Procurement | **PENDING** |
 | 4 | Inventory | **PENDING** |
 | 5 | Manufacturing | **PENDING** |
@@ -165,14 +165,19 @@ Business modules must not open until the Core Enterprise gate is completed unles
 
 ### Current Sales implementation step
 
-The implemented Sales capability is quotation management only. The remaining
-Sales architecture is now documented as an authorization/specification package
+The implemented Sales capability is quotation management only, but the current
+quotation persistence is not fully conformant with the authoritative
+organizational-isolation, audit, and concurrency standards. The quotation
+requires future implementation remediation before it can be considered fully
+architecturally compliant. The remaining Sales architecture is now documented
+as an authorization/specification package
 without source-code implementation. Sales Order, Delivery, Invoice, Return,
 Credit Note, Pricing, Discounts, Workflow, integrations, and Reporting require
 the decisions and dependency contracts identified in their specifications
 before implementation begins.
 
-The Sales quotation slice has passed its documented backend, PostgreSQL/RLS,
+The Sales quotation slice has passed its documented behavioral backend,
+PostgreSQL/RLS,
 frontend, routing, security, and documentation validation gates. The existing
 Browser Matrix E2E teardown residual remains unchanged and must not be hidden
 or weakened.
