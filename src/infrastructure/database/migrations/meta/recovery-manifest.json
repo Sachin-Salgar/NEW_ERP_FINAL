@@ -90,6 +90,111 @@
       "strategy": "compensating-migration",
       "destructiveDownAllowed": false,
       "note": "Quotation item organization ownership is tightened through a forward-only tenant-safe composite foreign key."
+    },
+    "0018-sales-quotation-canonical-audit": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Quotation audit and optimistic-concurrency columns are corrected forward while preserving existing quotation and item data."
+    },
+    "0019-sales-quotation-context": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Quotation branch and financial-year context is added forward; existing rows are backfilled only from explicit organization defaults and otherwise preserved as nullable data requiring explicit reclassification."
+    },
+    "0020-session-financial-year-context": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Session financial-year ownership is additive and tenant-safe; preserve existing sessions and correct context forward."
+    },
+    "0021-sales-order": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Sales order and audit data are business records; preserve and correct forward."
+    },
+    "0022-sales-delivery": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Sales delivery traceability and line snapshots are business records; preserve and correct forward."
+    },
+    "0023-sales-invoice": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Sales invoice traceability and immutable line snapshots are business records; preserve and correct forward."
+    },
+    "0024-sales-return": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Sales return coordination records and line snapshots are business records; preserve and correct forward."
+    },
+    "0025-sales-credit-note": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Sales credit note traceability and immutable line snapshots are business records; preserve and correct forward."
+    },
+    "0026-sales-pricing": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Price-list definitions are business data; preserve and correct forward."
+    },
+    "0027-sales-discount": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Discount rules are business data; preserve and correct forward."
+    },
+    "0028-sales-quotation-context-guard": {
+      "strategy": "forward-only-security",
+      "destructiveDownAllowed": false,
+      "note": "Prevent implicit legacy quotation context assignment; explicit reclassification must be reviewed and authorized."
+    },
+    "0029-inventory-item-master": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Item master records are organization-owned business data; preserve and correct forward."
+    },
+    "0030-inventory-foundation": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Warehouse, stock, reservation, and movement records are authoritative Inventory business data; preserve and correct forward."
+    },
+    "0031-sales-inventory-contract": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Sales item and warehouse references are additive and historical rows remain nullable; preserve transaction data and correct forward."
+    },
+    "0032-sales-inventory-contract-correction": {
+      "strategy": "forward-only-security",
+      "destructiveDownAllowed": false,
+      "note": "Correct the composite foreign-key support index without removing Sales or Inventory business data."
+    },
+    "0033-sales-delivery-inventory-fulfillment": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Add nullable delivery warehouse, item, and reservation references without rewriting historical delivery records."
+    },
+    "0034-sales-return-inventory": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Add nullable return warehouse and item references and permit the persisted Inventory completion state without rewriting historical returns."
+    },
+    "0035-bounded-tax-foundation": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Tax configuration is authoritative organization business data; preserve and correct forward."
+    },
+    "0036-sales-invoice-tax-snapshot": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Invoice tax snapshots are immutable transaction data; preserve and correct forward."
+    },
+    "0037-bounded-finance-posting": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Finance postings and Sales financial references are authoritative transaction data; preserve and correct forward."
+    },
+    "0038-sales-commercial-snapshots": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Commercial price and discount snapshots are historical transaction evidence; preserve them and compensate forward."
     }
   }
 }

@@ -34,7 +34,7 @@ The current Sales quotation slice applies backend RBAC and module enablement,
 authenticated tenant authority, active-organization checks, customer
 relationship boundaries, audit logging, and PostgreSQL RLS/FORCE RLS. It does
 not change the existing Core Enterprise security model. Details are in the
-[Sales Quotation Management specification](../08-business-modules/03-sales-quotation.md).
+[Sales Quotation Management specification](../08-business-modules/sales/01-sales-quotation.md).
 
 ## Current Baseline
 

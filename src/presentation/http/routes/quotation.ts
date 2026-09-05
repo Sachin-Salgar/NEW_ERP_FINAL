@@ -4,7 +4,13 @@ import { parsePaginationQuery } from '../pagination.js';
 import { requestParam } from '../request-input.js';
 import type { QuotationRecord } from '../../../domain/contracts/repositories.js';
 function ctx(r: any) {
-  return { tenantId: r.tenantId, organizationId: r.user.organizationId, userId: r.user.id };
+  return {
+    tenantId: r.tenantId,
+    organizationId: r.user.organizationId,
+    branchId: r.user.branchId ?? r.user.defaultBranchId,
+    financialYearId: r.user.financialYearId,
+    userId: r.user.id,
+  };
 }
 function out(q: QuotationRecord) {
   const { tenantId: _tenantId, ...publicQuotation } = q;
@@ -79,6 +85,7 @@ const quotationRoutes: FastifyPluginAsync = async (f) => {
             ctx(r),
             requestParam(r.params, 'id') ?? '',
             (s === 'send' ? 'SENT' : s === 'cancel' ? 'CANCELLED' : s.toUpperCase()) as any,
+            r.body.expectedVersion,
           ),
         ),
       }),

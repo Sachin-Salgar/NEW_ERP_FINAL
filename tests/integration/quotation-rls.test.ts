@@ -16,6 +16,8 @@ describe('Sales quotation PostgreSQL tenant and organization isolation', () => {
   const tenantB = uuidV7();
   const organizationA = uuidV7();
   const organizationB = uuidV7();
+  const branchA = uuidV7();
+  const financialYearA = uuidV7();
   const customerA = uuidV7();
   const customerB = uuidV7();
   const actor = uuidV7();
@@ -55,6 +57,20 @@ describe('Sales quotation PostgreSQL tenant and organization isolation', () => {
         [organizationA, tenantA, `QA${suffix.slice(0, 8)}`, organizationB, `QB${suffix.slice(0, 8)}`],
       ),
     );
+    await withTenantContext(pool, 'app.current_tenant_id', tenantA, (client) =>
+      client.query(
+        `INSERT INTO branches (id, tenant_id, organization_id, code, name, is_default)
+         VALUES ($1, $2, $3, $4, 'Quotation Branch', true)`,
+        [branchA, tenantA, organizationA, `QBR${suffix.slice(0, 6)}`],
+      ),
+    );
+    await withTenantContext(pool, 'app.current_tenant_id', tenantA, (client) =>
+      client.query(
+        `INSERT INTO financial_years (id, tenant_id, organization_id, name, start_date, end_date, is_active, status)
+         VALUES ($1, $2, $3, 'FY 2026', '2026-01-01', '2026-12-31', true, 'open')`,
+        [financialYearA, tenantA, organizationA],
+      ),
+    );
     await withTenantContext(pool, 'app.current_tenant_id', tenantB, (client) =>
       client.query(
         `INSERT INTO organizations (id, tenant_id, code, name)
@@ -74,6 +90,8 @@ describe('Sales quotation PostgreSQL tenant and organization isolation', () => {
     const input = {
       tenantId: tenantA,
       organizationId: organizationA,
+      branchId: branchA,
+      financialYearId: financialYearA,
       customerId: customerA,
       quotationDate: '2026-09-01',
       validUntil: '2026-09-30',
@@ -81,15 +99,27 @@ describe('Sales quotation PostgreSQL tenant and organization isolation', () => {
       actorUserId: actor,
     };
     const quotation = await repository.create(input);
+    const legacyQuotationId = uuidV7();
+    await withTenantContext(pool, 'app.current_tenant_id', tenantA, async (client) => {
+      await client.query(
+        `INSERT INTO sales_quotations
+           (id, tenant_id, organization_id, quotation_number, customer_id, quotation_date, valid_until)
+         VALUES ($1, $2, $3, 'Q-LEGACY-CONTEXT', $4, '2026-09-01', '2026-09-30')`,
+        [legacyQuotationId, tenantA, organizationA, customerA],
+      );
+      await expect(
+        client.query('UPDATE sales_quotations SET branch_id = $1 WHERE id = $2', [branchA, legacyQuotationId]),
+      ).rejects.toThrow('requires explicit authorization');
+    });
 
-    await expect(repository.getById(tenantA, organizationA, quotation.id)).resolves.toMatchObject({
+    await expect(repository.getById(tenantA, organizationA, branchA, financialYearA, quotation.id)).resolves.toMatchObject({
       tenantId: tenantA,
       organizationId: organizationA,
       quotationNumber: 'Q-000001',
       items: [{ description: 'Consulting', quantity: 2, unitPrice: 100, unitOfMeasure: 'hour' }],
     });
-    await expect(repository.getById(tenantB, organizationA, quotation.id)).resolves.toBeNull();
-    await expect(repository.getById(tenantA, organizationB, quotation.id)).resolves.toBeNull();
+    await expect(repository.getById(tenantB, organizationA, branchA, financialYearA, quotation.id)).resolves.toBeNull();
+    await expect(repository.getById(tenantA, organizationB, branchA, financialYearA, quotation.id)).resolves.toBeNull();
     await withTenantContext(pool, 'app.current_tenant_id', tenantB, async (client) => {
       await expect(
         client.query('SELECT id FROM sales_quotations WHERE id = $1', [quotation.id]),
@@ -157,13 +187,22 @@ describe('Sales quotation PostgreSQL tenant and organization isolation', () => {
       repository.softDelete({
         tenantId: tenantA,
         organizationId: organizationA,
+        branchId: branchA,
+        financialYearId: financialYearA,
         quotationId: quotation.id,
         actorUserId: actor,
       }),
     ).resolves.toMatchObject({ isDeleted: true });
-    await expect(repository.getById(tenantA, organizationA, quotation.id)).resolves.toBeNull();
+    await expect(repository.getById(tenantA, organizationA, branchA, financialYearA, quotation.id)).resolves.toBeNull();
     await expect(
-      repository.list(tenantA, { organizationId: organizationA, page: 1, pageSize: 20, order: 'asc' }),
+      repository.list(tenantA, {
+        organizationId: organizationA,
+        branchId: branchA,
+        financialYearId: financialYearA,
+        page: 1,
+        pageSize: 20,
+        order: 'asc',
+      }),
     ).resolves.toMatchObject({ total: 5 });
 
     await expect(

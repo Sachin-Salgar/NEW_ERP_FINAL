@@ -66,6 +66,24 @@ Future<AuthService> _setupAuthenticatedAuth({
     if (request.url.path.contains('/effective-permissions')) {
       return http.Response(jsonEncode({'permissions': permissions}), 200);
     }
+    if (request.url.path == '/api/v1/auth/modules') {
+      return http.Response(
+        jsonEncode({
+          'modules': [
+            {'code': 'core'},
+            {'code': 'security'},
+            {'code': 'organization'},
+            {'code': 'branch'},
+            {'code': 'user-management'},
+            {'code': 'tenant-configuration'},
+            {'code': 'crm'},
+            {'code': 'inventory'},
+            {'code': 'sales'},
+          ],
+        }),
+        200,
+      );
+    }
     return http.Response('{}', 200);
   });
 
@@ -87,6 +105,8 @@ Future<AuthService> _setupAuthenticatedAuth({
   );
   expect(loginOk, isTrue);
 
+  auth.currentOrganizationId = 'org-1';
+  await auth.loadAccessibleModules('http://example.com');
   await auth.authzService.loadPermissions(api, 'user-1');
 
   return auth;

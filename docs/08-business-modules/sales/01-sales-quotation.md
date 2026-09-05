@@ -16,25 +16,46 @@ customer model or table.
 
 ## Data model
 
-`sales_quotations` is tenant-owned and organization-owned with:
+### Current implemented schema
 
-`id`, `tenant_id`, `organization_id`, `quotation_number`, `customer_id`,
+The current implementation is tenant-owned and organization-owned with:
+
+`id`, `tenant_id`, `organization_id`, `branch_id`, `financial_year_id`,
+`quotation_number`, `customer_id`,
 `quotation_date`, `valid_until`, `status`, `notes`, `created_at`, `created_by`,
 `updated_at`, `updated_by`, `deleted_at`, `deleted_by`, `is_deleted`, and
-`version`.
+canonical `version_number`.
 
 `sales_quotation_items` contains:
 
-`id`, `tenant_id`, `organization_id`, `quotation_id`, `line_number`,
-`description`, `quantity`, `unit_price`, `unit_of_measure`, `created_at`, and
-`updated_at`.
+`id`, `tenant_id`, `organization_id`, `branch_id`, `financial_year_id`,
+`quotation_id`, `line_number`,
+`description`, `quantity`, `unit_price`, `unit_of_measure`, `created_at`,
+`created_by`, `updated_at`, `updated_by`, and `version_number`.
 
-UUIDs, tenant-safe and organization-safe foreign keys, soft delete, optimistic
-versioning, deterministic indexes, RLS, and FORCE RLS follow the existing
-database architecture. A quotation number is generated server-side and is
-unique within the tenant/organization scope. Item line numbers are unique per
-quotation. A quotation requires at least one item; quantities are positive,
-unit prices are non-negative, and dates satisfy `valid_until >= quotation_date`.
+The current implementation has tenant-safe and organization-safe foreign keys,
+soft delete, canonical `version_number` concurrency, deterministic indexes, RLS, and
+FORCE RLS. A quotation number is generated server-side and is unique within the
+tenant/organization scope. Item line numbers are unique per quotation. A
+quotation requires at least one item; quantities are positive, unit prices are
+non-negative, and dates satisfy `valid_until >= quotation_date`.
+
+### Organizational transaction context
+
+The organizational-isolation standard requires every transactional Sales record
+to reference `tenant_id`, `organization_id`, `branch_id`, and
+`financial_year_id`. The audit and concurrency standards require
+`created_at`, `created_by`, `updated_at`, `updated_by`, and
+`version_number`. No approved exception for Sales Quotation exists in the
+governing documentation or ADRs.
+
+The session-scoped policy in ADR-0025 supplies the authorized branch and
+financial-year context. New quotations require both values and store them
+immutably; list, read, update, and lifecycle operations are scoped to the
+authenticated session context. Existing rows are backfilled only from
+authoritative organization defaults. Rows without such evidence are preserved
+as nullable legacy data and require explicit reclassification before they can
+participate in new-context operations.
 
 ## Lifecycle
 
@@ -98,3 +119,11 @@ commissions, approvals, documents/PDF, email or messaging, reporting,
 dashboards, revisions, configurable numbering, multi-currency, and advanced
 templates are outside this slice.
 
+## IMPLEMENTATION STATUS
+
+**PARTIAL — QUOTATION CONTEXT IMPLEMENTED** — the quotation slice satisfies the
+canonical audit, optimistic-concurrency, tenant/organization/branch/financial-
+year context, migration, unit, API, RLS, typecheck, lint, build, and recovery
+validation requirements. Legacy rows without authoritative context remain a
+documented data-remediation residual. The remaining Sales capabilities are
+specified separately and are not authorized by this document.

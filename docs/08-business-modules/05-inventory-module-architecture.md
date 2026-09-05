@@ -225,6 +225,24 @@ Where inventory-period closing is required, processing may include:
 
 The exact accounting calendar and period-control rules are governed by the Finance architecture.
 
+## 12A. Minimum Sales Fulfillment Foundation
+
+ADR-0034 defines the bounded Inventory foundation currently implemented for
+Sales integration. Warehouses are organization-owned and explicitly active or
+inactive. The first slice persists stock balances keyed by organization,
+warehouse, and item with `on_hand`, `reserved`, and derived `available`
+quantities. Reservations are all-or-nothing and move available quantity to
+reserved quantity without changing on-hand. Release reverses that reservation;
+fulfillment consumes reserved and on-hand quantity; returns increase on-hand.
+
+Reservation, fulfillment, receipt, and return operations are transaction-bound,
+row-locked, audited, and idempotent by source or operation key. Inventory
+exposes provider-neutral contracts and Sales must not access Inventory tables.
+Branch and financial-year context is captured for transaction-facing
+operations. Advanced warehouse hierarchy, batch/serial tracking, valuation,
+replenishment, backorders, partial reservation, and advanced ATP remain
+deferred.
+
 ## 13. Inventory Transfers
 
 Inventory transfers manage movement between warehouses, branches, storage locations, departments, projects, and organizational entities where permitted.

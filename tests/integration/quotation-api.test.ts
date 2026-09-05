@@ -71,6 +71,12 @@ describe('Quotation HTTP API', () => {
     await new PlatformBootstrapService(repository).seedReferenceData();
     const bootstrap = await new TenantBootstrapService(repository, passwordHasher).bootstrapTenant(input);
     await withTenantContext(pool, 'app.current_tenant_id', bootstrap.tenantId, async (client) => {
+      await client.query(
+        `INSERT INTO financial_years
+          (id, tenant_id, organization_id, name, start_date, end_date, is_active, status, is_locked)
+         VALUES ($1, $2, $3, 'FY 2026', '2026-01-01', '2026-12-31', true, 'open', false)`,
+        [uuidV7(), bootstrap.tenantId, bootstrap.organizationId],
+      );
       const module = await client.query(`SELECT id FROM modules WHERE code = 'sales'`);
       const moduleId = module.rows[0]?.id;
       if (!moduleId) throw new Error('Sales module seed is missing.');
@@ -177,6 +183,7 @@ describe('Quotation HTTP API', () => {
       method: 'POST',
       url: `/api/v1/sales/quotations/${sentQuotation.id}/send`,
       headers,
+      payload: { expectedVersion: 1 },
     });
     expect(sent.statusCode).toBe(200);
     const sentDelete = await app.inject({
@@ -189,6 +196,7 @@ describe('Quotation HTTP API', () => {
       method: 'POST',
       url: `/api/v1/sales/quotations/${sentQuotation.id}/cancel`,
       headers,
+      payload: { expectedVersion: 2 },
     });
     expect(cancelled.statusCode).toBe(200);
     expect(cancelled.json().quotation.status).toBe('CANCELLED');

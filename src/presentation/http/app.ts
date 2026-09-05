@@ -17,6 +17,20 @@ import { AccountSecurityService } from '../../application/services/account-secur
 import { MfaService } from '../../application/services/mfa-service.js';
 import { CustomerService } from '../../application/services/customer-service.js';
 import { QuotationService } from '../../application/services/quotation-service.js';
+import { OrderService } from '../../application/services/order-service.js';
+import { DeliveryService } from '../../application/services/delivery-service.js';
+import { InvoiceService } from '../../application/services/invoice-service.js';
+import { SalesReturnService } from '../../application/services/sales-return-service.js';
+import { CreditNoteService } from '../../application/services/credit-note-service.js';
+import { PricingService } from '../../application/services/pricing-service.js';
+import { DiscountService } from '../../application/services/discount-service.js';
+import { SalesReportingService } from '../../application/services/sales-reporting-service.js';
+import { ItemMasterService } from '../../application/services/item-master-service.js';
+import { InventoryService } from '../../application/services/inventory-service.js';
+import { TaxService } from '../../application/services/tax-service.js';
+import { PostgresTaxRepository } from '../../infrastructure/database/repositories/postgres-tax-repository.js';
+import { PostgresFinanceRepository } from '../../infrastructure/database/repositories/postgres-finance-repository.js';
+import { PostgresSalesReportingRepository } from '../../infrastructure/database/repositories/postgres-sales-reporting-repository.js';
 import { createDatabasePool } from '../../infrastructure/database/connection.js';
 import { PostgresQueryPerformanceMonitor } from '../../infrastructure/database/query-performance-monitor.js';
 import { IdentityAwarePostgresPlatformRepository } from '../../infrastructure/database/repositories/identity-aware-postgres-platform-repository.js';
@@ -24,6 +38,15 @@ import { PostgresAccountSecurityRepository } from '../../infrastructure/database
 import { PostgresMfaRepository } from '../../infrastructure/database/repositories/postgres-mfa-repository.js';
 import { PostgresCustomerRepository } from '../../infrastructure/database/repositories/postgres-customer-repository.js';
 import { PostgresQuotationRepository } from '../../infrastructure/database/repositories/postgres-quotation-repository.js';
+import { PostgresOrderRepository } from '../../infrastructure/database/repositories/postgres-order-repository.js';
+import { PostgresDeliveryRepository } from '../../infrastructure/database/repositories/postgres-delivery-repository.js';
+import { PostgresInvoiceRepository } from '../../infrastructure/database/repositories/postgres-invoice-repository.js';
+import { PostgresSalesReturnRepository } from '../../infrastructure/database/repositories/postgres-sales-return-repository.js';
+import { PostgresCreditNoteRepository } from '../../infrastructure/database/repositories/postgres-credit-note-repository.js';
+import { PostgresPricingRepository } from '../../infrastructure/database/repositories/postgres-pricing-repository.js';
+import { PostgresDiscountRepository } from '../../infrastructure/database/repositories/postgres-discount-repository.js';
+import { PostgresItemMasterRepository } from '../../infrastructure/database/repositories/postgres-item-master-repository.js';
+import { PostgresInventoryRepository } from '../../infrastructure/database/repositories/postgres-inventory-repository.js';
 import { PostgresNotificationService } from '../../infrastructure/database/repositories/postgres-operational-services.js';
 import { AccountSecurityNotificationAdapter } from '../../application/adapters/account-security-notifications.js';
 import { buildErrorHandler } from '../../infrastructure/http/error-handler.js';
@@ -45,6 +68,17 @@ import jwksRoutes from './routes/jwks.js';
 import locationRoutes from './routes/location.js';
 import customerRoutes from './routes/customer.js';
 import quotationRoutes from './routes/quotation.js';
+import orderRoutes from './routes/order.js';
+import deliveryRoutes from './routes/delivery.js';
+import invoiceRoutes from './routes/invoice.js';
+import salesReturnRoutes from './routes/sales-return.js';
+import creditNoteRoutes from './routes/credit-note.js';
+import pricingRoutes from './routes/pricing.js';
+import discountRoutes from './routes/discount.js';
+import salesReportingRoutes from './routes/sales-reporting.js';
+import itemMasterRoutes from './routes/item-master.js';
+import inventoryRoutes from './routes/inventory.js';
+import taxRoutes from './routes/tax.js';
 import rbacRoutes from './routes/rbac.js';
 import { paginateListResponse } from './pagination.js';
 import { requestObject } from './request-input.js';
@@ -169,8 +203,139 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     auditLogger,
     transactionRunner,
   );
+  const salesReportingService = new SalesReportingService(
+    new PostgresSalesReportingRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+  );
+  const pricingService = new PricingService(
+    new PostgresPricingRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+  );
+  const discountService = new DiscountService(
+    new PostgresDiscountRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+  );
   const quotationService = new QuotationService(
     new PostgresQuotationRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+    transactionRunner,
+    pricingService,
+    discountService,
+  );
+  const inventoryService = new InventoryService(
+    new PostgresInventoryRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+    transactionRunner,
+  );
+  const orderService = new OrderService(
+    new PostgresOrderRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+    transactionRunner,
+    {
+      reserveStock: (context, request) => inventoryService.reserve(context, request),
+      releaseReservation: (context, reservationId, idempotencyKey) => inventoryService.release(context, reservationId, idempotencyKey),
+      fulfillReservation: (context, reservationId, idempotencyKey) => inventoryService.fulfill(context, reservationId, idempotencyKey),
+      returnStock: (context, request) => inventoryService.returnStock(context, request),
+      listReservationsBySource: (context, sourceType, sourceId) => inventoryService.listReservationsBySource(context, sourceType, sourceId),
+      fulfillReservationsBySource: (context, sourceType, sourceId, operationKey) =>
+        inventoryService.fulfillReservationsBySource(context, sourceType, sourceId, operationKey),
+    },
+  );
+  const deliveryService = new DeliveryService(
+    new PostgresDeliveryRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+    transactionRunner,
+    {
+      listReservationsBySource: (context, sourceType, sourceId) => inventoryService.listReservationsBySource(context, sourceType, sourceId),
+      fulfillReservationsBySource: (context, sourceType, sourceId, operationKey) =>
+        inventoryService.fulfillReservationsBySource(context, sourceType, sourceId, operationKey),
+      reserveStock: (context, request) => inventoryService.reserve(context, request),
+      releaseReservation: (context, reservationId, idempotencyKey) => inventoryService.release(context, reservationId, idempotencyKey),
+      fulfillReservation: (context, reservationId, idempotencyKey) => inventoryService.fulfill(context, reservationId, idempotencyKey),
+      returnStock: (context, request) => inventoryService.returnStock(context, request),
+    },
+  );
+  const taxService = new TaxService(
+    new PostgresTaxRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+  );
+  const financePosting = new PostgresFinanceRepository(pool, config.TENANT_CONTEXT_KEY);
+  const invoiceService = new InvoiceService(
+    new PostgresInvoiceRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+    transactionRunner,
+    {
+      calculate: async (context, _documentType, _documentId, taxableAmount = 0) => {
+        const result = await taxService.calculate(
+          { tenantId: context.tenantId, organizationId: context.organizationId, userId: context.actorUserId },
+          { amount: taxableAmount, asOf: new Date().toISOString().slice(0, 10) },
+        );
+        return { status: 'CALCULATED', reference: result.ruleId, rate: result.rate, taxableAmount, taxAmount: result.taxAmount };
+      },
+    },
+    {
+      submitSalesDocument: async (context, documentType, documentId, amount = 0) =>
+        financePosting.postSalesDocument(
+          { tenantId: context.tenantId, organizationId: context.organizationId, branchId: context.branchId, financialYearId: context.financialYearId, userId: context.actorUserId },
+          documentType,
+          documentId,
+          amount,
+          context.idempotencyKey,
+        ),
+    },
+  );
+  const salesReturnService = new SalesReturnService(
+    new PostgresSalesReturnRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+    transactionRunner,
+    {
+      reserveStock: (context, request) => inventoryService.reserve(context, request),
+      releaseReservation: (context, reservationId, idempotencyKey) => inventoryService.release(context, reservationId, idempotencyKey),
+      fulfillReservation: (context, reservationId, idempotencyKey) => inventoryService.fulfill(context, reservationId, idempotencyKey),
+      returnStock: (context, request) => inventoryService.returnStock(context, request),
+      listReservationsBySource: (context, sourceType, sourceId) => inventoryService.listReservationsBySource(context, sourceType, sourceId),
+      fulfillReservationsBySource: (context, sourceType, sourceId, operationKey) =>
+        inventoryService.fulfillReservationsBySource(context, sourceType, sourceId, operationKey),
+    },
+  );
+  const creditNoteService = new CreditNoteService(
+    new PostgresCreditNoteRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+    transactionRunner,
+    {
+      submitSalesDocument: async (context, documentType, documentId, amount = 0) =>
+        financePosting.postSalesDocument(
+          { tenantId: context.tenantId, organizationId: context.organizationId, branchId: context.branchId, financialYearId: context.financialYearId, userId: context.actorUserId },
+          documentType,
+          documentId,
+          amount,
+          context.idempotencyKey,
+        ),
+    },
+  );
+  const itemMasterService = new ItemMasterService(
+    new PostgresItemMasterRepository(pool, config.TENANT_CONTEXT_KEY),
     authorizationService,
     moduleAccessService,
     auditLogger,
@@ -222,6 +387,17 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('auditLogger', auditLogger);
   app.decorate('customerService', customerService);
   app.decorate('quotationService', quotationService);
+  app.decorate('orderService', orderService);
+  app.decorate('deliveryService', deliveryService);
+  app.decorate('invoiceService', invoiceService);
+  app.decorate('salesReturnService', salesReturnService);
+  app.decorate('creditNoteService', creditNoteService);
+  app.decorate('pricingService', pricingService);
+  app.decorate('discountService', discountService);
+  app.decorate('salesReportingService', salesReportingService);
+  app.decorate('itemMasterService', itemMasterService);
+  app.decorate('inventoryService', inventoryService);
+  app.decorate('taxService', taxService);
 
   app.addHook('onReady', async () => {
     const snapshot = await queryPerformanceMonitor.snapshot({ minimumMeanExecMs: 100, limit: 25 });
@@ -320,5 +496,16 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(locationRoutes, { prefix: config.API_PREFIX });
   await app.register(customerRoutes, { prefix: config.API_PREFIX });
   await app.register(quotationRoutes, { prefix: config.API_PREFIX });
+  await app.register(orderRoutes, { prefix: config.API_PREFIX });
+  await app.register(deliveryRoutes, { prefix: config.API_PREFIX });
+  await app.register(invoiceRoutes, { prefix: config.API_PREFIX });
+  await app.register(salesReturnRoutes, { prefix: config.API_PREFIX });
+  await app.register(creditNoteRoutes, { prefix: config.API_PREFIX });
+  await app.register(pricingRoutes, { prefix: config.API_PREFIX });
+  await app.register(discountRoutes, { prefix: config.API_PREFIX });
+  await app.register(salesReportingRoutes, { prefix: config.API_PREFIX });
+  await app.register(itemMasterRoutes, { prefix: config.API_PREFIX });
+  await app.register(inventoryRoutes, { prefix: config.API_PREFIX });
+  await app.register(taxRoutes, { prefix: config.API_PREFIX });
   return app;
 }

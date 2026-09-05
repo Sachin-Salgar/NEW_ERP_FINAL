@@ -47,6 +47,7 @@ const DEFAULT_MODULES: PlatformModuleSeed[] = [
     sortOrder: 6,
   },
   { code: 'crm', name: 'Customer Relationship Management', moduleGroup: 'CRM', isCore: false, sortOrder: 20 },
+  { code: 'inventory', name: 'Inventory and Item Master', moduleGroup: 'Inventory', isCore: false, sortOrder: 40 },
   { code: 'sales', name: 'Sales', moduleGroup: 'Sales', isCore: false, sortOrder: 30 },
 ];
 
@@ -187,6 +188,26 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
     permissionKey: 'customer.delete',
     displayName: 'Delete customers',
   },
+  ...(['read', 'create', 'update', 'delete'] as const).map((action) => ({
+    moduleCode: 'inventory',
+    resource: 'item',
+    action,
+    scope: 'organization' as const,
+    permissionKey: `inventory.item.${action}`,
+    displayName: `${action[0].toUpperCase()}${action.slice(1)} item master records`,
+  })),
+  ...([
+    ['warehouse', 'read'], ['warehouse', 'create'], ['warehouse', 'update'],
+    ['stock', 'read'], ['stock', 'receive'], ['stock', 'return'],
+    ['reservation', 'read'], ['reservation', 'create'], ['reservation', 'release'], ['reservation', 'fulfill'],
+  ] as const).map(([resource, action]) => ({
+    moduleCode: 'inventory',
+    resource,
+    action,
+    scope: 'organization' as const,
+    permissionKey: `inventory.${resource}.${action}`,
+    displayName: `${action[0].toUpperCase()}${action.slice(1)} inventory ${resource} records`,
+  })),
   ...(['read', 'create', 'update', 'delete', 'send', 'accept', 'reject', 'expire', 'cancel'] as const).map(
     (action) => ({
       moduleCode: 'sales',
@@ -197,6 +218,78 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
       displayName: `${action[0].toUpperCase()}${action.slice(1)} quotations`,
     }),
   ),
+  ...(['read', 'create', 'update', 'delete', 'confirm', 'reserve', 'cancel', 'close'] as const).map((action) => ({
+    moduleCode: 'sales',
+    resource: 'order',
+    action,
+    scope: 'organization' as const,
+    permissionKey: `sales.order.${action}`,
+    displayName: `${action[0].toUpperCase()}${action.slice(1)} orders`,
+  })),
+  ...(['read', 'create', 'update', 'dispatch', 'deliver', 'complete', 'cancel'] as const).map((action) => ({
+    moduleCode: 'sales',
+    resource: 'delivery',
+    action,
+    scope: 'organization' as const,
+    permissionKey: `sales.delivery.${action}`,
+    displayName: `${action[0].toUpperCase()}${action.slice(1)} deliveries`,
+  })),
+  ...(['read', 'create', 'update', 'issue', 'cancel'] as const).map((action) => ({
+    moduleCode: 'sales',
+    resource: 'invoice',
+    action,
+    scope: 'organization' as const,
+    permissionKey: `sales.invoice.${action}`,
+    displayName: `${action[0].toUpperCase()}${action.slice(1)} invoices`,
+  })),
+  ...(['read', 'create', 'update', 'inspect', 'approve', 'reject', 'process', 'cancel', 'close'] as const).map((action) => ({
+    moduleCode: 'sales',
+    resource: 'return',
+    action,
+    scope: 'organization' as const,
+    permissionKey: `sales.return.${action}`,
+    displayName: `${action[0].toUpperCase()}${action.slice(1)} returns`,
+  })),
+  ...(['read', 'create', 'update', 'issue', 'cancel'] as const).map((action) => ({
+    moduleCode: 'sales',
+    resource: 'credit_note',
+    action,
+    scope: 'organization' as const,
+    permissionKey: `sales.credit_note.${action}`,
+    displayName: `${action[0].toUpperCase()}${action.slice(1)} credit notes`,
+  })),
+  ...(['read', 'create', 'update', 'publish', 'archive'] as const).map((action) => ({
+    moduleCode: 'sales',
+    resource: 'pricing',
+    action,
+    scope: 'organization' as const,
+    permissionKey: `sales.pricing.${action}`,
+    displayName: `${action[0].toUpperCase()}${action.slice(1)} price lists`,
+  })),
+  ...(['read', 'create', 'update', 'activate', 'deactivate'] as const).map((action) => ({
+    moduleCode: 'sales',
+    resource: 'tax_configuration',
+    action,
+    scope: 'organization' as const,
+    permissionKey: `tax.configuration.${action}`,
+    displayName: `${action[0].toUpperCase()}${action.slice(1)} tax configuration`,
+  })),
+  ...(['read', 'create', 'update', 'publish', 'archive'] as const).map((action) => ({
+    moduleCode: 'sales',
+    resource: 'discount',
+    action,
+    scope: 'organization' as const,
+    permissionKey: `sales.discount.${action}`,
+    displayName: `${action[0].toUpperCase()}${action.slice(1)} discount rules`,
+  })),
+  {
+    moduleCode: 'sales',
+    resource: 'reporting',
+    action: 'read',
+    scope: 'organization' as const,
+    permissionKey: 'sales.reporting.read',
+    displayName: 'Read Sales reports',
+  },
 ];
 
 export class PlatformBootstrapService {

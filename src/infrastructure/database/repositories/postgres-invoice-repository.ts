@@ -1,0 +1,44 @@
+import type { Pool } from 'pg';
+import type { InvoiceRecord, InvoiceRepository } from '../../../domain/contracts/repositories.js';
+import { withTenantContext } from '../tenant-context.js';
+import { ValidationError } from '../../../domain/errors.js';
+
+const C = `id,tenant_id AS "tenantId",organization_id AS "organizationId",branch_id AS "branchId",financial_year_id AS "financialYearId",invoice_number AS "invoiceNumber",sales_order_id AS "salesOrderId",delivery_id AS "deliveryId",customer_id AS "customerId",status,idempotency_key AS "idempotencyKey",finance_status AS "financeStatus",tax_status AS "taxStatus",finance_reference AS "financeReference",tax_reference AS "taxReference",taxable_amount::float8 AS "taxableAmount",tax_rate::float8 AS "taxRate",tax_amount::float8 AS "taxAmount",subtotal::float8 AS subtotal,discount_total::float8 AS "discountTotal",total::float8 AS total,notes,created_at AS "createdAt",created_by AS "createdBy",updated_at AS "updatedAt",updated_by AS "updatedBy",version_number AS "versionNumber"`;
+export class PostgresInvoiceRepository implements InvoiceRepository {
+  constructor(private readonly pool: Pool, private readonly key = 'app.current_tenant_id') {}
+  async create(i: any): Promise<InvoiceRecord> {
+    return withTenantContext(this.pool, this.key, i.tenantId, async (c) => {
+      const existing = await c.query(`SELECT ${C} FROM sales_invoices WHERE tenant_id=$1 AND organization_id=$2 AND branch_id=$3 AND financial_year_id=$4 AND (idempotency_key=$5 OR delivery_id=$6)`, [i.tenantId,i.organizationId,i.branchId,i.financialYearId,i.idempotencyKey,i.deliveryId]);
+      if (existing.rows[0]) {
+        if (!i.allowReplay) throw new ValidationError('Unable to create an invoice with the supplied request.');
+        return this.map(c, existing.rows[0]);
+      }
+      const delivery = await c.query(`SELECT d.id,d.sales_order_id AS "salesOrderId",d.customer_id AS "customerId",d.status,o.subtotal,o.discount_total AS "discountTotal",o.total FROM sales_deliveries d JOIN sales_orders o ON o.id=d.sales_order_id AND o.tenant_id=d.tenant_id WHERE d.id=$1 AND d.tenant_id=$2 AND d.organization_id=$3 AND d.branch_id=$4 AND d.financial_year_id=$5`, [i.deliveryId,i.tenantId,i.organizationId,i.branchId,i.financialYearId]);
+      if (!delivery.rows[0] || delivery.rows[0].status !== 'COMPLETED') throw new ValidationError('Only a completed Delivery in the active context can create an invoice.');
+      const counter = await c.query(`INSERT INTO code_counters(tenant_id,entity_type,scope_key,last_value) VALUES($1,'sales_invoice',$2,1) ON CONFLICT(tenant_id,entity_type,scope_key) DO UPDATE SET last_value=code_counters.last_value+1 RETURNING last_value`, [i.tenantId,i.organizationId]);
+      const r = await c.query(`INSERT INTO sales_invoices(tenant_id,organization_id,branch_id,financial_year_id,invoice_number,sales_order_id,delivery_id,customer_id,idempotency_key,subtotal,discount_total,total,notes,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING ${C}`, [i.tenantId,i.organizationId,i.branchId,i.financialYearId,`INV-${String(counter.rows[0].last_value).padStart(6,'0')}`,delivery.rows[0].salesOrderId,i.deliveryId,delivery.rows[0].customerId,i.idempotencyKey,delivery.rows[0].subtotal??0,delivery.rows[0].discountTotal??0,delivery.rows[0].total??0,i.notes,i.actorUserId]);
+      await c.query(`INSERT INTO sales_invoice_items
+        (tenant_id,organization_id,branch_id,financial_year_id,invoice_id,delivery_item_id,line_number,
+          item_code,description,quantity,unit_of_measure,unit_price,discount_percentage,discount_amount,
+          price_list_id,discount_rule_id,line_total,created_by)
+        SELECT d.tenant_id,d.organization_id,d.branch_id,d.financial_year_id,$1,d.id,d.line_number,
+           o.item_code,d.description,d.quantity,d.unit_of_measure,o.unit_price,o.discount_percentage,
+           o.discount_amount,o.price_list_id,o.discount_rule_id,o.line_total,$2
+        FROM sales_delivery_items d
+        JOIN sales_order_items o ON o.id=d.order_item_id
+          AND o.tenant_id=d.tenant_id AND o.organization_id=d.organization_id
+          AND o.branch_id=d.branch_id AND o.financial_year_id=d.financial_year_id
+        WHERE d.delivery_id=$3 AND d.tenant_id=$4`, [r.rows[0].id,i.actorUserId,i.deliveryId,i.tenantId]);
+      return this.map(c, r.rows[0]);
+    }, { organizationId: i.organizationId, userId: i.actorUserId }) as Promise<InvoiceRecord>;
+  }
+  async getById(t:string,o:string,b:string,fy:string,id:string){return withTenantContext(this.pool,this.key,t,(c)=>this.getOn(c,t,o,b,fy,id),{organizationId:o});}
+  async list(t:string,q:any){return withTenantContext(this.pool,this.key,t,async(c)=>{const v:any[]=[t,q.organizationId,q.branchId,q.financialYearId],f=['tenant_id=$1','organization_id=$2','branch_id=$3','financial_year_id=$4'];if(q.search){v.push(`%${q.search}%`);f.push(`(invoice_number ILIKE $${v.length} OR status::text ILIKE $${v.length})`);}const count=await c.query(`SELECT count(*)::int count FROM sales_invoices WHERE ${f.join(' AND ')}`,v);v.push((q.page-1)*q.pageSize,q.pageSize);const d=q.order==='desc'?'DESC':'ASC';const rows=await c.query(`SELECT ${C} FROM sales_invoices WHERE ${f.join(' AND ')} ORDER BY invoice_number ${d},id ${d} OFFSET $${v.length-1} LIMIT $${v.length}`,v);return {items:await Promise.all(rows.rows.map((r:any)=>this.map(c,r))),total:Number(count.rows[0].count)};},{organizationId:q.organizationId});}
+  async update(i:any){return this.mutate(i,`UPDATE sales_invoices SET notes=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND organization_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND status='DRAFT' AND version_number=$8 RETURNING ${C}`,[i.notes,i.actorUserId,i.tenantId,i.organizationId,i.branchId,i.financialYearId,i.invoiceId,i.expectedVersion]);}
+  async transition(i:any){return this.mutate(i,`UPDATE sales_invoices SET status=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND organization_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND version_number=$8 RETURNING ${C}`,[i.status,i.actorUserId,i.tenantId,i.organizationId,i.branchId,i.financialYearId,i.invoiceId,i.expectedVersion]);}
+  async updateTaxSnapshot(i:any){return this.mutate(i,`UPDATE sales_invoices SET tax_status='CALCULATED',tax_reference=$1,tax_rate=$2,taxable_amount=$3,tax_amount=$4,updated_at=now(),updated_by=$5,version_number=version_number+1 WHERE tenant_id=$6 AND organization_id=$7 AND branch_id=$8 AND financial_year_id=$9 AND id=$10 AND status='DRAFT' RETURNING ${C}`,[i.taxReference,i.taxRate,i.taxableAmount,i.taxAmount,i.actorUserId,i.tenantId,i.organizationId,i.branchId,i.financialYearId,i.invoiceId]);}
+  async updateFinanceStatus(i:any){return this.mutate(i,`UPDATE sales_invoices SET finance_status='POSTED',finance_reference=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND organization_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND status='DRAFT' RETURNING ${C}`,[i.financeReference,i.actorUserId,i.tenantId,i.organizationId,i.branchId,i.financialYearId,i.invoiceId]);}
+  private async mutate(i:any,sql:string,v:any[]){return withTenantContext(this.pool,this.key,i.tenantId,async(c)=>{const r=await c.query(sql,v);return r.rows[0]?this.map(c,r.rows[0]):null;},{organizationId:i.organizationId,userId:i.actorUserId});}
+  private async getOn(c:any,t:string,o:string,b:string,fy:string,id:string){const r=await c.query(`SELECT ${C} FROM sales_invoices WHERE tenant_id=$1 AND organization_id=$2 AND branch_id=$3 AND financial_year_id=$4 AND id=$5`,[t,o,b,fy,id]);return r.rows[0]?this.map(c,r.rows[0]):null;}
+  private async map(c:any,r:any):Promise<InvoiceRecord>{const x=await c.query(`SELECT id,line_number AS "lineNumber",delivery_item_id AS "deliveryItemId",item_code AS "itemCode",description,quantity,unit_price AS "unitPrice",unit_of_measure AS "unitOfMeasure",discount_percentage AS "discountPercentage",discount_amount AS "discountAmount",price_list_id AS "priceListId",discount_rule_id AS "discountRuleId",line_total AS "lineTotal" FROM sales_invoice_items WHERE invoice_id=$1 AND tenant_id=$2 ORDER BY line_number`,[r.id,r.tenantId]);return {...r,subtotal:Number(r.subtotal??0),discountTotal:Number(r.discountTotal??0),total:Number(r.total??0),items:x.rows.map((a:any)=>({...a,quantity:Number(a.quantity),unitPrice:Number(a.unitPrice),discountPercentage:Number(a.discountPercentage??0),discountAmount:Number(a.discountAmount??0),lineTotal:Number(a.lineTotal)})),createdAt:new Date(r.createdAt),updatedAt:r.updatedAt?new Date(r.updatedAt):null};}
+}

@@ -70,6 +70,14 @@ export function schemaForRoute(method: string, url: string) {
     schema.body = toJsonSchema(salesQuotationSchemas.createRequest);
   else if (method === 'PATCH' && normalizedUrl === '/sales/quotations/:id')
     schema.body = toJsonSchema(salesQuotationSchemas.updateRequest);
+  else if (method === 'POST' && normalizedUrl === '/sales/orders')
+    schema.body = toJsonSchema(z.object({ quotationId: z.string().uuid(), warehouseId: z.string().uuid() }));
+  else if (method === 'PATCH' && normalizedUrl === '/sales/orders/:id')
+    schema.body = toJsonSchema(
+      z.object({ notes: z.string().nullable().optional(), expectedVersion: z.number().int().positive() }),
+    );
+  else if (method === 'POST' && normalizedUrl.match(/^\/sales\/orders\/:id\/(confirm|cancel|close)$/))
+    schema.body = toJsonSchema(z.object({ expectedVersion: z.number().int().positive() }));
   return schema;
 }
 
@@ -236,6 +244,7 @@ export const authSchemas = {
     organizationId: z.string().uuid(),
     branchId: z.string().uuid(),
     locationId: z.string().uuid(),
+    financialYearId: z.string().uuid().optional(),
   }),
   contextSelectResponse: z.object({
     success: z.boolean().describe('Always true'),
@@ -569,6 +578,7 @@ export const customerSchemas = {
 export const salesQuotationSchemas = {
   item: z.object({
     lineNumber: z.number().int().positive().optional(),
+    itemCode: z.string().trim().min(1).max(100).nullable().optional(),
     description: z.string().trim().min(1).max(500),
     quantity: z.number().positive(),
     unitPrice: z.number().nonnegative(),
@@ -584,6 +594,9 @@ export const salesQuotationSchemas = {
     validUntil: z.string().date(),
     status: z.enum(['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'CANCELLED']),
     notes: z.string().nullable(),
+    subtotal: z.number(),
+    discountTotal: z.number(),
+    total: z.number(),
     items: z.array(
       z.object({
         id: z.string().uuid(),
@@ -604,6 +617,8 @@ export const salesQuotationSchemas = {
       .array(
         z.object({
           lineNumber: z.number().int().positive().optional(),
+          itemId: z.string().uuid().nullable().optional(),
+          itemCode: z.string().trim().min(1).max(100).nullable().optional(),
           description: z.string().trim().min(1).max(500),
           quantity: z.number().positive(),
           unitPrice: z.number().nonnegative(),
@@ -621,6 +636,8 @@ export const salesQuotationSchemas = {
       .array(
         z.object({
           lineNumber: z.number().int().positive().optional(),
+          itemId: z.string().uuid().nullable().optional(),
+          itemCode: z.string().trim().min(1).max(100).nullable().optional(),
           description: z.string().trim().min(1).max(500),
           quantity: z.number().positive(),
           unitPrice: z.number().nonnegative(),

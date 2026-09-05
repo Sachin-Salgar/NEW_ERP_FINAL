@@ -5,7 +5,7 @@
 
 ## Purpose
 
-The Sales Module manages the customer sales lifecycle and integrates with the CRM, Inventory, Finance, Tax, Workflow, Notification, Document, and Reporting capabilities through approved module contracts.
+The Sales Module manages the customer sales lifecycle and integrates with the CRM, Inventory, Finance, Tax, Workflow, Notification, Document, and Reporting capabilities through approved module contracts. Current provider-neutral boundaries are defined for dependencies that are not yet implemented.
 
 The module is a logical module within the current modular monolith and is not an independently deployed service.
 
@@ -45,7 +45,13 @@ Order Closed
 
 Actual stages and approvals are configurable business behavior and must follow the implemented workflow contracts.
 
-## 3. Quotation Management
+## 3. Quotation Management - Target Architecture
+
+The following quotation description is part of the target Sales architecture.
+The currently approved and implemented quotation slice is narrower and is
+governed by [Sales Quotation Management](./sales/01-sales-quotation.md).
+Statements in this target architecture do not authorize implementation beyond
+that specification.
 
 Quotations represent formal offers containing customer, product/service, pricing, tax, discount, validity, payment, and delivery information.
 
@@ -159,6 +165,31 @@ When implementing a Sales feature, AI must:
 4. use published contracts for Inventory, Finance, CRM, Tax, Workflow, and other dependencies;
 5. avoid duplicating authoritative pricing, tax, accounting, or authorization rules;
 6. stop and ask when a required business rule or contract is unspecified.
+
+## 11. Implementation specification package
+
+This architecture document is conceptual and does not by itself authorize
+implementation of every listed capability. The implementation specification
+package is indexed in [Business Modules README](./README.md):
+
+- [Sales Quotation](./sales/01-sales-quotation.md) — implemented quotation slice;
+  architectural remediation required before full compliance.
+- [Sales Order](./sales/02-sales-order.md)
+- [Sales Delivery](./sales/03-sales-delivery.md)
+- [Sales Invoice](./sales/04-sales-invoice.md)
+- [Sales Return](./sales/05-sales-return.md)
+- [Sales Credit Note](./sales/06-sales-credit-note.md)
+- [Sales Pricing](./sales/07-sales-pricing.md)
+- [Sales Discounts](./sales/08-sales-discount.md)
+- [Sales Workflow](./sales/09-sales-workflow.md)
+- [Sales Integrations](./sales/10-sales-integrations.md)
+- [Sales Reporting](./sales/11-sales-reporting.md)
+
+Each remaining-capability specification explicitly records unresolved business
+decisions and dependency-contract requirements. Those gates must be resolved
+and approved before source implementation begins.
+
+Specification completeness does not imply implementation authorization.
 
 ## Cross References
 

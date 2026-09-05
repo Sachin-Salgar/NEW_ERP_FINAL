@@ -43,6 +43,22 @@ class AppRoutes {
     moduleCode: 'crm',
     icon: Icons.people_alt_outlined,
   );
+  static const inventoryItems = AppRouteConfig(
+    path: '/inventory/items',
+    title: 'Item Master',
+    group: 'INVENTORY',
+    permissionKey: 'inventory.item.read',
+    moduleCode: 'inventory',
+    icon: Icons.inventory_2_outlined,
+  );
+  static const inventoryFoundation = AppRouteConfig(
+    path: '/inventory',
+    title: 'Inventory',
+    group: 'INVENTORY',
+    permissionKey: 'inventory.stock.read',
+    moduleCode: 'inventory',
+    icon: Icons.warehouse_outlined,
+  );
   static const salesQuotations = AppRouteConfig(
     path: '/sales/quotations',
     title: 'Sales Quotations',
@@ -50,6 +66,70 @@ class AppRoutes {
     permissionKey: 'sales.quotation.read',
     moduleCode: 'sales',
     icon: Icons.request_quote_outlined,
+  );
+  static const salesInvoices = AppRouteConfig(
+    path: '/sales/invoices',
+    title: 'Sales Invoices',
+    group: 'SALES',
+    permissionKey: 'sales.invoice.read',
+    moduleCode: 'sales',
+    icon: Icons.receipt_long_outlined,
+  );
+  static const salesOrders = AppRouteConfig(
+    path: '/sales/orders',
+    title: 'Sales Orders',
+    group: 'SALES',
+    permissionKey: 'sales.order.read',
+    moduleCode: 'sales',
+    icon: Icons.shopping_cart_outlined,
+  );
+  static const salesDeliveries = AppRouteConfig(
+    path: '/sales/deliveries',
+    title: 'Sales Deliveries',
+    group: 'SALES',
+    permissionKey: 'sales.delivery.read',
+    moduleCode: 'sales',
+    icon: Icons.local_shipping_outlined,
+  );
+  static const salesReturns = AppRouteConfig(
+    path: '/sales/returns',
+    title: 'Sales Returns',
+    group: 'SALES',
+    permissionKey: 'sales.return.read',
+    moduleCode: 'sales',
+    icon: Icons.assignment_return_outlined,
+  );
+  static const salesCreditNotes = AppRouteConfig(
+    path: '/sales/credit-notes',
+    title: 'Credit Notes',
+    group: 'SALES',
+    permissionKey: 'sales.credit_note.read',
+    moduleCode: 'sales',
+    icon: Icons.note_alt_outlined,
+  );
+  static const salesReports = AppRouteConfig(
+    path: '/sales/reports',
+    title: 'Sales Reports',
+    group: 'SALES',
+    permissionKey: 'sales.reporting.read',
+    moduleCode: 'sales',
+    icon: Icons.analytics_outlined,
+  );
+  static const salesPricing = AppRouteConfig(
+    path: '/sales/pricing',
+    title: 'Sales Pricing',
+    group: 'SALES',
+    permissionKey: 'sales.pricing.read',
+    moduleCode: 'sales',
+    icon: Icons.price_change_outlined,
+  );
+  static const salesDiscounts = AppRouteConfig(
+    path: '/sales/discounts',
+    title: 'Sales Discounts',
+    group: 'SALES',
+    permissionKey: 'sales.discount.read',
+    moduleCode: 'sales',
+    icon: Icons.discount_outlined,
   );
   static const settings = AppRouteConfig(
     path: '/settings',
@@ -152,7 +232,17 @@ class AppRoutes {
     dashboard,
     settings,
     customers,
+    inventoryItems,
+    inventoryFoundation,
     salesQuotations,
+    salesOrders,
+    salesDeliveries,
+    salesInvoices,
+    salesReturns,
+    salesCreditNotes,
+    salesReports,
+    salesPricing,
+    salesDiscounts,
   ];
 
   static const routePermissions = <String, String?>{
@@ -161,10 +251,29 @@ class AppRoutes {
     '/customers/create': 'customer.create',
     '/customers/details': 'customer.read',
     '/customers/edit': 'customer.update',
+    '/inventory/items': 'inventory.item.read',
+    '/inventory': 'inventory.stock.read',
     '/sales/quotations': 'sales.quotation.read',
     '/sales/quotations/create': 'sales.quotation.create',
     '/sales/quotations/details': 'sales.quotation.read',
     '/sales/quotations/edit': 'sales.quotation.update',
+    '/sales/invoices': 'sales.invoice.read',
+    '/sales/orders': 'sales.order.read',
+    '/sales/deliveries': 'sales.delivery.read',
+    '/sales/deliveries/create': 'sales.delivery.create',
+    '/sales/invoices/create': 'sales.invoice.create',
+    '/sales/invoices/details': 'sales.invoice.read',
+    '/sales/returns': 'sales.return.read',
+    '/sales/returns/create': 'sales.return.create',
+    '/sales/returns/details': 'sales.return.read',
+    '/sales/credit-notes': 'sales.credit_note.read',
+    '/sales/credit-notes/create': 'sales.credit_note.create',
+    '/sales/credit-notes/details': 'sales.credit_note.read',
+    '/sales/reports': 'sales.reporting.read',
+    '/sales/pricing': 'sales.pricing.read',
+    '/sales/pricing/create': 'sales.pricing.create',
+    '/sales/discounts': 'sales.discount.read',
+    '/sales/discounts/create': 'sales.discount.create',
     '/settings': null,
     '/settings/organizations': 'organization.read',
     '/settings/organizations/create': 'organization.manage',

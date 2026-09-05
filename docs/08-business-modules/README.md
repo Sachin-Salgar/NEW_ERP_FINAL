@@ -15,6 +15,17 @@ Business modules are **logical boundaries inside the current modular-monolith ba
 |---|---|---|
 | `02-core-enterprise-modules.md` | Core Enterprise | Organization, branch, identity, roles, permissions, and RBAC capabilities |
 | `03-sales-module-architecture.md` | Sales | Sales and order-to-cash business capabilities |
+| `sales/01-sales-quotation.md` | Sales Quotation | Implemented slice; architectural remediation required |
+| `sales/02-sales-order.md` | Sales Order | Implemented bounded slice |
+| `sales/03-sales-delivery.md` | Sales Delivery | Implemented bounded slice |
+| `sales/04-sales-invoice.md` | Sales Invoice | Implemented bounded slice |
+| `sales/05-sales-return.md` | Sales Return | Implemented bounded slice |
+| `sales/06-sales-credit-note.md` | Sales Credit Note | Implemented bounded slice |
+| `sales/07-sales-pricing.md` | Sales Pricing | Implemented bounded slice and snapshots |
+| `sales/08-sales-discount.md` | Sales Discounts | Implemented bounded slice and snapshots |
+| `sales/09-sales-workflow.md` | Sales Workflow | Workflow contract requirements |
+| `sales/10-sales-integrations.md` | Sales Integrations | Cross-module contract requirements |
+| `sales/11-sales-reporting.md` | Sales Reporting | Reporting contract requirements |
 | `04-procurement-module-architecture.md` | Procurement | Procurement and procure-to-pay business capabilities |
 | `05-inventory-module-architecture.md` | Inventory | Inventory, warehouse, stock, and related control capabilities |
 | `06-manufacturing-module-architecture.md` | Manufacturing | Production planning and manufacturing execution |

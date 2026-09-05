@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
 import '../../core/auth/auth_service.dart';
+import '../inventory/inventory_service.dart';
 import 'sales_service.dart';
 
 class SalesQuotationDetailsScreen extends StatefulWidget {
@@ -14,6 +15,7 @@ class SalesQuotationDetailsScreen extends StatefulWidget {
 class _SalesQuotationDetailsScreenState extends State<SalesQuotationDetailsScreen> {
   late final SalesService service;
   late final AuthService auth;
+  late final InventoryService inventory;
   Map<String, dynamic>? quotation;
   String? error;
 
@@ -22,6 +24,7 @@ class _SalesQuotationDetailsScreenState extends State<SalesQuotationDetailsScree
     super.initState();
     service = GetIt.instance.get<SalesService>();
     auth = GetIt.instance.get<AuthService>();
+    inventory = GetIt.instance.get<InventoryService>();
     _load();
   }
 
@@ -31,9 +34,39 @@ class _SalesQuotationDetailsScreenState extends State<SalesQuotationDetailsScree
   }
 
   Future<void> _transition(String action) async {
-    final result = await service.transition(widget.id, action);
+    final result = await service.transition(
+      widget.id,
+      action,
+      (quotation?['version'] as num?)?.toInt() ?? 0,
+    );
     if (!mounted) return;
     if (result == null) _load(); else setState(() => error = result);
+  }
+
+  Future<void> _convertToOrder() async {
+    await inventory.refresh();
+    if (!mounted) return;
+    if (inventory.error != null || inventory.warehouses.isEmpty) {
+      setState(() => error = inventory.error ?? 'An active Inventory warehouse is required.');
+      return;
+    }
+    final warehouseId = await showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Select warehouse'),
+        children: inventory.warehouses
+            .where((warehouse) => '${warehouse['status']}'.toUpperCase() == 'ACTIVE')
+            .map((warehouse) => SimpleDialogOption(
+                  onPressed: () => Navigator.pop(context, '${warehouse['id']}'),
+                  child: Text('${warehouse['name']}'),
+                ))
+            .toList(),
+      ),
+    );
+    if (warehouseId == null) return;
+    final result = await service.convertQuotationToOrder(widget.id, warehouseId);
+    if (mounted && result != null) setState(() => error = result);
+    if (mounted && result == null) Navigator.pushNamed(context, '/sales/orders');
   }
 
   @override
@@ -51,6 +84,9 @@ class _SalesQuotationDetailsScreenState extends State<SalesQuotationDetailsScree
       if (status == 'SENT' && auth.hasPermission('sales.quotation.expire')) 'expire': 'Expire',
       if (status == 'SENT' && auth.hasPermission('sales.quotation.cancel')) 'cancel': 'Cancel',
     };
+    if (status == 'ACCEPTED' && auth.hasPermission('sales.order.create')) {
+      actions['convert'] = 'Convert to order';
+    }
     final items = (quotation!['items'] as List<dynamic>?) ?? const [];
     return Scaffold(
       appBar: AppBar(
@@ -74,7 +110,13 @@ class _SalesQuotationDetailsScreenState extends State<SalesQuotationDetailsScree
             title: Text('${item['description']}'),
             subtitle: Text('${item['quantity']} ${item['unitOfMeasure'] ?? item['unit_of_measure']} @ ${item['unitPrice'] ?? item['unit_price']}'),
           )),
-          if (actions.isNotEmpty) Wrap(spacing: 8, children: actions.entries.map((entry) => FilledButton(onPressed: () => _transition(entry.key), child: Text(entry.value))).toList()),
+          if (actions.isNotEmpty) Wrap(spacing: 8, children: actions.entries.map((entry) => FilledButton(onPressed: () async {
+            if (entry.key == 'convert') {
+              await _convertToOrder();
+            } else {
+              _transition(entry.key);
+            }
+          }, child: Text(entry.value))).toList()),
           if (error != null) Text(error!, style: const TextStyle(color: Colors.red)),
         ],
       ),

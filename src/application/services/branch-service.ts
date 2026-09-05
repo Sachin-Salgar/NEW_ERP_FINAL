@@ -76,4 +76,9 @@ export class BranchService {
     }
     return this.repository.getBranchById(tenantId, organizationId, normalizedId);
   }
+
+  async validateFinancialYear(tenantId: string, organizationId: string, financialYearId: string): Promise<boolean> {
+    if (!tenantId?.trim() || !organizationId?.trim() || !financialYearId?.trim()) return false;
+    return this.repository.validateFinancialYear(tenantId, organizationId, financialYearId);
+  }
 }

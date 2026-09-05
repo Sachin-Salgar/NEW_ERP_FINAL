@@ -13,9 +13,20 @@ import type { AccountSecurityService } from '../../../application/services/accou
 import type { MfaService } from '../../../application/services/mfa-service.js';
 import type { CustomerService } from '../../../application/services/customer-service.js';
 import type { QuotationService } from '../../../application/services/quotation-service.js';
+import type { OrderService } from '../../../application/services/order-service.js';
+import type { DeliveryService } from '../../../application/services/delivery-service.js';
+import type { InvoiceService } from '../../../application/services/invoice-service.js';
+import type { SalesReturnService } from '../../../application/services/sales-return-service.js';
+import type { CreditNoteService } from '../../../application/services/credit-note-service.js';
+import type { PricingService } from '../../../application/services/pricing-service.js';
+import type { DiscountService } from '../../../application/services/discount-service.js';
+import type { SalesReportingService } from '../../../application/services/sales-reporting-service.js';
 import type { JwtTokenService } from '../../../infrastructure/security/jwt-token-service.js';
 import type { AppConfig } from '../../../config/schema.js';
 import type { AuditLogger } from '../../../application/contracts/audit.js';
+import type { ItemMasterService } from '../../../application/services/item-master-service.js';
+import type { InventoryService } from '../../../application/services/inventory-service.js';
+import type { TaxService } from '../../../application/services/tax-service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -35,6 +46,17 @@ declare module 'fastify' {
     auditLogger: AuditLogger;
     customerService: CustomerService;
     quotationService: QuotationService;
+    orderService: OrderService;
+    deliveryService: DeliveryService;
+    invoiceService: InvoiceService;
+    salesReturnService: SalesReturnService;
+    creditNoteService: CreditNoteService;
+    pricingService: PricingService;
+    discountService: DiscountService;
+    salesReportingService: SalesReportingService;
+    itemMasterService: ItemMasterService;
+    inventoryService: InventoryService;
+    taxService: TaxService;
   }
 
   interface FastifyRequest {

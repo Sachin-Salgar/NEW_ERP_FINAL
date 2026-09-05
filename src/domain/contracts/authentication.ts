@@ -4,9 +4,11 @@ export interface AuthenticatedUser {
   id: string;
   tenantId: string;
   organizationId?: string | null;
+  branchId?: string | null;
   activeLocationId?: string | null;
   defaultLocationId?: string | null;
   defaultBranchId?: string | null;
+  financialYearId?: string | null;
   username: string;
   email: string;
   status: string;
@@ -21,6 +23,7 @@ export interface SessionRecord {
   organizationId?: string | null;
   locationId?: string | null;
   branchId?: string | null;
+  financialYearId?: string | null;
   accessTokenId?: string | null;
   isActive: boolean;
   expiresAt: Date;
@@ -49,6 +52,7 @@ export interface CreateSessionInput {
   organizationId?: string | null;
   locationId?: string | null;
   branchId?: string | null;
+  financialYearId?: string | null;
   accessTokenId?: string | null;
   expiresAt: Date;
   userAgent?: string | null;
