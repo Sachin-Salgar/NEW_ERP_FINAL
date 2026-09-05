@@ -1,0 +1,17 @@
+import { validate as isUuid } from 'uuid';
+import type { AuthorizationService } from './authorization-service.js';
+import type { ModuleAccessService } from './module-access-service.js';
+import type { AuditLogger } from '../contracts/audit.js';
+import type { PriceListRecord, PriceListRepository, PriceListStatus } from '../../domain/contracts/pricing.js';
+import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../../domain/errors.js';
+export interface PricingContext { tenantId:string; organizationId:string; userId:string; }
+export class PricingService {
+ constructor(private readonly repository:PriceListRepository,private readonly auth:Pick<AuthorizationService,'hasPermission'>,private readonly modules:Pick<ModuleAccessService,'isModuleEnabled'>,private readonly audit:AuditLogger){}
+ async create(c:PricingContext,i:{branchId?:string|null;code:string;name:string;currency:string;effectiveFrom:string;effectiveTo?:string|null}):Promise<PriceListRecord>{await this.authorize(c,'sales.pricing.create');if(!i.code?.trim()||!i.name?.trim()||!i.currency?.trim())throw new ValidationError('Code, name, and currency are required.');const x=await this.repository.create({...c,branchId:i.branchId??null,code:i.code.trim(),name:i.name.trim(),currency:i.currency.trim(),effectiveFrom:i.effectiveFrom,effectiveTo:i.effectiveTo??null,actorUserId:c.userId});await this.audit.record({tenantId:c.tenantId,actorUserId:c.userId,action:'pricing.created',resourceType:'sales_price_list',resourceId:x.id,outcome:'success'});return x;}
+ async get(c:PricingContext,id:string){await this.authorize(c,'sales.pricing.read');this.id(id);const x=await this.repository.getById(c.tenantId,c.organizationId,id);if(!x)throw new NotFoundError('Price list not found.');return x;}
+ async list(c:PricingContext){await this.authorize(c,'sales.pricing.read');return this.repository.list(c.tenantId,c.organizationId);}
+ async update(c:PricingContext,id:string,i:{name:string;effectiveTo?:string|null;expectedVersion:number}){await this.authorize(c,'sales.pricing.update');this.id(id);const x=await this.repository.update({...c,id,name:i.name,effectiveTo:i.effectiveTo??null,expectedVersion:i.expectedVersion,actorUserId:c.userId});if(!x)throw new ValidationError('Draft price list not found or version conflict.');return x;}
+ async transition(c:PricingContext,id:string,status:PriceListStatus,expectedVersion:number){await this.authorize(c,`sales.pricing.${status==='PUBLISHED'?'publish':'archive'}`);this.id(id);const x=await this.repository.transition({...c,id,status,expectedVersion,actorUserId:c.userId});if(!x)throw new ValidationError('Price list transition failed or version conflict.');return x;}
+ private async authorize(c:PricingContext,p:string){if(!c.userId?.trim())throw new UnauthorizedError();for(const [v,l] of [[c.tenantId,'Tenant ID'],[c.organizationId,'Organization ID'],[c.userId,'User ID']] as const)this.id(v,l);if(!(await this.modules.isModuleEnabled(c.tenantId,c.organizationId,'sales')))throw new ForbiddenError('Sales module is not enabled.');if(!(await this.auth.hasPermission(c.tenantId,c.userId,p)))throw new ForbiddenError('Insufficient pricing permission.');}
+ private id(v:string,l='Price List ID'){if(!v||!isUuid(v))throw new ValidationError(`${l} must be a valid UUID.`);}
+}

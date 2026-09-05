@@ -27,6 +27,7 @@
     { "idx": 22, "version": "7", "when": 1788609000000, "tag": "0022-sales-delivery", "breakpoints": true },
     { "idx": 23, "version": "7", "when": 1788609600000, "tag": "0023-sales-invoice", "breakpoints": true },
     { "idx": 24, "version": "7", "when": 1788610200000, "tag": "0024-sales-return", "breakpoints": true },
-    { "idx": 25, "version": "7", "when": 1788610800000, "tag": "0025-sales-credit-note", "breakpoints": true }
+    { "idx": 25, "version": "7", "when": 1788610800000, "tag": "0025-sales-credit-note", "breakpoints": true },
+    { "idx": 26, "version": "7", "when": 1788611400000, "tag": "0026-sales-pricing", "breakpoints": true }
   ]
 }

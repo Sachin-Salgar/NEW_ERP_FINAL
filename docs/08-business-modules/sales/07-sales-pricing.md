@@ -1,6 +1,6 @@
 # Sales Pricing and Price Lists Specification
 
-**Status:** Authorization package — implementation specification
+**Status:** Implemented — bounded price-list administration
 **Owner:** Sales, unless a separate authoritative Pricing capability is
 established by approved architecture
 **Dependencies:** CRM/Customer, Inventory Item Master, Tax where applicable
@@ -59,7 +59,10 @@ Customer scope uses CRM contracts; item identity uses Inventory/Item Master;
 tax is not calculated here. A published Pricing contract is required before
 Sales documents can depend on this capability.
 
-**BUSINESS DECISION REQUIRED** and **DEPENDENCY CONTRACT REQUIRED**.
+Sales owns organization/branch-scoped, effective-dated price-list administration
+until a separate Pricing module is approved. Lists transition from `DRAFT` to
+`PUBLISHED` to `ARCHIVED`; published lists are immutable. Tax, customer-specific
+pricing, and item-master lookup remain explicit integration boundaries.
 
 ## IMPLEMENTATION STATUS
 
