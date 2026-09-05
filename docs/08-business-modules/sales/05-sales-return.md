@@ -5,7 +5,7 @@ copies the completed delivery warehouse and Item Master identity, and Inventory
 owns the return movement and stock increase. Processing fails when the source
 record lacks authoritative references; historical rows are preserved.s Specification
 
-**Status:** Backend slice implemented under ADR-0029; Inventory/Finance providers not connected
+**Status:** Backend slice implemented under ADR-0029 and Inventory integration activated under ADR-0037
 **Owner:** Sales
 **Dependencies:** Sales Invoice, Delivery, Inventory, Finance, Workflow
 
@@ -33,15 +33,17 @@ requested quantity, accepted quantity, unit of measure, value snapshot,
 disposition reference, and canonical audit columns.
 
 The initial slice snapshots issued-invoice lines with numeric(18,4) requested
-quantities. Duplicate returns are prevented per invoice/context. Inventory and
-Finance references are explicit not-connected boundary state. Branch and
+quantities. Duplicate returns are prevented per invoice/context. Inventory owns
+the return movement and Sales stores its completion state; Finance remains an
+explicit not-connected boundary state. Branch and
 financial-year references follow ADR-0025.
 
 ## 3. Lifecycle and authorization
 
 The initial lifecycle is `REQUESTED -> INSPECTED -> APPROVED -> PROCESSED ->
 CLOSED`, with `INSPECTED -> REJECTED` and `REQUESTED -> CANCELLED`. Processing
-does not claim Inventory or Finance side effects.
+processing returns stock through the typed Inventory contract in the same
+transaction; Finance side effects remain outside this slice.
 
 Candidate permissions: `sales.return.read`, `create`, `update`, `inspect`,
 `approve`, `reject`, `process`, `cancel`, and `close`.
@@ -70,5 +72,5 @@ references/statuses only.
 
 ## IMPLEMENTATION STATUS
 
-**IMPLEMENTED — MINIMUM BACKEND POLICY** under ADR-0029. Inventory and Finance
-remain explicit not-connected integration boundaries.
+**IMPLEMENTED — MINIMUM BACKEND POLICY** under ADR-0029 and ADR-0037. Inventory
+return-to-stock is active; Finance remains an explicit not-connected boundary.

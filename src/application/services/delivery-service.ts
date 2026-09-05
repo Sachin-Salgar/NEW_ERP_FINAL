@@ -38,6 +38,7 @@ export class DeliveryService {
     this.id(input.salesOrderId, 'Sales Order ID');
     const key = input.idempotencyKey?.trim();
     if (!key || key.length > 128) throw new ValidationError('Idempotency key is required and must be at most 128 characters.');
+    const allowReplay = await this.auth.hasPermission(context.tenantId, context.userId, DELIVERY_PERMISSIONS.read);
     return this.tx.runInTransaction(async () => {
       const delivery = await this.repository.create({
         ...context,
@@ -45,6 +46,7 @@ export class DeliveryService {
         idempotencyKey: key,
         notes: input.notes ?? null,
         actorUserId: context.userId,
+        allowReplay,
       });
       if (this.inventory) {
         const reservations = await this.inventory.listReservationsBySource(context, 'SALES_ORDER', input.salesOrderId);
@@ -59,6 +61,7 @@ export class DeliveryService {
         if (!this.repository.attachReservationReferences) throw new ValidationError('Delivery reservation reference persistence is not configured.');
         const linked = await this.repository.attachReservationReferences({ ...context, deliveryId: delivery.id, references, actorUserId: context.userId });
         if (!linked) throw new ValidationError('Delivery reservation references could not be persisted.');
+        await this.audit.record({ tenantId: context.tenantId, actorUserId: context.userId, action: 'delivery.created', resourceType: 'sales_delivery', resourceId: linked.id, outcome: 'success' }, { requireTransaction: true });
         return linked;
       }
       await this.audit.record({

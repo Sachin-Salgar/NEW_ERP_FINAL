@@ -581,6 +581,7 @@ export interface DeliveryRepository {
     idempotencyKey: string;
     notes: string | null;
     actorUserId: string;
+    allowReplay?: boolean;
   }): Promise<DeliveryRecord>;
   getById(tenantId: string, organizationId: string, branchId: string, financialYearId: string, id: string): Promise<DeliveryRecord | null>;
   list(tenantId: string, q: {
@@ -638,7 +639,7 @@ export interface InvoiceRecord {
 export interface InvoiceRepository {
   create(input: {
     tenantId: string; organizationId: string; branchId: string; financialYearId: string;
-    deliveryId: string; idempotencyKey: string; notes: string | null; actorUserId: string;
+    deliveryId: string; idempotencyKey: string; notes: string | null; actorUserId: string; allowReplay?: boolean;
   }): Promise<InvoiceRecord>;
   getById(tenantId: string, organizationId: string, branchId: string, financialYearId: string, id: string): Promise<InvoiceRecord | null>;
   list(tenantId: string, q: {
@@ -647,7 +648,7 @@ export interface InvoiceRepository {
   }): Promise<{ items: InvoiceRecord[]; total: number }>;
   update(input: {
     tenantId: string; organizationId: string; branchId: string; financialYearId: string;
-    invoiceId: string; notes: string | null; expectedVersion: number; actorUserId: string;
+    invoiceId: string; notes: string | null; expectedVersion: number;     actorUserId: string;
   }): Promise<InvoiceRecord | null>;
   transition(input: {
     tenantId: string; organizationId: string; branchId: string; financialYearId: string;
@@ -674,12 +675,12 @@ export interface SalesReturnRecord {
   updatedAt: Date | null; updatedBy: string | null; versionNumber: number;
 }
 export interface SalesReturnRepository {
-  create(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; invoiceId: string; idempotencyKey: string; notes: string | null; items?: Array<{ invoiceItemId: string; quantity: number }>; actorUserId: string }): Promise<SalesReturnRecord>;
+  create(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; invoiceId: string; idempotencyKey: string; notes: string | null; items?: Array<{ invoiceItemId: string; quantity: number }>; actorUserId: string; allowReplay?: boolean }): Promise<SalesReturnRecord>;
   getById(tenantId: string, organizationId: string, branchId: string, financialYearId: string, id: string): Promise<SalesReturnRecord | null>;
   list(tenantId: string, q: { organizationId: string; branchId: string; financialYearId: string; page: number; pageSize: number; order: 'asc' | 'desc'; search?: string }): Promise<{ items: SalesReturnRecord[]; total: number }>;
   update(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; returnId: string; notes: string | null; expectedVersion: number; actorUserId: string }): Promise<SalesReturnRecord | null>;
   transition(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; returnId: string; status: import('./sales-return.js').SalesReturnStatus; expectedVersion: number; actorUserId: string }): Promise<SalesReturnRecord | null>;
-  updateInventoryStatus?(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; returnId: string; status: 'NOT_CONNECTED' | 'COMPLETED'; actorUserId: string }): Promise<SalesReturnRecord | null>;
+  process(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; returnId: string; expectedVersion: number; actorUserId: string }): Promise<SalesReturnRecord | null>;
 }
 
 export interface CreditNoteItemRecord {
@@ -695,7 +696,7 @@ export interface CreditNoteRecord {
   updatedAt: Date | null; updatedBy: string | null; versionNumber: number;
 }
 export interface CreditNoteRepository {
-  create(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; returnId: string; idempotencyKey: string; notes: string | null; actorUserId: string }): Promise<CreditNoteRecord>;
+  create(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; returnId: string; idempotencyKey: string; notes: string | null; actorUserId: string; allowReplay?: boolean }): Promise<CreditNoteRecord>;
   getById(tenantId: string, organizationId: string, branchId: string, financialYearId: string, id: string): Promise<CreditNoteRecord | null>;
   list(tenantId: string, q: { organizationId: string; branchId: string; financialYearId: string; page: number; pageSize: number; order: 'asc' | 'desc'; search?: string }): Promise<{ items: CreditNoteRecord[]; total: number }>;
   update(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; creditNoteId: string; notes: string | null; expectedVersion: number; actorUserId: string }): Promise<CreditNoteRecord | null>;

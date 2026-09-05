@@ -9,7 +9,10 @@ export class PostgresInvoiceRepository implements InvoiceRepository {
   async create(i: any): Promise<InvoiceRecord> {
     return withTenantContext(this.pool, this.key, i.tenantId, async (c) => {
       const existing = await c.query(`SELECT ${C} FROM sales_invoices WHERE tenant_id=$1 AND organization_id=$2 AND branch_id=$3 AND financial_year_id=$4 AND (idempotency_key=$5 OR delivery_id=$6)`, [i.tenantId,i.organizationId,i.branchId,i.financialYearId,i.idempotencyKey,i.deliveryId]);
-      if (existing.rows[0]) return this.map(c, existing.rows[0]);
+      if (existing.rows[0]) {
+        if (!i.allowReplay) throw new ValidationError('Unable to create an invoice with the supplied request.');
+        return this.map(c, existing.rows[0]);
+      }
       const delivery = await c.query(`SELECT id,sales_order_id AS "salesOrderId",customer_id AS "customerId",status FROM sales_deliveries WHERE id=$1 AND tenant_id=$2 AND organization_id=$3 AND branch_id=$4 AND financial_year_id=$5`, [i.deliveryId,i.tenantId,i.organizationId,i.branchId,i.financialYearId]);
       if (!delivery.rows[0] || delivery.rows[0].status !== 'COMPLETED') throw new ValidationError('Only a completed Delivery in the active context can create an invoice.');
       const counter = await c.query(`INSERT INTO code_counters(tenant_id,entity_type,scope_key,last_value) VALUES($1,'sales_invoice',$2,1) ON CONFLICT(tenant_id,entity_type,scope_key) DO UPDATE SET last_value=code_counters.last_value+1 RETURNING last_value`, [i.tenantId,i.organizationId]);

@@ -34,9 +34,8 @@ mandatory branch and financial-year references follow ADR-0025.
 
 ## 3. Lifecycle and authorization
 
-The The initial lifecycle is `DRAFT -> ISSUED` or `DRAFT -> CANCELLED`. Issued
-records are immutable. Finance posting, payment state, and reversal remain
-outside this slice because Finance is not implemented in the repository.
+The The initial lifecycle is `DRAFT -> ISSUED` or `DRAFT -> CANCELLED`. Issued records are immutable. Finance posting is active through the bounded
+Finance contract; payment state and reversal remain outside this slice.
 
 No ordinary PATCH is allowed after issue/finalization. Candidate permissions
 requiring approval: `sales.invoice.read`, `create`, `update`, `review`,

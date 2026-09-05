@@ -16,6 +16,7 @@ class FakeRepository implements SalesReturnRepository {
   async list() { return { items: [this.value], total: 1 }; }
   async update() { return this.value; }
   async transition(input: { status: SalesReturnRecord['status']; expectedVersion: number }) { this.value = { ...this.value, status: input.status, versionNumber: input.expectedVersion + 1 }; return this.value; }
+  async process(input: { expectedVersion: number }) { this.value = { ...this.value, status: 'PROCESSED', inventoryStatus: 'COMPLETED', versionNumber: input.expectedVersion + 1 }; return this.value; }
 }
 class Audit implements AuditLogger { actions: string[] = []; async record(event: { action: string }) { this.actions.push(event.action); } }
 function createService() { const repository = new FakeRepository(); const audit = new Audit(); return { repository, audit, service: new SalesReturnService(repository, { hasPermission: async () => true }, { isModuleEnabled: async () => true }, audit, { runInTransaction: async <T>(callback: () => Promise<T>) => callback() }) }; }
@@ -47,5 +48,15 @@ describe('SalesReturnService', () => {
       idempotencyKey: 'request-3',
       items: [{ invoiceItemId: randomUUID(), quantity: 0 }],
     })).rejects.toBeInstanceOf(ValidationError);
+  });
+  it('processes an approved return through one atomic repository operation', async () => {
+    const { service, repository, audit } = createService();
+    repository.value = { ...record('APPROVED'), warehouseId: randomUUID(), items: [{ id: randomUUID(), lineNumber: 1, invoiceItemId: randomUUID(), description: 'Item', quantity: 1, unitOfMeasure: 'EA', unitPrice: 2, itemId: randomUUID(), warehouseId: repository.value.warehouseId }] };
+    const calls: string[] = [];
+    const inventory = { listReservationsBySource: async () => [], fulfillReservationsBySource: async () => [], reserveStock: async () => { throw new Error('unused'); }, releaseReservation: async () => { throw new Error('unused'); }, fulfillReservation: async () => { throw new Error('unused'); }, returnStock: async (_context: SalesReturnContext, request: { warehouseId: string; itemId: string; quantity: number; sourceType: string; sourceId: string; idempotencyKey: string }) => { calls.push('return'); return { id: randomUUID(), tenantId: context.tenantId, organizationId: context.organizationId, branchId: context.branchId, financialYearId: context.financialYearId, warehouseId: request.warehouseId, itemId: request.itemId, movementType: 'RETURN' as const, quantity: request.quantity, sourceType: request.sourceType, sourceId: request.sourceId, operationKey: request.idempotencyKey, createdAt: new Date(), createdBy: context.userId }; } };
+    const withInventory = new SalesReturnService(repository, { hasPermission: async () => true }, { isModuleEnabled: async () => true }, audit, { runInTransaction: async <T>(callback: () => Promise<T>) => callback() }, inventory);
+    await expect(withInventory.transition(context, repository.value.id, 'PROCESSED', 1)).resolves.toMatchObject({ status: 'PROCESSED', inventoryStatus: 'COMPLETED', versionNumber: 2 });
+    expect(calls).toEqual(['return']);
+    expect(audit.actions).toContain('sales_return.processed');
   });
 });

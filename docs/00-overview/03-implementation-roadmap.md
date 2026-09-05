@@ -153,7 +153,7 @@ Project Management is explicitly removed/deferred and is not an implementation t
 | 3        | Procurement        | **PENDING**                                                                                                                                                         |
 | 4        | Inventory          | **PARTIAL — ITEM MASTER, WAREHOUSE, STOCK, RESERVATION, FULFILLMENT, AND RETURN MOVEMENT FOUNDATION IMPLEMENTED; ADVANCED OPERATIONS REMAIN DEFERRED**             |
 | 5        | Manufacturing      | **PENDING**                                                                                                                                                         |
-| 6        | Finance            | **PENDING**                                                                                                                                                         |
+| 6        | Finance            | **PARTIAL — bounded posting foundation implemented; broader accounting remains pending**                                                                           |
 | 7        | Human Resources    | **PENDING**                                                                                                                                                         |
 | 8        | CRM                | **PARTIAL** — Customer foundation and HTTP API are implemented; contacts, leads, opportunities, activities, and broader CRM capabilities remain pending.            |
 | 9        | Quality Management | **PENDING**                                                                                                                                                         |
@@ -177,7 +177,8 @@ authoritative context remain a documented data-remediation residual. The
 Workflow remains not connected, while provider-neutral integration boundaries
 and a bounded Sales document-summary report are implemented. Finance, Tax,
 Transaction-facing Pricing/Discount snapshot resolution remains an explicit
-dependency/contract boundary. The Inventory provider is
+dependency/contract boundary. Pricing/Discount remain transaction-facing
+snapshot gaps. The Inventory provider is
 implemented. Under approved ADR-0035, new Sales quotation lines can carry Item
 Master identity, order conversion requires an active organization warehouse and
 item identity, and confirmed orders expose an idempotent reservation operation
@@ -194,8 +195,7 @@ and authenticated API coverage. The bounded Inventory foundation now persists
 organization-owned warehouses, stock balances, reservations, fulfillment issues,
 receipts, and return movements under ADR-0034. Sales transaction item/warehouse
 references are now additive in the order contract; delivery and return
-orchestration are connected for new Inventory-backed records. Tax remains the
-next bounded capability. The bounded Tax foundation is implemented under
+orchestration are connected for new Inventory-backed records. The bounded Tax foundation is implemented under
 ADR-0038 with organization-scoped deterministic rules, authenticated API
 administration, RLS/FORCE RLS, and invoice tax snapshots. The bounded Finance
 posting foundation is implemented under ADR-0039 with idempotent invoice and

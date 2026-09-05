@@ -29,8 +29,9 @@ export class InvoiceService {
     this.validateId(input.deliveryId, 'Delivery ID');
     const key = input.idempotencyKey?.trim();
     if (!key || key.length > 128) throw new ValidationError('Idempotency key is required and must be at most 128 characters.');
+    const allowReplay = await this.authorizationService.hasPermission(context.tenantId, context.userId, INVOICE_PERMISSIONS.read);
     return this.transactionRunner.runInTransaction(async () => {
-      const invoice = await this.repository.create({ ...context, deliveryId: input.deliveryId, idempotencyKey: key, notes: input.notes ?? null, actorUserId: context.userId });
+      const invoice = await this.repository.create({ ...context, deliveryId: input.deliveryId, idempotencyKey: key, notes: input.notes ?? null, actorUserId: context.userId, allowReplay });
       await this.auditLogger.record({ tenantId: context.tenantId, actorUserId: context.userId, action: 'invoice.created', resourceType: 'sales_invoice', resourceId: invoice.id, outcome: 'success' }, { requireTransaction: true });
       return invoice;
     });

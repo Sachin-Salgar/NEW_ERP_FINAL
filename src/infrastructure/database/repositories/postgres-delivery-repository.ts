@@ -9,7 +9,10 @@ export class PostgresDeliveryRepository implements DeliveryRepository {
   async create(i: any): Promise<DeliveryRecord> {
     return withTenantContext(this.pool, this.key, i.tenantId, async (c) => {
       const existing = await c.query(`SELECT ${C} FROM sales_deliveries WHERE tenant_id=$1 AND organization_id=$2 AND branch_id=$3 AND financial_year_id=$4 AND (idempotency_key=$5 OR sales_order_id=$6)`, [i.tenantId, i.organizationId, i.branchId, i.financialYearId, i.idempotencyKey, i.salesOrderId]);
-      if (existing.rows[0]) return this.map(c, existing.rows[0]);
+      if (existing.rows[0]) {
+        if (!i.allowReplay) throw new ValidationError('Unable to create a delivery with the supplied request.');
+        return this.map(c, existing.rows[0]);
+      }
       const order = await c.query(`SELECT id,customer_id AS "customerId",warehouse_id AS "warehouseId",status FROM sales_orders WHERE id=$1 AND tenant_id=$2 AND organization_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND is_deleted=false`, [i.salesOrderId, i.tenantId, i.organizationId, i.branchId, i.financialYearId]);
       if (!order.rows[0] || order.rows[0].status !== 'CONFIRMED') throw new ValidationError('Only a confirmed Sales Order in the active context can create a delivery.');
       if (!order.rows[0].warehouseId) throw new ValidationError('Sales Order warehouse context is required before delivery creation.');

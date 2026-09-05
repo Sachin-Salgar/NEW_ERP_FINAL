@@ -57,4 +57,16 @@ describe('DeliveryService', () => {
     await expect(service.transition(context, repository.value.id, 'COMPLETED', 1)).resolves.toMatchObject({ status: 'COMPLETED' });
     expect(calls).toEqual([`SALES_ORDER:${repository.value.salesOrderId}:sales-delivery:${repository.value.id}`]);
   });
+  it('audits successful Inventory-backed creation', async () => {
+    const repository = new FakeRepository();
+    repository.value = { ...record(), warehouseId: randomUUID(), items: [{ id: randomUUID(), lineNumber: 1, orderItemId: randomUUID(), itemId: randomUUID(), reservationId: null, description: 'Item', quantity: 1, unitOfMeasure: 'EA' }] };
+    const audit = new Audit();
+    const service = new DeliveryService(repository, { hasPermission: async () => true }, { isModuleEnabled: async () => true }, audit, { runInTransaction: async <T>(callback: () => Promise<T>) => callback() }, {
+      listReservationsBySource: async () => [{ id: randomUUID(), tenantId: context.tenantId, organizationId: context.organizationId, branchId: context.branchId, financialYearId: context.financialYearId, itemId: repository.value.items[0].itemId!, warehouseId: repository.value.warehouseId!, quantity: 1, sourceType: 'SALES_ORDER', sourceId: repository.value.salesOrderId, status: 'RESERVED' as const, version: 1 }],
+      fulfillReservationsBySource: async () => [],
+      reserveStock: async () => { throw new Error('unused'); }, releaseReservation: async () => { throw new Error('unused'); }, fulfillReservation: async () => { throw new Error('unused'); }, returnStock: async () => { throw new Error('unused'); },
+    });
+    await service.create(context, { salesOrderId: repository.value.salesOrderId, idempotencyKey: 'inventory-audit' });
+    expect(audit.actions).toEqual(['delivery.created']);
+  });
 });
