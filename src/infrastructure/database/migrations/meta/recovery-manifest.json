@@ -195,6 +195,11 @@
       "strategy": "compensating-migration",
       "destructiveDownAllowed": false,
       "note": "Commercial price and discount snapshots are historical transaction evidence; preserve them and compensate forward."
+    },
+    "0039-enable-crm-sales-baseline": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "CRM and Sales module entitlements are current product-baseline access data. Preserve tenant and organization module history and correct forward if the baseline changes."
     }
   }
 }
