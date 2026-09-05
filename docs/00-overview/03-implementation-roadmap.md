@@ -189,16 +189,16 @@ the Browser Matrix E2E teardown residual remains unchanged.
 
 Specification package evidence:
 
-- [Sales Order](../08-business-modules/03-sales-order.md)
-- [Sales Delivery](../08-business-modules/04-sales-delivery.md)
-- [Sales Invoice](../08-business-modules/05-sales-invoice.md)
-- [Sales Return](../08-business-modules/06-sales-return.md)
-- [Sales Credit Note](../08-business-modules/07-sales-credit-note.md)
-- [Sales Pricing](../08-business-modules/08-sales-pricing.md)
-- [Sales Discounts](../08-business-modules/09-sales-discount.md)
-- [Sales Workflow](../08-business-modules/10-sales-workflow.md)
-- [Sales Integrations](../08-business-modules/11-sales-integrations.md)
-- [Sales Reporting](../08-business-modules/12-sales-reporting.md)
+- [Sales Order](../08-business-modules/sales/02-sales-order.md)
+- [Sales Delivery](../08-business-modules/sales/03-sales-delivery.md)
+- [Sales Invoice](../08-business-modules/sales/04-sales-invoice.md)
+- [Sales Return](../08-business-modules/sales/05-sales-return.md)
+- [Sales Credit Note](../08-business-modules/sales/06-sales-credit-note.md)
+- [Sales Pricing](../08-business-modules/sales/07-sales-pricing.md)
+- [Sales Discounts](../08-business-modules/sales/08-sales-discount.md)
+- [Sales Workflow](../08-business-modules/sales/09-sales-workflow.md)
+- [Sales Integrations](../08-business-modules/sales/10-sales-integrations.md)
+- [Sales Reporting](../08-business-modules/sales/11-sales-reporting.md)
 
 These documents are not implementation authorization; each records
 `BUSINESS DECISION REQUIRED` and/or `DEPENDENCY CONTRACT REQUIRED` where the

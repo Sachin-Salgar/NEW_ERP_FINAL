@@ -312,4 +312,4 @@ The current Sales slice exposes the documented quotation collection, detail,
 draft mutation, soft-delete, and explicit lifecycle endpoints under
 `/api/v1/sales/quotations`. The authoritative contract, permissions, validation,
 and deferred scope are maintained in
-[Sales Quotation Management](../08-business-modules/03-sales-quotation.md).
+[Sales Quotation Management](../08-business-modules/sales/01-sales-quotation.md).

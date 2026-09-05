@@ -157,4 +157,4 @@ Organization, branch, location, plant, role, and permission constraints are addi
 Sales quotation and quotation-item records are tenant-owned and
 organization-owned. They use tenant-safe composite foreign keys, transaction
 local `app.current_tenant_id`, RLS and FORCE RLS, and retain soft-deleted
-records. See the current-phase [Sales Quotation Management specification](../08-business-modules/03-sales-quotation.md).
+records. See the current-phase [Sales Quotation Management specification](../08-business-modules/sales/01-sales-quotation.md).

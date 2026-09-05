@@ -122,4 +122,4 @@ Sales quotation tests cover service validation and lifecycle authorization,
 HTTP authentication boundaries, migration execution, tenant-safe PostgreSQL
 constraints/RLS, and Flutter service behavior. The current-phase test evidence
 and remaining validation limits are tracked in the implementation roadmap and
-the [Sales Quotation Management specification](../08-business-modules/03-sales-quotation.md).
+the [Sales Quotation Management specification](../08-business-modules/sales/01-sales-quotation.md).
