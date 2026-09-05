@@ -242,6 +242,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     new PostgresDiscountRepository(pool, config.TENANT_CONTEXT_KEY),
     authorizationService,
     moduleAccessService,
+    auditLogger,
   );
   const refreshTokenRotationService = new RefreshTokenRotationService(pool, config.TENANT_CONTEXT_KEY, jwtTokenService);
   const registrationService = new UserRegistrationService(

@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS sales_deliveries (
  CONSTRAINT uq_sales_delivery_context_key UNIQUE (idempotency_key,organization_id,tenant_id,branch_id,financial_year_id)
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS uq_sales_delivery_context ON sales_deliveries(id,organization_id,tenant_id,branch_id,financial_year_id);
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS sales_delivery_items (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
  organization_id uuid NOT NULL, branch_id uuid NOT NULL, financial_year_id uuid NOT NULL,
@@ -28,7 +30,6 @@ CREATE TABLE IF NOT EXISTS sales_delivery_items (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS uq_sales_delivery_id_tenant ON sales_deliveries(id,tenant_id);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_sales_delivery_context ON sales_deliveries(id,organization_id,tenant_id,branch_id,financial_year_id);
 CREATE INDEX IF NOT EXISTS idx_sales_delivery_list ON sales_deliveries(tenant_id,organization_id,branch_id,financial_year_id,delivery_number);
 ALTER TABLE sales_deliveries ENABLE ROW LEVEL SECURITY; ALTER TABLE sales_deliveries FORCE ROW LEVEL SECURITY;
 ALTER TABLE sales_delivery_items ENABLE ROW LEVEL SECURITY; ALTER TABLE sales_delivery_items FORCE ROW LEVEL SECURITY;

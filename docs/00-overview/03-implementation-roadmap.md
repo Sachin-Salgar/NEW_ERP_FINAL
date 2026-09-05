@@ -149,7 +149,7 @@ Project Management is explicitly removed/deferred and is not an implementation t
 | Sequence | Module             | Status                                                                                                                                                              |
 | -------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1        | Core Enterprise    | **COMPLETED WITH KNOWN VALIDATION RESIDUAL — READY FOR SALES**                                                                                                      |
-| 2        | Sales              | **QUOTATION + SALES ORDER BACKEND SLICES IMPLEMENTED — VALIDATION PENDING** — [Sales specification package](../08-business-modules/03-sales-module-architecture.md) |
+| 2        | Sales              | **PARTIAL — QUOTATION, ORDER, DELIVERY, INVOICE, RETURN, CREDIT NOTE, PRICING, AND DISCOUNT BOUNDED FOUNDATIONS IMPLEMENTED** — [Sales specification package](../08-business-modules/03-sales-module-architecture.md) |
 | 3        | Procurement        | **PENDING**                                                                                                                                                         |
 | 4        | Inventory          | **PENDING**                                                                                                                                                         |
 | 5        | Manufacturing      | **PENDING**                                                                                                                                                         |
@@ -167,14 +167,16 @@ Business modules must not open until the Core Enterprise gate is completed unles
 
 The implemented Sales capability includes quotation management, the Sales Order
 backend slice under approved ADR-0026, the Sales Delivery backend slice under
-ADR-0027, and the Sales Invoice backend slice under ADR-0028. Canonical audit,
+ADR-0027, and the Sales Invoice backend slice under ADR-0028. Sales Return,
+Credit Note, Pricing, and Discount bounded foundations are also implemented.
+Canonical audit,
 optimistic-concurrency, and session-scoped branch/financial-year context
 remediation are complete, including forward migrations, repository/schema
 contracts, authorization, and validation. Legacy quotation rows without
 authoritative context remain a documented data-remediation residual. The
-remaining Sales architecture is now documented as an authorization/specification
-package without source-code implementation. Pricing,
-Discounts, Workflow, integrations, and Reporting remain deferred.
+Workflow, broader integrations, reporting, and complete administrative frontend
+coverage remain deferred. Finance, Tax, Inventory, CRM Item Master, and
+transaction-snapshot consequences remain explicit dependency boundaries.
 
 The Sales quotation slice has passed its documented behavioral backend,
 PostgreSQL/RLS,

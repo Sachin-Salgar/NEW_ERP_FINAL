@@ -1,6 +1,6 @@
 # Sales Pricing and Price Lists Specification
 
-**Status:** Implemented — bounded price-list administration
+**Status:** IMPLEMENTED — BOUNDED FOUNDATION
 **Owner:** Sales, unless a separate authoritative Pricing capability is
 established by approved architecture
 **Dependencies:** CRM/Customer, Inventory Item Master, Tax where applicable
@@ -18,7 +18,7 @@ Pricing is currently treated as a Sales capability; no separate authoritative
 Pricing module has been established. A separate owner or module requires an
 approved architecture decision and dependency contract.
 
-Candidate entities are `sales_price_lists` and `sales_price_list_items`.
+Implemented entities are `sales_price_lists` and `sales_price_list_items`.
 Potential fields include UUIDv7 IDs, tenant/org ownership, mandatory branch and
 financial-year references where the records are transactional, name/code,
 status, currency, effective period, customer/customer-group scope, item
@@ -66,4 +66,7 @@ pricing, and item-master lookup remain explicit integration boundaries.
 
 ## IMPLEMENTATION STATUS
 
-**BUSINESS DECISION REQUIRED** and **DEPENDENCY CONTRACT REQUIRED**.
+**IMPLEMENTED — BOUNDED FOUNDATION.** Published lists resolve effective-dated
+provider-neutral item prices, with branch-specific precedence and overlap
+rejection. Inventory Item Master, CRM customer scope, and immutable transaction
+price snapshots remain **PENDING DEPENDENCY**.

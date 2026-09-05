@@ -59,6 +59,8 @@ class AppRoutes {
     moduleCode: 'sales',
     icon: Icons.receipt_long_outlined,
   );
+  static const salesReturns = AppRouteConfig(path: '/sales/returns', title: 'Sales Returns', group: 'SALES', permissionKey: 'sales.return.read', moduleCode: 'sales', icon: Icons.assignment_return_outlined);
+  static const salesCreditNotes = AppRouteConfig(path: '/sales/credit-notes', title: 'Credit Notes', group: 'SALES', permissionKey: 'sales.credit_note.read', moduleCode: 'sales', icon: Icons.note_alt_outlined);
   static const settings = AppRouteConfig(
     path: '/settings',
     title: 'Settings',
@@ -162,6 +164,8 @@ class AppRoutes {
     customers,
     salesQuotations,
     salesInvoices,
+    salesReturns,
+    salesCreditNotes,
   ];
 
   static const routePermissions = <String, String?>{
@@ -177,6 +181,10 @@ class AppRoutes {
     '/sales/invoices': 'sales.invoice.read',
     '/sales/invoices/create': 'sales.invoice.create',
     '/sales/invoices/details': 'sales.invoice.read',
+    '/sales/returns': 'sales.return.read',
+    '/sales/returns/details': 'sales.return.read',
+    '/sales/credit-notes': 'sales.credit_note.read',
+    '/sales/credit-notes/details': 'sales.credit_note.read',
     '/settings': null,
     '/settings/organizations': 'organization.read',
     '/settings/organizations/create': 'organization.manage',

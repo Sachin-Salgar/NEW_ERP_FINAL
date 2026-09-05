@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS sales_returns (
  CONSTRAINT check_sales_return_finance_status CHECK(finance_status='NOT_CONNECTED')
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS uq_sales_return_context ON sales_returns(id,organization_id,tenant_id,branch_id,financial_year_id);
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS sales_return_items (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
  organization_id uuid NOT NULL, branch_id uuid NOT NULL, financial_year_id uuid NOT NULL,
@@ -31,7 +33,6 @@ CREATE TABLE IF NOT EXISTS sales_return_items (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS uq_sales_return_id_tenant ON sales_returns(id,tenant_id);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_sales_return_context ON sales_returns(id,organization_id,tenant_id,branch_id,financial_year_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_sales_return_number ON sales_returns(tenant_id,organization_id,return_number);
 CREATE INDEX IF NOT EXISTS idx_sales_return_list ON sales_returns(tenant_id,organization_id,branch_id,financial_year_id,return_number);
 ALTER TABLE sales_returns ENABLE ROW LEVEL SECURITY; ALTER TABLE sales_returns FORCE ROW LEVEL SECURITY;

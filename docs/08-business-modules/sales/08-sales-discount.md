@@ -1,6 +1,6 @@
 # Sales Discounts Specification
 
-**Status:** Implemented — bounded discount-rule administration
+**Status:** IMPLEMENTED — BOUNDED FOUNDATION
 **Owner:** Sales, with Workflow/Pricing dependencies
 
 ## 1. Purpose and scope
@@ -48,4 +48,5 @@ approval, tax ordering, and transaction snapshots remain integration boundaries.
 
 ## IMPLEMENTATION STATUS
 
-**BUSINESS DECISION REQUIRED** and **DEPENDENCY CONTRACT REQUIRED**.
+**IMPLEMENTED — BOUNDED FOUNDATION.** Transaction snapshots, workflow approval,
+tax ordering, and pricing-provider integration remain **PENDING DEPENDENCY**.

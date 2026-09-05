@@ -18,6 +18,7 @@ import '../modules/sales/list_screen.dart';
 import '../modules/sales/invoice_list_screen.dart';
 import '../modules/sales/invoice_details_screen.dart';
 import '../modules/sales/invoice_create_screen.dart';
+import '../modules/sales/boundary_list_screen.dart';
 import '../modules/dashboard/dashboard_screen.dart';
 import '../modules/organization/create_screen.dart';
 import '../modules/organization/details_screen.dart';
@@ -161,6 +162,8 @@ class AppRouter {
         ),
       );
     }
+    if (path == '/sales/returns') return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: path, child: const SalesBoundaryListScreen(kind: 'returns', permission: 'sales.return.read', title: 'Sales Returns')));
+    if (path == '/sales/credit-notes') return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: path, child: const SalesBoundaryListScreen(kind: 'credit-notes', permission: 'sales.credit_note.read', title: 'Credit Notes')));
     if (path.startsWith('/sales/quotations/') &&
         path != '/sales/quotations/create') {
       return MaterialPageRoute(

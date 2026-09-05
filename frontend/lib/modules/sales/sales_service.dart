@@ -10,6 +10,8 @@ class SalesService extends ChangeNotifier {
   final AuthService auth;
   List<Map<String, dynamic>> quotations = [];
   List<Map<String, dynamic>> invoices = [];
+  List<Map<String, dynamic>> returns = [];
+  List<Map<String, dynamic>> creditNotes = [];
   int invoicePage = 1;
   int invoiceTotal = 0;
   int page = 1;
@@ -106,6 +108,36 @@ class SalesService extends ChangeNotifier {
     } catch (e) {
       return e.toString().replaceFirst('Exception: ', '');
     }
+  }
+
+  Future<void> fetchBoundary(String kind) async {
+      isLoading = true; error = null; notifyListeners();
+      try {
+        final response = await apiClient.get('/api/v1/sales/$kind?page=1&page_size=$pageSize&order=desc');
+        if (response.statusCode != 200) throw Exception(_message(response));
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        final key = kind == 'returns' ? 'returns' : 'creditNotes';
+        final values = ((body[key] as List<dynamic>?) ?? const []).map((item) => Map<String, dynamic>.from(item as Map)).toList();
+        if (kind == 'returns') returns = values; else creditNotes = values;
+      } catch (e) { error = e.toString().replaceFirst('Exception: ', ''); }
+      finally { isLoading = false; notifyListeners(); }
+  }
+
+  Future<Map<String, dynamic>?> getBoundary(String kind, String id) async {
+      try {
+        final response = await apiClient.get('/api/v1/sales/$kind/$id');
+        if (response.statusCode != 200) throw Exception(_message(response));
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        return Map<String, dynamic>.from(body[kind == 'returns' ? 'return' : 'creditNote'] as Map);
+      } catch (e) { error = e.toString().replaceFirst('Exception: ', ''); return null; }
+  }
+
+  Future<String?> createBoundary(String kind, Map<String, dynamic> input) async {
+      try {
+        final response = await apiClient.post('/api/v1/sales/$kind', body: input);
+        if (response.statusCode == 201) return null;
+        return _message(response);
+      } catch (e) { return e.toString().replaceFirst('Exception: ', ''); }
   }
 
   Future<void> fetchQuotations({String? search, int? page}) async {

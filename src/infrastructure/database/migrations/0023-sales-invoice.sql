@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS sales_invoices (
  CONSTRAINT check_sales_invoice_tax_status CHECK (tax_status='NOT_CONNECTED')
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS uq_sales_invoice_context ON sales_invoices(id,organization_id,tenant_id,branch_id,financial_year_id);
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS sales_invoice_items (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
  organization_id uuid NOT NULL, branch_id uuid NOT NULL, financial_year_id uuid NOT NULL,
@@ -33,7 +35,6 @@ CREATE TABLE IF NOT EXISTS sales_invoice_items (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS uq_sales_invoice_id_tenant ON sales_invoices(id,tenant_id);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_sales_invoice_context ON sales_invoices(id,organization_id,tenant_id,branch_id,financial_year_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_sales_invoice_number ON sales_invoices(tenant_id,organization_id,invoice_number);
 CREATE INDEX IF NOT EXISTS idx_sales_invoice_list ON sales_invoices(tenant_id,organization_id,branch_id,financial_year_id,invoice_number);
 ALTER TABLE sales_invoices ENABLE ROW LEVEL SECURITY; ALTER TABLE sales_invoices FORCE ROW LEVEL SECURITY;
