@@ -1,6 +1,6 @@
 # Sales Approval and Workflow Integration Specification
 
-**Status:** Authorization package — dependency contract required
+**Status:** NOT CONNECTED — PROVIDER-NEUTRAL SALES BOUNDARY
 **Owner:** Workflow platform; Sales remains domain owner
 
 ## 1. Purpose and scope
@@ -47,8 +47,12 @@ Flutter displays server-authoritative approval/task state and only authorized
 actions. Tests cover stale decisions, replayed callbacks, cross-tenant
 callbacks, RLS, rollback, audit, and provider failure.
 
-**DEPENDENCY CONTRACT REQUIRED** and **BUSINESS DECISION REQUIRED**.
+Sales lifecycle approval points remain implemented in the Sales-owned document
+state machines. The generic Workflow/BPM provider is **NOT CONNECTED**; the
+provider-neutral boundary is defined in `sales-workflow.ts`. Approval hierarchy,
+task assignment, escalation, callbacks, and asynchronous behavior remain
+**PENDING DEPENDENCY**.
 
 ## IMPLEMENTATION STATUS
 
-**DEPENDENCY CONTRACT REQUIRED** and **BUSINESS DECISION REQUIRED**.
+**NOT CONNECTED**.

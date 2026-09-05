@@ -174,9 +174,11 @@ optimistic-concurrency, and session-scoped branch/financial-year context
 remediation are complete, including forward migrations, repository/schema
 contracts, authorization, and validation. Legacy quotation rows without
 authoritative context remain a documented data-remediation residual. The
-Workflow, broader integrations, reporting, and complete administrative frontend
-coverage remain deferred. Finance, Tax, Inventory, CRM Item Master, and
-transaction-snapshot consequences remain explicit dependency boundaries.
+Workflow remains not connected, while provider-neutral integration boundaries
+and a bounded Sales document-summary report are implemented. Finance, Tax,
+Inventory, CRM Item Master, and transaction-snapshot consequences remain
+explicit dependency boundaries; complete administrative frontend coverage
+remains partial.
 
 The Sales quotation slice has passed its documented behavioral backend,
 PostgreSQL/RLS,
@@ -211,9 +213,9 @@ Specification package evidence:
 - [Sales Integrations](../08-business-modules/sales/10-sales-integrations.md)
 - [Sales Reporting](../08-business-modules/sales/11-sales-reporting.md)
 
-These documents are not implementation authorization; each records
-`BUSINESS DECISION REQUIRED` and/or `DEPENDENCY CONTRACT REQUIRED` where the
-current architecture is not sufficiently specific.
+These documents record the implemented bounded foundations and the remaining
+dependency boundaries. Workflow/BPM provider behavior and cross-module
+integration effects remain explicitly not connected.
 
 ## 8. Verification gate disposition
 

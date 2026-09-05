@@ -19,6 +19,10 @@ import '../modules/sales/invoice_list_screen.dart';
 import '../modules/sales/invoice_details_screen.dart';
 import '../modules/sales/invoice_create_screen.dart';
 import '../modules/sales/boundary_list_screen.dart';
+import '../modules/sales/boundary_details_screen.dart';
+import '../modules/sales/report_screen.dart';
+import '../modules/sales/sales_admin_list_screen.dart';
+import '../modules/sales/boundary_create_screen.dart';
 import '../modules/dashboard/dashboard_screen.dart';
 import '../modules/organization/create_screen.dart';
 import '../modules/organization/details_screen.dart';
@@ -164,6 +168,13 @@ class AppRouter {
     }
     if (path == '/sales/returns') return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: path, child: const SalesBoundaryListScreen(kind: 'returns', permission: 'sales.return.read', title: 'Sales Returns')));
     if (path == '/sales/credit-notes') return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: path, child: const SalesBoundaryListScreen(kind: 'credit-notes', permission: 'sales.credit_note.read', title: 'Credit Notes')));
+    if (path == '/sales/returns/create') return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: path, child: const SalesBoundaryCreateScreen(kind: 'returns', sourceLabel: 'Issued invoice ID', title: 'Create Sales Return')));
+    if (path == '/sales/credit-notes/create') return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: path, child: const SalesBoundaryCreateScreen(kind: 'credit-notes', sourceLabel: 'Processed return ID', title: 'Create Credit Note')));
+    if (path == '/sales/reports') return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: path, child: const SalesReportScreen()));
+    if (path == '/sales/pricing') return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: path, child: const SalesAdminListScreen(kind: 'price-lists', title: 'Sales Pricing')));
+    if (path == '/sales/discounts') return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: path, child: const SalesAdminListScreen(kind: 'discount-rules', title: 'Sales Discounts')));
+    if (path.startsWith('/sales/returns/') && path != '/sales/returns/create') return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/sales/returns/details', child: SalesBoundaryDetailsScreen(kind: 'returns', id: _extractDetailId(path, settings.arguments) ?? '', title: 'Sales Return')));
+    if (path.startsWith('/sales/credit-notes/') && path != '/sales/credit-notes/create') return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/sales/credit-notes/details', child: SalesBoundaryDetailsScreen(kind: 'credit-notes', id: _extractDetailId(path, settings.arguments) ?? '', title: 'Credit Note')));
     if (path.startsWith('/sales/quotations/') &&
         path != '/sales/quotations/create') {
       return MaterialPageRoute(

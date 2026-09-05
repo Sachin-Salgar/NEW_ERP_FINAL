@@ -7,7 +7,7 @@ import { ForbiddenError, ValidationError } from '../../src/domain/errors.js';
 
 const context: DiscountContext = { tenantId: randomUUID(), organizationId: randomUUID(), userId: randomUUID() };
 const record: DiscountRuleRecord = { id: randomUUID(), tenantId: context.tenantId, organizationId: context.organizationId, code: 'DISC10', name: 'Ten percent', percentage: 10, effectiveFrom: '2026-01-01', effectiveTo: null, status: 'DRAFT', versionNumber: 1, createdAt: new Date(), updatedAt: null };
-class Repository implements DiscountRuleRepository { async create() { return record; } async list() { return [record]; } async transition() { return { ...record, status: 'PUBLISHED' as const, versionNumber: 2 }; } }
+class Repository implements DiscountRuleRepository { async create() { return record; } async list() { return [record]; } async resolve() { return null; } async transition() { return { ...record, status: 'PUBLISHED' as const, versionNumber: 2 }; } }
 class Audit implements AuditLogger { actions: string[] = []; async record(event: { action: string }) { this.actions.push(event.action); } }
 const service = (permission = true, enabled = true) => { const audit = new Audit(); return { audit, value: new DiscountService(new Repository(), { hasPermission: async () => permission }, { isModuleEnabled: async () => enabled }, audit) }; };
 

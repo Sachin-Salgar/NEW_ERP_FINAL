@@ -1,6 +1,6 @@
 # Sales Reporting and Analytics Specification
 
-**Status:** Authorization package — reporting contract required
+**Status:** IMPLEMENTED — BOUNDED READ MODEL
 **Owner:** Reporting/BI platform; Sales supplies domain facts
 
 ## 1. Scope
@@ -40,4 +40,7 @@ provider failure, audit/access logging, and non-mutation.
 
 ## IMPLEMENTATION STATUS
 
-**DEPENDENCY CONTRACT REQUIRED** and **BUSINESS DECISION REQUIRED**.
+The document-summary read model is implemented under ADR-0033. It is limited
+to Sales-owned Invoice, Return, and Credit Note facts and the authenticated
+tenant/organization/branch/financial-year context. Cross-module measures,
+exports, freshness guarantees, and BI ownership remain **PENDING DEPENDENCY**.

@@ -253,6 +253,14 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
     permissionKey: `sales.discount.${action}`,
     displayName: `${action[0].toUpperCase()}${action.slice(1)} discount rules`,
   })),
+  {
+    moduleCode: 'sales',
+    resource: 'reporting',
+    action: 'read',
+    scope: 'organization' as const,
+    permissionKey: 'sales.reporting.read',
+    displayName: 'Read Sales reports',
+  },
 ];
 
 export class PlatformBootstrapService {

@@ -5,7 +5,7 @@
 
 ## Purpose
 
-The Sales Module manages the customer sales lifecycle and integrates with the CRM, Inventory, Finance, Tax, Workflow, Notification, Document, and Reporting capabilities through approved module contracts.
+The Sales Module manages the customer sales lifecycle and integrates with the CRM, Inventory, Finance, Tax, Workflow, Notification, Document, and Reporting capabilities through approved module contracts. Current provider-neutral boundaries are defined for dependencies that are not yet implemented.
 
 The module is a logical module within the current modular monolith and is not an independently deployed service.
 

@@ -20,6 +20,7 @@ import type { SalesReturnService } from '../../../application/services/sales-ret
 import type { CreditNoteService } from '../../../application/services/credit-note-service.js';
 import type { PricingService } from '../../../application/services/pricing-service.js';
 import type { DiscountService } from '../../../application/services/discount-service.js';
+import type { SalesReportingService } from '../../../application/services/sales-reporting-service.js';
 import type { JwtTokenService } from '../../../infrastructure/security/jwt-token-service.js';
 import type { AppConfig } from '../../../config/schema.js';
 import type { AuditLogger } from '../../../application/contracts/audit.js';
@@ -49,6 +50,7 @@ declare module 'fastify' {
     creditNoteService: CreditNoteService;
     pricingService: PricingService;
     discountService: DiscountService;
+    salesReportingService: SalesReportingService;
   }
 
   interface FastifyRequest {

@@ -24,6 +24,8 @@ import { SalesReturnService } from '../../application/services/sales-return-serv
 import { CreditNoteService } from '../../application/services/credit-note-service.js';
 import { PricingService } from '../../application/services/pricing-service.js';
 import { DiscountService } from '../../application/services/discount-service.js';
+import { SalesReportingService } from '../../application/services/sales-reporting-service.js';
+import { PostgresSalesReportingRepository } from '../../infrastructure/database/repositories/postgres-sales-reporting-repository.js';
 import { createDatabasePool } from '../../infrastructure/database/connection.js';
 import { PostgresQueryPerformanceMonitor } from '../../infrastructure/database/query-performance-monitor.js';
 import { IdentityAwarePostgresPlatformRepository } from '../../infrastructure/database/repositories/identity-aware-postgres-platform-repository.js';
@@ -66,6 +68,7 @@ import salesReturnRoutes from './routes/sales-return.js';
 import creditNoteRoutes from './routes/credit-note.js';
 import pricingRoutes from './routes/pricing.js';
 import discountRoutes from './routes/discount.js';
+import salesReportingRoutes from './routes/sales-reporting.js';
 import rbacRoutes from './routes/rbac.js';
 import { paginateListResponse } from './pagination.js';
 import { requestObject } from './request-input.js';
@@ -190,6 +193,11 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     auditLogger,
     transactionRunner,
   );
+  const salesReportingService = new SalesReportingService(
+    new PostgresSalesReportingRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+  );
   const quotationService = new QuotationService(
     new PostgresQuotationRepository(pool, config.TENANT_CONTEXT_KEY),
     authorizationService,
@@ -297,6 +305,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('creditNoteService', creditNoteService);
   app.decorate('pricingService', pricingService);
   app.decorate('discountService', discountService);
+  app.decorate('salesReportingService', salesReportingService);
 
   app.addHook('onReady', async () => {
     const snapshot = await queryPerformanceMonitor.snapshot({ minimumMeanExecMs: 100, limit: 25 });
@@ -402,5 +411,6 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(creditNoteRoutes, { prefix: config.API_PREFIX });
   await app.register(pricingRoutes, { prefix: config.API_PREFIX });
   await app.register(discountRoutes, { prefix: config.API_PREFIX });
+  await app.register(salesReportingRoutes, { prefix: config.API_PREFIX });
   return app;
 }

@@ -140,6 +140,39 @@ class SalesService extends ChangeNotifier {
       } catch (e) { return e.toString().replaceFirst('Exception: ', ''); }
   }
 
+  Future<List<Map<String, dynamic>>> fetchSalesReport() async {
+    try {
+      final response = await apiClient.get(
+        '/api/v1/sales/reports/document-summary?page=1&page_size=$pageSize&order=desc',
+      );
+      if (response.statusCode != 200) throw Exception(_message(response));
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      return ((body['documents'] as List<dynamic>?) ?? const [])
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList();
+    } catch (e) {
+      error = e.toString().replaceFirst('Exception: ', '');
+      notifyListeners();
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchSalesAdministration(String kind) async {
+      try {
+        final response = await apiClient.get('/api/v1/sales/$kind');
+        if (response.statusCode != 200) throw Exception(_message(response));
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        final key = kind == 'price-lists' ? 'priceLists' : 'discountRules';
+        return ((body[key] as List<dynamic>?) ?? const [])
+            .map((item) => Map<String, dynamic>.from(item as Map))
+            .toList();
+      } catch (e) {
+        error = e.toString().replaceFirst('Exception: ', '');
+        notifyListeners();
+        return [];
+      }
+    }
+
   Future<void> fetchQuotations({String? search, int? page}) async {
     if (auth.currentOrganizationId == null) {
       error = 'Organization context is missing.';

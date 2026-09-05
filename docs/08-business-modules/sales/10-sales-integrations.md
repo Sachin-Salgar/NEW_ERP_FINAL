@@ -1,6 +1,6 @@
 # Sales Integration Contracts
 
-**Status:** Authorization package — contract requirements
+**Status:** IMPLEMENTED — PROVIDER-NEUTRAL BOUNDARIES
 **Owner:** Sales plus owning platform/business modules
 
 ## Contract rules
@@ -40,7 +40,9 @@ Sales must not write Inventory, Finance, Tax, Workflow, Notification, Document,
 or Reporting private tables; duplicate their business rules; or claim provider
 success without a contract response.
 
-**DEPENDENCY CONTRACT REQUIRED**.
+Typed provider-neutral ports are defined for Customer, Inventory, Finance, Tax,
+Workflow, Notifications, and Documents. Provider implementations remain
+**PENDING DEPENDENCY** and Sales does not claim downstream side effects.
 
 ## IMPLEMENTATION STATUS
 

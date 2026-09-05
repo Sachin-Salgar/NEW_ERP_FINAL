@@ -14,7 +14,16 @@ export class PostgresInvoiceRepository implements InvoiceRepository {
       if (!delivery.rows[0] || delivery.rows[0].status !== 'COMPLETED') throw new ValidationError('Only a completed Delivery in the active context can create an invoice.');
       const counter = await c.query(`INSERT INTO code_counters(tenant_id,entity_type,scope_key,last_value) VALUES($1,'sales_invoice',$2,1) ON CONFLICT(tenant_id,entity_type,scope_key) DO UPDATE SET last_value=code_counters.last_value+1 RETURNING last_value`, [i.tenantId,i.organizationId]);
       const r = await c.query(`INSERT INTO sales_invoices(tenant_id,organization_id,branch_id,financial_year_id,invoice_number,sales_order_id,delivery_id,customer_id,idempotency_key,notes,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING ${C}`, [i.tenantId,i.organizationId,i.branchId,i.financialYearId,`INV-${String(counter.rows[0].last_value).padStart(6,'0')}`,delivery.rows[0].salesOrderId,i.deliveryId,delivery.rows[0].customerId,i.idempotencyKey,i.notes,i.actorUserId]);
-      await c.query(`INSERT INTO sales_invoice_items(tenant_id,organization_id,branch_id,financial_year_id,invoice_id,delivery_item_id,line_number,description,quantity,unit_of_measure,unit_price,line_total,created_by) SELECT tenant_id,organization_id,branch_id,financial_year_id,$1,id,line_number,description,quantity,unit_of_measure,0,0,$2 FROM sales_delivery_items WHERE delivery_id=$3 AND tenant_id=$4`, [r.rows[0].id,i.actorUserId,i.deliveryId,i.tenantId]);
+      await c.query(`INSERT INTO sales_invoice_items
+        (tenant_id,organization_id,branch_id,financial_year_id,invoice_id,delivery_item_id,line_number,
+         description,quantity,unit_of_measure,unit_price,line_total,created_by)
+        SELECT d.tenant_id,d.organization_id,d.branch_id,d.financial_year_id,$1,d.id,d.line_number,
+          d.description,d.quantity,d.unit_of_measure,o.unit_price,d.quantity*o.unit_price,$2
+        FROM sales_delivery_items d
+        JOIN sales_order_items o ON o.id=d.order_item_id
+          AND o.tenant_id=d.tenant_id AND o.organization_id=d.organization_id
+          AND o.branch_id=d.branch_id AND o.financial_year_id=d.financial_year_id
+        WHERE d.delivery_id=$3 AND d.tenant_id=$4`, [r.rows[0].id,i.actorUserId,i.deliveryId,i.tenantId]);
       return this.map(c, r.rows[0]);
     }, { organizationId: i.organizationId, userId: i.actorUserId }) as Promise<InvoiceRecord>;
   }
