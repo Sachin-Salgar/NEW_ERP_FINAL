@@ -59,13 +59,62 @@ class AppRoutes {
     moduleCode: 'sales',
     icon: Icons.receipt_long_outlined,
   );
-  static const salesOrders = AppRouteConfig(path: '/sales/orders', title: 'Sales Orders', group: 'SALES', permissionKey: 'sales.order.read', moduleCode: 'sales', icon: Icons.shopping_cart_outlined);
-  static const salesDeliveries = AppRouteConfig(path: '/sales/deliveries', title: 'Sales Deliveries', group: 'SALES', permissionKey: 'sales.delivery.read', moduleCode: 'sales', icon: Icons.local_shipping_outlined);
-  static const salesReturns = AppRouteConfig(path: '/sales/returns', title: 'Sales Returns', group: 'SALES', permissionKey: 'sales.return.read', moduleCode: 'sales', icon: Icons.assignment_return_outlined);
-  static const salesCreditNotes = AppRouteConfig(path: '/sales/credit-notes', title: 'Credit Notes', group: 'SALES', permissionKey: 'sales.credit_note.read', moduleCode: 'sales', icon: Icons.note_alt_outlined);
-  static const salesReports = AppRouteConfig(path: '/sales/reports', title: 'Sales Reports', group: 'SALES', permissionKey: 'sales.reporting.read', moduleCode: 'sales', icon: Icons.analytics_outlined);
-  static const salesPricing = AppRouteConfig(path: '/sales/pricing', title: 'Sales Pricing', group: 'SALES', permissionKey: 'sales.pricing.read', moduleCode: 'sales', icon: Icons.price_change_outlined);
-  static const salesDiscounts = AppRouteConfig(path: '/sales/discounts', title: 'Sales Discounts', group: 'SALES', permissionKey: 'sales.discount.read', moduleCode: 'sales', icon: Icons.discount_outlined);
+  static const salesOrders = AppRouteConfig(
+    path: '/sales/orders',
+    title: 'Sales Orders',
+    group: 'SALES',
+    permissionKey: 'sales.order.read',
+    moduleCode: 'sales',
+    icon: Icons.shopping_cart_outlined,
+  );
+  static const salesDeliveries = AppRouteConfig(
+    path: '/sales/deliveries',
+    title: 'Sales Deliveries',
+    group: 'SALES',
+    permissionKey: 'sales.delivery.read',
+    moduleCode: 'sales',
+    icon: Icons.local_shipping_outlined,
+  );
+  static const salesReturns = AppRouteConfig(
+    path: '/sales/returns',
+    title: 'Sales Returns',
+    group: 'SALES',
+    permissionKey: 'sales.return.read',
+    moduleCode: 'sales',
+    icon: Icons.assignment_return_outlined,
+  );
+  static const salesCreditNotes = AppRouteConfig(
+    path: '/sales/credit-notes',
+    title: 'Credit Notes',
+    group: 'SALES',
+    permissionKey: 'sales.credit_note.read',
+    moduleCode: 'sales',
+    icon: Icons.note_alt_outlined,
+  );
+  static const salesReports = AppRouteConfig(
+    path: '/sales/reports',
+    title: 'Sales Reports',
+    group: 'SALES',
+    permissionKey: 'sales.reporting.read',
+    moduleCode: 'sales',
+    icon: Icons.analytics_outlined,
+  );
+  static const salesPricing = AppRouteConfig(
+    path: '/sales/pricing',
+    title: 'Sales Pricing',
+    group: 'SALES',
+    permissionKey: 'sales.pricing.read',
+    moduleCode: 'sales',
+    icon: Icons.price_change_outlined,
+  );
+  static const salesDiscounts = AppRouteConfig(
+    path: '/sales/discounts',
+    title: 'Sales Discounts',
+    group: 'SALES',
+    permissionKey: 'sales.discount.read',
+    moduleCode: 'sales',
+    icon: Icons.discount_outlined,
+  );
   static const settings = AppRouteConfig(
     path: '/settings',
     title: 'Settings',
@@ -191,6 +240,7 @@ class AppRoutes {
     '/sales/invoices': 'sales.invoice.read',
     '/sales/orders': 'sales.order.read',
     '/sales/deliveries': 'sales.delivery.read',
+    '/sales/deliveries/create': 'sales.delivery.create',
     '/sales/invoices/create': 'sales.invoice.create',
     '/sales/invoices/details': 'sales.invoice.read',
     '/sales/returns': 'sales.return.read',

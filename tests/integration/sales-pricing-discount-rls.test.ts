@@ -35,5 +35,27 @@ describe('Sales pricing and discount PostgreSQL boundaries', () => {
     await expect(discounts.transition({ tenantId: tenantA, organizationId: orgA, id: discount.id, status: 'PUBLISHED', expectedVersion: 1, actorUserId: actor })).resolves.toMatchObject({ status: 'PUBLISHED', versionNumber: 2 });
     const rls = await pool!.query(`SELECT relrowsecurity,relforcerowsecurity,relname FROM pg_class WHERE relname IN ('sales_price_lists','sales_price_list_items','sales_discount_rules')`);
     expect(rls.rows).toHaveLength(3); expect(rls.rows.every(row => row.relrowsecurity && row.relforcerowsecurity)).toBe(true);
+    const salesRls = await pool!.query(`
+      SELECT relname, relrowsecurity, relforcerowsecurity
+      FROM pg_class
+      WHERE relnamespace = 'public'::regnamespace
+        AND relname IN (
+          'sales_quotations', 'sales_quotation_items',
+          'sales_orders', 'sales_order_items',
+          'sales_deliveries', 'sales_delivery_items',
+          'sales_invoices', 'sales_invoice_items',
+          'sales_returns', 'sales_return_items',
+          'sales_credit_notes', 'sales_credit_note_items',
+          'sales_price_lists', 'sales_price_list_items',
+          'sales_discount_rules'
+        )
+      ORDER BY relname`);
+    expect(salesRls.rows.length).toBe(15);
+    expect(salesRls.rows.every((row) => row.relrowsecurity && row.relforcerowsecurity)).toBe(true);
+    const role = await pool!.query(`
+      SELECT rolsuper, rolbypassrls
+      FROM pg_roles
+      WHERE rolname = current_user`);
+    expect(role.rows).toEqual([{ rolsuper: false, rolbypassrls: false }]);
   });
 });

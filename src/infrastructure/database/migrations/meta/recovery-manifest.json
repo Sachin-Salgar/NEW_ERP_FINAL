@@ -140,6 +140,11 @@
       "strategy": "compensating-migration",
       "destructiveDownAllowed": false,
       "note": "Discount rules are business data; preserve and correct forward."
+    },
+    "0028-sales-quotation-context-guard": {
+      "strategy": "forward-only-security",
+      "destructiveDownAllowed": false,
+      "note": "Prevent implicit legacy quotation context assignment; explicit reclassification must be reviewed and authorized."
     }
   }
 }

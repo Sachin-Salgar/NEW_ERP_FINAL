@@ -176,9 +176,11 @@ contracts, authorization, and validation. Legacy quotation rows without
 authoritative context remain a documented data-remediation residual. The
 Workflow remains not connected, while provider-neutral integration boundaries
 and a bounded Sales document-summary report are implemented. Finance, Tax,
-Inventory, CRM Item Master, and transaction-snapshot consequences remain
-explicit dependency boundaries; complete administrative frontend coverage
-remains partial.
+Inventory, CRM Item Master, and transaction-facing Pricing/Discount snapshot
+resolution remain explicit dependency/contract boundaries. Sales administration
+and lifecycle frontend coverage is implemented, including confirmed-order to
+delivery creation; historical quotation rows without authoritative context
+remain decision-gated and must not be arbitrarily reclassified.
 
 The Sales quotation slice has passed its documented behavioral backend,
 PostgreSQL/RLS,

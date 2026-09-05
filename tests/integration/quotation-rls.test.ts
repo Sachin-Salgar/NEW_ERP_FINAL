@@ -99,6 +99,18 @@ describe('Sales quotation PostgreSQL tenant and organization isolation', () => {
       actorUserId: actor,
     };
     const quotation = await repository.create(input);
+    const legacyQuotationId = uuidV7();
+    await withTenantContext(pool, 'app.current_tenant_id', tenantA, async (client) => {
+      await client.query(
+        `INSERT INTO sales_quotations
+           (id, tenant_id, organization_id, quotation_number, customer_id, quotation_date, valid_until)
+         VALUES ($1, $2, $3, 'Q-LEGACY-CONTEXT', $4, '2026-09-01', '2026-09-30')`,
+        [legacyQuotationId, tenantA, organizationA, customerA],
+      );
+      await expect(
+        client.query('UPDATE sales_quotations SET branch_id = $1 WHERE id = $2', [branchA, legacyQuotationId]),
+      ).rejects.toThrow('requires explicit authorization');
+    });
 
     await expect(repository.getById(tenantA, organizationA, branchA, financialYearA, quotation.id)).resolves.toMatchObject({
       tenantId: tenantA,
