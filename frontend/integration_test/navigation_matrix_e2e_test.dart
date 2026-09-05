@@ -107,6 +107,12 @@ Future<void> _logout(WidgetTester tester) async {
 
 Future<void> _flushFocusLifecycle(WidgetTester tester) async {
   FocusManager.instance.primaryFocus?.unfocus(disposition: UnfocusDisposition.scope);
+  // Focus changes are applied by a scheduled microtask. Flush both the focus
+  // notification and any post-frame work before the integration test returns;
+  // otherwise web-server teardown can dispose FocusManager while that callback
+  // is still queued, producing a false failure after the test body completes.
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 100));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 100));
 }
@@ -169,9 +175,6 @@ void main() {
     await _waitFor(tester, find.text('Branch information'));
     expect(find.text('E2E Main Branch'), findsWidgets);
 
-    // Verify browser history against explicit expected destinations. The previous
-    // implementation waited for the route it was leaving, which could time out
-    // for 30 seconds and leave the web-server SSE session stuck.
     await _navigateRoute(tester, '/settings/organizations/details/$_organizationId');
     await _browserBack(tester, '/settings/branches/details/$_branchId');
     expect(find.text('E2E Main Branch'), findsWidgets);
