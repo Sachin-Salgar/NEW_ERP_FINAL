@@ -85,6 +85,7 @@ const quotationRoutes: FastifyPluginAsync = async (f) => {
             ctx(r),
             requestParam(r.params, 'id') ?? '',
             (s === 'send' ? 'SENT' : s === 'cancel' ? 'CANCELLED' : s.toUpperCase()) as any,
+            r.body.expectedVersion,
           ),
         ),
       }),

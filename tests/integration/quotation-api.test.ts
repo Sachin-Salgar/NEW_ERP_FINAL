@@ -183,6 +183,7 @@ describe('Quotation HTTP API', () => {
       method: 'POST',
       url: `/api/v1/sales/quotations/${sentQuotation.id}/send`,
       headers,
+      payload: { expectedVersion: 1 },
     });
     expect(sent.statusCode).toBe(200);
     const sentDelete = await app.inject({
@@ -195,6 +196,7 @@ describe('Quotation HTTP API', () => {
       method: 'POST',
       url: `/api/v1/sales/quotations/${sentQuotation.id}/cancel`,
       headers,
+      payload: { expectedVersion: 2 },
     });
     expect(cancelled.statusCode).toBe(200);
     expect(cancelled.json().quotation.status).toBe('CANCELLED');

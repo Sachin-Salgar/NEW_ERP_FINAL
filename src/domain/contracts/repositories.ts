@@ -424,6 +424,7 @@ export interface QuotationRepository {
     validUntil: string;
     notes?: string | null;
     items: QuotationItemInput[];
+    expectedVersion: number;
     actorUserId: string;
   }): Promise<QuotationRecord | null>;
   transition(input: {
@@ -433,6 +434,7 @@ export interface QuotationRepository {
     financialYearId: string;
     quotationId: string;
     status: import('./quotation.js').QuotationStatus;
+    expectedVersion: number;
     actorUserId: string;
   }): Promise<QuotationRecord | null>;
   softDelete(input: {

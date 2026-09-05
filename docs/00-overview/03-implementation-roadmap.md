@@ -172,7 +172,10 @@ Credit Note, Pricing, and Discount bounded foundations are also implemented.
 Canonical audit,
 optimistic-concurrency, and session-scoped branch/financial-year context
 remediation are complete, including forward migrations, repository/schema
-contracts, authorization, and validation. Legacy quotation rows without
+contracts, authorization, and validation. Quotation updates and lifecycle
+transitions now require and atomically enforce the expected version, and
+canceling a reserved order releases its Inventory reservations before the
+order transition. Legacy quotation rows without
 authoritative context remain a documented data-remediation residual. The
 Workflow remains not connected, while provider-neutral integration boundaries
 and a bounded Sales document-summary report are implemented. Finance, Tax,

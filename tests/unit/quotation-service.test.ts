@@ -51,10 +51,12 @@ class FakeRepository implements QuotationRepository {
   async list() {
     return { items: [this.value], total: 1 };
   }
-  async update() {
+  async update(input: { expectedVersion: number }) {
+    if (input.expectedVersion !== this.value.versionNumber) return null;
+    this.value = { ...this.value, versionNumber: this.value.versionNumber + 1 };
     return this.value;
   }
-  async transition(input: { status: string }) {
+  async transition(input: { status: string; expectedVersion: number }) {
     this.lastStatus = input.status;
     this.value = record(input.status as QuotationRecord['status']);
     return this.value;
@@ -97,11 +99,23 @@ describe('QuotationService', () => {
   });
   it('enforces lifecycle transitions and audits them', async () => {
     const { service: sut, repository, audit } = createService();
-    await sut.transition(context, repository.value.id, 'SENT');
+    await sut.transition(context, repository.value.id, 'SENT', 1);
     expect(repository.lastStatus).toBe('SENT');
     expect(audit.actions).toEqual(['quotation.sent']);
-    await expect(sut.transition(context, repository.value.id, 'ACCEPTED')).resolves.toBeTruthy();
-    await expect(sut.transition(context, repository.value.id, 'CANCELLED')).rejects.toBeInstanceOf(ValidationError);
+    await expect(sut.transition(context, repository.value.id, 'ACCEPTED', 1)).resolves.toBeTruthy();
+    await expect(sut.transition(context, repository.value.id, 'CANCELLED', 1)).rejects.toBeInstanceOf(ValidationError);
+  });
+  it('enforces expected version on draft updates', async () => {
+    const { service, repository } = createService();
+    await expect(service.update(context, repository.value.id, { ...input, expectedVersion: 0 })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    await expect(service.update(context, repository.value.id, { ...input, expectedVersion: 2 })).rejects.toMatchObject({
+      message: 'Draft quotation not found.',
+    });
+    await expect(service.update(context, repository.value.id, { ...input, expectedVersion: 1 })).resolves.toMatchObject({
+      versionNumber: 2,
+    });
   });
   it('separates draft DELETE from lifecycle CANCEL', async () => {
     const { service: sut, repository, audit } = createService();
@@ -111,7 +125,7 @@ describe('QuotationService', () => {
     expect(audit.actions).toEqual(['quotation.deleted']);
 
     const cancelService = createService();
-    await cancelService.service.transition(context, cancelService.repository.value.id, 'CANCELLED');
+    await cancelService.service.transition(context, cancelService.repository.value.id, 'CANCELLED', 1);
     expect(cancelService.repository.lastStatus).toBe('CANCELLED');
     expect(cancelService.audit.actions).toEqual(['quotation.cancelled']);
   });
@@ -136,14 +150,14 @@ describe('QuotationService', () => {
   ] as const)('allows %s -> %s', async (from, to) => {
     const { service: sut, repository } = createService();
     repository.value = record(from);
-    await expect(sut.transition(context, repository.value.id, to)).resolves.toMatchObject({ status: to });
+    await expect(sut.transition(context, repository.value.id, to, 1)).resolves.toMatchObject({ status: to });
   });
   it.each(['ACCEPTED', 'REJECTED', 'EXPIRED', 'CANCELLED'] as const)(
     'rejects terminal %s transitions',
     async (status) => {
       const { service: sut, repository } = createService();
       repository.value = record(status);
-      await expect(sut.transition(context, repository.value.id, 'CANCELLED')).rejects.toBeInstanceOf(ValidationError);
+      await expect(sut.transition(context, repository.value.id, 'CANCELLED', 1)).rejects.toBeInstanceOf(ValidationError);
     },
   );
   it('enforces module and permission gates', async () => {

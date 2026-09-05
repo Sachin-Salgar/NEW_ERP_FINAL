@@ -105,7 +105,21 @@ export class OrderService {
       if (!current) throw new NotFoundError('Order not found.');
       if (!transitions[current.status].includes(status))
         throw new ValidationError(`Order cannot transition from ${current.status} to ${status}.`);
-      const x = await this.repository.transition({ ...c, orderId: id, status, expectedVersion, actorUserId: c.userId });
+      let transitionVersion = expectedVersion;
+      if (status === 'CANCELLED' && current.reservationStatus === 'RESERVED') {
+        if (!this.inventory) throw new ValidationError('Inventory reservation provider is not configured.');
+        if (!this.repository.updateReservationStatus) throw new ValidationError('Order reservation state updates are not configured.');
+        const reservations = await this.inventory.listReservationsBySource(c, 'SALES_ORDER', current.id);
+        for (const reservation of reservations) {
+          if (reservation.status === 'RESERVED') {
+            await this.inventory.releaseReservation(c, reservation.id, `sales-order-cancel:${current.id}:${reservation.id}`);
+          }
+        }
+        const released = await this.repository.updateReservationStatus({ ...c, orderId: current.id, reservationStatus: 'NOT_RESERVED', actorUserId: c.userId });
+        if (!released) throw new ValidationError('Order reservation state could not be released.');
+        transitionVersion += 1;
+      }
+      const x = await this.repository.transition({ ...c, orderId: id, status, expectedVersion: transitionVersion, actorUserId: c.userId });
       if (!x) throw new ValidationError('Order not found or version conflict.');
       await this.audit.record(
         {

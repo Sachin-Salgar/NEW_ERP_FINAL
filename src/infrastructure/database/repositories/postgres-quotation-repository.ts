@@ -87,7 +87,7 @@ export class PostgresQuotationRepository implements QuotationRepository {
         );
         if (!customer.rows[0]) throw new ValidationError('Customer must belong to the active organization.');
         const r = await c.query(
-          `UPDATE sales_quotations SET customer_id=$1,quotation_date=$2,valid_until=$3,notes=$4,updated_at=now(),updated_by=$5,version_number=version_number+1 WHERE tenant_id=$6 AND organization_id=$7 AND branch_id=$8 AND financial_year_id=$9 AND id=$10 AND status='DRAFT' AND is_deleted=false RETURNING ${C}`,
+          `UPDATE sales_quotations SET customer_id=$1,quotation_date=$2,valid_until=$3,notes=$4,updated_at=now(),updated_by=$5,version_number=version_number+1 WHERE tenant_id=$6 AND organization_id=$7 AND branch_id=$8 AND financial_year_id=$9 AND id=$10 AND status='DRAFT' AND is_deleted=false AND version_number=$11 RETURNING ${C}`,
           [
             i.customerId,
             i.quotationDate,
@@ -99,6 +99,7 @@ export class PostgresQuotationRepository implements QuotationRepository {
             i.branchId,
             i.financialYearId,
             i.quotationId,
+            i.expectedVersion,
           ],
         );
         if (!r.rows[0]) return null;
@@ -111,8 +112,8 @@ export class PostgresQuotationRepository implements QuotationRepository {
   async transition(i: any) {
     return this.mutate(
       i,
-      `UPDATE sales_quotations SET status=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND organization_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND is_deleted=false RETURNING ${C}`,
-      [i.status, i.actorUserId, i.tenantId, i.organizationId, i.branchId, i.financialYearId, i.quotationId],
+      `UPDATE sales_quotations SET status=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND organization_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND is_deleted=false AND version_number=$8 RETURNING ${C}`,
+      [i.status, i.actorUserId, i.tenantId, i.organizationId, i.branchId, i.financialYearId, i.quotationId, i.expectedVersion],
     );
   }
   async softDelete(i: any) {

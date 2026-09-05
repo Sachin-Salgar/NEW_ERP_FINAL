@@ -93,10 +93,12 @@ export class QuotationService {
       validUntil: string;
       notes?: string | null;
       items: QuotationItemInput[];
+      expectedVersion: number;
     },
   ) {
     await this.authorize(c, QUOTATION_PERMISSIONS.update);
     this.id(id, 'Quotation ID');
+    this.version(input.expectedVersion);
     this.validateInput(c, input);
     return this.tx.runInTransaction(async () => {
       const q = await this.repository.update({ ...input, ...c, quotationId: id, actorUserId: c.userId });
@@ -138,18 +140,20 @@ export class QuotationService {
       return q;
     });
   }
-  async transition(c: QuotationContext, id: string, status: QuotationStatus): Promise<QuotationRecord> {
+  async transition(c: QuotationContext, id: string, status: QuotationStatus, expectedVersion: number): Promise<QuotationRecord> {
     const permissionKey =
       status === 'SENT' ? 'send' : status === 'CANCELLED' ? 'cancel' : status.toLowerCase();
     const permission = (QUOTATION_PERMISSIONS as Record<string, string>)[permissionKey];
     await this.authorize(c, permission as QuotationPermission);
     this.id(id, 'Quotation ID');
-    return this.transitionInternal(c, id, status, 'quotation.' + status.toLowerCase(), false);
+    this.version(expectedVersion);
+    return this.transitionInternal(c, id, status, expectedVersion, 'quotation.' + status.toLowerCase(), false);
   }
   private async transitionInternal(
     c: QuotationContext,
     id: string,
     status: QuotationStatus,
+    expectedVersion: number,
     action: string,
     soft: boolean,
   ): Promise<QuotationRecord> {
@@ -160,7 +164,7 @@ export class QuotationService {
         throw new ValidationError(`Quotation cannot transition from ${current.status} to ${status}.`);
       const q = soft
         ? await this.repository.softDelete({ ...c, quotationId: id, actorUserId: c.userId })
-        : await this.repository.transition({ ...c, quotationId: id, status, actorUserId: c.userId });
+        : await this.repository.transition({ ...c, quotationId: id, status, expectedVersion, actorUserId: c.userId });
       if (!q) throw new NotFoundError('Quotation not found.');
       await this.audit.record(
         {
@@ -187,6 +191,9 @@ export class QuotationService {
       throw new ForbiddenError('Sales module is not enabled.');
     if (!(await this.auth.hasPermission(c.tenantId, c.userId, p)))
       throw new ForbiddenError('Insufficient quotation permission.');
+  }
+  private version(value: number) {
+    if (!Number.isInteger(value) || value < 1) throw new ValidationError('Expected version must be a positive integer.');
   }
   private validateInput(
     c: QuotationContext,
