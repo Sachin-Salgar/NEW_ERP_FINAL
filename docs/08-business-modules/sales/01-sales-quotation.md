@@ -21,7 +21,7 @@ customer model or table.
 `id`, `tenant_id`, `organization_id`, `quotation_number`, `customer_id`,
 `quotation_date`, `valid_until`, `status`, `notes`, `created_at`, `created_by`,
 `updated_at`, `updated_by`, `deleted_at`, `deleted_by`, `is_deleted`, and
-`version`.
+`version_number`.
 
 `sales_quotation_items` contains:
 
@@ -30,11 +30,17 @@ customer model or table.
 `updated_at`.
 
 UUIDs, tenant-safe and organization-safe foreign keys, soft delete, optimistic
-versioning, deterministic indexes, RLS, and FORCE RLS follow the existing
+`version_number` concurrency, deterministic indexes, RLS, and FORCE RLS follow the existing
 database architecture. A quotation number is generated server-side and is
 unique within the tenant/organization scope. Item line numbers are unique per
 quotation. A quotation requires at least one item; quantities are positive,
 unit prices are non-negative, and dates satisfy `valid_until >= quotation_date`.
+
+Transactional Sales schemas must conform to the organizational-isolation
+standard's mandatory `tenant_id`, `organization_id`, `branch_id`, and
+`financial_year_id` references unless an explicit approved exception exists.
+No such exception is established by this specification; the exact branch and
+financial-year semantics for this implemented slice require review.
 
 ## Lifecycle
 

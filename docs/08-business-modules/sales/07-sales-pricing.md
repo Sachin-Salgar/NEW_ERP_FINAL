@@ -1,7 +1,8 @@
 # Sales Pricing and Price Lists Specification
 
 **Status:** Authorization package — implementation specification
-**Owner:** Pricing capability boundary
+**Owner:** Sales, unless a separate authoritative Pricing capability is
+established by approved architecture
 **Dependencies:** CRM/Customer, Inventory Item Master, Tax where applicable
 
 ## 1. Purpose and scope
@@ -13,15 +14,22 @@ currency, item eligibility, or calculation policy.
 
 ## 2. Entities and database design
 
+Pricing is currently treated as a Sales capability; no separate authoritative
+Pricing module has been established. A separate owner or module requires an
+approved architecture decision and dependency contract.
+
 Candidate entities are `sales_price_lists` and `sales_price_list_items`.
-Potential fields include UUIDv7 IDs, tenant/org ownership, name/code, status,
-currency, effective period, customer/customer-group scope, item reference,
-unit, price, minimum quantity, and audit/version metadata.
+Potential fields include UUIDv7 IDs, tenant/org ownership, mandatory branch and
+financial-year references where the records are transactional, name/code,
+status, currency, effective period, customer/customer-group scope, item
+reference, unit, price, minimum quantity, and canonical audit/version metadata.
 
 Table names, field types, requiredness, precedence, currency, overlapping
 period behavior, customer-group ownership, item-master contract, uniqueness,
-soft deletion, and financial-year relationship are **BUSINESS DECISION
-REQUIRED**. Price snapshots used on transactions must be immutable.
+soft deletion, branch/financial-year semantics, and financial-year relationship
+are **BUSINESS DECISION REQUIRED**. Mandatory branch and financial-year
+references for transactional records follow the organizational-isolation
+standard. Price snapshots used on transactions must be immutable.
 
 ## 3. API and authorization
 
@@ -41,8 +49,9 @@ actions. Sales documents consume server results and never calculate prices in
 Flutter.
 
 Tests must cover tenant/org isolation, RLS/FORCE RLS, overlap/precedence
-decisions, version conflicts, immutable transaction snapshots, authorization,
-audit, rollback, and unavailable Item Master/CRM contracts.
+decisions, version-number conflicts, immutable transaction snapshots,
+authorization, canonical audit metadata, rollback, and unavailable Item
+Master/CRM contracts.
 
 ## 5. Integration boundary
 

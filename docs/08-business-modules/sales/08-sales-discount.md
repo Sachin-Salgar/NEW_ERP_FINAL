@@ -1,7 +1,7 @@
 # Sales Discounts Specification
 
 **Status:** Authorization package — implementation specification
-**Owner:** Sales/Workflow/Pricing boundary
+**Owner:** Sales, with Workflow/Pricing dependencies
 
 ## 1. Purpose and scope
 
@@ -17,8 +17,12 @@ snapshots. Exact table ownership, fields, types, percentages versus amounts,
 scope, effective periods, stacking, rounding, tax order, and deletion are
 **BUSINESS DECISION REQUIRED**.
 
-All transaction snapshots require tenant/org ownership, source-document
-linkage, version/audit metadata, and immutability after finalization.
+All transaction snapshots require tenant/org ownership, mandatory branch and
+financial-year references, source-document linkage, canonical
+`version_number`/audit metadata, and immutability after finalization. The
+mandatory branch and financial-year references follow the organizational-
+isolation standard; their business semantics remain **BUSINESS DECISION
+REQUIRED**.
 
 ## 3. Lifecycle, API, permissions
 

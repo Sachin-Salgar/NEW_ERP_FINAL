@@ -12,19 +12,22 @@ financial posting and customer balance.
 
 ## 2. Entities and database design
 
-Candidate header `sales_credit_notes`: UUIDv7 ID, tenant/org IDs, optional
+Candidate header `sales_credit_notes`: UUIDv7 ID, tenant/org IDs, mandatory
 branch/financial-year IDs, credit-note number, customer ID, invoice ID,
-return ID, date, currency, reason, tax reference, totals, status, version, and
-audit metadata.
+return ID, date, currency, reason, tax reference, totals, status,
+`version_number`, and canonical audit metadata.
 
-Candidate detail `sales_credit_note_items`: UUIDv7 ID, tenant/org IDs,
-credit-note ID, source invoice/return item reference, line number, quantity,
-unit, amount, discount/tax snapshots, and audit timestamps.
+Candidate detail `sales_credit_note_items`: UUIDv7 ID, tenant/org IDs, mandatory
+branch and financial-year references, credit-note ID, source invoice/return item
+reference, line number, quantity, unit, amount, discount/tax snapshots, and
+canonical audit columns.
 
 Exact fields, precision, partial-credit rules, tax treatment, numbering scope,
-financial-year relationship, correction/reversal representation, uniqueness,
-and deletion are **BUSINESS DECISION REQUIRED**. Finalized records are
-immutable and header/detail tenant/org integrity is mandatory.
+financial-year relationship semantics, correction/reversal representation,
+uniqueness, and deletion are **BUSINESS DECISION REQUIRED**. The mandatory
+branch and financial-year references follow the organizational-isolation
+standard. Finalized records are immutable and header/detail tenant/org
+integrity is mandatory.
 
 ## 3. Lifecycle and authorization
 

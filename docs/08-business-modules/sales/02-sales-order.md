@@ -24,9 +24,9 @@ in Section 19.
 | `id` | UUIDv7 | yes | primary key |
 | `tenant_id` | UUID | yes | authenticated tenant; immutable |
 | `organization_id` | UUID | yes | active authorized organization |
-| `branch_id` | UUID | decision | Core branch in same organization |
+| `branch_id` | UUID | mandatory reference; semantics decision | Core branch in same organization |
 | `warehouse_id` | UUID | decision | Inventory warehouse contract |
-| `financial_year_id` | UUID | decision | financial-year contract |
+| `financial_year_id` | UUID | mandatory reference; semantics decision | financial-year contract |
 | `order_number` | text | yes | server-generated, scope pending |
 | `customer_id` | UUID | yes | CRM Customer contract |
 | `quotation_id` | UUID | optional | Sales quotation contract; historical link |
@@ -36,21 +36,28 @@ in Section 19.
 | `delivery_schedule` | JSONB | decision | delivery contract |
 | `payment_terms` | JSONB | decision | Finance contract |
 | `status` | enum | yes | server-controlled lifecycle |
-| `version` | integer | yes | optimistic concurrency |
+| `version_number` | integer | yes | optimistic concurrency |
 | `created_by/created_at` | UUID/timestamptz | yes | audit metadata |
-| `updated_by/updated_at` | UUID/timestamptz | optional | audit metadata |
+| `updated_by/updated_at` | UUID/timestamptz | yes | canonical audit metadata |
 | `deleted_by/deleted_at/is_deleted` | UUID/timestamptz/boolean | decision | only if approved |
 
 ### Detail: `sales_order_items`
 
 Required baseline: UUIDv7 `id`, `tenant_id`, `organization_id`, `order_id`,
 line number, item/product reference, description snapshot, quantity, unit of
-measure, unit price, discount reference, tax reference, and audit timestamps.
+measure, unit price, discount reference, tax reference, and canonical audit
+columns (`created_at`, `created_by`, `updated_at`, `updated_by`,
+`version_number`).
 Exact item and monetary types, tax snapshots, discount snapshots, and whether
 services are allowed are **BUSINESS DECISION REQUIRED**.
 
 Header/detail rows require composite tenant/organization foreign-key integrity,
 unique line numbers per order, and no orphan details.
+
+Transactional Sales records must include the mandatory `tenant_id`,
+`organization_id`, `branch_id`, and `financial_year_id` references required by
+the organizational-isolation standard. The exact branch and financial-year
+business semantics remain **BUSINESS DECISION REQUIRED**.
 
 ## 3. Lifecycle and authorization
 

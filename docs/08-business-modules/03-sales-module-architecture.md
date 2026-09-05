@@ -45,7 +45,13 @@ Order Closed
 
 Actual stages and approvals are configurable business behavior and must follow the implemented workflow contracts.
 
-## 3. Quotation Management
+## 3. Quotation Management - Target Architecture
+
+The following quotation description is part of the target Sales architecture.
+The currently approved and implemented quotation slice is narrower and is
+governed by [Sales Quotation Management](./sales/01-sales-quotation.md).
+Statements in this target architecture do not authorize implementation beyond
+that specification.
 
 Quotations represent formal offers containing customer, product/service, pricing, tax, discount, validity, payment, and delivery information.
 
@@ -163,8 +169,8 @@ When implementing a Sales feature, AI must:
 ## 11. Implementation specification package
 
 This architecture document is conceptual and does not by itself authorize
-implementation of every listed capability. The implementation-ready
-specification package is indexed in [Business Modules README](./README.md):
+implementation of every listed capability. The implementation specification
+package is indexed in [Business Modules README](./README.md):
 
 - [Sales Quotation](./sales/01-sales-quotation.md) — current implemented slice.
 - [Sales Order](./sales/02-sales-order.md)
@@ -181,6 +187,8 @@ specification package is indexed in [Business Modules README](./README.md):
 Each remaining-capability specification explicitly records unresolved business
 decisions and dependency-contract requirements. Those gates must be resolved
 and approved before source implementation begins.
+
+Specification completeness does not imply implementation authorization.
 
 ## Cross References
 

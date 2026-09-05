@@ -15,20 +15,24 @@ Sales unless a published contract exists.
 
 ### Header: `sales_deliveries`
 
-Required candidates: UUIDv7 `id`, `tenant_id`, `organization_id`, optional
-`branch_id`, `warehouse_id`, `delivery_number`, `sales_order_id`, `customer_id`,
+Required candidates: UUIDv7 `id`, `tenant_id`, `organization_id`, mandatory
+`branch_id`, `financial_year_id`, `warehouse_id`, `delivery_number`, `sales_order_id`, `customer_id`,
 delivery date, priority, shipping method, carrier/tracking references, status,
-version, created/updated audit metadata, and approved deletion metadata.
+`version_number`, canonical `created_at`, `created_by`, `updated_at`,
+`updated_by`, and approved deletion metadata.
 
 ### Detail: `sales_delivery_items`
 
-Required candidates: UUIDv7 `id`, tenant/org IDs, `delivery_id`, `order_item_id`,
-line number, ordered quantity snapshot, delivered quantity, unit of measure,
-and audit timestamps.
+Required candidates: UUIDv7 `id`, tenant/org IDs, mandatory branch and
+financial-year references, `delivery_id`, `order_item_id`, line number, ordered
+quantity snapshot, delivered quantity, unit of measure, and canonical audit
+columns.
 
 Exact types, requiredness, address structure, priority values, carrier fields,
-financial-year relationship, and whether a delivery may be deleted are
-**BUSINESS DECISION REQUIRED**. Composite tenant/org foreign keys, unique line
+financial-year relationship semantics, and whether a delivery may be deleted
+are **BUSINESS DECISION REQUIRED**. The mandatory branch and financial-year
+references follow the organizational-isolation standard; their business
+semantics remain unresolved. Composite tenant/org foreign keys, unique line
 numbers, and orphan prevention are mandatory.
 
 ## 3. Lifecycle and rules

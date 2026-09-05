@@ -14,23 +14,26 @@ owns authoritative tax calculation. Sales must not write Finance or Tax tables.
 
 ### Header: `sales_invoices`
 
-Candidate fields: UUIDv7 `id`, tenant/org IDs, optional branch and financial
+Candidate fields: UUIDv7 `id`, tenant/org IDs, mandatory branch and financial
 year IDs, `invoice_number`, customer ID, sales order ID, delivery ID, invoice
 date, currency, payment terms, due date, tax calculation reference, total
-snapshots, status, version, audit metadata, and approved reversal/cancellation
-metadata.
+snapshots, status, `version_number`, canonical audit metadata, and approved
+reversal/cancellation metadata.
 
 ### Detail: `sales_invoice_items`
 
-Candidate fields: UUIDv7 `id`, tenant/org IDs, `invoice_id`, source order or
-delivery item reference, line number, description snapshot, quantity, unit,
-unit price, discount snapshot, tax snapshot, and line totals.
+Candidate fields: UUIDv7 `id`, tenant/org IDs, mandatory branch and financial
+year references, `invoice_id`, source order or delivery item reference, line
+number, description snapshot, quantity, unit, unit price, discount snapshot,
+tax snapshot, line totals, and canonical audit columns.
 
 PostgreSQL types, monetary precision, tax component structure, inclusive versus
 exclusive representation, exemption/reverse-charge fields, financial-year
-relationship, uniqueness, and correction metadata are **BUSINESS DECISION
-REQUIRED**. Header/detail tenant/org integrity and immutable finalized snapshots
-are mandatory.
+relationship semantics, uniqueness, and correction metadata are **BUSINESS
+DECISION REQUIRED**. The mandatory branch and financial-year references follow
+the organizational-isolation standard; their business semantics remain
+unresolved. Header/detail tenant/org integrity and immutable finalized
+snapshots are mandatory.
 
 ## 3. Lifecycle and authorization
 

@@ -15,21 +15,24 @@ state.
 
 ### Header: `sales_returns`
 
-Candidate fields: UUIDv7 `id`, tenant/org IDs, optional branch/warehouse and
+Candidate fields: UUIDv7 `id`, tenant/org IDs, mandatory branch, warehouse, and
 financial-year IDs, `return_number`, customer ID, invoice ID, delivery ID,
 return date, reason reference, inspection status, approval status, return
-status, version, and audit/deletion metadata.
+status, `version_number`, and canonical audit/deletion metadata.
 
 ### Detail: `sales_return_items`
 
-Candidate fields: UUIDv7 `id`, tenant/org IDs, `return_id`, source invoice or
-delivery item reference, line number, requested quantity, accepted quantity,
-unit of measure, value snapshot, disposition reference, and audit timestamps.
+Candidate fields: UUIDv7 `id`, tenant/org IDs, mandatory branch and financial-year
+references, `return_id`, source invoice or delivery item reference, line number,
+requested quantity, accepted quantity, unit of measure, value snapshot,
+disposition reference, and canonical audit columns.
 
 Reason catalog ownership, inspection fields, disposition vocabulary, quantity
-precision, monetary treatment, duplicate/over-return rules, and deletion rules
-are **BUSINESS DECISION REQUIRED**. Header/detail composite integrity and
-source-document tenant/org matching are mandatory.
+precision, monetary treatment, duplicate/over-return rules, financial-year
+semantics, and deletion rules are **BUSINESS DECISION REQUIRED**. The mandatory
+branch and financial-year references follow the organizational-isolation
+standard. Header/detail composite integrity and source-document tenant/org
+matching are mandatory.
 
 ## 3. Lifecycle and authorization
 
