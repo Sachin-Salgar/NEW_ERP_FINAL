@@ -263,6 +263,15 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     moduleAccessService,
     auditLogger,
     transactionRunner,
+    {
+      reserveStock: (context, request) => inventoryService.reserve(context, request),
+      releaseReservation: (context, reservationId, idempotencyKey) => inventoryService.release(context, reservationId, idempotencyKey),
+      fulfillReservation: (context, reservationId, idempotencyKey) => inventoryService.fulfill(context, reservationId, idempotencyKey),
+      returnStock: (context, request) => inventoryService.returnStock(context, request),
+      listReservationsBySource: (context, sourceType, sourceId) => inventoryService.listReservationsBySource(context, sourceType, sourceId),
+      fulfillReservationsBySource: (context, sourceType, sourceId, operationKey) =>
+        inventoryService.fulfillReservationsBySource(context, sourceType, sourceId, operationKey),
+    },
   );
   const creditNoteService = new CreditNoteService(
     new PostgresCreditNoteRepository(pool, config.TENANT_CONTEXT_KEY),

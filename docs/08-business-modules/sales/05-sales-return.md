@@ -1,5 +1,10 @@
 # Sales Returns Specification
 
+Processed new returns are integrated with Inventory under ADR-0037. The return
+copies the completed delivery warehouse and Item Master identity, and Inventory
+owns the return movement and stock increase. Processing fails when the source
+record lacks authoritative references; historical rows are preserved.s Specification
+
 **Status:** Backend slice implemented under ADR-0029; Inventory/Finance providers not connected
 **Owner:** Sales
 **Dependencies:** Sales Invoice, Delivery, Inventory, Finance, Workflow

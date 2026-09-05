@@ -170,6 +170,11 @@
       "strategy": "compensating-migration",
       "destructiveDownAllowed": false,
       "note": "Add nullable delivery warehouse, item, and reservation references without rewriting historical delivery records."
+    },
+    "0034-sales-return-inventory": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Add nullable return warehouse and item references and permit the persisted Inventory completion state without rewriting historical returns."
     }
   }
 }

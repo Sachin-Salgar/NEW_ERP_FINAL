@@ -185,15 +185,17 @@ through the typed Inventory boundary. Historical rows remain nullable and are
 not backfilled. Delivery fulfillment is now activated through the typed
 Inventory boundary: delivery creation requires order reservations, copies
 item/warehouse identity, and delivery completion fulfills all source
-reservations idempotently. Return stock effects remain an explicit integration
-gate. An organization-scoped
+reservations idempotently. Sales Return processing now invokes Inventory
+return-to-stock under ADR-0037 with deterministic idempotency and transaction
+rollback. An organization-scoped
 Item Master vertical slice is now implemented under the Inventory boundary with
 RLS/FORCE RLS, permission/module gating, audit/versioning, optimistic concurrency,
 and authenticated API coverage. The bounded Inventory foundation now persists
 organization-owned warehouses, stock balances, reservations, fulfillment issues,
 receipts, and return movements under ADR-0034. Sales transaction item/warehouse
 references are now additive in the order contract; delivery and return
-orchestration are still not connected.
+orchestration are connected for new Inventory-backed records. Tax remains the
+next bounded capability.
 Sales administration
 and lifecycle frontend coverage is implemented, including confirmed-order to
 delivery creation; historical quotation rows without authoritative context
