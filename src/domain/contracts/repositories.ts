@@ -620,10 +620,13 @@ export interface InvoiceRecord {
   customerId: string;
   status: import('./invoice.js').InvoiceStatus;
   idempotencyKey: string;
-  financeStatus: 'NOT_CONNECTED';
-  taxStatus: 'NOT_CONNECTED';
+  financeStatus: 'NOT_CONNECTED' | 'POSTED';
+  taxStatus: 'NOT_CONNECTED' | 'CALCULATED';
   financeReference: string | null;
   taxReference: string | null;
+  taxableAmount?: number;
+  taxRate?: number;
+  taxAmount?: number;
   notes: string | null;
   items: InvoiceItemRecord[];
   createdAt: Date;
@@ -651,6 +654,11 @@ export interface InvoiceRepository {
     invoiceId: string; status: import('./invoice.js').InvoiceStatus;
     expectedVersion: number; actorUserId: string;
   }): Promise<InvoiceRecord | null>;
+  updateTaxSnapshot?(input: {
+    tenantId: string; organizationId: string; branchId: string; financialYearId: string;
+    invoiceId: string; taxReference: string; taxRate: number; taxableAmount: number; taxAmount: number; actorUserId: string;
+  }): Promise<InvoiceRecord | null>;
+  updateFinanceStatus?(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; invoiceId: string; financeReference: string; actorUserId: string }): Promise<InvoiceRecord | null>;
 }
 
 export interface SalesReturnItemRecord {
@@ -682,7 +690,7 @@ export interface CreditNoteRecord {
   id: string; tenantId: string; organizationId: string; branchId: string; financialYearId: string;
   creditNoteNumber: string; returnId: string; invoiceId: string; customerId: string;
   status: import('./credit-note.js').CreditNoteStatus; idempotencyKey: string;
-  financeStatus: 'NOT_CONNECTED'; taxStatus: 'NOT_CONNECTED'; notes: string | null;
+  financeStatus: 'NOT_CONNECTED' | 'POSTED'; taxStatus: 'NOT_CONNECTED'; financeReference?: string | null; notes: string | null;
   items: CreditNoteItemRecord[]; createdAt: Date; createdBy: string | null;
   updatedAt: Date | null; updatedBy: string | null; versionNumber: number;
 }
@@ -692,6 +700,7 @@ export interface CreditNoteRepository {
   list(tenantId: string, q: { organizationId: string; branchId: string; financialYearId: string; page: number; pageSize: number; order: 'asc' | 'desc'; search?: string }): Promise<{ items: CreditNoteRecord[]; total: number }>;
   update(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; creditNoteId: string; notes: string | null; expectedVersion: number; actorUserId: string }): Promise<CreditNoteRecord | null>;
   transition(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; creditNoteId: string; status: import('./credit-note.js').CreditNoteStatus; expectedVersion: number; actorUserId: string }): Promise<CreditNoteRecord | null>;
+  updateFinanceStatus?(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; creditNoteId: string; financeReference: string; actorUserId: string }): Promise<CreditNoteRecord | null>;
 }
 
 export interface OrganizationRecord {

@@ -266,6 +266,14 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
     permissionKey: `sales.pricing.${action}`,
     displayName: `${action[0].toUpperCase()}${action.slice(1)} price lists`,
   })),
+  ...(['read', 'create', 'update', 'activate', 'deactivate'] as const).map((action) => ({
+    moduleCode: 'sales',
+    resource: 'tax_configuration',
+    action,
+    scope: 'organization' as const,
+    permissionKey: `tax.configuration.${action}`,
+    displayName: `${action[0].toUpperCase()}${action.slice(1)} tax configuration`,
+  })),
   ...(['read', 'create', 'update', 'publish', 'archive'] as const).map((action) => ({
     moduleCode: 'sales',
     resource: 'discount',

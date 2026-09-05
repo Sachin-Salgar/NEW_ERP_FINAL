@@ -27,6 +27,9 @@ import { DiscountService } from '../../application/services/discount-service.js'
 import { SalesReportingService } from '../../application/services/sales-reporting-service.js';
 import { ItemMasterService } from '../../application/services/item-master-service.js';
 import { InventoryService } from '../../application/services/inventory-service.js';
+import { TaxService } from '../../application/services/tax-service.js';
+import { PostgresTaxRepository } from '../../infrastructure/database/repositories/postgres-tax-repository.js';
+import { PostgresFinanceRepository } from '../../infrastructure/database/repositories/postgres-finance-repository.js';
 import { PostgresSalesReportingRepository } from '../../infrastructure/database/repositories/postgres-sales-reporting-repository.js';
 import { createDatabasePool } from '../../infrastructure/database/connection.js';
 import { PostgresQueryPerformanceMonitor } from '../../infrastructure/database/query-performance-monitor.js';
@@ -75,6 +78,7 @@ import discountRoutes from './routes/discount.js';
 import salesReportingRoutes from './routes/sales-reporting.js';
 import itemMasterRoutes from './routes/item-master.js';
 import inventoryRoutes from './routes/inventory.js';
+import taxRoutes from './routes/tax.js';
 import rbacRoutes from './routes/rbac.js';
 import { paginateListResponse } from './pagination.js';
 import { requestObject } from './request-input.js';
@@ -250,12 +254,38 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
       returnStock: (context, request) => inventoryService.returnStock(context, request),
     },
   );
+  const taxService = new TaxService(
+    new PostgresTaxRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+  );
+  const financePosting = new PostgresFinanceRepository(pool, config.TENANT_CONTEXT_KEY);
   const invoiceService = new InvoiceService(
     new PostgresInvoiceRepository(pool, config.TENANT_CONTEXT_KEY),
     authorizationService,
     moduleAccessService,
     auditLogger,
     transactionRunner,
+    {
+      calculate: async (context, _documentType, _documentId, taxableAmount = 0) => {
+        const result = await taxService.calculate(
+          { tenantId: context.tenantId, organizationId: context.organizationId, userId: context.actorUserId },
+          { amount: taxableAmount, asOf: new Date().toISOString().slice(0, 10) },
+        );
+        return { status: 'CALCULATED', reference: result.ruleId, rate: result.rate, taxableAmount, taxAmount: result.taxAmount };
+      },
+    },
+    {
+      submitSalesDocument: async (context, documentType, documentId, amount = 0) =>
+        financePosting.postSalesDocument(
+          { tenantId: context.tenantId, organizationId: context.organizationId, branchId: context.branchId, financialYearId: context.financialYearId, userId: context.actorUserId },
+          documentType,
+          documentId,
+          amount,
+          context.idempotencyKey,
+        ),
+    },
   );
   const salesReturnService = new SalesReturnService(
     new PostgresSalesReturnRepository(pool, config.TENANT_CONTEXT_KEY),
@@ -279,6 +309,16 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     moduleAccessService,
     auditLogger,
     transactionRunner,
+    {
+      submitSalesDocument: async (context, documentType, documentId, amount = 0) =>
+        financePosting.postSalesDocument(
+          { tenantId: context.tenantId, organizationId: context.organizationId, branchId: context.branchId, financialYearId: context.financialYearId, userId: context.actorUserId },
+          documentType,
+          documentId,
+          amount,
+          context.idempotencyKey,
+        ),
+    },
   );
   const pricingService = new PricingService(
     new PostgresPricingRepository(pool, config.TENANT_CONTEXT_KEY),
@@ -355,6 +395,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('salesReportingService', salesReportingService);
   app.decorate('itemMasterService', itemMasterService);
   app.decorate('inventoryService', inventoryService);
+  app.decorate('taxService', taxService);
 
   app.addHook('onReady', async () => {
     const snapshot = await queryPerformanceMonitor.snapshot({ minimumMeanExecMs: 100, limit: 25 });
@@ -463,5 +504,6 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(salesReportingRoutes, { prefix: config.API_PREFIX });
   await app.register(itemMasterRoutes, { prefix: config.API_PREFIX });
   await app.register(inventoryRoutes, { prefix: config.API_PREFIX });
+  await app.register(taxRoutes, { prefix: config.API_PREFIX });
   return app;
 }

@@ -1,6 +1,6 @@
 # Sales Credit Note Specification
 
-**Status:** Backend slice implemented under ADR-0030; Finance/Tax providers not connected
+**Status:** Backend slice and bounded Finance activation implemented under ADR-0030 and ADR-0039
 **Owner:** Sales/Finance boundary
 **Dependencies:** Sales Return, Sales Invoice, Finance, Tax, Workflow, Document
 
@@ -24,13 +24,14 @@ canonical audit columns.
 
 The initial slice uses numeric(18,4) quantities and prices, one note per
 processed return/context, server-generated numbering, and immutable issued
-records. Finance and Tax status is explicitly `NOT_CONNECTED`.
+records. Finance status is posted through the bounded Finance contract when the
+credit note is issued.
 
 ## 3. Lifecycle and authorization
 
-The initial lifecycle is `DRAFT -> ISSUED` or `DRAFT -> CANCELLED`. Finance
-posting, payment balances, reversal, and tax calculation remain outside this
-slice.
+The initial lifecycle is `DRAFT -> ISSUED` or `DRAFT -> CANCELLED`. Issuance
+creates an idempotent Finance adjustment; payment balances, reversal, and tax
+calculation remain outside this slice.
 
 Candidate permissions requiring approval: `sales.credit_note.read`, `create`,
 `update`, `approve`, `issue`, `cancel`, `reverse`, and `close`.
@@ -56,8 +57,9 @@ Finance owns posting and balances; Tax owns tax; Workflow owns approval;
 Document Management owns document storage. No direct private-table access is
 allowed.
 
-**IMPLEMENTED — MINIMUM BACKEND POLICY** under ADR-0030. Finance, Tax,
-Workflow, and Document remain explicit not-connected integration boundaries.
+**IMPLEMENTED — BOUNDED OPERATIONAL SLICE** under ADR-0030 and ADR-0039.
+Finance posting is active; Tax, Workflow, and Document remain explicit
+provider-neutral boundaries.
 
 ## IMPLEMENTATION STATUS
 

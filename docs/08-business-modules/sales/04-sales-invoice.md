@@ -1,6 +1,6 @@
 # Sales Invoice Management Specification
 
-**Status:** Backend slice implemented under ADR-0028; Finance/Tax providers not connected
+**Status:** Backend slice and bounded Tax/Finance activation implemented under ADR-0028, ADR-0038, and ADR-0039
 **Owner:** Sales
 **Dependencies:** Sales Order, Delivery, Finance, Tax, Workflow, Document
 
@@ -28,8 +28,8 @@ number, description snapshot, quantity, unit, unit price, discount snapshot,
 tax snapshot, line totals, and canonical audit columns.
 
 The initial slice uses numeric(18,4) quantities and prices, numeric(18,4) line
-totals, no calculated tax, and immutable finalized snapshots. Finance and Tax
-provider references are nullable and explicitly marked not connected. The
+totals, and immutable finalized snapshots. Invoice issuance snapshots the
+authoritative Tax result and creates an idempotent Finance posting. The
 mandatory branch and financial-year references follow ADR-0025.
 
 ## 3. Lifecycle and authorization
@@ -61,14 +61,16 @@ and finalized-document mutation rejection.
 
 ## 5. Integration boundary
 
-Tax calculation requests use the Tax contract. Approval and review use
+Tax calculation requests use the Tax contract. Finance posting uses the Finance
+contract. Approval and review use
 Workflow. Issuance requests Finance posting through the Finance contract.
 Documents use Document Management. Sales stores provider references and
 authoritative snapshots, not provider-private records.
 
 ## IMPLEMENTATION STATUS
 
-**IMPLEMENTED — MINIMUM BACKEND POLICY** — ADR-0028 provides delivery
+**IMPLEMENTED — BOUNDED OPERATIONAL SLICE** — ADR-0028 provides delivery
 conversion, immutable line snapshots, lifecycle, numbering, idempotency,
-authorization, audit/versioning, and RLS/FORCE RLS. Finance, Tax, Workflow, and
-Document integrations remain explicit not-connected boundaries.
+authorization, audit/versioning, RLS/FORCE RLS, Tax snapshots, and Finance
+posting. Workflow and Document integrations remain explicit provider-neutral
+boundaries.

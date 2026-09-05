@@ -195,7 +195,13 @@ organization-owned warehouses, stock balances, reservations, fulfillment issues,
 receipts, and return movements under ADR-0034. Sales transaction item/warehouse
 references are now additive in the order contract; delivery and return
 orchestration are connected for new Inventory-backed records. Tax remains the
-next bounded capability.
+next bounded capability. The bounded Tax foundation is implemented under
+ADR-0038 with organization-scoped deterministic rules, authenticated API
+administration, RLS/FORCE RLS, and invoice tax snapshots. The bounded Finance
+posting foundation is implemented under ADR-0039 with idempotent invoice and
+credit-note postings, RLS/FORCE RLS, and Sales references. Workflow, Documents,
+Notifications, and external adapters remain provider-neutral where no concrete
+provider exists.
 Sales administration
 and lifecycle frontend coverage is implemented, including confirmed-order to
 delivery creation; historical quotation rows without authoritative context

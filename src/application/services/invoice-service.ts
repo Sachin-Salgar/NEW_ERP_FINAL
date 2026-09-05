@@ -5,6 +5,8 @@ import type { ModuleAccessService } from './module-access-service.js';
 import type { InvoiceRecord, InvoiceRepository } from '../../domain/contracts/repositories.js';
 import { INVOICE_PERMISSIONS, type InvoicePermission, type InvoiceStatus } from '../../domain/contracts/invoice.js';
 import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../../domain/errors.js';
+import type { TaxCalculationPort } from '../../domain/contracts/sales-dependencies.js';
+import type { FinancePostingPort } from '../../domain/contracts/sales-dependencies.js';
 
 export interface InvoiceContext {
   tenantId: string; organizationId: string; branchId: string; financialYearId: string; userId: string;
@@ -19,6 +21,8 @@ export class InvoiceService {
     private readonly moduleAccessService: Pick<ModuleAccessService, 'isModuleEnabled'>,
     private readonly auditLogger: AuditLogger,
     private readonly transactionRunner: InvoiceTransactionRunner,
+    private readonly tax?: TaxCalculationPort,
+    private readonly finance?: FinancePostingPort,
   ) {}
   async create(context: InvoiceContext, input: { deliveryId: string; idempotencyKey: string; notes?: string | null }): Promise<InvoiceRecord> {
     await this.authorize(context, INVOICE_PERMISSIONS.create);
@@ -57,7 +61,20 @@ export class InvoiceService {
     return this.transactionRunner.runInTransaction(async () => {
       const current = await this.get(context, id);
       if (!transitions[current.status].includes(status)) throw new ValidationError(`Invoice cannot transition from ${current.status} to ${status}.`);
-      const invoice = await this.repository.transition({ ...context, invoiceId: id, status, expectedVersion, actorUserId: context.userId });
+      if (status === 'ISSUED') {
+        if (!this.tax || !this.repository.updateTaxSnapshot) throw new ValidationError('Tax provider is not configured.');
+        const taxableAmount = current.items.reduce((total, item) => total + item.lineTotal, 0);
+        const result = await this.tax.calculate({ ...context, actorUserId: context.userId, correlationId: id, idempotencyKey: `invoice-tax:${id}` }, 'INVOICE', id, taxableAmount);
+        if (result.status !== 'CALCULATED' || !result.reference || result.rate === undefined || result.taxableAmount === undefined || result.taxAmount === undefined) throw new ValidationError('Authoritative tax calculation failed.');
+        const snapshotted = await this.repository.updateTaxSnapshot({ ...context, invoiceId: id, taxReference: result.reference, taxRate: result.rate, taxableAmount: result.taxableAmount, taxAmount: result.taxAmount, actorUserId: context.userId });
+        if (!snapshotted) throw new ValidationError('Invoice tax snapshot could not be persisted.');
+        if (!this.finance || !this.repository.updateFinanceStatus) throw new ValidationError('Finance provider is not configured.');
+        const posting = await this.finance.submitSalesDocument({ ...context, actorUserId: context.userId, correlationId: id, idempotencyKey: `invoice-finance:${id}` }, 'INVOICE', id, result.taxableAmount + result.taxAmount);
+        if (posting.status !== 'POSTED' || !posting.reference) throw new ValidationError('Finance posting failed.');
+        const posted = await this.repository.updateFinanceStatus({ ...context, invoiceId: id, financeReference: posting.reference, actorUserId: context.userId });
+        if (!posted) throw new ValidationError('Invoice finance status could not be persisted.');
+      }
+      const invoice = await this.repository.transition({ ...context, invoiceId: id, status, expectedVersion: status === 'ISSUED' ? expectedVersion + 2 : expectedVersion, actorUserId: context.userId });
       if (!invoice) throw new ValidationError('Invoice not found or version conflict.');
       await this.auditLogger.record({ tenantId: context.tenantId, actorUserId: context.userId, action: `invoice.${status.toLowerCase()}`, resourceType: 'sales_invoice', resourceId: id, outcome: 'success' }, { requireTransaction: true });
       return invoice;

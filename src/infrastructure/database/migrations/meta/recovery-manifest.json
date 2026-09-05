@@ -175,6 +175,21 @@
       "strategy": "compensating-migration",
       "destructiveDownAllowed": false,
       "note": "Add nullable return warehouse and item references and permit the persisted Inventory completion state without rewriting historical returns."
+    },
+    "0035-bounded-tax-foundation": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Tax configuration is authoritative organization business data; preserve and correct forward."
+    },
+    "0036-sales-invoice-tax-snapshot": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Invoice tax snapshots are immutable transaction data; preserve and correct forward."
+    },
+    "0037-bounded-finance-posting": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Finance postings and Sales financial references are authoritative transaction data; preserve and correct forward."
     }
   }
 }

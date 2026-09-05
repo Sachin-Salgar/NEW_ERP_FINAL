@@ -36,6 +36,9 @@
     { "idx": 31, "version": "7", "when": 1788614400000, "tag": "0031-sales-inventory-contract", "breakpoints": true },
     { "idx": 32, "version": "7", "when": 1788615000000, "tag": "0032-sales-inventory-contract-correction", "breakpoints": true },
     { "idx": 33, "version": "7", "when": 1788615600000, "tag": "0033-sales-delivery-inventory-fulfillment", "breakpoints": true }
-    ,{ "idx": 34, "version": "7", "when": 1788616200000, "tag": "0034-sales-return-inventory", "breakpoints": true }
+    ,{ "idx": 34, "version": "7", "when": 1788616200000, "tag": "0034-sales-return-inventory", "breakpoints": true },
+    { "idx": 35, "version": "7", "when": 1788616800000, "tag": "0035-bounded-tax-foundation", "breakpoints": true }
+    ,{ "idx": 36, "version": "7", "when": 1788617400000, "tag": "0036-sales-invoice-tax-snapshot", "breakpoints": true }
+    ,{ "idx": 37, "version": "7", "when": 1788618000000, "tag": "0037-bounded-finance-posting", "breakpoints": true }
   ]
 }

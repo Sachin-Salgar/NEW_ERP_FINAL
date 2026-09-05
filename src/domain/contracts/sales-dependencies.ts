@@ -22,11 +22,11 @@ export interface InventoryReturnPort {
 }
 
 export interface FinancePostingPort {
-  submitSalesDocument(context: SalesDependencyContext, documentType: 'INVOICE' | 'CREDIT_NOTE', documentId: string): Promise<{ status: 'NOT_CONNECTED' }>;
+  submitSalesDocument(context: SalesDependencyContext, documentType: 'INVOICE' | 'CREDIT_NOTE', documentId: string, amount?: number): Promise<{ status: 'NOT_CONNECTED' | 'POSTED'; reference?: string }>;
 }
 
 export interface TaxCalculationPort {
-  calculate(context: SalesDependencyContext, documentType: 'INVOICE' | 'CREDIT_NOTE', documentId: string): Promise<{ status: 'NOT_CONNECTED' }>;
+  calculate(context: SalesDependencyContext, documentType: 'INVOICE' | 'CREDIT_NOTE', documentId: string, taxableAmount?: number): Promise<{ status: 'NOT_CONNECTED' | 'CALCULATED'; reference?: string; rate?: number; taxableAmount?: number; taxAmount?: number }>;
 }
 
 export interface WorkflowDecisionPort {
