@@ -261,8 +261,6 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
       }
       throw error;
     }
-    const user = await authService.validateSession(rotated.sessionId, rotated.tenantId);
-    if (!user) throw new Error('Rotated session could not be resolved');
     await recordSecurityEvent(request, {
       tenantId: rotated.tenantId,
       actorUserId: rotated.userId,
@@ -279,15 +277,15 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
       expiresAt: rotated.accessTokenExpiresAt,
       tokenType: 'bearer',
       user: {
-        id: user.id,
-        tenantId: user.tenantId,
-        organizationId: user.organizationId ?? null,
-        activeLocationId: user.activeLocationId ?? null,
-        defaultLocationId: user.defaultLocationId ?? null,
-        defaultBranchId: user.defaultBranchId ?? null,
-        username: user.username,
-        email: user.email,
-        status: user.status,
+        id: rotated.user.id,
+        tenantId: rotated.user.tenantId,
+        organizationId: rotated.user.organizationId ?? null,
+        activeLocationId: rotated.user.activeLocationId ?? null,
+        defaultLocationId: rotated.user.defaultLocationId ?? null,
+        defaultBranchId: rotated.user.defaultBranchId ?? null,
+        username: rotated.user.username,
+        email: rotated.user.email,
+        status: rotated.user.status,
       },
     });
   });

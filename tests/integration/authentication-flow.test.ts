@@ -325,6 +325,34 @@ describe('Authentication vertical slice', () => {
     );
     expect(concurrentRefresh.filter((response) => response.statusCode === 200)).toHaveLength(1);
     expect(concurrentRefresh.filter((response) => response.statusCode === 401)).toHaveLength(1);
+    expect(concurrentRefresh.some((response) => response.statusCode === 500)).toBe(false);
+    const winningRefresh = concurrentRefresh.find((response) => response.statusCode === 200);
+    expect(winningRefresh?.json().refreshToken).toBeTruthy();
+    expect(concurrentRefresh.find((response) => response.statusCode === 401)?.json().refreshToken).toBeUndefined();
+    const replayedRefresh = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/refresh',
+      payload: { refreshToken: concurrentLoginJson.refreshToken },
+    });
+    expect(replayedRefresh.statusCode).toBe(401);
+    const revokedConcurrentSession = await withTenantContext(
+      pool,
+      'app.current_tenant_id',
+      tenantResult.tenantId,
+      (client) =>
+        client.query(
+          `SELECT is_active, termination_reason
+           FROM user_sessions
+           WHERE tenant_id = $1 AND user_id = (SELECT id FROM users WHERE tenant_id = $1 AND email = $2)
+           ORDER BY login_at DESC
+           LIMIT 1`,
+          [tenantResult.tenantId, newUserEmail],
+        ),
+    );
+    expect(revokedConcurrentSession.rows[0]).toMatchObject({
+      is_active: false,
+      termination_reason: 'refresh_token_reuse',
+    });
 
     const logoutResponse = await app.inject({
       method: 'POST',

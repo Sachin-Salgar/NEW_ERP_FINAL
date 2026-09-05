@@ -3,6 +3,7 @@ import type { Pool } from 'pg';
 import type { TokenService } from '../contracts/security.js';
 import { UnauthorizedError } from '../../domain/errors.js';
 import { withTenantContext } from '../../infrastructure/database/tenant-context.js';
+import type { AuthenticatedUser } from '../../domain/contracts/authentication.js';
 
 export interface RefreshRotationResult {
   accessToken: string;
@@ -11,6 +12,7 @@ export interface RefreshRotationResult {
   userId: string;
   tenantId: string;
   sessionId: string;
+  user: AuthenticatedUser;
 }
 
 type RotationOutcome = { kind: 'rotated'; result: RefreshRotationResult } | { kind: 'reused' } | { kind: 'invalid' };
@@ -80,6 +82,30 @@ export class RefreshTokenRotationService {
           return { kind: 'invalid' };
         }
 
+        const userResult = await client.query<{
+          id: string;
+          tenant_id: string;
+          username: string;
+          email: string;
+          status: string;
+          default_location_id: string | null;
+          default_branch_id: string | null;
+          organization_id: string | null;
+          location_id: string | null;
+        }>(
+          `SELECT u.id, u.tenant_id, u.username, u.email, u.status,
+                  u.default_location_id, u.default_branch_id,
+                  s.organization_id, s.location_id
+           FROM users u
+           JOIN user_sessions s ON s.tenant_id = u.tenant_id AND s.user_id = u.id AND s.id = $3
+           WHERE u.tenant_id = $1 AND u.id = $2 AND u.status = 'active'`,
+          [claims.tenantId, session.user_id, session.id],
+        );
+        if ((userResult.rowCount ?? 0) !== 1) {
+          return { kind: 'invalid' };
+        }
+        const user = userResult.rows[0];
+
         const refreshTokenReplacement = this.tokenService.createRefreshToken({
           userId: session.user_id,
           tenantId: claims.tenantId,
@@ -144,6 +170,17 @@ export class RefreshTokenRotationService {
             userId: session.user_id,
             tenantId: claims.tenantId,
             sessionId: session.id,
+            user: {
+              id: user.id,
+              tenantId: user.tenant_id,
+              organizationId: user.organization_id,
+              activeLocationId: user.location_id,
+              defaultLocationId: user.default_location_id,
+              defaultBranchId: user.default_branch_id,
+              username: user.username,
+              email: user.email,
+              status: user.status,
+            },
           },
         };
       },
