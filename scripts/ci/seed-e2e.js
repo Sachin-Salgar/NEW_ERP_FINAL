@@ -28,6 +28,7 @@ const CORE_MODULES = [
   ['branch', 'Branches', 'Administration', true, 4],
   ['user-management', 'User Management', 'Administration', true, 5],
   ['tenant-configuration', 'Tenant Configuration', 'Administration', true, 6],
+  ['crm', 'CRM', 'Business', false, 7],
 ];
 
 async function main() {
@@ -137,6 +138,10 @@ async function main() {
       'role.manage',
       'permission.read',
       'permission.manage',
+      'customer.read',
+      'customer.create',
+      'customer.update',
+      'customer.delete',
     ];
     const limitedPermissions = ['organization.read', 'user.read'];
     for (const permissionKey of [...new Set([...adminPermissions, ...limitedPermissions])]) {
@@ -150,6 +155,8 @@ async function main() {
               ? 'branch'
               : resource === 'organization'
                 ? 'organization'
+                : resource === 'customer'
+                  ? 'crm'
                 : 'security';
       await client.query(
         `INSERT INTO permissions (id, module_code, resource, action, scope, permission_key, display_name, description, is_system)

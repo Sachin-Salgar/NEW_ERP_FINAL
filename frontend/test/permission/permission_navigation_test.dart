@@ -117,7 +117,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Required permission: user.read'), findsOneWidget);
+    expect(
+      find.textContaining('Required permission: user.read'),
+      findsOneWidget,
+    );
     expect(find.text('Access denied'), findsOneWidget);
   });
 
@@ -141,22 +144,26 @@ void main() {
     expect(find.text('No users found'), findsOneWidget);
   });
 
-  testWidgets('Sidebar keeps the main navigation canonical and hides protected settings items unless they are in the current settings shell', (
-    tester,
-  ) async {
-    await _setupAuthenticatedAuth(permissions: ['user.read']);
+  testWidgets(
+    'Sidebar keeps the main navigation canonical and hides protected settings items unless they are in the current settings shell',
+    (tester) async {
+      await _setupAuthenticatedAuth(
+        permissions: ['user.read', 'customer.read'],
+      );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(body: Sidebar(selectedRoute: '/dashboard')),
-      ),
-    );
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: Sidebar(selectedRoute: '/dashboard')),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Dashboard'), findsOneWidget);
-    expect(find.text('Settings'), findsOneWidget);
-    expect(find.text('Users'), findsNothing);
-    expect(find.text('Roles'), findsNothing);
-    expect(find.text('Permissions'), findsNothing);
-  });
+      expect(find.text('Dashboard'), findsOneWidget);
+      expect(find.text('Settings'), findsOneWidget);
+      expect(find.text('Customers'), findsOneWidget);
+      expect(find.text('Users'), findsNothing);
+      expect(find.text('Roles'), findsNothing);
+      expect(find.text('Permissions'), findsNothing);
+    },
+  );
 }
