@@ -15,6 +15,9 @@ import '../modules/sales/create_screen.dart';
 import '../modules/sales/details_screen.dart';
 import '../modules/sales/edit_screen.dart';
 import '../modules/sales/list_screen.dart';
+import '../modules/sales/invoice_list_screen.dart';
+import '../modules/sales/invoice_details_screen.dart';
+import '../modules/sales/invoice_create_screen.dart';
 import '../modules/dashboard/dashboard_screen.dart';
 import '../modules/organization/create_screen.dart';
 import '../modules/organization/details_screen.dart';
@@ -141,6 +144,19 @@ class AppRouter {
               path.substring(0, path.length - 5),
               settings.arguments,
             ),
+          ),
+        ),
+      );
+    }
+    if (path.startsWith('/sales/invoices/') &&
+        path != '/sales/invoices/create') {
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => _protected(
+          context,
+          routeName: '/sales/invoices/details',
+          child: SalesInvoiceDetailsScreen(
+            id: _extractDetailId(path, settings.arguments) ?? '',
           ),
         ),
       );
@@ -318,6 +334,24 @@ class AppRouter {
             context,
             routeName: '/sales/quotations',
             child: const SalesQuotationListScreen(),
+          ),
+        );
+      case '/sales/invoices':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/sales/invoices',
+            child: const SalesInvoiceListScreen(),
+          ),
+        );
+      case '/sales/invoices/create':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/sales/invoices/create',
+            child: const CreateSalesInvoiceScreen(),
           ),
         );
       case '/sales/quotations/create':

@@ -1,0 +1,9 @@
+import type { FastifyPluginAsync } from 'fastify';
+import { requireAuth, requirePermission } from '../middleware/auth.js';
+import { parsePaginationQuery } from '../pagination.js';
+import { requestParam } from '../request-input.js';
+import type { InvoiceRecord } from '../../../domain/contracts/repositories.js';
+function ctx(r:any){return {tenantId:r.tenantId,organizationId:r.user.organizationId,branchId:r.user.branchId??r.user.defaultBranchId,financialYearId:r.user.financialYearId,userId:r.user.id};}
+function out(x:InvoiceRecord){const {tenantId:_t,...v}=x;return v;}
+const invoiceRoutes:FastifyPluginAsync=async(f)=>{f.post('/sales/invoices',{preHandler:[requireAuth,requirePermission('sales.invoice.create')]},async(r:any,h)=>{const x=await f.invoiceService.create(ctx(r),r.body);h.code(201);return {success:true,invoice:out(x)};});f.get('/sales/invoices',{preHandler:[requireAuth,requirePermission('sales.invoice.read')]},async(r:any)=>{const p=parsePaginationQuery(r.query);const x=await f.invoiceService.list(ctx(r),p);return {success:true,invoices:x.items.map(out),metadata:{page:p.page,page_size:p.pageSize,total:x.total,total_pages:Math.ceil(x.total/p.pageSize),order:p.order}};});f.get('/sales/invoices/:id',{preHandler:[requireAuth,requirePermission('sales.invoice.read')]},async(r:any)=>({success:true,invoice:out(await f.invoiceService.get(ctx(r),requestParam(r.params,'id')??''))}));f.patch('/sales/invoices/:id',{preHandler:[requireAuth,requirePermission('sales.invoice.update')]},async(r:any)=>({success:true,invoice:out(await f.invoiceService.update(ctx(r),requestParam(r.params,'id')??'',r.body))}));for(const s of ['issue','cancel'] as const)f.post(`/sales/invoices/:id/${s}`,{preHandler:[requireAuth,requirePermission(`sales.invoice.${s}`)]},async(r:any)=>({success:true,invoice:out(await f.invoiceService.transition(ctx(r),requestParam(r.params,'id')??'',s==='issue'?'ISSUED':'CANCELLED',r.body.expectedVersion))}));};
+export default invoiceRoutes;

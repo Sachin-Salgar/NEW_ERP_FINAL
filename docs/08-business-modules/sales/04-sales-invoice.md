@@ -1,6 +1,6 @@
 # Sales Invoice Management Specification
 
-**Status:** Authorization package — implementation specification
+**Status:** Backend slice implemented under ADR-0028; Finance/Tax providers not connected
 **Owner:** Sales
 **Dependencies:** Sales Order, Delivery, Finance, Tax, Workflow, Document
 
@@ -27,20 +27,16 @@ year references, `invoice_id`, source order or delivery item reference, line
 number, description snapshot, quantity, unit, unit price, discount snapshot,
 tax snapshot, line totals, and canonical audit columns.
 
-PostgreSQL types, monetary precision, tax component structure, inclusive versus
-exclusive representation, exemption/reverse-charge fields, financial-year
-relationship semantics, uniqueness, and correction metadata are **BUSINESS
-DECISION REQUIRED**. The mandatory branch and financial-year references follow
-the organizational-isolation standard; their business semantics remain
-unresolved. Header/detail tenant/org integrity and immutable finalized
-snapshots are mandatory.
+The initial slice uses numeric(18,4) quantities and prices, numeric(18,4) line
+totals, no calculated tax, and immutable finalized snapshots. Finance and Tax
+provider references are nullable and explicitly marked not connected. The
+mandatory branch and financial-year references follow ADR-0025.
 
 ## 3. Lifecycle and authorization
 
-The architecture illustrates Draft, Reviewed, Approved, Issued, Partially
-Paid, Fully Paid, and Closed. Exact transitions, approval actors, issuance
-criteria, cancellation/reversal rules, partial-payment synchronization, and
-whether Sales or Finance owns each state are **BUSINESS DECISION REQUIRED**.
+The The initial lifecycle is `DRAFT -> ISSUED` or `DRAFT -> CANCELLED`. Issued
+records are immutable. Finance posting, payment state, and reversal remain
+outside this slice because Finance is not implemented in the repository.
 
 No ordinary PATCH is allowed after issue/finalization. Candidate permissions
 requiring approval: `sales.invoice.read`, `create`, `update`, `review`,
@@ -51,7 +47,8 @@ requiring approval: `sales.invoice.read`, `create`, `update`, `review`,
 Base path: `/api/v1/sales/invoices`; create/list/detail/draft-update and
 explicit lifecycle operations are required. Exact schemas, response totals,
 error mapping, numbering, idempotency, and cross-module status projection are
-**BUSINESS DECISION REQUIRED**.
+bounded by ADR-0028. Creation is idempotent by delivery and idempotency key;
+numbering is server-generated through `code_counters`.
 
 Flutter requires list/create/detail/edit-draft screens, lifecycle actions,
 server-rendered totals/status, loading/empty/error/pagination/filter states,
@@ -71,4 +68,7 @@ authoritative snapshots, not provider-private records.
 
 ## IMPLEMENTATION STATUS
 
-**DEPENDENCY CONTRACT REQUIRED** and **BUSINESS DECISION REQUIRED**.
+**IMPLEMENTED — MINIMUM BACKEND POLICY** — ADR-0028 provides delivery
+conversion, immutable line snapshots, lifecycle, numbering, idempotency,
+authorization, audit/versioning, and RLS/FORCE RLS. Finance, Tax, Workflow, and
+Document integrations remain explicit not-connected boundaries.

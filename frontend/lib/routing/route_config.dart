@@ -51,6 +51,14 @@ class AppRoutes {
     moduleCode: 'sales',
     icon: Icons.request_quote_outlined,
   );
+  static const salesInvoices = AppRouteConfig(
+    path: '/sales/invoices',
+    title: 'Sales Invoices',
+    group: 'SALES',
+    permissionKey: 'sales.invoice.read',
+    moduleCode: 'sales',
+    icon: Icons.receipt_long_outlined,
+  );
   static const settings = AppRouteConfig(
     path: '/settings',
     title: 'Settings',
@@ -153,6 +161,7 @@ class AppRoutes {
     settings,
     customers,
     salesQuotations,
+    salesInvoices,
   ];
 
   static const routePermissions = <String, String?>{
@@ -165,6 +174,9 @@ class AppRoutes {
     '/sales/quotations/create': 'sales.quotation.create',
     '/sales/quotations/details': 'sales.quotation.read',
     '/sales/quotations/edit': 'sales.quotation.update',
+    '/sales/invoices': 'sales.invoice.read',
+    '/sales/invoices/create': 'sales.invoice.create',
+    '/sales/invoices/details': 'sales.invoice.read',
     '/settings': null,
     '/settings/organizations': 'organization.read',
     '/settings/organizations/create': 'organization.manage',

@@ -166,15 +166,15 @@ Business modules must not open until the Core Enterprise gate is completed unles
 ### Current Sales implementation step
 
 The implemented Sales capability includes quotation management, the Sales Order
-backend slice under approved ADR-0026, and the Sales Delivery backend slice
-under ADR-0027. Canonical audit,
+backend slice under approved ADR-0026, the Sales Delivery backend slice under
+ADR-0027, and the Sales Invoice backend slice under ADR-0028. Canonical audit,
 optimistic-concurrency, and session-scoped branch/financial-year context
 remediation are complete, including forward migrations, repository/schema
 contracts, authorization, and validation. Legacy quotation rows without
 authoritative context remain a documented data-remediation residual. The
 remaining Sales architecture is now documented as an authorization/specification
-package without source-code implementation. Invoice, Return, Credit Note,
-Pricing, Discounts, Workflow, integrations, and Reporting remain deferred.
+package without source-code implementation. Return, Credit Note, Pricing,
+Discounts, Workflow, integrations, and Reporting remain deferred.
 
 The Sales quotation slice has passed its documented behavioral backend,
 PostgreSQL/RLS,
