@@ -49,6 +49,7 @@ const DEFAULT_MODULES: PlatformModuleSeed[] = [
   { code: 'crm', name: 'Customer Relationship Management', moduleGroup: 'CRM', isCore: false, sortOrder: 20 },
   { code: 'inventory', name: 'Inventory and Item Master', moduleGroup: 'Inventory', isCore: false, sortOrder: 40 },
   { code: 'sales', name: 'Sales', moduleGroup: 'Sales', isCore: false, sortOrder: 30 },
+  { code: 'purchase', name: 'Procurement', moduleGroup: 'Procurement', isCore: false, sortOrder: 35 },
 ];
 
 const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
@@ -218,6 +219,19 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
       displayName: `${action[0].toUpperCase()}${action.slice(1)} quotations`,
     }),
   ),
+  ...([
+    ['supplier', 'read'], ['supplier', 'create'], ['supplier', 'update'], ['supplier', 'delete'],
+    ['requisition', 'read'], ['requisition', 'create'], ['requisition', 'update'], ['requisition', 'submit'], ['requisition', 'approve'], ['requisition', 'reject'], ['requisition', 'cancel'], ['requisition', 'workflow'],
+    ['order', 'read'], ['order', 'create'], ['order', 'update'], ['order', 'submit'], ['order', 'approve'], ['order', 'reject'], ['order', 'cancel'], ['order', 'workflow'],
+    ['receipt', 'read'], ['receipt', 'create'], ['receipt', 'update'], ['receipt', 'complete'], ['receipt', 'cancel'], ['receipt', 'workflow'],
+  ] as const).map(([resource, action]) => ({
+    moduleCode: 'purchase',
+    resource,
+    action,
+    scope: 'organization' as const,
+    permissionKey: `purchase.${resource}.${action}`,
+    displayName: `${action[0].toUpperCase()}${action.slice(1)} procurement ${resource.replace('_', ' ')} records`,
+  })),
   ...(['read', 'create', 'update', 'delete', 'confirm', 'reserve', 'cancel', 'close'] as const).map((action) => ({
     moduleCode: 'sales',
     resource: 'order',

@@ -162,3 +162,20 @@ When implementing Procurement features, AI must:
 - [Finance Module](./07-finance-module-architecture.md)
 - [Workflow/BPM Module](./14-workflow-bpm-module-architecture.md)
 - [Backend Authorization](../04-backend/07-authentication-and-authorization.md)
+
+## Bounded Purchase Implementation
+
+The current bounded implementation exposes the Purchase module under the `purchase`
+module code and `/api/v1/purchase/*` resource namespace. It includes tenant- and
+organization-scoped suppliers, purchase requisitions, purchase orders, and
+purchase receipts. Requisitions and orders support draft, submit, approve,
+reject, and cancel transitions with optimistic version checks. Receipts support
+partial and repeated receipt creation by operation key and post accepted
+quantities through the Inventory receipt contract in the same transaction.
+
+Supplier records support soft deletion. All Purchase records use FORCE RLS,
+composite tenant/organization/context ownership constraints, audit columns, and
+versioned updates. Purchase returns, RFQ/quotation management, vendor invoices,
+and payment processing remain outside this bounded implementation; vendor
+returns require an approved Inventory return contract for the Purchase domain
+before they are enabled.

@@ -42,5 +42,9 @@
     "0038-sales-commercial-snapshots": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Commercial price and discount snapshots are historical transaction evidence; preserve them and compensate forward."},
     "0039-enable-crm-sales-baseline": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"CRM and Sales module entitlements are current product-baseline access data. Preserve tenant and organization module history and correct forward if the baseline changes."},
     "0040-grant-crm-sales-admin-permissions": {"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Grants CRM and Sales read/navigation permissions only to roles that already possess tenant.manage; preserve role history and correct forward if baseline authorization changes."}
+    ,"0041-procurement-foundation":{"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Purchase suppliers, requisitions, orders, and receipts are business records; preserve and correct forward."}
+    ,"0042-grant-procurement-admin-permissions":{"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Purchase authorization grants are corrected forward without removing role history."}
+    ,"0043-purchase-integrity-correction":{"strategy":"forward-only-security","destructiveDownAllowed":false,"note":"Composite organization ownership, RLS, audit, version, and soft-delete safeguards are corrected forward."}
+    ,"0044-purchase-permissions":{"strategy":"forward-only-security","destructiveDownAllowed":false,"note":"Purchase permission namespace migration is corrected forward while preserving authorization history."}
   }
 }

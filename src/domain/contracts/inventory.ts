@@ -52,6 +52,10 @@ export interface InventoryReservationResult {
 }
 
 export interface InventoryDependencyPort {
+  receiveStock?(
+    context: InventoryContext,
+    request: { warehouseId: string; itemId: string; quantity: number; sourceType: string; sourceId: string; operationKey: string },
+  ): Promise<unknown>;
   listReservationsBySource(
     context: InventoryContext,
     sourceType: string,

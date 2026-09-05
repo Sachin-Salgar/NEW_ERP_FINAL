@@ -3,8 +3,8 @@
 **Status:** Living implementation roadmap  
 **Authority:** Architecture documents and Approved ADRs define the intended system; this document records what is actually implemented and what remains to be validated or built.
 
-**Last reconciled:** 2026-09-05
-**Branch:** `feature/sales-documentation-specifications`
+**Last reconciled:** 2026-09-06
+**Branch:** `feature/purchase-module`
 
 ## Status definitions
 
@@ -60,6 +60,7 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 - Deterministic Postgres-backed CI environment for backend integration and Flutter Web E2E login/dashboard validation.
 - Customer foundation and HTTP API vertical slice, including tenant-scoped persistence, RLS, authorization, soft delete, audit, pagination, validation, and dedicated API integration coverage.
 - Customer Flutter frontend vertical slice, including CRM navigation, permission/module-aware routing, authenticated CRUD screens, server-side search/pagination, soft-delete confirmation, and focused service/routing tests.
+- Bounded Purchase module backend and Flutter navigation vertical slice, including supplier soft-delete, requisition/order lifecycle actions, receipt-to-Inventory integration, purchase permissions/module registration, tenant/organization RLS, optimistic versioning, and migration recovery governance.
 
 ### Remaining work and residuals
 
