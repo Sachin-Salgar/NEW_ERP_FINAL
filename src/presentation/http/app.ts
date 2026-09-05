@@ -229,6 +229,9 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
       releaseReservation: (context, reservationId, idempotencyKey) => inventoryService.release(context, reservationId, idempotencyKey),
       fulfillReservation: (context, reservationId, idempotencyKey) => inventoryService.fulfill(context, reservationId, idempotencyKey),
       returnStock: (context, request) => inventoryService.returnStock(context, request),
+      listReservationsBySource: (context, sourceType, sourceId) => inventoryService.listReservationsBySource(context, sourceType, sourceId),
+      fulfillReservationsBySource: (context, sourceType, sourceId, operationKey) =>
+        inventoryService.fulfillReservationsBySource(context, sourceType, sourceId, operationKey),
     },
   );
   const deliveryService = new DeliveryService(
@@ -237,6 +240,15 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     moduleAccessService,
     auditLogger,
     transactionRunner,
+    {
+      listReservationsBySource: (context, sourceType, sourceId) => inventoryService.listReservationsBySource(context, sourceType, sourceId),
+      fulfillReservationsBySource: (context, sourceType, sourceId, operationKey) =>
+        inventoryService.fulfillReservationsBySource(context, sourceType, sourceId, operationKey),
+      reserveStock: (context, request) => inventoryService.reserve(context, request),
+      releaseReservation: (context, reservationId, idempotencyKey) => inventoryService.release(context, reservationId, idempotencyKey),
+      fulfillReservation: (context, reservationId, idempotencyKey) => inventoryService.fulfill(context, reservationId, idempotencyKey),
+      returnStock: (context, request) => inventoryService.returnStock(context, request),
+    },
   );
   const invoiceService = new InvoiceService(
     new PostgresInvoiceRepository(pool, config.TENANT_CONTEXT_KEY),

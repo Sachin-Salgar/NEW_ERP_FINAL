@@ -52,6 +52,17 @@ export interface InventoryReservationResult {
 }
 
 export interface InventoryDependencyPort {
+  listReservationsBySource(
+    context: InventoryContext,
+    sourceType: string,
+    sourceId: string,
+  ): Promise<InventoryReservationResult[]>;
+  fulfillReservationsBySource(
+    context: InventoryContext,
+    sourceType: string,
+    sourceId: string,
+    operationKey: string,
+  ): Promise<InventoryReservationResult[]>;
   reserveStock(
     context: InventoryContext,
     request: InventoryReservationRequest,

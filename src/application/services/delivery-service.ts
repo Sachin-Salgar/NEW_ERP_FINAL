@@ -5,6 +5,7 @@ import type { ModuleAccessService } from './module-access-service.js';
 import type { DeliveryRecord, DeliveryRepository } from '../../domain/contracts/repositories.js';
 import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../../domain/errors.js';
 import { DELIVERY_PERMISSIONS, type DeliveryPermission, type DeliveryStatus } from '../../domain/contracts/delivery.js';
+import type { InventoryDependencyPort } from '../../domain/contracts/inventory.js';
 
 export interface DeliveryContext {
   tenantId: string;
@@ -29,6 +30,7 @@ export class DeliveryService {
     private readonly modules: Pick<ModuleAccessService, 'isModuleEnabled'>,
     private readonly audit: AuditLogger,
     private readonly tx: DeliveryTransactionRunner,
+    private readonly inventory?: InventoryDependencyPort,
   ) {}
 
   async create(context: DeliveryContext, input: { salesOrderId: string; idempotencyKey: string; notes?: string | null }): Promise<DeliveryRecord> {
@@ -44,6 +46,21 @@ export class DeliveryService {
         notes: input.notes ?? null,
         actorUserId: context.userId,
       });
+      if (this.inventory) {
+        const reservations = await this.inventory.listReservationsBySource(context, 'SALES_ORDER', input.salesOrderId);
+        if (!reservations.length || reservations.some((reservation) => reservation.status !== 'RESERVED')) {
+          throw new ValidationError('A delivery requires active Inventory reservations for the Sales Order.');
+        }
+        const references = delivery.items.map((item) => {
+          const reservation = reservations.find((candidate) => candidate.itemId === item.itemId);
+          if (!reservation) throw new ValidationError('A delivery line has no matching Inventory reservation.');
+          return { orderItemId: item.orderItemId, reservationId: reservation.id };
+        });
+        if (!this.repository.attachReservationReferences) throw new ValidationError('Delivery reservation reference persistence is not configured.');
+        const linked = await this.repository.attachReservationReferences({ ...context, deliveryId: delivery.id, references, actorUserId: context.userId });
+        if (!linked) throw new ValidationError('Delivery reservation references could not be persisted.');
+        return linked;
+      }
       await this.audit.record({
         tenantId: context.tenantId, actorUserId: context.userId, action: 'delivery.created',
         resourceType: 'sales_delivery', resourceId: delivery.id, outcome: 'success',
@@ -82,6 +99,13 @@ export class DeliveryService {
     return this.tx.runInTransaction(async () => {
       const current = await this.get(context, id);
       if (!transitions[current.status].includes(status)) throw new ValidationError(`Delivery cannot transition from ${current.status} to ${status}.`);
+      if (status === 'COMPLETED') {
+        if (!this.inventory) throw new ValidationError('Inventory fulfillment provider is not configured.');
+        if (!current.items.length || current.items.some((item) => !item.reservationId)) {
+          throw new ValidationError('Delivery reservation references are required before completion.');
+        }
+        await this.inventory.fulfillReservationsBySource(context, 'SALES_ORDER', current.salesOrderId, `sales-delivery:${current.id}`);
+      }
       const delivery = await this.repository.transition({ ...context, deliveryId: id, status, expectedVersion, actorUserId: context.userId });
       if (!delivery) throw new ValidationError('Delivery not found or version conflict.');
       await this.audit.record({

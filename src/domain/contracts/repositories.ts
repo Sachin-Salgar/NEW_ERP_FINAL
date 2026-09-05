@@ -326,6 +326,14 @@ export interface InventoryRepository {
   listReservations(input: {
     tenantId: string; organizationId: string; page: number; pageSize: number; status?: ReservationStatus;
   }): Promise<{ items: InventoryReservationRecord[]; total: number }>;
+  listReservationsBySource(input: {
+    tenantId: string; organizationId: string; branchId: string; financialYearId: string;
+    sourceType: string; sourceId: string;
+  }): Promise<InventoryReservationRecord[]>;
+  fulfillReservationsBySource(input: {
+    tenantId: string; organizationId: string; branchId: string; financialYearId: string;
+    sourceType: string; sourceId: string; operationKey: string; actorUserId: string;
+  }): Promise<InventoryReservationRecord[]>;
   releaseReservation(input: {
     tenantId: string; organizationId: string; branchId: string; financialYearId: string; reservationId: string;
     operationKey: string; actorUserId: string;
@@ -533,6 +541,8 @@ export interface DeliveryItemRecord {
   id: string;
   lineNumber: number;
   orderItemId: string;
+  itemId: string | null;
+  reservationId: string | null;
   description: string;
   quantity: number;
   unitOfMeasure: string;
@@ -545,6 +555,7 @@ export interface DeliveryRecord {
   financialYearId: string;
   deliveryNumber: string;
   salesOrderId: string;
+  warehouseId?: string | null;
   customerId: string;
   status: import('./delivery.js').DeliveryStatus;
   idempotencyKey: string;
@@ -557,6 +568,10 @@ export interface DeliveryRecord {
   versionNumber: number;
 }
 export interface DeliveryRepository {
+  attachReservationReferences?(input: {
+    tenantId: string; organizationId: string; branchId: string; financialYearId: string;
+    deliveryId: string; references: Array<{ orderItemId: string; reservationId: string }>; actorUserId: string;
+  }): Promise<DeliveryRecord | null>;
   create(input: {
     tenantId: string;
     organizationId: string;

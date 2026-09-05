@@ -1,6 +1,6 @@
 # Sales Delivery and Shipment Management Specification
 
-**Status:** Backend slice implemented under ADR-0027; Inventory execution deferred
+**Status:** Inventory fulfillment activated under ADR-0036; partial delivery remains deferred
 **Owner:** Sales
 **Dependencies:** Sales Order, Inventory, Workflow, Notification, Document
 
@@ -24,7 +24,8 @@ delivery date, priority, shipping method, carrier/tracking references, status,
 ### Detail: `sales_delivery_items`
 
 Required candidates: UUIDv7 `id`, tenant/org IDs, mandatory branch and
-financial-year references, `delivery_id`, `order_item_id`, line number, ordered
+financial-year references, `delivery_id`, `order_item_id`, Item Master `item_id`,
+Inventory `reservation_id`, line number, ordered
 quantity snapshot, delivered quantity, unit of measure, and canonical audit
 columns.
 
@@ -79,5 +80,5 @@ boundaries.
 **IMPLEMENTED — MINIMUM BACKEND POLICY** — ADR-0027 provides confirmed-order
 conversion, delivery-line snapshots, deterministic numbering, idempotent
 creation, explicit lifecycle, audit/versioning, and RLS/FORCE RLS. Inventory
-reservation, picking, stock issue, and logistics execution remain deferred
-until their provider contracts are published.
+reservation and stock issue are activated through ADR-0034 and ADR-0036.
+Picking, partial delivery, backorders, and logistics execution remain deferred.

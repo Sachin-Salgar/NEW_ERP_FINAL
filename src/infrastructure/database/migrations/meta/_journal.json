@@ -34,6 +34,7 @@
     { "idx": 29, "version": "7", "when": 1788613200000, "tag": "0029-inventory-item-master", "breakpoints": true },
     { "idx": 30, "version": "7", "when": 1788613800000, "tag": "0030-inventory-foundation", "breakpoints": true },
     { "idx": 31, "version": "7", "when": 1788614400000, "tag": "0031-sales-inventory-contract", "breakpoints": true },
-    { "idx": 32, "version": "7", "when": 1788615000000, "tag": "0032-sales-inventory-contract-correction", "breakpoints": true }
+    { "idx": 32, "version": "7", "when": 1788615000000, "tag": "0032-sales-inventory-contract-correction", "breakpoints": true },
+    { "idx": 33, "version": "7", "when": 1788615600000, "tag": "0033-sales-delivery-inventory-fulfillment", "breakpoints": true }
   ]
 }

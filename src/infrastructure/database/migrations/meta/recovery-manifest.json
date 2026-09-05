@@ -165,6 +165,11 @@
       "strategy": "forward-only-security",
       "destructiveDownAllowed": false,
       "note": "Correct the composite foreign-key support index without removing Sales or Inventory business data."
+    },
+    "0033-sales-delivery-inventory-fulfillment": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Add nullable delivery warehouse, item, and reservation references without rewriting historical delivery records."
     }
   }
 }

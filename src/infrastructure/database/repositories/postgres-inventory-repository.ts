@@ -183,6 +183,33 @@ export class PostgresInventoryRepository implements InventoryRepository {
       return { items: rows.rows.map((row) => this.mapReservation(row)), total: Number(count.rows[0].count) };
     });
   }
+  async listReservationsBySource(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; sourceType: string; sourceId: string }) {
+    return this.withTenant(input.tenantId, input.organizationId, undefined, async (client) => {
+      const result = await client.query(
+        `SELECT ${reservationColumns} FROM inventory_reservations
+         WHERE tenant_id=$1 AND organization_id=$2 AND branch_id=$3 AND financial_year_id=$4
+           AND source_type=$5 AND source_id=$6 ORDER BY item_id`,
+        [input.tenantId, input.organizationId, input.branchId, input.financialYearId, input.sourceType, input.sourceId],
+      );
+      return result.rows.map((row) => this.mapReservation(row));
+    });
+  }
+  async fulfillReservationsBySource(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; sourceType: string; sourceId: string; operationKey: string; actorUserId: string }) {
+    return this.withTenant(input.tenantId, input.organizationId, input.actorUserId, async (client) => {
+      const rows = await client.query(
+        `SELECT id FROM inventory_reservations
+         WHERE tenant_id=$1 AND organization_id=$2 AND branch_id=$3 AND financial_year_id=$4
+           AND source_type=$5 AND source_id=$6 ORDER BY item_id FOR UPDATE`,
+        [input.tenantId, input.organizationId, input.branchId, input.financialYearId, input.sourceType, input.sourceId],
+      );
+      if (!rows.rows.length) throw new ValidationError('No Inventory reservations exist for the Sales Order.');
+      const results: InventoryReservationRecord[] = [];
+      for (const row of rows.rows) {
+        results.push(await this.fulfillReservation({ ...input, reservationId: row.id, operationKey: `${input.operationKey}:${row.id}` }));
+      }
+      return results;
+    });
+  }
 
   async releaseReservation(input: {
     tenantId: string; organizationId: string; branchId: string; financialYearId: string; reservationId: string;
@@ -219,13 +246,14 @@ export class PostgresInventoryRepository implements InventoryRepository {
         [input.tenantId, input.organizationId, input.operationKey],
       );
       if (movement.rows[0]) return reservation;
-      await client.query(
+      const stockUpdate = await client.query(
         `UPDATE inventory_stock SET on_hand_quantity=on_hand_quantity-$1,reserved_quantity=reserved_quantity-$1,
           updated_at=now(),updated_by=$2,version=version+1
          WHERE tenant_id=$3 AND organization_id=$4 AND warehouse_id=$5 AND item_id=$6
            AND on_hand_quantity >= $1 AND reserved_quantity >= $1`,
         [reservation.quantity, input.actorUserId, input.tenantId, input.organizationId, reservation.warehouseId, reservation.itemId],
       );
+      if (stockUpdate.rowCount !== 1) throw new ValidationError('Insufficient reserved stock for fulfillment.');
       await client.query(
         `INSERT INTO inventory_movements
           (tenant_id,organization_id,branch_id,financial_year_id,warehouse_id,item_id,movement_type,quantity,source_type,source_id,operation_key,created_by)

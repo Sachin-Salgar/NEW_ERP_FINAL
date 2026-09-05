@@ -76,6 +76,9 @@ export class UnitOfWork {
   }
 
   async runInTransaction<T>(callback: () => Promise<T>): Promise<T> {
+    if (this.client && !this.completed) {
+      return callback();
+    }
     const client = await this.begin();
 
     try {

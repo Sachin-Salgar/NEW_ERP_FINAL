@@ -62,6 +62,18 @@ export class InventoryService {
       return result;
     });
   }
+  async listReservationsBySource(context: InventoryContext, sourceType: string, sourceId: string) {
+    await this.authorize(context, INVENTORY_PERMISSIONS.reservationRead);
+    this.id(sourceId, 'Source ID');
+    return this.repository.listReservationsBySource({ ...context, sourceType, sourceId });
+  }
+  async fulfillReservationsBySource(context: InventoryContext, sourceType: string, sourceId: string, operationKey: string) {
+    await this.authorize(context, INVENTORY_PERMISSIONS.reservationFulfill);
+    this.id(sourceId, 'Source ID'); this.key(operationKey);
+    return this.tx.runInTransaction(async () =>
+      this.repository.fulfillReservationsBySource({ ...context, sourceType, sourceId, operationKey, actorUserId: context.userId }),
+    );
+  }
   async listReservations(context: InventoryContext, input: { page?: number; pageSize?: number; status?: ReservationStatus } = {}) {
     await this.authorize(context, INVENTORY_PERMISSIONS.reservationRead);
     const page = input.page ?? 1; const pageSize = input.pageSize ?? 20; this.page(page, pageSize);

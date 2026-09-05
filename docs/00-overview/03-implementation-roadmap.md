@@ -182,8 +182,11 @@ implemented. Under approved ADR-0035, new Sales quotation lines can carry Item
 Master identity, order conversion requires an active organization warehouse and
 item identity, and confirmed orders expose an idempotent reservation operation
 through the typed Inventory boundary. Historical rows remain nullable and are
-not backfilled. Delivery fulfillment and return stock effects remain explicit
-integration gates. An organization-scoped
+not backfilled. Delivery fulfillment is now activated through the typed
+Inventory boundary: delivery creation requires order reservations, copies
+item/warehouse identity, and delivery completion fulfills all source
+reservations idempotently. Return stock effects remain an explicit integration
+gate. An organization-scoped
 Item Master vertical slice is now implemented under the Inventory boundary with
 RLS/FORCE RLS, permission/module gating, audit/versioning, optimistic concurrency,
 and authenticated API coverage. The bounded Inventory foundation now persists
