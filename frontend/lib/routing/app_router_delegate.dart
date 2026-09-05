@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../core/auth/auth_service.dart';
+
+import 'dart:async';
+
 import '../modules/auth/login_screen.dart';
 import '../widgets/app_shell.dart';
 import 'route_config.dart';
@@ -47,18 +50,33 @@ class AppRouterDelegate extends RouterDelegate<String>
 
     _setPath(target, notify: false);
     final navigator = contentNavigatorKey.currentState;
-    if (!auth.isAuthenticated || navigator == null || target == '/login') return;
+    if (!auth.isAuthenticated || navigator == null || target == '/login')
+      return;
 
     _syncingBrowserRoute = true;
+    final completer = Completer<void>();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_disposed) return;
+      if (_disposed) {
+        completer.complete();
+        return;
+      }
       final currentNavigator = contentNavigatorKey.currentState;
-      if (currentNavigator != null && !currentNavigator.mounted) return;
+      if (currentNavigator != null && !currentNavigator.mounted) {
+        completer.complete();
+        return;
+      }
       if (currentNavigator != null) {
-        currentNavigator.pushNamedAndRemoveUntil(target, (_) => false);
+        currentNavigator
+            .pushNamedAndRemoveUntil(target, (_) => false)
+            .whenComplete(() {
+              completer.complete();
+            });
+      } else {
+        completer.complete();
       }
       _syncingBrowserRoute = false;
     });
+    await completer.future;
   }
 
   void navigate(String path) {
@@ -155,18 +173,23 @@ class _ContentRouteObserver extends NavigatorObserver {
   void _update(Route<dynamic>? route) => onChanged(route?.settings.name);
 
   @override
-  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) => _update(route);
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _update(route);
 
   @override
-  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) => _update(previousRoute);
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _update(previousRoute);
 
   @override
-  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) => _update(newRoute);
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) =>
+      _update(newRoute);
 }
 
 class AppRouteInformationParser extends RouteInformationParser<String> {
   @override
-  Future<String> parseRouteInformation(RouteInformation routeInformation) async {
+  Future<String> parseRouteInformation(
+    RouteInformation routeInformation,
+  ) async {
     return AppRoutes.normalize(routeInformation.uri.path);
   }
 
