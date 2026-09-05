@@ -30,6 +30,7 @@
     { "idx": 25, "version": "7", "when": 1788610800000, "tag": "0025-sales-credit-note", "breakpoints": true },
     { "idx": 26, "version": "7", "when": 1788611400000, "tag": "0026-sales-pricing", "breakpoints": true },
     { "idx": 27, "version": "7", "when": 1788612000000, "tag": "0027-sales-discount", "breakpoints": true },
-    { "idx": 28, "version": "7", "when": 1788612600000, "tag": "0028-sales-quotation-context-guard", "breakpoints": true }
+    { "idx": 28, "version": "7", "when": 1788612600000, "tag": "0028-sales-quotation-context-guard", "breakpoints": true },
+    { "idx": 29, "version": "7", "when": 1788613200000, "tag": "0029-inventory-item-master", "breakpoints": true }
   ]
 }

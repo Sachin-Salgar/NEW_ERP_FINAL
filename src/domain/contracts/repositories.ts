@@ -173,6 +173,67 @@ export interface CustomerRepository {
   }): Promise<CustomerRecord | null>;
 }
 
+export interface ItemRecord {
+  id: string;
+  tenantId: string;
+  organizationId: string;
+  code: string;
+  name: string;
+  description: string | null;
+  unitOfMeasure: string;
+  salesEligible: boolean;
+  status: 'ACTIVE' | 'INACTIVE';
+  createdAt: Date;
+  createdBy: string | null;
+  updatedAt: Date | null;
+  updatedBy: string | null;
+  deletedAt: Date | null;
+  deletedBy: string | null;
+  isDeleted: boolean;
+  version: number;
+}
+
+export interface ItemListQuery {
+  organizationId: string;
+  page: number;
+  pageSize: number;
+  order?: 'asc' | 'desc';
+  search?: string;
+}
+
+export interface ItemRepository {
+  create(input: {
+    tenantId: string;
+    organizationId: string;
+    code: string;
+    name: string;
+    description: string | null;
+    unitOfMeasure: string;
+    salesEligible: boolean;
+    actorUserId: string;
+  }): Promise<ItemRecord>;
+  getById(tenantId: string, organizationId: string, itemId: string): Promise<ItemRecord | null>;
+  list(tenantId: string, query: ItemListQuery): Promise<{ items: ItemRecord[]; total: number }>;
+  update(input: {
+    tenantId: string;
+    organizationId: string;
+    itemId: string;
+    name: string;
+    description: string | null;
+    unitOfMeasure: string;
+    salesEligible: boolean;
+    expectedVersion: number;
+    actorUserId: string;
+  }): Promise<ItemRecord | null>;
+  softDelete(input: {
+    tenantId: string;
+    organizationId: string;
+    itemId: string;
+    expectedVersion: number;
+    actorUserId: string;
+  }): Promise<ItemRecord | null>;
+}
+
 export interface QuotationItemInput {
   description: string;
   quantity: number;

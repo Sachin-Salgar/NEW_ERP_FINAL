@@ -302,6 +302,46 @@ export const customers = pgTable(
   }),
 );
 
+export const inventoryItems = pgTable(
+  'inventory_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    organizationId: uuid('organization_id').notNull(),
+    code: varchar('code', { length: 100 }).notNull(),
+    name: varchar('name', { length: 255 }).notNull(),
+    description: text('description'),
+    unitOfMeasure: varchar('unit_of_measure', { length: 50 }).notNull(),
+    salesEligible: boolean('sales_eligible').notNull().default(true),
+    status: varchar('status', { length: 20 }).notNull().default('ACTIVE'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid('created_by'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }),
+    updatedBy: uuid('updated_by'),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    deletedBy: uuid('deleted_by'),
+    isDeleted: boolean('is_deleted').notNull().default(false),
+    version: integer('version').notNull().default(1),
+  },
+  (table) => ({
+    fkInventoryItemOrgTenant: foreignKey({
+      columns: [table.organizationId, table.tenantId],
+      foreignColumns: [organizations.id, organizations.tenantId],
+      name: 'fk_inventory_item_org_tenant',
+    }),
+    uqInventoryItemOrgCode: uniqueIndex('uq_inventory_item_org_code')
+      .on(table.tenantId, table.organizationId, table.code)
+      .where(sql`${table.isDeleted} = false`),
+    idxInventoryItemOrgName: index('idx_inventory_item_org_name')
+      .on(table.tenantId, table.organizationId, table.name, table.id)
+      .where(sql`${table.isDeleted} = false`),
+    checkInventoryItemSoftDelete: check(
+      'check_inventory_item_soft_delete',
+      sql`(((${table.isDeleted}) = false AND (${table.deletedAt}) IS NULL) OR ((${table.isDeleted}) = true AND (${table.deletedAt}) IS NOT NULL))`,
+    ),
+  }),
+);
+
 export const salesQuotations = pgTable(
   'sales_quotations',
   {

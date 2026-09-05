@@ -24,6 +24,7 @@ import type { SalesReportingService } from '../../../application/services/sales-
 import type { JwtTokenService } from '../../../infrastructure/security/jwt-token-service.js';
 import type { AppConfig } from '../../../config/schema.js';
 import type { AuditLogger } from '../../../application/contracts/audit.js';
+import type { ItemMasterService } from '../../../application/services/item-master-service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -51,6 +52,7 @@ declare module 'fastify' {
     pricingService: PricingService;
     discountService: DiscountService;
     salesReportingService: SalesReportingService;
+    itemMasterService: ItemMasterService;
   }
 
   interface FastifyRequest {

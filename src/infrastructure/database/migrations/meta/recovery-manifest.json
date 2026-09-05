@@ -145,6 +145,11 @@
       "strategy": "forward-only-security",
       "destructiveDownAllowed": false,
       "note": "Prevent implicit legacy quotation context assignment; explicit reclassification must be reviewed and authorized."
+    },
+    "0029-inventory-item-master": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Item master records are organization-owned business data; preserve and correct forward."
     }
   }
 }

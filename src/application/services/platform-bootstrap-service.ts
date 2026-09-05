@@ -47,6 +47,7 @@ const DEFAULT_MODULES: PlatformModuleSeed[] = [
     sortOrder: 6,
   },
   { code: 'crm', name: 'Customer Relationship Management', moduleGroup: 'CRM', isCore: false, sortOrder: 20 },
+  { code: 'inventory', name: 'Inventory and Item Master', moduleGroup: 'Inventory', isCore: false, sortOrder: 40 },
   { code: 'sales', name: 'Sales', moduleGroup: 'Sales', isCore: false, sortOrder: 30 },
 ];
 
@@ -187,6 +188,14 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
     permissionKey: 'customer.delete',
     displayName: 'Delete customers',
   },
+  ...(['read', 'create', 'update', 'delete'] as const).map((action) => ({
+    moduleCode: 'inventory',
+    resource: 'item',
+    action,
+    scope: 'organization' as const,
+    permissionKey: `inventory.item.${action}`,
+    displayName: `${action[0].toUpperCase()}${action.slice(1)} item master records`,
+  })),
   ...(['read', 'create', 'update', 'delete', 'send', 'accept', 'reject', 'expire', 'cancel'] as const).map(
     (action) => ({
       moduleCode: 'sales',

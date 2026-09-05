@@ -151,7 +151,7 @@ Project Management is explicitly removed/deferred and is not an implementation t
 | 1        | Core Enterprise    | **COMPLETED WITH KNOWN VALIDATION RESIDUAL — READY FOR SALES**                                                                                                      |
 | 2        | Sales              | **PARTIAL — QUOTATION, ORDER, DELIVERY, INVOICE, RETURN, CREDIT NOTE, PRICING, AND DISCOUNT BOUNDED FOUNDATIONS IMPLEMENTED** — [Sales specification package](../08-business-modules/03-sales-module-architecture.md) |
 | 3        | Procurement        | **PENDING**                                                                                                                                                         |
-| 4        | Inventory          | **PENDING**                                                                                                                                                         |
+| 4        | Inventory          | **PARTIAL — ORGANIZATION-SCOPED ITEM MASTER IMPLEMENTED; STOCK, RESERVATION, WAREHOUSE, AND MOVEMENT REMAIN PENDING**                                                |
 | 5        | Manufacturing      | **PENDING**                                                                                                                                                         |
 | 6        | Finance            | **PENDING**                                                                                                                                                         |
 | 7        | Human Resources    | **PENDING**                                                                                                                                                         |
@@ -177,7 +177,11 @@ authoritative context remain a documented data-remediation residual. The
 Workflow remains not connected, while provider-neutral integration boundaries
 and a bounded Sales document-summary report are implemented. Finance, Tax,
 Inventory, CRM Item Master, and transaction-facing Pricing/Discount snapshot
-resolution remain explicit dependency/contract boundaries. Sales administration
+resolution remain explicit dependency/contract boundaries. An organization-scoped
+Item Master vertical slice is now implemented under the Inventory boundary with
+RLS/FORCE RLS, permission/module gating, audit/versioning, optimistic concurrency,
+and authenticated API coverage; inventory quantities and movement remain separate.
+Sales administration
 and lifecycle frontend coverage is implemented, including confirmed-order to
 delivery creation; historical quotation rows without authoritative context
 remain decision-gated and must not be arbitrarily reclassified.
