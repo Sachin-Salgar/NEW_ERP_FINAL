@@ -34,7 +34,11 @@ class _SalesQuotationDetailsScreenState extends State<SalesQuotationDetailsScree
   }
 
   Future<void> _transition(String action) async {
-    final result = await service.transition(widget.id, action);
+    final result = await service.transition(
+      widget.id,
+      action,
+      (quotation?['version'] as num?)?.toInt() ?? 0,
+    );
     if (!mounted) return;
     if (result == null) _load(); else setState(() => error = result);
   }

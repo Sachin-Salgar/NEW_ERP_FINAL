@@ -16,13 +16,13 @@ Business modules are **logical boundaries inside the current modular-monolith ba
 | `02-core-enterprise-modules.md` | Core Enterprise | Organization, branch, identity, roles, permissions, and RBAC capabilities |
 | `03-sales-module-architecture.md` | Sales | Sales and order-to-cash business capabilities |
 | `sales/01-sales-quotation.md` | Sales Quotation | Implemented slice; architectural remediation required |
-| `sales/02-sales-order.md` | Sales Order | Authorization/specification package; not implemented |
-| `sales/03-sales-delivery.md` | Sales Delivery | Authorization/specification package; not implemented |
-| `sales/04-sales-invoice.md` | Sales Invoice | Authorization/specification package; not implemented |
-| `sales/05-sales-return.md` | Sales Return | Authorization/specification package; not implemented |
-| `sales/06-sales-credit-note.md` | Sales Credit Note | Authorization/specification package; not implemented |
-| `sales/07-sales-pricing.md` | Sales Pricing | Authorization/specification package; not implemented |
-| `sales/08-sales-discount.md` | Sales Discounts | Authorization/specification package; not implemented |
+| `sales/02-sales-order.md` | Sales Order | Implemented bounded slice |
+| `sales/03-sales-delivery.md` | Sales Delivery | Implemented bounded slice |
+| `sales/04-sales-invoice.md` | Sales Invoice | Implemented bounded slice |
+| `sales/05-sales-return.md` | Sales Return | Implemented bounded slice |
+| `sales/06-sales-credit-note.md` | Sales Credit Note | Implemented bounded slice |
+| `sales/07-sales-pricing.md` | Sales Pricing | Implemented bounded slice and snapshots |
+| `sales/08-sales-discount.md` | Sales Discounts | Implemented bounded slice and snapshots |
 | `sales/09-sales-workflow.md` | Sales Workflow | Workflow contract requirements |
 | `sales/10-sales-integrations.md` | Sales Integrations | Cross-module contract requirements |
 | `sales/11-sales-reporting.md` | Sales Reporting | Reporting contract requirements |

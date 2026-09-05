@@ -14,6 +14,8 @@ class SalesService extends ChangeNotifier {
   List<Map<String, dynamic>> creditNotes = [];
   int invoicePage = 1;
   int invoiceTotal = 0;
+  int reportPage = 1;
+  int reportTotal = 0;
   int page = 1;
   int pageSize = 20;
   int total = 0;
@@ -26,6 +28,8 @@ class SalesService extends ChangeNotifier {
   int get totalPages => total == 0 ? 1 : (total / pageSize).ceil();
   int get invoiceTotalPages =>
       invoiceTotal == 0 ? 1 : (invoiceTotal / pageSize).ceil();
+  int get reportTotalPages =>
+      reportTotal == 0 ? 1 : (reportTotal / pageSize).ceil();
 
   Future<void> fetchInvoices({String? search, int? page}) async {
     if (auth.currentOrganizationId == null) {
@@ -181,13 +185,28 @@ class SalesService extends ChangeNotifier {
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchSalesReport() async {
+  Future<List<Map<String, dynamic>>> fetchSalesReport({
+    String? search,
+    int? page,
+  }) async {
+    if (page != null) reportPage = page;
     try {
+      final query = <String>[
+        'page=$reportPage',
+        'page_size=$pageSize',
+        'order=desc',
+        if (search != null && search.trim().isNotEmpty)
+          'search=${Uri.encodeQueryComponent(search.trim())}',
+      ].join('&');
       final response = await apiClient.get(
-        '/api/v1/sales/reports/document-summary?page=1&page_size=$pageSize&order=desc',
+        '/api/v1/sales/reports/document-summary?$query',
       );
       if (response.statusCode != 200) throw Exception(_message(response));
       final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final metadata = Map<String, dynamic>.from(
+        (body['metadata'] as Map?) ?? const {},
+      );
+      reportTotal = (metadata['total'] as num?)?.toInt() ?? 0;
       return ((body['documents'] as List<dynamic>?) ?? const [])
           .map((item) => Map<String, dynamic>.from(item as Map))
           .toList();
@@ -453,18 +472,25 @@ class SalesService extends ChangeNotifier {
   Future<String?> deleteQuotation(String id) async =>
       _lifecycle(id, '', method: 'delete');
 
-  Future<String?> transition(String id, String action) =>
-      _lifecycle(id, action);
+  Future<String?> transition(
+    String id,
+    String action,
+    int expectedVersion,
+  ) => _lifecycle(id, action, expectedVersion: expectedVersion);
 
   Future<String?> _lifecycle(
     String id,
     String action, {
     String method = 'post',
+    int? expectedVersion,
   }) async {
     try {
       final response = method == 'delete'
           ? await apiClient.delete('/api/v1/sales/quotations/$id')
-          : await apiClient.post('/api/v1/sales/quotations/$id/$action');
+          : await apiClient.post(
+              '/api/v1/sales/quotations/$id/$action',
+              body: {'expectedVersion': expectedVersion},
+            );
       if (response.statusCode == 200 || response.statusCode == 204) return null;
       return _message(response);
     } catch (e) {

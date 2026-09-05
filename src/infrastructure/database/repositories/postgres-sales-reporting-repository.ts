@@ -52,7 +52,16 @@ export class PostgresSalesReportingRepository implements SalesReportRepository {
       const where = filters.join(' AND ');
       const count = await client.query<{ count: string }>(
         `SELECT count(*)::text AS count FROM (
-          SELECT tenant_id, organization_id, branch_id, financial_year_id, invoice_number AS document_number
+          SELECT tenant_id, organization_id, branch_id, financial_year_id, quotation_number AS document_number
+          FROM sales_quotations WHERE is_deleted=false
+          UNION ALL
+          SELECT tenant_id, organization_id, branch_id, financial_year_id, order_number
+          FROM sales_orders WHERE is_deleted=false
+          UNION ALL
+          SELECT tenant_id, organization_id, branch_id, financial_year_id, delivery_number
+          FROM sales_deliveries
+          UNION ALL
+          SELECT tenant_id, organization_id, branch_id, financial_year_id, invoice_number
           FROM sales_invoices
           UNION ALL
           SELECT tenant_id, organization_id, branch_id, financial_year_id, return_number
@@ -68,6 +77,19 @@ export class PostgresSalesReportingRepository implements SalesReportRepository {
       const pageValues = [...values, offset, input.pageSize];
       const rows = await client.query<SummaryRow>(
         `SELECT ${SUMMARY_COLUMNS} FROM (
+          SELECT 'QUOTATION'::text AS document_type, id AS document_id, quotation_number AS document_number,
+                 status::text, customer_id, created_at, version AS version_number,
+                 tenant_id, organization_id, branch_id, financial_year_id
+          FROM sales_quotations WHERE is_deleted=false
+          UNION ALL
+          SELECT 'ORDER'::text, id, order_number, status::text, customer_id, created_at, version_number,
+                 tenant_id, organization_id, branch_id, financial_year_id
+          FROM sales_orders WHERE is_deleted=false
+          UNION ALL
+          SELECT 'DELIVERY'::text, id, delivery_number, status::text, customer_id, created_at, version_number,
+                 tenant_id, organization_id, branch_id, financial_year_id
+          FROM sales_deliveries
+          UNION ALL
           SELECT 'INVOICE'::text AS document_type, id AS document_id, invoice_number AS document_number,
                  status::text, customer_id, created_at, version_number,
                  tenant_id, organization_id, branch_id, financial_year_id

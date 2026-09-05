@@ -145,3 +145,6 @@ writes. ADR-0035 adds additive Item Master and warehouse references. Confirmed
 orders can request idempotent Inventory reservations; failures leave the order
 confirmed but not falsely marked reserved. Historical lines without item
 identity remain excluded from new Inventory-backed flows.
+Tax snapshots on quotations and orders remain **DEPENDENCY-GATED** because the
+approved Tax contract currently snapshots at invoice issuance; order conversion
+copies the authoritative quotation commercial snapshots without recalculation.

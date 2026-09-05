@@ -55,7 +55,7 @@ void main() {
       auth: AuthService(authzService: AuthZService()),
     );
 
-    expect(await service.transition('q-1', 'send'), isNull);
+    expect(await service.transition('q-1', 'send', 1), isNull);
     expect(paths, ['/api/v1/sales/quotations/q-1/send']);
   });
 }

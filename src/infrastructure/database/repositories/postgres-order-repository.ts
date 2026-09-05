@@ -55,8 +55,8 @@ export class PostgresOrderRepository implements OrderRepository {
           ],
         );
         await c.query(
-          `INSERT INTO sales_order_items(tenant_id,organization_id,branch_id,financial_year_id,order_id,item_id,item_code,line_number,description,quantity,unit_price,unit_of_measure,discount_percentage,discount_amount,line_total,price_list_id,discount_rule_id,created_by,updated_by) SELECT tenant_id,organization_id,branch_id,financial_year_id,$1,item_id,item_code,line_number,description,quantity,unit_price,unit_of_measure,discount_percentage,discount_amount,line_total,price_list_id,discount_rule_id,$2,$2 FROM sales_quotation_items WHERE quotation_id=$3 AND tenant_id=$4`,
-          [r.rows[0].id, i.actorUserId, i.quotationId, i.tenantId],
+          `INSERT INTO sales_order_items(tenant_id,organization_id,branch_id,financial_year_id,order_id,item_id,item_code,line_number,description,quantity,unit_price,unit_of_measure,discount_percentage,discount_amount,line_total,price_list_id,discount_rule_id,created_by,updated_by) SELECT tenant_id,organization_id,branch_id,financial_year_id,$1,item_id,item_code,line_number,description,quantity,unit_price,unit_of_measure,discount_percentage,discount_amount,line_total,price_list_id,discount_rule_id,$2,$2 FROM sales_quotation_items WHERE quotation_id=$3 AND tenant_id=$4 AND organization_id=$5 AND branch_id=$6 AND financial_year_id=$7`,
+          [r.rows[0].id, i.actorUserId, i.quotationId, i.tenantId, i.organizationId, i.branchId, i.financialYearId],
         );
         return this.map(c, r.rows[0]);
       },
