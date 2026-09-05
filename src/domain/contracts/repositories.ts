@@ -269,6 +269,86 @@ export interface QuotationRepository {
   }): Promise<QuotationRecord | null>;
 }
 
+export interface OrderItemRecord extends QuotationItemRecord {}
+export interface OrderRecord {
+  id: string;
+  tenantId: string;
+  organizationId: string;
+  branchId: string;
+  financialYearId: string;
+  orderNumber: string;
+  customerId: string;
+  quotationId: string;
+  status: import('./order.js').OrderStatus;
+  notes: string | null;
+  items: OrderItemRecord[];
+  createdAt: Date;
+  createdBy: string | null;
+  updatedAt: Date | null;
+  updatedBy: string | null;
+  deletedAt: Date | null;
+  deletedBy: string | null;
+  isDeleted: boolean;
+  versionNumber: number;
+}
+export interface OrderRepository {
+  create(input: {
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    quotationId: string;
+    actorUserId: string;
+  }): Promise<OrderRecord>;
+  getById(
+    tenantId: string,
+    organizationId: string,
+    branchId: string,
+    financialYearId: string,
+    id: string,
+  ): Promise<OrderRecord | null>;
+  list(
+    tenantId: string,
+    q: {
+      organizationId: string;
+      branchId: string;
+      financialYearId: string;
+      page: number;
+      pageSize: number;
+      order: 'asc' | 'desc';
+      search?: string;
+    },
+  ): Promise<{ items: OrderRecord[]; total: number }>;
+  update(input: {
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    orderId: string;
+    notes: string | null;
+    expectedVersion: number;
+    actorUserId: string;
+  }): Promise<OrderRecord | null>;
+  transition(input: {
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    orderId: string;
+    status: import('./order.js').OrderStatus;
+    expectedVersion: number;
+    actorUserId: string;
+  }): Promise<OrderRecord | null>;
+  softDelete(input: {
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    orderId: string;
+    actorUserId: string;
+  }): Promise<OrderRecord | null>;
+}
+
 export interface OrganizationRecord {
   id: string;
   tenantId: string;
@@ -374,11 +454,7 @@ export interface UserBranchAccessRecord {
 }
 
 export interface CoreEnterpriseRepository {
-  validateFinancialYear(
-    tenantId: string,
-    organizationId: string,
-    financialYearId: string,
-  ): Promise<boolean>;
+  validateFinancialYear(tenantId: string, organizationId: string, financialYearId: string): Promise<boolean>;
   generateOrganizationCode(tenantId: string): Promise<string>;
   createOrganization(
     tenantId: string,

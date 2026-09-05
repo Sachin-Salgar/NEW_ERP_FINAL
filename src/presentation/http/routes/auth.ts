@@ -399,7 +399,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       const organizationId = body.organizationId.trim();
       const branchId = body.branchId.trim();
       const locationId = body.locationId.trim();
-      const financialYearId = body.financialYearId.trim();
+      const financialYearId = body.financialYearId?.trim() ?? null;
 
       await request.server.tenantMembershipService.resolveOrganizationMemberships(
         request.tenantId,
@@ -413,12 +413,15 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         organizationId,
       );
       if (!branch) throw new ForbiddenError('Branch is not available for the selected organization.');
-      const financialYearValid = await request.server.branchService.validateFinancialYear(
-        request.tenantId,
-        organizationId,
-        financialYearId,
-      );
-      if (!financialYearValid) throw new ForbiddenError('Financial year is not available for the selected organization.');
+      if (financialYearId) {
+        const financialYearValid = await request.server.branchService.validateFinancialYear(
+          request.tenantId,
+          organizationId,
+          financialYearId,
+        );
+        if (!financialYearValid)
+          throw new ForbiddenError('Financial year is not available for the selected organization.');
+      }
       const location = await request.server.locationService.getAccessibleLocationByIdForUser(
         request.tenantId,
         request.user.id,

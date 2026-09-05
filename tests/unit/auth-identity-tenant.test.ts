@@ -99,4 +99,32 @@ describe('identity-based tenant authentication', () => {
     expect(result.success).toBe(false);
     expect(result.reason).toBe('INVALID_CREDENTIALS');
   });
+
+  it('reloads the persisted session branch and financial year instead of user defaults', async () => {
+    const repository = {
+      findSession: vi.fn(async () => ({
+        id: 'session-1',
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+        organizationId: 'org-1',
+        locationId: 'location-1',
+        branchId: 'branch-session',
+        financialYearId: 'fy-session',
+        isActive: true,
+        expiresAt: new Date(Date.now() + 60_000),
+        loginAt: new Date(),
+        lastActivityAt: new Date(),
+      })),
+      findById: vi.fn(async () => ({
+        ...user('tenant-1', 'user-1'),
+        defaultBranchId: 'branch-default',
+      })),
+    } as any;
+    const service = new AuthenticationService(repository, {} as any);
+
+    await expect(service.validateSession('session-1', 'tenant-1')).resolves.toMatchObject({
+      branchId: 'branch-session',
+      financialYearId: 'fy-session',
+    });
+  });
 });

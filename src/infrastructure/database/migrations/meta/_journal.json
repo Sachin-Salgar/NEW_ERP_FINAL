@@ -22,6 +22,7 @@
     { "idx": 17, "version": "7", "when": 1788600000000, "tag": "0017-sales-quotation-item-organization-integrity", "breakpoints": true },
     { "idx": 18, "version": "7", "when": 1788603600000, "tag": "0018-sales-quotation-canonical-audit", "breakpoints": true },
     { "idx": 19, "version": "7", "when": 1788607200000, "tag": "0019-sales-quotation-context", "breakpoints": true },
-    { "idx": 20, "version": "7", "when": 1788607800000, "tag": "0020-session-financial-year-context", "breakpoints": true }
+    { "idx": 20, "version": "7", "when": 1788607800000, "tag": "0020-session-financial-year-context", "breakpoints": true },
+    { "idx": 21, "version": "7", "when": 1788608400000, "tag": "0021-sales-order", "breakpoints": true }
   ]
 }

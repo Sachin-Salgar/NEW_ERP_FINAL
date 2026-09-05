@@ -4,7 +4,7 @@
 **Authority:** Architecture documents and Approved ADRs define the intended system; this document records what is actually implemented and what remains to be validated or built.
 
 **Last reconciled:** 2026-09-05
-**Branch:** `main`
+**Branch:** `feature/sales-documentation-specifications`
 
 ## Status definitions
 
@@ -69,112 +69,111 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 
 ## 3. Tenancy, identity and authentication
 
-| Area | Status | Current implementation / remaining work |
-|---|---|---|
-| Tenant data boundary | **COMPLETED** | Tenant-scoped model and PostgreSQL RLS architecture implemented. |
-| Identity-based tenant discovery | **IMPLEMENTED — VALIDATION PENDING** | Authentication resolves tenant from authenticated user identity and fails closed on ambiguous active matches. |
-| Tenant-scoped session | **IMPLEMENTED — VALIDATION PENDING** | Session carries tenant/user/organization/location context and token lifecycle. |
-| TenantContext | **IMPLEMENTED — VALIDATION PENDING** | Server derives tenant from authenticated session; DB helper establishes transaction-local context. |
-| PostgreSQL RLS | **COMPLETED** | Integration coverage proves tested tenant visibility/write isolation, rollback and pooled-connection context isolation. |
-| Legacy host/deployment TenantResolver | **DEFERRED / RETIRED** | Replaced by identity-based tenant discovery; do not reintroduce it. |
-| Login/session frontend | **IMPLEMENTED — VALIDATION PENDING** | Flutter authentication/session restoration exists; CI now proves admin and limited-user browser login/dashboard flows. Full browser navigation/session-restoration matrix remains. |
-| Cross-deployment tenancy verification | **PENDING** | Deployment-independent architecture exists, but required representative cross-deployment verification is not yet evidenced. |
-| Ambiguous multi-tenant credential handling | **IMPLEMENTED** | Fail-closed behavior is covered by tests. |
+| Area                                       | Status                               | Current implementation / remaining work                                                                                                                                            |
+| ------------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tenant data boundary                       | **COMPLETED**                        | Tenant-scoped model and PostgreSQL RLS architecture implemented.                                                                                                                   |
+| Identity-based tenant discovery            | **IMPLEMENTED — VALIDATION PENDING** | Authentication resolves tenant from authenticated user identity and fails closed on ambiguous active matches.                                                                      |
+| Tenant-scoped session                      | **IMPLEMENTED — VALIDATION PENDING** | Session carries tenant/user/organization/location context and token lifecycle.                                                                                                     |
+| TenantContext                              | **IMPLEMENTED — VALIDATION PENDING** | Server derives tenant from authenticated session; DB helper establishes transaction-local context.                                                                                 |
+| PostgreSQL RLS                             | **COMPLETED**                        | Integration coverage proves tested tenant visibility/write isolation, rollback and pooled-connection context isolation.                                                            |
+| Legacy host/deployment TenantResolver      | **DEFERRED / RETIRED**               | Replaced by identity-based tenant discovery; do not reintroduce it.                                                                                                                |
+| Login/session frontend                     | **IMPLEMENTED — VALIDATION PENDING** | Flutter authentication/session restoration exists; CI now proves admin and limited-user browser login/dashboard flows. Full browser navigation/session-restoration matrix remains. |
+| Cross-deployment tenancy verification      | **PENDING**                          | Deployment-independent architecture exists, but required representative cross-deployment verification is not yet evidenced.                                                        |
+| Ambiguous multi-tenant credential handling | **IMPLEMENTED**                      | Fail-closed behavior is covered by tests.                                                                                                                                          |
 
 ## 4. Core Enterprise
 
-| Capability | Status | Evidence / remaining work |
-|---|---|---|
-| Authentication | **COMPLETED** | Backend authentication, token/session handling, security tests, and admin/limited-user browser E2E pass in CI. |
-| Session management / refresh / logout | **COMPLETED** | Rotation, replay detection, invalidation, logout, and lifecycle tests pass; browser matrix teardown remains a validation residual. |
-| Organization selection | **COMPLETED** | Backend access/select flow, default user context, and Flutter working-context UI are implemented and validated in scope. |
-| Branch selection | **COMPLETED** | Branch belongs to the active Organization; branch defaults and switching are validated in backend and UI flow. |
-| Location selection | **COMPLETED** | Location belongs to the active Organization; persisted default location and selection validation are implemented. |
-| Active organization/branch/location context | **COMPLETED** | Session/request context supports the complete `tenantId + organizationId + branchId + locationId` tuple and preserves prior valid context on failed switches. |
-| Organization administration | **COMPLETED** | Backend lifecycle operations, Flutter module, integration coverage, and CI validation exist. |
-| Branch administration | **COMPLETED** | Backend lifecycle operations, Flutter module, integration coverage, and CI validation exist. |
-| User administration | **COMPLETED** | Backend administration and Flutter list/create/edit/details/access surfaces are covered by tests and CI. |
-| User → role assignment | **COMPLETED** | Backend endpoints and Flutter assignment UI are covered by tests and CI. |
-| Backend RBAC | **COMPLETED** | Roles, permissions, assignments, effective permissions and middleware implemented. |
-| Role management UI | **COMPLETED** | Flutter role module and backend CRUD are covered by tests and CI. |
-| Permission catalog UI | **COMPLETED** | Flutter permission module and gated backend listing are covered by tests and CI. |
-| Role → permission assignment UI | **COMPLETED** | Backend assignment/removal and Flutter surfaces are covered by tests and CI. |
-| Frontend authorization state | **COMPLETED** | AuthZ state and widget/service tests pass. |
-| Permission-aware navigation | **COMPLETED** | Sidebar and shell consume canonical route metadata; backend remains authoritative. |
-| Permission-aware route guards | **COMPLETED** | Flutter guards wait for authorization readiness and are covered by tests. |
-| Module enablement/licensing | **COMPLETED** | Module access service/middleware and CRM enablement are implemented and tested. |
-| Persistent authenticated shell | **COMPLETED** | Router owns one authenticated shell and nested content navigator; login/dashboard shell is exercised by CI E2E. |
-| Responsive admin UI migration | **COMPLETED WITH VALIDATION RESIDUAL** | Responsive layout, breakpoints, cards/spacing and Material 3 foundation are implemented; broad browser-width matrix remains residual. |
-| Web navigation/routing | **COMPLETED WITH VALIDATION RESIDUAL** | Router 2.0, route parser/delegate, persistent shell/content navigator, shared route metadata and controlled not-found behavior are implemented; matrix teardown remains residual. |
-| Project-wide theme switching | **COMPLETED** | Shared light/dark theme infrastructure is active across login and authenticated responsive layouts. |
-| Core frontend/backend E2E | **COMPLETED WITH VALIDATION RESIDUAL** | Admin and limited-user Flutter Web E2E scenarios pass in GitHub Actions against deterministic Postgres-backed CI. The broader matrix fails only during Flutter teardown after assertions complete. |
+| Capability                                  | Status                                 | Evidence / remaining work                                                                                                                                                                          |
+| ------------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Authentication                              | **COMPLETED**                          | Backend authentication, token/session handling, security tests, and admin/limited-user browser E2E pass in CI.                                                                                     |
+| Session management / refresh / logout       | **COMPLETED**                          | Rotation, replay detection, invalidation, logout, and lifecycle tests pass; browser matrix teardown remains a validation residual.                                                                 |
+| Organization selection                      | **COMPLETED**                          | Backend access/select flow, default user context, and Flutter working-context UI are implemented and validated in scope.                                                                           |
+| Branch selection                            | **COMPLETED**                          | Branch belongs to the active Organization; branch defaults and switching are validated in backend and UI flow.                                                                                     |
+| Location selection                          | **COMPLETED**                          | Location belongs to the active Organization; persisted default location and selection validation are implemented.                                                                                  |
+| Active organization/branch/location context | **COMPLETED**                          | Session/request context supports the complete `tenantId + organizationId + branchId + locationId` tuple and preserves prior valid context on failed switches.                                      |
+| Organization administration                 | **COMPLETED**                          | Backend lifecycle operations, Flutter module, integration coverage, and CI validation exist.                                                                                                       |
+| Branch administration                       | **COMPLETED**                          | Backend lifecycle operations, Flutter module, integration coverage, and CI validation exist.                                                                                                       |
+| User administration                         | **COMPLETED**                          | Backend administration and Flutter list/create/edit/details/access surfaces are covered by tests and CI.                                                                                           |
+| User → role assignment                      | **COMPLETED**                          | Backend endpoints and Flutter assignment UI are covered by tests and CI.                                                                                                                           |
+| Backend RBAC                                | **COMPLETED**                          | Roles, permissions, assignments, effective permissions and middleware implemented.                                                                                                                 |
+| Role management UI                          | **COMPLETED**                          | Flutter role module and backend CRUD are covered by tests and CI.                                                                                                                                  |
+| Permission catalog UI                       | **COMPLETED**                          | Flutter permission module and gated backend listing are covered by tests and CI.                                                                                                                   |
+| Role → permission assignment UI             | **COMPLETED**                          | Backend assignment/removal and Flutter surfaces are covered by tests and CI.                                                                                                                       |
+| Frontend authorization state                | **COMPLETED**                          | AuthZ state and widget/service tests pass.                                                                                                                                                         |
+| Permission-aware navigation                 | **COMPLETED**                          | Sidebar and shell consume canonical route metadata; backend remains authoritative.                                                                                                                 |
+| Permission-aware route guards               | **COMPLETED**                          | Flutter guards wait for authorization readiness and are covered by tests.                                                                                                                          |
+| Module enablement/licensing                 | **COMPLETED**                          | Module access service/middleware and CRM enablement are implemented and tested.                                                                                                                    |
+| Persistent authenticated shell              | **COMPLETED**                          | Router owns one authenticated shell and nested content navigator; login/dashboard shell is exercised by CI E2E.                                                                                    |
+| Responsive admin UI migration               | **COMPLETED WITH VALIDATION RESIDUAL** | Responsive layout, breakpoints, cards/spacing and Material 3 foundation are implemented; broad browser-width matrix remains residual.                                                              |
+| Web navigation/routing                      | **COMPLETED WITH VALIDATION RESIDUAL** | Router 2.0, route parser/delegate, persistent shell/content navigator, shared route metadata and controlled not-found behavior are implemented; matrix teardown remains residual.                  |
+| Project-wide theme switching                | **COMPLETED**                          | Shared light/dark theme infrastructure is active across login and authenticated responsive layouts.                                                                                                |
+| Core frontend/backend E2E                   | **COMPLETED WITH VALIDATION RESIDUAL** | Admin and limited-user Flutter Web E2E scenarios pass in GitHub Actions against deterministic Postgres-backed CI. The broader matrix fails only during Flutter teardown after assertions complete. |
 
 ## 5. Platform foundation
 
-| Platform capability | Status |
-|---|---|
-| Authentication service | **IMPLEMENTED — VALIDATION PENDING** |
-| Authorization/RBAC service | **COMPLETED** |
-| Tenant context / RLS infrastructure | **IMPLEMENTED — VALIDATION PENDING** |
-| Platform bootstrap/reference data | **IMPLEMENTED — VALIDATION PENDING** |
-| Module access/licensing enforcement | **IMPLEMENTED — VALIDATION PENDING** |
-| Audit service / complete audit framework | **PENDING** |
-| Notification service / complete notification framework | **PENDING** |
-| File storage service | **PENDING** |
-| Enterprise configuration framework | **PENDING** |
-| Scheduler/background-job platform | **PENDING** |
-| Reporting service/infrastructure | **PENDING** |
-| Enterprise integration platform | **PENDING** |
-| AI platform capability | **PENDING** |
-| Localization/internationalization platform | **PENDING** |
+| Platform capability                                    | Status                               |
+| ------------------------------------------------------ | ------------------------------------ |
+| Authentication service                                 | **IMPLEMENTED — VALIDATION PENDING** |
+| Authorization/RBAC service                             | **COMPLETED**                        |
+| Tenant context / RLS infrastructure                    | **IMPLEMENTED — VALIDATION PENDING** |
+| Platform bootstrap/reference data                      | **IMPLEMENTED — VALIDATION PENDING** |
+| Module access/licensing enforcement                    | **IMPLEMENTED — VALIDATION PENDING** |
+| Audit service / complete audit framework               | **PENDING**                          |
+| Notification service / complete notification framework | **PENDING**                          |
+| File storage service                                   | **PENDING**                          |
+| Enterprise configuration framework                     | **PENDING**                          |
+| Scheduler/background-job platform                      | **PENDING**                          |
+| Reporting service/infrastructure                       | **PENDING**                          |
+| Enterprise integration platform                        | **PENDING**                          |
+| AI platform capability                                 | **PENDING**                          |
+| Localization/internationalization platform             | **PENDING**                          |
 
 ## 6. Database, quality and operational foundation
 
-| Area | Status | Notes |
-|---|---|---|
-| PostgreSQL/Drizzle database layer | **IMPLEMENTED — VALIDATION PENDING** | Current schema, repositories, migrations, connection and RLS infrastructure exist. |
-| Migration system | **IMPLEMENTED** | Migration runner and migration set exist. |
-| Tenant RLS integration tests | **COMPLETED** | Current integration coverage proves tested transaction-local tenant isolation behavior. |
-| Backend unit/integration CI | **COMPLETED** | GitHub Actions Postgres workflow successfully created Postgres 17, created the non-superuser test role/database, ran migrations, seeded fixtures, started the backend, and completed the E2E stages successfully in run 33486274877. |
-| Flutter unit/widget tests | **IMPLEMENTED — VALIDATION PENDING** | Auth/AuthZ, role, user, permission and routing tests exist; full browser matrix remains separate. |
-| Flutter frontend→backend E2E | **IMPLEMENTED — VALIDATION PENDING** | Admin and limited-user browser E2E scenarios pass in CI; broader navigation/session/responsive matrix remains. |
-| Security audit against authoritative security architecture | **COMPLETED WITH DEPLOYMENT-ONLY ITEMS** | Repository controls pass static review, local tests, npm audit, Backend CI, and Trivy. Production key rotation, provider TLS, backup recovery, and operational monitoring remain deployment evidence. |
-| CORE final completion audit | **COMPLETED WITH KNOWN VALIDATION RESIDUAL** | Final audit found no functional/security blocker; Browser Matrix E2E remains an isolated teardown validation residual. |
-| Production deployment validation | **IMPLEMENTED — VALIDATION PENDING** | Vercel → Render backend → PostgreSQL deployment is operational; broader release validation remains. |
+| Area                                                       | Status                                       | Notes                                                                                                                                                                                                                                |
+| ---------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| PostgreSQL/Drizzle database layer                          | **IMPLEMENTED — VALIDATION PENDING**         | Current schema, repositories, migrations, connection and RLS infrastructure exist.                                                                                                                                                   |
+| Migration system                                           | **IMPLEMENTED**                              | Migration runner and migration set exist.                                                                                                                                                                                            |
+| Tenant RLS integration tests                               | **COMPLETED**                                | Current integration coverage proves tested transaction-local tenant isolation behavior.                                                                                                                                              |
+| Backend unit/integration CI                                | **COMPLETED**                                | GitHub Actions Postgres workflow successfully created Postgres 17, created the non-superuser test role/database, ran migrations, seeded fixtures, started the backend, and completed the E2E stages successfully in run 33486274877. |
+| Flutter unit/widget tests                                  | **IMPLEMENTED — VALIDATION PENDING**         | Auth/AuthZ, role, user, permission and routing tests exist; full browser matrix remains separate.                                                                                                                                    |
+| Flutter frontend→backend E2E                               | **IMPLEMENTED — VALIDATION PENDING**         | Admin and limited-user browser E2E scenarios pass in CI; broader navigation/session/responsive matrix remains.                                                                                                                       |
+| Security audit against authoritative security architecture | **COMPLETED WITH DEPLOYMENT-ONLY ITEMS**     | Repository controls pass static review, local tests, npm audit, Backend CI, and Trivy. Production key rotation, provider TLS, backup recovery, and operational monitoring remain deployment evidence.                                |
+| CORE final completion audit                                | **COMPLETED WITH KNOWN VALIDATION RESIDUAL** | Final audit found no functional/security blocker; Browser Matrix E2E remains an isolated teardown validation residual.                                                                                                               |
+| Production deployment validation                           | **IMPLEMENTED — VALIDATION PENDING**         | Vercel → Render backend → PostgreSQL deployment is operational; broader release validation remains.                                                                                                                                  |
 
 ## 7. Business modules — implementation queue
 
 Project Management is explicitly removed/deferred and is not an implementation target.
 
-| Sequence | Module | Status |
-|---|---|---|
-| 1 | Core Enterprise | **COMPLETED WITH KNOWN VALIDATION RESIDUAL — READY FOR SALES** |
-| 2 | Sales | **QUOTATION SLICE PARTIAL — CANONICAL AUDIT/CONCURRENCY REMEDIATION COMPLETE; BRANCH/YEAR SEMANTICS BLOCKED** — [Sales specification package](../08-business-modules/03-sales-module-architecture.md) |
-| 3 | Procurement | **PENDING** |
-| 4 | Inventory | **PENDING** |
-| 5 | Manufacturing | **PENDING** |
-| 6 | Finance | **PENDING** |
-| 7 | Human Resources | **PENDING** |
-| 8 | CRM | **PARTIAL** — Customer foundation and HTTP API are implemented; contacts, leads, opportunities, activities, and broader CRM capabilities remain pending. |
-| 9 | Quality Management | **PENDING** |
-| 10 | Asset Maintenance | **PENDING** |
-| 11 | BI & Analytics | **PENDING** |
-| 12 | Workflow / BPM | **PENDING** |
+| Sequence | Module             | Status                                                                                                                                                              |
+| -------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1        | Core Enterprise    | **COMPLETED WITH KNOWN VALIDATION RESIDUAL — READY FOR SALES**                                                                                                      |
+| 2        | Sales              | **QUOTATION + SALES ORDER BACKEND SLICES IMPLEMENTED — VALIDATION PENDING** — [Sales specification package](../08-business-modules/03-sales-module-architecture.md) |
+| 3        | Procurement        | **PENDING**                                                                                                                                                         |
+| 4        | Inventory          | **PENDING**                                                                                                                                                         |
+| 5        | Manufacturing      | **PENDING**                                                                                                                                                         |
+| 6        | Finance            | **PENDING**                                                                                                                                                         |
+| 7        | Human Resources    | **PENDING**                                                                                                                                                         |
+| 8        | CRM                | **PARTIAL** — Customer foundation and HTTP API are implemented; contacts, leads, opportunities, activities, and broader CRM capabilities remain pending.            |
+| 9        | Quality Management | **PENDING**                                                                                                                                                         |
+| 10       | Asset Maintenance  | **PENDING**                                                                                                                                                         |
+| 11       | BI & Analytics     | **PENDING**                                                                                                                                                         |
+| 12       | Workflow / BPM     | **PENDING**                                                                                                                                                         |
 
 Business modules must not open until the Core Enterprise gate is completed unless an approved architectural decision changes the sequence.
 
 ### Current Sales implementation step
 
-The implemented Sales capability is quotation management only. Canonical audit,
+The implemented Sales capability includes quotation management and the Sales
+Order backend slice under approved ADR-0026. Canonical audit,
 optimistic-concurrency, and session-scoped branch/financial-year context
 remediation are complete, including forward migrations, repository/schema
 contracts, authorization, and validation. Legacy quotation rows without
 authoritative context remain a documented data-remediation residual. The
-remaining Sales architecture is now documented as an
-authorization/specification package without source-code implementation. Sales Order, Delivery, Invoice, Return,
-Credit Note, Pricing, Discounts, Workflow, integrations, and Reporting require
-the decisions and dependency contracts identified in their specifications
-before implementation begins.
+remaining Sales architecture is now documented as an authorization/specification
+package without source-code implementation. Delivery, Invoice, Return, Credit
+Note, Pricing, Discounts, Workflow, integrations, and Reporting remain deferred.
 
 The Sales quotation slice has passed its documented behavioral backend,
 PostgreSQL/RLS,
@@ -188,7 +187,11 @@ PostgreSQL tenant/organization isolation, soft-delete, rollback, search, and
 RLS/FORCE RLS validation. Backend typecheck, lint, build, migration-recovery
 verification, production dependency audit, Flutter analyzer, full Flutter
 tests, focused Sales route/service tests, and Flutter Web build pass. Full
-focused Sales route/service/widget coverage and Flutter Web build pass. Docker
+focused Sales route/service/widget coverage and Flutter Web build pass. The
+Sales Order minimum backend slice is implemented under ADR-0026 with
+accepted-quotation conversion, immutable session context, server numbering,
+RLS/FORCE RLS, audit/versioning, explicit lifecycle routes, and optimistic
+transition checks; focused Sales Order unit coverage passes. Docker
 and Trivy were unavailable in the validation environment and remain CI-pending;
 the Browser Matrix E2E teardown residual remains unchanged.
 

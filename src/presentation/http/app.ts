@@ -17,6 +17,7 @@ import { AccountSecurityService } from '../../application/services/account-secur
 import { MfaService } from '../../application/services/mfa-service.js';
 import { CustomerService } from '../../application/services/customer-service.js';
 import { QuotationService } from '../../application/services/quotation-service.js';
+import { OrderService } from '../../application/services/order-service.js';
 import { createDatabasePool } from '../../infrastructure/database/connection.js';
 import { PostgresQueryPerformanceMonitor } from '../../infrastructure/database/query-performance-monitor.js';
 import { IdentityAwarePostgresPlatformRepository } from '../../infrastructure/database/repositories/identity-aware-postgres-platform-repository.js';
@@ -24,6 +25,7 @@ import { PostgresAccountSecurityRepository } from '../../infrastructure/database
 import { PostgresMfaRepository } from '../../infrastructure/database/repositories/postgres-mfa-repository.js';
 import { PostgresCustomerRepository } from '../../infrastructure/database/repositories/postgres-customer-repository.js';
 import { PostgresQuotationRepository } from '../../infrastructure/database/repositories/postgres-quotation-repository.js';
+import { PostgresOrderRepository } from '../../infrastructure/database/repositories/postgres-order-repository.js';
 import { PostgresNotificationService } from '../../infrastructure/database/repositories/postgres-operational-services.js';
 import { AccountSecurityNotificationAdapter } from '../../application/adapters/account-security-notifications.js';
 import { buildErrorHandler } from '../../infrastructure/http/error-handler.js';
@@ -45,6 +47,7 @@ import jwksRoutes from './routes/jwks.js';
 import locationRoutes from './routes/location.js';
 import customerRoutes from './routes/customer.js';
 import quotationRoutes from './routes/quotation.js';
+import orderRoutes from './routes/order.js';
 import rbacRoutes from './routes/rbac.js';
 import { paginateListResponse } from './pagination.js';
 import { requestObject } from './request-input.js';
@@ -176,6 +179,13 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     auditLogger,
     transactionRunner,
   );
+  const orderService = new OrderService(
+    new PostgresOrderRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+    transactionRunner,
+  );
   const refreshTokenRotationService = new RefreshTokenRotationService(pool, config.TENANT_CONTEXT_KEY, jwtTokenService);
   const registrationService = new UserRegistrationService(
     repository,
@@ -222,6 +232,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('auditLogger', auditLogger);
   app.decorate('customerService', customerService);
   app.decorate('quotationService', quotationService);
+  app.decorate('orderService', orderService);
 
   app.addHook('onReady', async () => {
     const snapshot = await queryPerformanceMonitor.snapshot({ minimumMeanExecMs: 100, limit: 25 });
@@ -320,5 +331,6 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(locationRoutes, { prefix: config.API_PREFIX });
   await app.register(customerRoutes, { prefix: config.API_PREFIX });
   await app.register(quotationRoutes, { prefix: config.API_PREFIX });
+  await app.register(orderRoutes, { prefix: config.API_PREFIX });
   return app;
 }

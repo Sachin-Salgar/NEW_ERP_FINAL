@@ -46,6 +46,7 @@ export const quotationStatusEnum = pgEnum('quotation_status_enum', [
   'EXPIRED',
   'CANCELLED',
 ]);
+export const salesOrderStatusEnum = pgEnum('sales_order_status_enum', ['DRAFT', 'CONFIRMED', 'CANCELLED', 'CLOSED']);
 
 export const resetPolicyEnum = pgEnum('reset_policy_enum', ['financial_year', 'calendar_year', 'monthly', 'never']);
 
@@ -332,6 +333,13 @@ export const salesQuotations = pgTable(
       table.organizationId,
       table.quotationNumber,
     ),
+    uqSalesQuotationContext: uniqueIndex('uq_sales_quotation_context').on(
+      table.id,
+      table.organizationId,
+      table.tenantId,
+      table.branchId,
+      table.financialYearId,
+    ),
     idxSalesQuotationList: index('idx_sales_quotation_list').on(
       table.tenantId,
       table.organizationId,
@@ -398,6 +406,110 @@ export const salesQuotationItems = pgTable(
     }),
     checkSalesQuoteItemQuantity: check('check_sales_quote_item_quantity', sql`${table.quantity} > 0`),
     checkSalesQuoteItemPrice: check('check_sales_quote_item_price', sql`${table.unitPrice} >= 0`),
+  }),
+);
+
+export const salesOrders = pgTable(
+  'sales_orders',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    organizationId: uuid('organization_id').notNull(),
+    branchId: uuid('branch_id').notNull(),
+    financialYearId: uuid('financial_year_id').notNull(),
+    orderNumber: varchar('order_number', { length: 50 }).notNull(),
+    customerId: uuid('customer_id').notNull(),
+    quotationId: uuid('quotation_id').notNull(),
+    status: salesOrderStatusEnum('status').notNull().default('DRAFT'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid('created_by'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }),
+    updatedBy: uuid('updated_by'),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    deletedBy: uuid('deleted_by'),
+    isDeleted: boolean('is_deleted').notNull().default(false),
+    versionNumber: integer('version_number').notNull().default(1),
+  },
+  (table) => ({
+    uqSalesOrderNumber: uniqueIndex('uq_sales_order_number').on(
+      table.tenantId,
+      table.organizationId,
+      table.orderNumber,
+    ),
+    fkSalesOrderOrgTenant: foreignKey({
+      columns: [table.organizationId, table.tenantId],
+      foreignColumns: [organizations.id, organizations.tenantId],
+      name: 'fk_sales_order_org_tenant',
+    }),
+    fkSalesOrderBranchTenant: foreignKey({
+      columns: [table.branchId, table.tenantId],
+      foreignColumns: [branches.id, branches.tenantId],
+      name: 'fk_sales_order_branch_tenant',
+    }),
+    fkSalesOrderFinancialYearTenant: foreignKey({
+      columns: [table.financialYearId, table.tenantId],
+      foreignColumns: [financialYears.id, financialYears.tenantId],
+      name: 'fk_sales_order_fy_tenant',
+    }),
+    uqSalesOrderContext: uniqueIndex('uq_sales_order_context').on(
+      table.id,
+      table.organizationId,
+      table.tenantId,
+      table.branchId,
+      table.financialYearId,
+    ),
+    fkSalesOrderQuotation: foreignKey({
+      columns: [table.quotationId, table.organizationId, table.tenantId, table.branchId, table.financialYearId],
+      foreignColumns: [
+        salesQuotations.id,
+        salesQuotations.organizationId,
+        salesQuotations.tenantId,
+        salesQuotations.branchId,
+        salesQuotations.financialYearId,
+      ],
+      name: 'fk_sales_order_quotation_context',
+    }),
+  }),
+);
+
+export const salesOrderItems = pgTable(
+  'sales_order_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    organizationId: uuid('organization_id').notNull(),
+    branchId: uuid('branch_id').notNull(),
+    financialYearId: uuid('financial_year_id').notNull(),
+    orderId: uuid('order_id').notNull(),
+    lineNumber: integer('line_number').notNull(),
+    description: varchar('description', { length: 500 }).notNull(),
+    quantity: numeric('quantity', { precision: 18, scale: 4 }).notNull(),
+    unitPrice: numeric('unit_price', { precision: 18, scale: 4 }).notNull(),
+    unitOfMeasure: varchar('unit_of_measure', { length: 50 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid('created_by'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }),
+    updatedBy: uuid('updated_by'),
+    versionNumber: integer('version_number').notNull().default(1),
+  },
+  (table) => ({
+    uqSalesOrderItemLine: uniqueIndex('uq_sales_order_item_line').on(table.orderId, table.lineNumber),
+    fkSalesOrderItemOrder: foreignKey({
+      columns: [table.orderId, table.organizationId, table.tenantId, table.branchId, table.financialYearId],
+      foreignColumns: [
+        salesOrders.id,
+        salesOrders.organizationId,
+        salesOrders.tenantId,
+        salesOrders.branchId,
+        salesOrders.financialYearId,
+      ],
+      name: 'fk_sales_order_item_order_context',
+    }),
   }),
 );
 

@@ -1,6 +1,6 @@
 # Sales Order Management Specification
 
-**Status:** Authorization package — implementation specification
+**Status:** Backend slice implemented under ADR-0026; delivery dependencies deferred
 **Owner:** Sales
 **Dependencies:** Core Enterprise, CRM/Customer, Inventory, Finance, Tax, Workflow
 
@@ -135,5 +135,8 @@ and accounting use their owning contracts.
 
 ## IMPLEMENTATION STATUS
 
-**DEPENDENCY CONTRACT REQUIRED** — Inventory, Finance, Tax, and Workflow
-contracts are not published, and material order policy is unspecified.
+**IMPLEMENTED — MINIMUM BACKEND POLICY** — ADR-0026 authorizes accepted
+quotation conversion, DRAFT/CONFIRMED/CANCELLED/CLOSED lifecycle, immutable
+transaction context, server numbering, audit/versioning, and no inventory
+reservation. Delivery, Inventory, Finance, Tax, and Workflow contracts remain
+deferred and are not touched by this slice.

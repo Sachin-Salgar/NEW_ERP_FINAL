@@ -105,6 +105,11 @@
       "strategy": "compensating-migration",
       "destructiveDownAllowed": false,
       "note": "Session financial-year ownership is additive and tenant-safe; preserve existing sessions and correct context forward."
+    },
+    "0021-sales-order": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Sales order and audit data are business records; preserve and correct forward."
     }
   }
 }
