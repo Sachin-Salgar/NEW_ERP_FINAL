@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:22-alpine AS builder
+FROM node:22.23.2-alpine3.24 AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -10,7 +10,7 @@ COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 RUN npm run build
 
-FROM node:22-alpine AS runtime
+FROM node:22.23.2-alpine3.24 AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production
