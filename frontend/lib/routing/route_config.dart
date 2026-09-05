@@ -43,6 +43,14 @@ class AppRoutes {
     moduleCode: 'crm',
     icon: Icons.people_alt_outlined,
   );
+  static const inventoryItems = AppRouteConfig(
+    path: '/inventory/items',
+    title: 'Item Master',
+    group: 'INVENTORY',
+    permissionKey: 'inventory.item.read',
+    moduleCode: 'inventory',
+    icon: Icons.inventory_2_outlined,
+  );
   static const salesQuotations = AppRouteConfig(
     path: '/sales/quotations',
     title: 'Sales Quotations',
@@ -216,6 +224,7 @@ class AppRoutes {
     dashboard,
     settings,
     customers,
+    inventoryItems,
     salesQuotations,
     salesOrders,
     salesDeliveries,
@@ -233,6 +242,7 @@ class AppRoutes {
     '/customers/create': 'customer.create',
     '/customers/details': 'customer.read',
     '/customers/edit': 'customer.update',
+    '/inventory/items': 'inventory.item.read',
     '/sales/quotations': 'sales.quotation.read',
     '/sales/quotations/create': 'sales.quotation.create',
     '/sales/quotations/details': 'sales.quotation.read',
