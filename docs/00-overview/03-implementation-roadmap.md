@@ -149,7 +149,7 @@ Project Management is explicitly removed/deferred and is not an implementation t
 | Sequence | Module | Status |
 |---|---|---|
 | 1 | Core Enterprise | **COMPLETED WITH KNOWN VALIDATION RESIDUAL — READY FOR SALES** |
-| 2 | Sales | **QUOTATION MANAGEMENT COMPLETED WITH KNOWN VALIDATION RESIDUAL** — authoritative scope: [Sales Quotation Management](../08-business-modules/03-sales-quotation.md) |
+| 2 | Sales | **QUOTATION MANAGEMENT COMPLETED; REMAINING SALES CAPABILITIES AUTHORIZED FOR SPECIFICATION ONLY** — [Sales specification package](../08-business-modules/03-sales-module-architecture.md) |
 | 3 | Procurement | **PENDING** |
 | 4 | Inventory | **PENDING** |
 | 5 | Manufacturing | **PENDING** |
@@ -165,12 +165,12 @@ Business modules must not open until the Core Enterprise gate is completed unles
 
 ### Current Sales implementation step
 
-The approved current-phase Sales capability is quotation management only. The
-implementation order is database/RLS, domain and repository, application
-authorization and lifecycle use cases, API and backend validation, then
-Flutter service/screens/routing and frontend validation. Sales orders and the
-other capabilities listed as deferred in the quotation specification remain
-out of scope.
+The implemented Sales capability is quotation management only. The remaining
+Sales architecture is now documented as an authorization/specification package
+without source-code implementation. Sales Order, Delivery, Invoice, Return,
+Credit Note, Pricing, Discounts, Workflow, integrations, and Reporting require
+the decisions and dependency contracts identified in their specifications
+before implementation begins.
 
 The Sales quotation slice has passed its documented backend, PostgreSQL/RLS,
 frontend, routing, security, and documentation validation gates. The existing
@@ -186,6 +186,23 @@ tests, focused Sales route/service tests, and Flutter Web build pass. Full
 focused Sales route/service/widget coverage and Flutter Web build pass. Docker
 and Trivy were unavailable in the validation environment and remain CI-pending;
 the Browser Matrix E2E teardown residual remains unchanged.
+
+Specification package evidence:
+
+- [Sales Order](../08-business-modules/03-sales-order.md)
+- [Sales Delivery](../08-business-modules/04-sales-delivery.md)
+- [Sales Invoice](../08-business-modules/05-sales-invoice.md)
+- [Sales Return](../08-business-modules/06-sales-return.md)
+- [Sales Credit Note](../08-business-modules/07-sales-credit-note.md)
+- [Sales Pricing](../08-business-modules/08-sales-pricing.md)
+- [Sales Discounts](../08-business-modules/09-sales-discount.md)
+- [Sales Workflow](../08-business-modules/10-sales-workflow.md)
+- [Sales Integrations](../08-business-modules/11-sales-integrations.md)
+- [Sales Reporting](../08-business-modules/12-sales-reporting.md)
+
+These documents are not implementation authorization; each records
+`BUSINESS DECISION REQUIRED` and/or `DEPENDENCY CONTRACT REQUIRED` where the
+current architecture is not sufficiently specific.
 
 ## 8. Verification gate disposition
 

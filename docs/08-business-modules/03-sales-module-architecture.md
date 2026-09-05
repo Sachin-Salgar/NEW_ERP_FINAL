@@ -160,6 +160,28 @@ When implementing a Sales feature, AI must:
 5. avoid duplicating authoritative pricing, tax, accounting, or authorization rules;
 6. stop and ask when a required business rule or contract is unspecified.
 
+## 11. Implementation specification package
+
+This architecture document is conceptual and does not by itself authorize
+implementation of every listed capability. The implementation-ready
+specification package is indexed in [Business Modules README](./README.md):
+
+- [Sales Quotation](./03-sales-quotation.md) — current implemented slice.
+- [Sales Order](./03-sales-order.md)
+- [Sales Delivery](./04-sales-delivery.md)
+- [Sales Invoice](./05-sales-invoice.md)
+- [Sales Return](./06-sales-return.md)
+- [Sales Credit Note](./07-sales-credit-note.md)
+- [Sales Pricing](./08-sales-pricing.md)
+- [Sales Discounts](./09-sales-discount.md)
+- [Sales Workflow](./10-sales-workflow.md)
+- [Sales Integrations](./11-sales-integrations.md)
+- [Sales Reporting](./12-sales-reporting.md)
+
+Each remaining-capability specification explicitly records unresolved business
+decisions and dependency-contract requirements. Those gates must be resolved
+and approved before source implementation begins.
+
 ## Cross References
 
 - [Business Modules Architecture](./01-business-modules-architecture.md)

@@ -98,3 +98,9 @@ commissions, approvals, documents/PDF, email or messaging, reporting,
 dashboards, revisions, configurable numbering, multi-currency, and advanced
 templates are outside this slice.
 
+## IMPLEMENTATION STATUS
+
+**READY FOR IMPLEMENTATION** — this specification is the authority for the
+implemented quotation slice and has been validated by the existing backend,
+PostgreSQL/RLS, Flutter, routing, and audit test evidence. The remaining Sales
+capabilities are specified separately and are not authorized by this document.
