@@ -75,6 +75,11 @@
       "strategy": "compensating-migration",
       "destructiveDownAllowed": false,
       "note": "Customer records are business data; preserve them and correct forward if recovery is required."
+    },
+    "0015-tenant-module-trigger-rls": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Corrects tenant bootstrap trigger behavior under FORCE RLS by temporarily binding the new tenant context during core entitlement initialization and restoring the prior context."
     }
   }
 }
