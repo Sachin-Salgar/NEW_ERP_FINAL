@@ -51,6 +51,14 @@ class AppRoutes {
     moduleCode: 'inventory',
     icon: Icons.inventory_2_outlined,
   );
+  static const inventoryFoundation = AppRouteConfig(
+    path: '/inventory',
+    title: 'Inventory',
+    group: 'INVENTORY',
+    permissionKey: 'inventory.stock.read',
+    moduleCode: 'inventory',
+    icon: Icons.warehouse_outlined,
+  );
   static const salesQuotations = AppRouteConfig(
     path: '/sales/quotations',
     title: 'Sales Quotations',
@@ -225,6 +233,7 @@ class AppRoutes {
     settings,
     customers,
     inventoryItems,
+    inventoryFoundation,
     salesQuotations,
     salesOrders,
     salesDeliveries,
@@ -243,6 +252,7 @@ class AppRoutes {
     '/customers/details': 'customer.read',
     '/customers/edit': 'customer.update',
     '/inventory/items': 'inventory.item.read',
+    '/inventory': 'inventory.stock.read',
     '/sales/quotations': 'sales.quotation.read',
     '/sales/quotations/create': 'sales.quotation.create',
     '/sales/quotations/details': 'sales.quotation.read',

@@ -6,6 +6,7 @@ import '../core/auth/auth_service.dart';
 import '../modules/branch/branch_service.dart';
 import '../modules/customer/customer_service.dart';
 import '../modules/item_master/item_master_service.dart';
+import '../modules/inventory/inventory_service.dart';
 import '../modules/sales/sales_service.dart';
 import '../modules/organization/organization_service.dart';
 import '../modules/role/role_service.dart';
@@ -44,6 +45,12 @@ class App extends StatefulWidget {
     );
     di.registerLazySingleton(
       () => ItemMasterService(
+        apiClient: di.get<ApiClient>(),
+        auth: di.get<AuthService>(),
+      ),
+    );
+    di.registerLazySingleton(
+      () => InventoryService(
         apiClient: di.get<ApiClient>(),
         auth: di.get<AuthService>(),
       ),

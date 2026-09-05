@@ -150,6 +150,11 @@
       "strategy": "compensating-migration",
       "destructiveDownAllowed": false,
       "note": "Item master records are organization-owned business data; preserve and correct forward."
+    },
+    "0030-inventory-foundation": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Warehouse, stock, reservation, and movement records are authoritative Inventory business data; preserve and correct forward."
     }
   }
 }

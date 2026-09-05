@@ -12,8 +12,13 @@ export interface CustomerReferencePort {
   assertActiveCustomer(context: SalesDependencyContext, customerId: string): Promise<void>;
 }
 
+export type SalesInventoryPort = InventoryDependencyPort;
+
 export interface InventoryReturnPort {
-  requestReturnDisposition(context: SalesDependencyContext, returnId: string): Promise<{ status: 'NOT_CONNECTED' }>;
+  requestReturnDisposition(
+    context: SalesDependencyContext,
+    returnId: string,
+  ): Promise<{ status: 'NOT_CONNECTED' | 'COMPLETED'; movementId?: string }>;
 }
 
 export interface FinancePostingPort {
@@ -36,3 +41,4 @@ export interface SalesNotificationPort {
 export interface SalesDocumentPort {
   requestDocument(context: SalesDependencyContext, documentType: string, documentId: string): Promise<{ status: 'NOT_CONNECTED' }>;
 }
+import type { InventoryDependencyPort } from './inventory.js';

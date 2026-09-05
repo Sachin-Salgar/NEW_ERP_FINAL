@@ -26,6 +26,7 @@ import { PricingService } from '../../application/services/pricing-service.js';
 import { DiscountService } from '../../application/services/discount-service.js';
 import { SalesReportingService } from '../../application/services/sales-reporting-service.js';
 import { ItemMasterService } from '../../application/services/item-master-service.js';
+import { InventoryService } from '../../application/services/inventory-service.js';
 import { PostgresSalesReportingRepository } from '../../infrastructure/database/repositories/postgres-sales-reporting-repository.js';
 import { createDatabasePool } from '../../infrastructure/database/connection.js';
 import { PostgresQueryPerformanceMonitor } from '../../infrastructure/database/query-performance-monitor.js';
@@ -42,6 +43,7 @@ import { PostgresCreditNoteRepository } from '../../infrastructure/database/repo
 import { PostgresPricingRepository } from '../../infrastructure/database/repositories/postgres-pricing-repository.js';
 import { PostgresDiscountRepository } from '../../infrastructure/database/repositories/postgres-discount-repository.js';
 import { PostgresItemMasterRepository } from '../../infrastructure/database/repositories/postgres-item-master-repository.js';
+import { PostgresInventoryRepository } from '../../infrastructure/database/repositories/postgres-inventory-repository.js';
 import { PostgresNotificationService } from '../../infrastructure/database/repositories/postgres-operational-services.js';
 import { AccountSecurityNotificationAdapter } from '../../application/adapters/account-security-notifications.js';
 import { buildErrorHandler } from '../../infrastructure/http/error-handler.js';
@@ -72,6 +74,7 @@ import pricingRoutes from './routes/pricing.js';
 import discountRoutes from './routes/discount.js';
 import salesReportingRoutes from './routes/sales-reporting.js';
 import itemMasterRoutes from './routes/item-master.js';
+import inventoryRoutes from './routes/inventory.js';
 import rbacRoutes from './routes/rbac.js';
 import { paginateListResponse } from './pagination.js';
 import { requestObject } from './request-input.js';
@@ -262,6 +265,13 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     auditLogger,
     transactionRunner,
   );
+  const inventoryService = new InventoryService(
+    new PostgresInventoryRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+    transactionRunner,
+  );
   const refreshTokenRotationService = new RefreshTokenRotationService(pool, config.TENANT_CONTEXT_KEY, jwtTokenService);
   const registrationService = new UserRegistrationService(
     repository,
@@ -317,6 +327,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('discountService', discountService);
   app.decorate('salesReportingService', salesReportingService);
   app.decorate('itemMasterService', itemMasterService);
+  app.decorate('inventoryService', inventoryService);
 
   app.addHook('onReady', async () => {
     const snapshot = await queryPerformanceMonitor.snapshot({ minimumMeanExecMs: 100, limit: 25 });
@@ -424,5 +435,6 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(discountRoutes, { prefix: config.API_PREFIX });
   await app.register(salesReportingRoutes, { prefix: config.API_PREFIX });
   await app.register(itemMasterRoutes, { prefix: config.API_PREFIX });
+  await app.register(inventoryRoutes, { prefix: config.API_PREFIX });
   return app;
 }

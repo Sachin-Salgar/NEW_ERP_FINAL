@@ -196,6 +196,18 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
     permissionKey: `inventory.item.${action}`,
     displayName: `${action[0].toUpperCase()}${action.slice(1)} item master records`,
   })),
+  ...([
+    ['warehouse', 'read'], ['warehouse', 'create'], ['warehouse', 'update'],
+    ['stock', 'read'], ['stock', 'receive'], ['stock', 'return'],
+    ['reservation', 'read'], ['reservation', 'create'], ['reservation', 'release'], ['reservation', 'fulfill'],
+  ] as const).map(([resource, action]) => ({
+    moduleCode: 'inventory',
+    resource,
+    action,
+    scope: 'organization' as const,
+    permissionKey: `inventory.${resource}.${action}`,
+    displayName: `${action[0].toUpperCase()}${action.slice(1)} inventory ${resource} records`,
+  })),
   ...(['read', 'create', 'update', 'delete', 'send', 'accept', 'reject', 'expire', 'cancel'] as const).map(
     (action) => ({
       moduleCode: 'sales',

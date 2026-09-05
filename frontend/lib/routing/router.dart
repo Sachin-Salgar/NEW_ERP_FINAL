@@ -12,6 +12,7 @@ import '../modules/customer/details_screen.dart';
 import '../modules/customer/edit_screen.dart';
 import '../modules/customer/list_screen.dart';
 import '../modules/item_master/list_screen.dart';
+import '../modules/inventory/foundation_screen.dart';
 import '../modules/sales/create_screen.dart';
 import '../modules/sales/details_screen.dart';
 import '../modules/sales/edit_screen.dart';
@@ -562,6 +563,15 @@ class AppRouter {
             context,
             routeName: '/inventory/items',
             child: const ItemMasterListScreen(),
+          ),
+        );
+      case '/inventory':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/inventory',
+            child: const InventoryFoundationScreen(),
           ),
         );
       case '/customers/create':

@@ -234,6 +234,112 @@ export interface ItemRepository {
   }): Promise<ItemRecord | null>;
 }
 
+import type {
+  MovementType,
+  ReservationStatus,
+  WarehouseStatus,
+} from './inventory.js';
+
+export interface WarehouseRecord {
+  id: string;
+  tenantId: string;
+  organizationId: string;
+  code: string;
+  name: string;
+  status: WarehouseStatus;
+  version: number;
+  createdAt: Date;
+  createdBy: string | null;
+  updatedAt: Date | null;
+  updatedBy: string | null;
+}
+
+export interface InventoryStockRecord {
+  id: string;
+  tenantId: string;
+  organizationId: string;
+  warehouseId: string;
+  itemId: string;
+  onHandQuantity: number;
+  reservedQuantity: number;
+  availableQuantity: number;
+  version: number;
+}
+
+export interface InventoryReservationRecord {
+  id: string;
+  tenantId: string;
+  organizationId: string;
+  branchId: string;
+  financialYearId: string;
+  warehouseId: string;
+  itemId: string;
+  sourceType: string;
+  sourceId: string;
+  idempotencyKey: string;
+  quantity: number;
+  status: ReservationStatus;
+  version: number;
+  createdAt: Date;
+  createdBy: string | null;
+  updatedAt: Date | null;
+  updatedBy: string | null;
+}
+
+export interface InventoryMovementRecord {
+  id: string;
+  tenantId: string;
+  organizationId: string;
+  branchId: string;
+  financialYearId: string;
+  warehouseId: string;
+  itemId: string;
+  movementType: MovementType;
+  quantity: number;
+  sourceType: string;
+  sourceId: string;
+  operationKey: string;
+  createdAt: Date;
+  createdBy: string | null;
+}
+
+export interface InventoryRepository {
+  createWarehouse(input: {
+    tenantId: string; organizationId: string; code: string; name: string; actorUserId: string;
+  }): Promise<WarehouseRecord>;
+  listWarehouses(tenantId: string, organizationId: string, page: number, pageSize: number, search?: string):
+    Promise<{ items: WarehouseRecord[]; total: number }>;
+  updateWarehouse(input: {
+    tenantId: string; organizationId: string; warehouseId: string; name: string; status: WarehouseStatus;
+    expectedVersion: number; actorUserId: string;
+  }): Promise<WarehouseRecord | null>;
+  listStock(tenantId: string, organizationId: string, page: number, pageSize: number, warehouseId?: string, itemId?: string):
+    Promise<{ items: InventoryStockRecord[]; total: number }>;
+  receiveStock(input: {
+    tenantId: string; organizationId: string; branchId: string; financialYearId: string; warehouseId: string;
+    itemId: string; quantity: number; sourceType: string; sourceId: string; operationKey: string; actorUserId: string;
+  }): Promise<InventoryStockRecord>;
+  reserveStock(input: {
+    tenantId: string; organizationId: string; branchId: string; financialYearId: string; warehouseId: string;
+    itemId: string; quantity: number; sourceType: string; sourceId: string; idempotencyKey: string; actorUserId: string;
+  }): Promise<InventoryReservationRecord>;
+  listReservations(input: {
+    tenantId: string; organizationId: string; page: number; pageSize: number; status?: ReservationStatus;
+  }): Promise<{ items: InventoryReservationRecord[]; total: number }>;
+  releaseReservation(input: {
+    tenantId: string; organizationId: string; branchId: string; financialYearId: string; reservationId: string;
+    operationKey: string; actorUserId: string;
+  }): Promise<InventoryReservationRecord>;
+  fulfillReservation(input: {
+    tenantId: string; organizationId: string; branchId: string; financialYearId: string; reservationId: string;
+    operationKey: string; actorUserId: string;
+  }): Promise<InventoryReservationRecord>;
+  returnStock(input: {
+    tenantId: string; organizationId: string; branchId: string; financialYearId: string; warehouseId: string;
+    itemId: string; quantity: number; sourceType: string; sourceId: string; operationKey: string; actorUserId: string;
+  }): Promise<InventoryMovementRecord>;
+}
+
 export interface QuotationItemInput {
   description: string;
   quantity: number;
