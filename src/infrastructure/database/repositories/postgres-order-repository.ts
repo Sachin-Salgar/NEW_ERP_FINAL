@@ -2,7 +2,7 @@ import type { Pool } from 'pg';
 import type { OrderRepository, OrderRecord } from '../../../domain/contracts/repositories.js';
 import { withTenantContext } from '../tenant-context.js';
 import { ValidationError } from '../../../domain/errors.js';
-const C = `id,tenant_id AS "tenantId",organization_id AS "organizationId",branch_id AS "branchId",financial_year_id AS "financialYearId",order_number AS "orderNumber",customer_id AS "customerId",quotation_id AS "quotationId",status,notes,created_at AS "createdAt",created_by AS "createdBy",updated_at AS "updatedAt",updated_by AS "updatedBy",deleted_at AS "deletedAt",deleted_by AS "deletedBy",is_deleted AS "isDeleted",version_number AS "versionNumber"`;
+const C = `id,tenant_id AS "tenantId",organization_id AS "organizationId",branch_id AS "branchId",financial_year_id AS "financialYearId",order_number AS "orderNumber",customer_id AS "customerId",quotation_id AS "quotationId",warehouse_id AS "warehouseId",reservation_status AS "reservationStatus",status,notes,created_at AS "createdAt",created_by AS "createdBy",updated_at AS "updatedAt",updated_by AS "updatedBy",deleted_at AS "deletedAt",deleted_by AS "deletedBy",is_deleted AS "isDeleted",version_number AS "versionNumber"`;
 export class PostgresOrderRepository implements OrderRepository {
   constructor(
     private readonly pool: Pool,
@@ -20,12 +20,25 @@ export class PostgresOrderRepository implements OrderRepository {
         );
         if (!q.rows[0])
           throw new ValidationError('Only an accepted quotation in the active context can create an order.');
+        const warehouse = await c.query(
+          `SELECT id FROM inventory_warehouses WHERE id=$1 AND tenant_id=$2 AND organization_id=$3 AND status='ACTIVE'`,
+          [i.warehouseId, i.tenantId, i.organizationId],
+        );
+        if (!warehouse.rows[0]) throw new ValidationError('An active warehouse in the organization is required.');
+        const sourceItems = await c.query(
+          `SELECT item_id AS "itemId" FROM sales_quotation_items
+           WHERE quotation_id=$1 AND tenant_id=$2 AND organization_id=$3 AND branch_id=$4 AND financial_year_id=$5
+           ORDER BY line_number`,
+          [i.quotationId, i.tenantId, i.organizationId, i.branchId, i.financialYearId],
+        );
+        if (!sourceItems.rows.length || sourceItems.rows.some((line: any) => !line.itemId))
+          throw new ValidationError('Every new Sales Order line requires an Item Master item.');
         const n = await c.query(
           `INSERT INTO code_counters(tenant_id,entity_type,scope_key,last_value) VALUES($1,'sales_order',$2,1) ON CONFLICT(tenant_id,entity_type,scope_key) DO UPDATE SET last_value=code_counters.last_value+1 RETURNING last_value`,
           [i.tenantId, i.organizationId],
         );
         const r = await c.query(
-          `INSERT INTO sales_orders(tenant_id,organization_id,branch_id,financial_year_id,order_number,customer_id,quotation_id,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING ${C}`,
+          `INSERT INTO sales_orders(tenant_id,organization_id,branch_id,financial_year_id,order_number,customer_id,quotation_id,warehouse_id,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING ${C}`,
           [
             i.tenantId,
             i.organizationId,
@@ -34,11 +47,12 @@ export class PostgresOrderRepository implements OrderRepository {
             `SO-${String(n.rows[0].last_value).padStart(6, '0')}`,
             q.rows[0].customerId,
             i.quotationId,
+            i.warehouseId,
             i.actorUserId,
           ],
         );
         await c.query(
-          `INSERT INTO sales_order_items(tenant_id,organization_id,branch_id,financial_year_id,order_id,line_number,description,quantity,unit_price,unit_of_measure,created_by,updated_by) SELECT tenant_id,organization_id,branch_id,financial_year_id,$1,line_number,description,quantity,unit_price,unit_of_measure,$2,$2 FROM sales_quotation_items WHERE quotation_id=$3 AND tenant_id=$4`,
+          `INSERT INTO sales_order_items(tenant_id,organization_id,branch_id,financial_year_id,order_id,item_id,line_number,description,quantity,unit_price,unit_of_measure,created_by,updated_by) SELECT tenant_id,organization_id,branch_id,financial_year_id,$1,item_id,line_number,description,quantity,unit_price,unit_of_measure,$2,$2 FROM sales_quotation_items WHERE quotation_id=$3 AND tenant_id=$4`,
           [r.rows[0].id, i.actorUserId, i.quotationId, i.tenantId],
         );
         return this.map(c, r.rows[0]);
@@ -116,6 +130,15 @@ export class PostgresOrderRepository implements OrderRepository {
       ],
     );
   }
+  async updateReservationStatus(i: any) {
+    return this.mutate(
+      i,
+      `UPDATE sales_orders SET reservation_status=$1,updated_at=now(),updated_by=$2,version_number=version_number+1
+       WHERE tenant_id=$3 AND organization_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND is_deleted=false
+       RETURNING ${C}`,
+      [i.reservationStatus, i.actorUserId, i.tenantId, i.organizationId, i.branchId, i.financialYearId, i.orderId],
+    );
+  }
   async softDelete(i: any) {
     return this.mutate(
       i,
@@ -144,7 +167,7 @@ export class PostgresOrderRepository implements OrderRepository {
   }
   private async map(c: any, r: any): Promise<OrderRecord> {
     const x = await c.query(
-      `SELECT id,line_number AS "lineNumber",description,quantity,unit_price AS "unitPrice",unit_of_measure AS "unitOfMeasure" FROM sales_order_items WHERE order_id=$1 AND tenant_id=$2 ORDER BY line_number`,
+      `SELECT id,item_id AS "itemId",line_number AS "lineNumber",description,quantity,unit_price AS "unitPrice",unit_of_measure AS "unitOfMeasure" FROM sales_order_items WHERE order_id=$1 AND tenant_id=$2 ORDER BY line_number`,
       [r.id, r.tenantId],
     );
     return {

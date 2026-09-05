@@ -211,12 +211,25 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     auditLogger,
     transactionRunner,
   );
+  const inventoryService = new InventoryService(
+    new PostgresInventoryRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+    transactionRunner,
+  );
   const orderService = new OrderService(
     new PostgresOrderRepository(pool, config.TENANT_CONTEXT_KEY),
     authorizationService,
     moduleAccessService,
     auditLogger,
     transactionRunner,
+    {
+      reserveStock: (context, request) => inventoryService.reserve(context, request),
+      releaseReservation: (context, reservationId, idempotencyKey) => inventoryService.release(context, reservationId, idempotencyKey),
+      fulfillReservation: (context, reservationId, idempotencyKey) => inventoryService.fulfill(context, reservationId, idempotencyKey),
+      returnStock: (context, request) => inventoryService.returnStock(context, request),
+    },
   );
   const deliveryService = new DeliveryService(
     new PostgresDeliveryRepository(pool, config.TENANT_CONTEXT_KEY),
@@ -260,13 +273,6 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   );
   const itemMasterService = new ItemMasterService(
     new PostgresItemMasterRepository(pool, config.TENANT_CONTEXT_KEY),
-    authorizationService,
-    moduleAccessService,
-    auditLogger,
-    transactionRunner,
-  );
-  const inventoryService = new InventoryService(
-    new PostgresInventoryRepository(pool, config.TENANT_CONTEXT_KEY),
     authorizationService,
     moduleAccessService,
     auditLogger,

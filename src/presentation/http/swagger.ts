@@ -71,7 +71,7 @@ export function schemaForRoute(method: string, url: string) {
   else if (method === 'PATCH' && normalizedUrl === '/sales/quotations/:id')
     schema.body = toJsonSchema(salesQuotationSchemas.updateRequest);
   else if (method === 'POST' && normalizedUrl === '/sales/orders')
-    schema.body = toJsonSchema(z.object({ quotationId: z.string().uuid() }));
+    schema.body = toJsonSchema(z.object({ quotationId: z.string().uuid(), warehouseId: z.string().uuid() }));
   else if (method === 'PATCH' && normalizedUrl === '/sales/orders/:id')
     schema.body = toJsonSchema(
       z.object({ notes: z.string().nullable().optional(), expectedVersion: z.number().int().positive() }),

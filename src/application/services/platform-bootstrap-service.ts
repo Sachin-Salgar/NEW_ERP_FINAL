@@ -218,7 +218,7 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
       displayName: `${action[0].toUpperCase()}${action.slice(1)} quotations`,
     }),
   ),
-  ...(['read', 'create', 'update', 'delete', 'confirm', 'cancel', 'close'] as const).map((action) => ({
+  ...(['read', 'create', 'update', 'delete', 'confirm', 'reserve', 'cancel', 'close'] as const).map((action) => ({
     moduleCode: 'sales',
     resource: 'order',
     action,

@@ -1,6 +1,8 @@
 # Sales Order Management Specification
 
-**Status:** Backend slice implemented under ADR-0026; delivery dependencies deferred
+**Status:** Backend slice implemented under ADR-0026; Item Master and warehouse
+contract implemented under ADR-0035; reservation activation is available through
+the Inventory boundary
 **Owner:** Sales
 **Dependencies:** Core Enterprise, CRM/Customer, Inventory, Finance, Tax, Workflow
 
@@ -25,7 +27,7 @@ in Section 19.
 | `tenant_id` | UUID | yes | authenticated tenant; immutable |
 | `organization_id` | UUID | yes | active authorized organization |
 | `branch_id` | UUID | mandatory reference; semantics decision | Core branch in same organization |
-| `warehouse_id` | UUID | decision | Inventory warehouse contract |
+| `warehouse_id` | UUID | required for new order conversion | Active Inventory warehouse in the same organization |
 | `financial_year_id` | UUID | mandatory reference; semantics decision | financial-year contract |
 | `order_number` | text | yes | server-generated, scope pending |
 | `customer_id` | UUID | yes | CRM Customer contract |
@@ -44,11 +46,12 @@ in Section 19.
 ### Detail: `sales_order_items`
 
 Required baseline: UUIDv7 `id`, `tenant_id`, `organization_id`, `order_id`,
-line number, item/product reference, description snapshot, quantity, unit of
+line number, Item Master `item_id`, description snapshot, quantity, unit of
 measure, unit price, discount reference, tax reference, and canonical audit
 columns (`created_at`, `created_by`, `updated_at`, `updated_by`,
 `version_number`).
-Exact item and monetary types, tax snapshots, discount snapshots, and whether
+Historical lines may retain a null `item_id`; new Inventory-backed order
+conversion requires it. Exact monetary types, tax snapshots, discount snapshots, and whether
 services are allowed are **BUSINESS DECISION REQUIRED**.
 
 Header/detail rows require composite tenant/organization foreign-key integrity,
@@ -137,6 +140,8 @@ and accounting use their owning contracts.
 
 **IMPLEMENTED — MINIMUM BACKEND POLICY** — ADR-0026 authorizes accepted
 quotation conversion, DRAFT/CONFIRMED/CANCELLED/CLOSED lifecycle, immutable
-transaction context, server numbering, audit/versioning, and no inventory
-reservation. Delivery, Inventory, Finance, Tax, and Workflow contracts remain
-deferred and are not touched by this slice.
+transaction context, server numbering, audit/versioning, and no direct Inventory
+writes. ADR-0035 adds additive Item Master and warehouse references. Confirmed
+orders can request idempotent Inventory reservations; failures leave the order
+confirmed but not falsely marked reserved. Historical lines without item
+identity remain excluded from new Inventory-backed flows.

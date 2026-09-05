@@ -155,6 +155,16 @@
       "strategy": "compensating-migration",
       "destructiveDownAllowed": false,
       "note": "Warehouse, stock, reservation, and movement records are authoritative Inventory business data; preserve and correct forward."
+    },
+    "0031-sales-inventory-contract": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Sales item and warehouse references are additive and historical rows remain nullable; preserve transaction data and correct forward."
+    },
+    "0032-sales-inventory-contract-correction": {
+      "strategy": "forward-only-security",
+      "destructiveDownAllowed": false,
+      "note": "Correct the composite foreign-key support index without removing Sales or Inventory business data."
     }
   }
 }

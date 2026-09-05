@@ -123,8 +123,8 @@ export class PostgresInventoryRepository implements InventoryRepository {
     return this.withTenant(input.tenantId, input.organizationId, input.actorUserId, async (client) => {
       const prior = await client.query(
         `SELECT ${reservationColumns} FROM inventory_reservations
-         WHERE tenant_id=$1 AND organization_id=$2 AND source_type=$3 AND source_id=$4`,
-        [input.tenantId, input.organizationId, input.sourceType, input.sourceId],
+         WHERE tenant_id=$1 AND organization_id=$2 AND source_type=$3 AND source_id=$4 AND item_id=$5`,
+        [input.tenantId, input.organizationId, input.sourceType, input.sourceId, input.itemId],
       );
       if (prior.rows[0]) {
         if (Number(prior.rows[0].quantity) !== input.quantity) throw new ValidationError('Reservation source already exists with a different quantity.');
@@ -139,8 +139,8 @@ export class PostgresInventoryRepository implements InventoryRepository {
       );
       const concurrentPrior = await client.query(
         `SELECT ${reservationColumns} FROM inventory_reservations
-         WHERE tenant_id=$1 AND organization_id=$2 AND source_type=$3 AND source_id=$4`,
-        [input.tenantId, input.organizationId, input.sourceType, input.sourceId],
+         WHERE tenant_id=$1 AND organization_id=$2 AND source_type=$3 AND source_id=$4 AND item_id=$5`,
+        [input.tenantId, input.organizationId, input.sourceType, input.sourceId, input.itemId],
       );
       if (concurrentPrior.rows[0]) {
         if (Number(concurrentPrior.rows[0].quantity) !== input.quantity) {

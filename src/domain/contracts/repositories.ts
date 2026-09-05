@@ -341,6 +341,7 @@ export interface InventoryRepository {
 }
 
 export interface QuotationItemInput {
+  itemId?: string | null;
   description: string;
   quantity: number;
   unitPrice: number;
@@ -446,6 +447,8 @@ export interface OrderRecord {
   orderNumber: string;
   customerId: string;
   quotationId: string;
+  warehouseId?: string | null;
+  reservationStatus?: 'NOT_RESERVED' | 'RESERVED';
   status: import('./order.js').OrderStatus;
   notes: string | null;
   items: OrderItemRecord[];
@@ -465,6 +468,7 @@ export interface OrderRepository {
     branchId: string;
     financialYearId: string;
     quotationId: string;
+    warehouseId?: string;
     actorUserId: string;
   }): Promise<OrderRecord>;
   getById(
@@ -504,6 +508,15 @@ export interface OrderRepository {
     orderId: string;
     status: import('./order.js').OrderStatus;
     expectedVersion: number;
+    actorUserId: string;
+  }): Promise<OrderRecord | null>;
+  updateReservationStatus?(input: {
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    orderId: string;
+    reservationStatus: 'NOT_RESERVED' | 'RESERVED';
     actorUserId: string;
   }): Promise<OrderRecord | null>;
   softDelete(input: {

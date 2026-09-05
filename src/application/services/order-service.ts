@@ -10,6 +10,7 @@ import {
   type OrderPermission,
   type OrderStatus,
 } from '../../domain/contracts/order.js';
+import type { InventoryDependencyPort } from '../../domain/contracts/inventory.js';
 
 export interface OrderContext {
   tenantId: string;
@@ -32,13 +33,15 @@ export class OrderService {
     private readonly modules: Pick<ModuleAccessService, 'isModuleEnabled'>,
     private readonly audit: AuditLogger,
     private readonly tx: { runInTransaction<T>(cb: () => Promise<T>): Promise<T> },
+    private readonly inventory?: InventoryDependencyPort,
   ) {}
 
-  async create(c: OrderContext, input: { quotationId: string }) {
+  async create(c: OrderContext, input: { quotationId: string; warehouseId?: string }) {
     await this.authorize(c, ORDER_PERMISSIONS.create);
     this.id(input.quotationId, 'Quotation ID');
+    if (input.warehouseId) this.id(input.warehouseId, 'Warehouse ID');
     return this.tx.runInTransaction(async () => {
-      const order = await this.repository.create({ ...c, quotationId: input.quotationId, actorUserId: c.userId });
+      const order = await this.repository.create({ ...c, quotationId: input.quotationId, warehouseId: input.warehouseId, actorUserId: c.userId });
       await this.audit.record(
         {
           tenantId: c.tenantId,
@@ -116,6 +119,39 @@ export class OrderService {
         { requireTransaction: true },
       );
       return x;
+    });
+  }
+  async reserve(c: OrderContext, id: string) {
+    await this.authorize(c, ORDER_PERMISSIONS.reserve);
+    this.id(id, 'Order ID');
+    if (!this.inventory) throw new ValidationError('Inventory reservation provider is not configured.');
+    const inventory = this.inventory;
+    return this.tx.runInTransaction(async () => {
+      const order = await this.repository.getById(c.tenantId, c.organizationId, c.branchId, c.financialYearId, id);
+      if (!order) throw new NotFoundError('Order not found.');
+      if (order.status !== 'CONFIRMED') throw new ValidationError('Only confirmed orders can reserve Inventory.');
+      if (!order.warehouseId) throw new ValidationError('Order warehouse context is required.');
+      if (!order.items.length || order.items.some((item) => !item.itemId))
+        throw new ValidationError('Every order line requires an Item Master item.');
+      for (const item of order.items) {
+        await inventory.reserveStock(c, {
+          warehouseId: order.warehouseId,
+          itemId: item.itemId!,
+          quantity: item.quantity,
+          sourceType: 'SALES_ORDER',
+          sourceId: order.id,
+          idempotencyKey: `sales-order:${order.id}:${item.itemId}`,
+        });
+      }
+      const updated = this.repository.updateReservationStatus
+        ? await this.repository.updateReservationStatus({ ...c, orderId: order.id, reservationStatus: 'RESERVED', actorUserId: c.userId })
+        : order;
+      if (!updated) throw new ValidationError('Order reservation state could not be updated.');
+      await this.audit.record(
+        { tenantId: c.tenantId, actorUserId: c.userId, action: 'order.reserved', resourceType: 'sales_order', resourceId: order.id, outcome: 'success' },
+        { requireTransaction: true },
+      );
+      return updated;
     });
   }
   private async authorize(c: OrderContext, p: OrderPermission) {

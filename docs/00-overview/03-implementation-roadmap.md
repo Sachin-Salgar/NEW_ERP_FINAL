@@ -176,18 +176,21 @@ contracts, authorization, and validation. Legacy quotation rows without
 authoritative context remain a documented data-remediation residual. The
 Workflow remains not connected, while provider-neutral integration boundaries
 and a bounded Sales document-summary report are implemented. Finance, Tax,
-CRM Item Master and transaction-facing Pricing/Discount snapshot resolution
-remain explicit dependency/contract boundaries. The Inventory provider is
-implemented, while Sales transaction-facing Inventory activation remains an
-explicit contract boundary. An organization-scoped
+Transaction-facing Pricing/Discount snapshot resolution remains an explicit
+dependency/contract boundary. The Inventory provider is
+implemented. Under approved ADR-0035, new Sales quotation lines can carry Item
+Master identity, order conversion requires an active organization warehouse and
+item identity, and confirmed orders expose an idempotent reservation operation
+through the typed Inventory boundary. Historical rows remain nullable and are
+not backfilled. Delivery fulfillment and return stock effects remain explicit
+integration gates. An organization-scoped
 Item Master vertical slice is now implemented under the Inventory boundary with
 RLS/FORCE RLS, permission/module gating, audit/versioning, optimistic concurrency,
 and authenticated API coverage. The bounded Inventory foundation now persists
 organization-owned warehouses, stock balances, reservations, fulfillment issues,
 receipts, and return movements under ADR-0034. Sales transaction item/warehouse
-references are not yet present in the existing Sales order/delivery contracts,
-so direct Sales activation remains an explicit integration gate until those
-contracts are extended under a governed decision.
+references are now additive in the order contract; delivery and return
+orchestration are still not connected.
 Sales administration
 and lifecycle frontend coverage is implemented, including confirmed-order to
 delivery creation; historical quotation rows without authoritative context

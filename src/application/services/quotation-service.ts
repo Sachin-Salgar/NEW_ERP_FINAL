@@ -206,6 +206,7 @@ export class QuotationService {
     const lines = new Set<number>();
     i.items.forEach((x, n) => {
       if (!x.description?.trim()) throw new ValidationError(`Item ${n + 1} description is required.`);
+      if (x.itemId && !isUuid(x.itemId)) throw new ValidationError(`Item ${n + 1} Item Master ID must be a valid UUID.`);
       if (x.quantity <= 0 || x.unitPrice < 0 || !x.unitOfMeasure?.trim())
         throw new ValidationError('Item description, unit of measure, quantity and unit price are required.');
       if (lines.has(n + 1)) throw new ValidationError('Quotation item line numbers must be unique.');

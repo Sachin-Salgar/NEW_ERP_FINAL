@@ -14,7 +14,7 @@ document ID/version, and an idempotency key for retriable mutations.
 | Boundary | Sales responsibility | Owning module responsibility | Required contract/output | Status |
 |---|---|---|---|---|
 | CRM/Customer | validate/reference customer and permitted contact context | customer master and relationship ownership | tenant/org-safe customer lookup and status | Existing Customer contract must be published |
-| Inventory | request availability/reservation/fulfillment/disposition | item master, stock, warehouse, movement, reservation | typed reservation, delivery, return, failure, and idempotency results | Bounded provider implemented under ADR-0034; Sales item/warehouse source fields remain integration-gated |
+| Inventory | request availability/reservation/fulfillment/disposition | item master, stock, warehouse, movement, reservation | typed reservation, delivery, return, failure, and idempotency results | Item/warehouse references and order reservation activation implemented under ADR-0034/0035; delivery/return effects remain gated |
 | Finance | submit invoice/credit-note accounting consequence | posting, AR, receipts, balances, credit | accepted/rejected posting reference and status | Contract required |
 | Tax | submit taxable lines/context | tax rules, exemptions, components, calculation authority | immutable tax result/version and failure reason | Contract required |
 | Workflow | start/query/apply approved workflow decisions | definitions, tasks, approvals, escalation, audit | versioned decision/task contract | Contract required |
@@ -49,6 +49,8 @@ Workflow, Notifications, and Documents. Provider implementations remain
 The bounded Inventory provider is implemented with authenticated, organization-
 scoped APIs and typed application operations for receipt, reservation, release,
 fulfillment, and return. Sales remains prohibited from direct Inventory SQL.
-Existing Sales Order and Delivery records do not yet persist an item identifier
-or warehouse reference, so automatic Sales activation is explicitly gated until
-that contract extension is approved and implemented.
+New quotation lines may persist an Item Master reference, new order conversion
+requires Item Master identity and an active warehouse, and Sales invokes the
+typed Inventory reservation port. Historical rows remain nullable and are not
+backfilled. Delivery fulfillment and Sales Return stock effects remain gated
+until their source-reference orchestration is implemented.

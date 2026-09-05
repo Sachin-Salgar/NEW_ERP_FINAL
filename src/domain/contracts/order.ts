@@ -4,6 +4,7 @@ export const ORDER_PERMISSIONS = {
   update: 'sales.order.update',
   delete: 'sales.order.delete',
   confirm: 'sales.order.confirm',
+  reserve: 'sales.order.reserve',
   cancel: 'sales.order.cancel',
   close: 'sales.order.close',
 } as const;

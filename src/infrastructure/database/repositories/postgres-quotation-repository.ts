@@ -143,7 +143,7 @@ export class PostgresQuotationRepository implements QuotationRepository {
   }
   private async map(c: any, r: any): Promise<QuotationRecord> {
     const items = await c.query(
-      `SELECT id,line_number AS "lineNumber",description,quantity,unit_price AS "unitPrice",unit_of_measure AS "unitOfMeasure",created_at AS "createdAt",created_by AS "createdBy",updated_at AS "updatedAt",updated_by AS "updatedBy",version_number AS "versionNumber" FROM sales_quotation_items WHERE quotation_id=$1 AND tenant_id=$2 AND organization_id=$3 AND branch_id=$4 AND financial_year_id=$5 ORDER BY line_number`,
+      `SELECT id,item_id AS "itemId",line_number AS "lineNumber",description,quantity,unit_price AS "unitPrice",unit_of_measure AS "unitOfMeasure",created_at AS "createdAt",created_by AS "createdBy",updated_at AS "updatedAt",updated_by AS "updatedBy",version_number AS "versionNumber" FROM sales_quotation_items WHERE quotation_id=$1 AND tenant_id=$2 AND organization_id=$3 AND branch_id=$4 AND financial_year_id=$5 ORDER BY line_number`,
       [r.id, r.tenantId, r.organizationId, r.branchId, r.financialYearId],
     );
     return {
@@ -161,13 +161,14 @@ export class PostgresQuotationRepository implements QuotationRepository {
     for (let n = 0; n < i.items.length; n++) {
       const x = i.items[n];
       await c.query(
-        `INSERT INTO sales_quotation_items(tenant_id,organization_id,branch_id,financial_year_id,quotation_id,line_number,description,quantity,unit_price,unit_of_measure,created_by,updated_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$11)`,
+        `INSERT INTO sales_quotation_items(tenant_id,organization_id,branch_id,financial_year_id,quotation_id,item_id,line_number,description,quantity,unit_price,unit_of_measure,created_by,updated_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$12)`,
         [
           i.tenantId,
           i.organizationId,
           i.branchId,
           i.financialYearId,
           id,
+          x.itemId ?? null,
           n + 1,
           x.description.trim(),
           x.quantity,

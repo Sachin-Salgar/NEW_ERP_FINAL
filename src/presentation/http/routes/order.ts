@@ -74,5 +74,13 @@ const orderRoutes: FastifyPluginAsync = async (f) => {
         ),
       }),
     );
+  f.post(
+    '/sales/orders/:id/reserve',
+    { preHandler: [requireAuth, requirePermission('sales.order.reserve')] },
+    async (r: any) => ({
+      success: true,
+      order: out(await f.orderService.reserve(ctx(r), requestParam(r.params, 'id') ?? '')),
+    }),
+  );
 };
 export default orderRoutes;

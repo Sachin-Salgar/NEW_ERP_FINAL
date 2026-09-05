@@ -1,4 +1,5 @@
 export const INVENTORY_MODULE_CODE = 'inventory';
+import type { InventoryMovementRecord } from './repositories.js';
 
 export const INVENTORY_PERMISSIONS = {
   warehouseRead: 'inventory.warehouse.read',
@@ -60,5 +61,5 @@ export interface InventoryDependencyPort {
   returnStock(
     context: InventoryContext,
     request: Omit<InventoryReservationRequest, 'idempotencyKey'> & { idempotencyKey: string },
-  ): Promise<InventoryReservationResult>;
+  ): Promise<InventoryMovementRecord>;
 }
