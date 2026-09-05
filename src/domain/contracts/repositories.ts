@@ -349,6 +349,60 @@ export interface OrderRepository {
   }): Promise<OrderRecord | null>;
 }
 
+export interface DeliveryItemRecord {
+  id: string;
+  lineNumber: number;
+  orderItemId: string;
+  description: string;
+  quantity: number;
+  unitOfMeasure: string;
+}
+export interface DeliveryRecord {
+  id: string;
+  tenantId: string;
+  organizationId: string;
+  branchId: string;
+  financialYearId: string;
+  deliveryNumber: string;
+  salesOrderId: string;
+  customerId: string;
+  status: import('./delivery.js').DeliveryStatus;
+  idempotencyKey: string;
+  notes: string | null;
+  items: DeliveryItemRecord[];
+  createdAt: Date;
+  createdBy: string | null;
+  updatedAt: Date | null;
+  updatedBy: string | null;
+  versionNumber: number;
+}
+export interface DeliveryRepository {
+  create(input: {
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    salesOrderId: string;
+    idempotencyKey: string;
+    notes: string | null;
+    actorUserId: string;
+  }): Promise<DeliveryRecord>;
+  getById(tenantId: string, organizationId: string, branchId: string, financialYearId: string, id: string): Promise<DeliveryRecord | null>;
+  list(tenantId: string, q: {
+    organizationId: string; branchId: string; financialYearId: string;
+    page: number; pageSize: number; order: 'asc' | 'desc'; search?: string;
+  }): Promise<{ items: DeliveryRecord[]; total: number }>;
+  update(input: {
+    tenantId: string; organizationId: string; branchId: string; financialYearId: string;
+    deliveryId: string; notes: string | null; expectedVersion: number; actorUserId: string;
+  }): Promise<DeliveryRecord | null>;
+  transition(input: {
+    tenantId: string; organizationId: string; branchId: string; financialYearId: string;
+    deliveryId: string; status: import('./delivery.js').DeliveryStatus;
+    expectedVersion: number; actorUserId: string;
+  }): Promise<DeliveryRecord | null>;
+}
+
 export interface OrganizationRecord {
   id: string;
   tenantId: string;

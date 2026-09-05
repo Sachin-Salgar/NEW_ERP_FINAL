@@ -1,6 +1,6 @@
 # Sales Delivery and Shipment Management Specification
 
-**Status:** Authorization package — implementation specification
+**Status:** Backend slice implemented under ADR-0027; Inventory execution deferred
 **Owner:** Sales
 **Dependencies:** Sales Order, Inventory, Workflow, Notification, Document
 
@@ -30,7 +30,7 @@ columns.
 
 Exact types, requiredness, address structure, priority values, carrier fields,
 financial-year relationship semantics, and whether a delivery may be deleted
-are **BUSINESS DECISION REQUIRED**. The mandatory branch and financial-year
+are bounded for the initial slice by ADR-0027. The mandatory branch and financial-year
 references follow the organizational-isolation standard; their business
 semantics remain unresolved. Composite tenant/org foreign keys, unique line
 numbers, and orphan prevention are mandatory.
@@ -76,4 +76,8 @@ boundaries.
 
 ## IMPLEMENTATION STATUS
 
-**DEPENDENCY CONTRACT REQUIRED** and **BUSINESS DECISION REQUIRED**.
+**IMPLEMENTED — MINIMUM BACKEND POLICY** — ADR-0027 provides confirmed-order
+conversion, delivery-line snapshots, deterministic numbering, idempotent
+creation, explicit lifecycle, audit/versioning, and RLS/FORCE RLS. Inventory
+reservation, picking, stock issue, and logistics execution remain deferred
+until their provider contracts are published.

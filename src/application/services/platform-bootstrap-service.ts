@@ -205,6 +205,14 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
     permissionKey: `sales.order.${action}`,
     displayName: `${action[0].toUpperCase()}${action.slice(1)} orders`,
   })),
+  ...(['read', 'create', 'update', 'dispatch', 'deliver', 'complete', 'cancel'] as const).map((action) => ({
+    moduleCode: 'sales',
+    resource: 'delivery',
+    action,
+    scope: 'organization' as const,
+    permissionKey: `sales.delivery.${action}`,
+    displayName: `${action[0].toUpperCase()}${action.slice(1)} deliveries`,
+  })),
 ];
 
 export class PlatformBootstrapService {

@@ -14,6 +14,7 @@ import type { MfaService } from '../../../application/services/mfa-service.js';
 import type { CustomerService } from '../../../application/services/customer-service.js';
 import type { QuotationService } from '../../../application/services/quotation-service.js';
 import type { OrderService } from '../../../application/services/order-service.js';
+import type { DeliveryService } from '../../../application/services/delivery-service.js';
 import type { JwtTokenService } from '../../../infrastructure/security/jwt-token-service.js';
 import type { AppConfig } from '../../../config/schema.js';
 import type { AuditLogger } from '../../../application/contracts/audit.js';
@@ -37,6 +38,7 @@ declare module 'fastify' {
     customerService: CustomerService;
     quotationService: QuotationService;
     orderService: OrderService;
+    deliveryService: DeliveryService;
   }
 
   interface FastifyRequest {

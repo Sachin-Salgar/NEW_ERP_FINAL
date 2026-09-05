@@ -110,6 +110,11 @@
       "strategy": "compensating-migration",
       "destructiveDownAllowed": false,
       "note": "Sales order and audit data are business records; preserve and correct forward."
+    },
+    "0022-sales-delivery": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Sales delivery traceability and line snapshots are business records; preserve and correct forward."
     }
   }
 }

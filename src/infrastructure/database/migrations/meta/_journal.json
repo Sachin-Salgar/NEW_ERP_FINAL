@@ -23,6 +23,7 @@
     { "idx": 18, "version": "7", "when": 1788603600000, "tag": "0018-sales-quotation-canonical-audit", "breakpoints": true },
     { "idx": 19, "version": "7", "when": 1788607200000, "tag": "0019-sales-quotation-context", "breakpoints": true },
     { "idx": 20, "version": "7", "when": 1788607800000, "tag": "0020-session-financial-year-context", "breakpoints": true },
-    { "idx": 21, "version": "7", "when": 1788608400000, "tag": "0021-sales-order", "breakpoints": true }
+    { "idx": 21, "version": "7", "when": 1788608400000, "tag": "0021-sales-order", "breakpoints": true },
+    { "idx": 22, "version": "7", "when": 1788609000000, "tag": "0022-sales-delivery", "breakpoints": true }
   ]
 }
