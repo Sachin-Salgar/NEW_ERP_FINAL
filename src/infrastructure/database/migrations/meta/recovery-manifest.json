@@ -135,6 +135,11 @@
       "strategy": "compensating-migration",
       "destructiveDownAllowed": false,
       "note": "Price-list definitions are business data; preserve and correct forward."
+    },
+    "0027-sales-discount": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Discount rules are business data; preserve and correct forward."
     }
   }
 }

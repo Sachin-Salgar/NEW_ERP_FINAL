@@ -1,6 +1,6 @@
 # Sales Discounts Specification
 
-**Status:** Authorization package — implementation specification
+**Status:** Implemented — bounded discount-rule administration
 **Owner:** Sales, with Workflow/Pricing dependencies
 
 ## 1. Purpose and scope
@@ -42,7 +42,9 @@ authorized users. Tests must cover unauthorized overrides, tenant/org
 isolation, RLS, rounding/stacking decisions, immutable snapshots, concurrency,
 audit, rollback, and Workflow/Pricing boundary failures.
 
-**BUSINESS DECISION REQUIRED** and **DEPENDENCY CONTRACT REQUIRED**.
+Sales owns percentage-based, non-stacking, organization-scoped discount rules.
+Rules are draft, published, or archived and are effective-dated. Workflow
+approval, tax ordering, and transaction snapshots remain integration boundaries.
 
 ## IMPLEMENTATION STATUS
 
