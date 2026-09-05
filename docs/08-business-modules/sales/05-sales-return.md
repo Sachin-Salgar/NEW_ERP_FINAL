@@ -1,6 +1,6 @@
 # Sales Returns Specification
 
-**Status:** Authorization package — implementation specification
+**Status:** Backend slice implemented under ADR-0029; Inventory/Finance providers not connected
 **Owner:** Sales
 **Dependencies:** Sales Invoice, Delivery, Inventory, Finance, Workflow
 
@@ -27,19 +27,16 @@ references, `return_id`, source invoice or delivery item reference, line number,
 requested quantity, accepted quantity, unit of measure, value snapshot,
 disposition reference, and canonical audit columns.
 
-Reason catalog ownership, inspection fields, disposition vocabulary, quantity
-precision, monetary treatment, duplicate/over-return rules, financial-year
-semantics, and deletion rules are **BUSINESS DECISION REQUIRED**. The mandatory
-branch and financial-year references follow the organizational-isolation
-standard. Header/detail composite integrity and source-document tenant/org
-matching are mandatory.
+The initial slice snapshots issued-invoice lines with numeric(18,4) requested
+quantities. Duplicate returns are prevented per invoice/context. Inventory and
+Finance references are explicit not-connected boundary state. Branch and
+financial-year references follow ADR-0025.
 
 ## 3. Lifecycle and authorization
 
-The documented lifecycle is Return Request → Inspection → Approval → Inventory
-Update → Credit Note → Return Closed. Exact states, transitions, actors,
-rejection/rework paths, replacement/refund behavior, and whether Inventory
-confirmation is synchronous or asynchronous are **BUSINESS DECISION REQUIRED**.
+The initial lifecycle is `REQUESTED -> INSPECTED -> APPROVED -> PROCESSED ->
+CLOSED`, with `INSPECTED -> REJECTED` and `REQUESTED -> CANCELLED`. Processing
+does not claim Inventory or Finance side effects.
 
 Candidate permissions: `sales.return.read`, `create`, `update`, `inspect`,
 `approve`, `reject`, `process`, `cancel`, and `close`.
@@ -68,4 +65,5 @@ references/statuses only.
 
 ## IMPLEMENTATION STATUS
 
-**DEPENDENCY CONTRACT REQUIRED** and **BUSINESS DECISION REQUIRED**.
+**IMPLEMENTED — MINIMUM BACKEND POLICY** under ADR-0029. Inventory and Finance
+remain explicit not-connected integration boundaries.

@@ -20,6 +20,7 @@ import { QuotationService } from '../../application/services/quotation-service.j
 import { OrderService } from '../../application/services/order-service.js';
 import { DeliveryService } from '../../application/services/delivery-service.js';
 import { InvoiceService } from '../../application/services/invoice-service.js';
+import { SalesReturnService } from '../../application/services/sales-return-service.js';
 import { createDatabasePool } from '../../infrastructure/database/connection.js';
 import { PostgresQueryPerformanceMonitor } from '../../infrastructure/database/query-performance-monitor.js';
 import { IdentityAwarePostgresPlatformRepository } from '../../infrastructure/database/repositories/identity-aware-postgres-platform-repository.js';
@@ -30,6 +31,7 @@ import { PostgresQuotationRepository } from '../../infrastructure/database/repos
 import { PostgresOrderRepository } from '../../infrastructure/database/repositories/postgres-order-repository.js';
 import { PostgresDeliveryRepository } from '../../infrastructure/database/repositories/postgres-delivery-repository.js';
 import { PostgresInvoiceRepository } from '../../infrastructure/database/repositories/postgres-invoice-repository.js';
+import { PostgresSalesReturnRepository } from '../../infrastructure/database/repositories/postgres-sales-return-repository.js';
 import { PostgresNotificationService } from '../../infrastructure/database/repositories/postgres-operational-services.js';
 import { AccountSecurityNotificationAdapter } from '../../application/adapters/account-security-notifications.js';
 import { buildErrorHandler } from '../../infrastructure/http/error-handler.js';
@@ -54,6 +56,7 @@ import quotationRoutes from './routes/quotation.js';
 import orderRoutes from './routes/order.js';
 import deliveryRoutes from './routes/delivery.js';
 import invoiceRoutes from './routes/invoice.js';
+import salesReturnRoutes from './routes/sales-return.js';
 import rbacRoutes from './routes/rbac.js';
 import { paginateListResponse } from './pagination.js';
 import { requestObject } from './request-input.js';
@@ -206,6 +209,13 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     auditLogger,
     transactionRunner,
   );
+  const salesReturnService = new SalesReturnService(
+    new PostgresSalesReturnRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+    transactionRunner,
+  );
   const refreshTokenRotationService = new RefreshTokenRotationService(pool, config.TENANT_CONTEXT_KEY, jwtTokenService);
   const registrationService = new UserRegistrationService(
     repository,
@@ -255,6 +265,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('orderService', orderService);
   app.decorate('deliveryService', deliveryService);
   app.decorate('invoiceService', invoiceService);
+  app.decorate('salesReturnService', salesReturnService);
 
   app.addHook('onReady', async () => {
     const snapshot = await queryPerformanceMonitor.snapshot({ minimumMeanExecMs: 100, limit: 25 });
@@ -356,5 +367,6 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(orderRoutes, { prefix: config.API_PREFIX });
   await app.register(deliveryRoutes, { prefix: config.API_PREFIX });
   await app.register(invoiceRoutes, { prefix: config.API_PREFIX });
+  await app.register(salesReturnRoutes, { prefix: config.API_PREFIX });
   return app;
 }

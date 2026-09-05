@@ -16,6 +16,7 @@ import type { QuotationService } from '../../../application/services/quotation-s
 import type { OrderService } from '../../../application/services/order-service.js';
 import type { DeliveryService } from '../../../application/services/delivery-service.js';
 import type { InvoiceService } from '../../../application/services/invoice-service.js';
+import type { SalesReturnService } from '../../../application/services/sales-return-service.js';
 import type { JwtTokenService } from '../../../infrastructure/security/jwt-token-service.js';
 import type { AppConfig } from '../../../config/schema.js';
 import type { AuditLogger } from '../../../application/contracts/audit.js';
@@ -41,6 +42,7 @@ declare module 'fastify' {
     orderService: OrderService;
     deliveryService: DeliveryService;
     invoiceService: InvoiceService;
+    salesReturnService: SalesReturnService;
   }
 
   interface FastifyRequest {

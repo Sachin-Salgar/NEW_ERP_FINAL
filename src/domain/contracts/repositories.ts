@@ -458,6 +458,26 @@ export interface InvoiceRepository {
   }): Promise<InvoiceRecord | null>;
 }
 
+export interface SalesReturnItemRecord {
+  id: string; lineNumber: number; invoiceItemId: string; description: string;
+  quantity: number; unitOfMeasure: string; unitPrice: number;
+}
+export interface SalesReturnRecord {
+  id: string; tenantId: string; organizationId: string; branchId: string; financialYearId: string;
+  returnNumber: string; invoiceId: string; deliveryId: string; customerId: string;
+  status: import('./sales-return.js').SalesReturnStatus; idempotencyKey: string;
+  inventoryStatus: 'NOT_CONNECTED'; financeStatus: 'NOT_CONNECTED'; notes: string | null;
+  items: SalesReturnItemRecord[]; createdAt: Date; createdBy: string | null;
+  updatedAt: Date | null; updatedBy: string | null; versionNumber: number;
+}
+export interface SalesReturnRepository {
+  create(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; invoiceId: string; idempotencyKey: string; notes: string | null; actorUserId: string }): Promise<SalesReturnRecord>;
+  getById(tenantId: string, organizationId: string, branchId: string, financialYearId: string, id: string): Promise<SalesReturnRecord | null>;
+  list(tenantId: string, q: { organizationId: string; branchId: string; financialYearId: string; page: number; pageSize: number; order: 'asc' | 'desc'; search?: string }): Promise<{ items: SalesReturnRecord[]; total: number }>;
+  update(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; returnId: string; notes: string | null; expectedVersion: number; actorUserId: string }): Promise<SalesReturnRecord | null>;
+  transition(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; returnId: string; status: import('./sales-return.js').SalesReturnStatus; expectedVersion: number; actorUserId: string }): Promise<SalesReturnRecord | null>;
+}
+
 export interface OrganizationRecord {
   id: string;
   tenantId: string;

@@ -120,6 +120,11 @@
       "strategy": "compensating-migration",
       "destructiveDownAllowed": false,
       "note": "Sales invoice traceability and immutable line snapshots are business records; preserve and correct forward."
+    },
+    "0024-sales-return": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Sales return coordination records and line snapshots are business records; preserve and correct forward."
     }
   }
 }
