@@ -190,6 +190,11 @@
       "strategy": "compensating-migration",
       "destructiveDownAllowed": false,
       "note": "Finance postings and Sales financial references are authoritative transaction data; preserve and correct forward."
+    },
+    "0038-sales-commercial-snapshots": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Commercial price and discount snapshots are historical transaction evidence; preserve them and compensate forward."
     }
   }
 }

@@ -178,10 +178,11 @@ canceling a reserved order releases its Inventory reservations before the
 order transition. Legacy quotation rows without
 authoritative context remain a documented data-remediation residual. The
 Workflow remains not connected, while provider-neutral integration boundaries
-and a bounded Sales document-summary report are implemented. Finance, Tax,
-Transaction-facing Pricing/Discount snapshot resolution remains an explicit
-dependency/contract boundary. Pricing/Discount remain transaction-facing
-snapshot gaps. The Inventory provider is
+and a bounded Sales document-summary report are implemented. Finance and Tax
+remain authoritative bounded dependencies. Transaction-facing Pricing/Discount
+resolution is implemented for quotation creation and draft updates, with
+immutable snapshots copied through order and invoice conversion. The Inventory
+provider is
 implemented. Under approved ADR-0035, new Sales quotation lines can carry Item
 Master identity, order conversion requires an active organization warehouse and
 item identity, and confirmed orders expose an idempotent reservation operation

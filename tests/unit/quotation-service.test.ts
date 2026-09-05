@@ -42,7 +42,8 @@ class FakeRepository implements QuotationRepository {
   value = record();
   lastStatus?: string;
   deleted = false;
-  async create() {
+  async create(input: { items: QuotationItemInput[] }) {
+    this.value = { ...this.value, items: input.items.map((x, index) => ({ ...x, id: randomUUID(), lineNumber: index + 1 })) };
     return this.value;
   }
   async getById() {
@@ -116,6 +117,24 @@ describe('QuotationService', () => {
     await expect(service.update(context, repository.value.id, { ...input, expectedVersion: 1 })).resolves.toMatchObject({
       versionNumber: 2,
     });
+  });
+  it('snapshots resolved pricing and discount values at creation time', async () => {
+    const repository = new FakeRepository();
+    const audit = new Audit();
+    const service = new QuotationService(
+      repository,
+      { hasPermission: async () => true },
+      { isModuleEnabled: async () => true },
+      audit,
+      { runInTransaction: async <T>(callback: () => Promise<T>) => callback() },
+      { resolvePrice: async () => ({ id: randomUUID(), priceListId: randomUUID(), price: 25 }) },
+      { resolve: async () => ({ id: randomUUID(), percentage: 10 }) },
+    );
+    const result = await service.create(context, {
+      ...input,
+      items: [{ ...item, itemCode: 'ITEM-1', unitPrice: 999 }],
+    });
+    expect(result.items[0]).toMatchObject({ unitPrice: 25, discountPercentage: 10, discountAmount: 5, lineTotal: 45 });
   });
   it('separates draft DELETE from lifecycle CANCEL', async () => {
     const { service: sut, repository, audit } = createService();

@@ -1,6 +1,6 @@
 # Sales Pricing and Price Lists Specification
 
-**Status:** IMPLEMENTED — BOUNDED FOUNDATION
+**Status:** IMPLEMENTED — BOUNDED FOUNDATION AND TRANSACTION SNAPSHOTS
 **Owner:** Sales, unless a separate authoritative Pricing capability is
 established by approved architecture
 **Dependencies:** CRM/Customer, Inventory Item Master, Tax where applicable
@@ -66,7 +66,9 @@ pricing, and item-master lookup remain explicit integration boundaries.
 
 ## IMPLEMENTATION STATUS
 
-**IMPLEMENTED — BOUNDED FOUNDATION.** Published lists resolve effective-dated
-provider-neutral item prices, with branch-specific precedence and overlap
-rejection. Inventory Item Master, CRM customer scope, and immutable transaction
-price snapshots remain **PENDING DEPENDENCY**.
+**IMPLEMENTED — BOUNDED FOUNDATION AND TRANSACTION SNAPSHOTS.** Published lists
+resolve effective-dated provider-neutral item prices, with branch-specific
+precedence and overlap rejection. Quotation creation and draft updates resolve
+and persist immutable price snapshots; order and invoice conversion copies those
+snapshots without recalculation. Inventory Item Master and CRM customer scope
+remain explicit integration boundaries.

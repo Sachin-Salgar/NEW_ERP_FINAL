@@ -3,6 +3,7 @@ import type { AuditLogger } from '../contracts/audit.js';
 import type { AuthorizationService } from './authorization-service.js';
 import type { ModuleAccessService } from './module-access-service.js';
 import type { QuotationRepository, QuotationRecord, QuotationItemInput } from '../../domain/contracts/repositories.js';
+import { resolveCommercialLines, type TransactionDiscountResolver, type TransactionPriceResolver } from './commercial-transaction-service.js';
 import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../../domain/errors.js';
 import {
   QUOTATION_PERMISSIONS,
@@ -37,6 +38,8 @@ export class QuotationService {
     private readonly modules: Pick<ModuleAccessService, 'isModuleEnabled'>,
     private readonly audit: AuditLogger,
     private readonly tx: QuotationTransactionRunner,
+    private readonly pricing?: TransactionPriceResolver,
+    private readonly discounts?: TransactionDiscountResolver,
   ) {}
 
   async create(
@@ -52,7 +55,9 @@ export class QuotationService {
     await this.authorize(c, QUOTATION_PERMISSIONS.create);
     this.validateInput(c, input);
     return this.tx.runInTransaction(async () => {
-      const q = await this.repository.create({ ...input, ...c, actorUserId: c.userId });
+      const commercial = await resolveCommercialLines(c, input.items, input.quotationDate, this.pricing, this.discounts);
+      const items = input.items.map((item, index) => ({ ...item, ...commercial.lines[index] }));
+      const q = await this.repository.create({ ...input, items, ...commercial.totals, ...c, actorUserId: c.userId });
       await this.audit.record(
         {
           tenantId: c.tenantId,
@@ -101,7 +106,9 @@ export class QuotationService {
     this.version(input.expectedVersion);
     this.validateInput(c, input);
     return this.tx.runInTransaction(async () => {
-      const q = await this.repository.update({ ...input, ...c, quotationId: id, actorUserId: c.userId });
+      const commercial = await resolveCommercialLines(c, input.items, input.quotationDate, this.pricing, this.discounts);
+      const items = input.items.map((item, index) => ({ ...item, ...commercial.lines[index] }));
+      const q = await this.repository.update({ ...input, items, ...commercial.totals, ...c, quotationId: id, actorUserId: c.userId });
       if (!q) throw new NotFoundError('Draft quotation not found.');
       await this.audit.record(
         {

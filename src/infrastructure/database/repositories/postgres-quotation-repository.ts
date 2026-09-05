@@ -3,7 +3,7 @@ import type { QuotationRepository, QuotationRecord } from '../../../domain/contr
 import { withTenantContext } from '../tenant-context.js';
 import { ValidationError } from '../../../domain/errors.js';
 
-const C = `id,tenant_id AS "tenantId",organization_id AS "organizationId",branch_id AS "branchId",financial_year_id AS "financialYearId",quotation_number AS "quotationNumber",customer_id AS "customerId",quotation_date AS "quotationDate",valid_until AS "validUntil",status,notes,created_at AS "createdAt",created_by AS "createdBy",updated_at AS "updatedAt",updated_by AS "updatedBy",deleted_at AS "deletedAt",deleted_by AS "deletedBy",is_deleted AS "isDeleted",version_number AS "versionNumber"`;
+const C = `id,tenant_id AS "tenantId",organization_id AS "organizationId",branch_id AS "branchId",financial_year_id AS "financialYearId",quotation_number AS "quotationNumber",customer_id AS "customerId",quotation_date AS "quotationDate",valid_until AS "validUntil",status,notes,subtotal::float8 AS subtotal,discount_total::float8 AS "discountTotal",total::float8 AS total,created_at AS "createdAt",created_by AS "createdBy",updated_at AS "updatedAt",updated_by AS "updatedBy",deleted_at AS "deletedAt",deleted_by AS "deletedBy",is_deleted AS "isDeleted",version_number AS "versionNumber"`;
 export class PostgresQuotationRepository implements QuotationRepository {
   constructor(
     private readonly pool: Pool,
@@ -26,7 +26,7 @@ export class PostgresQuotationRepository implements QuotationRepository {
         );
         const number = `Q-${String(n.rows[0].last_value).padStart(6, '0')}`;
         const q = await c.query(
-          `INSERT INTO sales_quotations(tenant_id,organization_id,branch_id,financial_year_id,quotation_number,customer_id,quotation_date,valid_until,notes,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING ${C}`,
+          `INSERT INTO sales_quotations(tenant_id,organization_id,branch_id,financial_year_id,quotation_number,customer_id,quotation_date,valid_until,notes,subtotal,discount_total,total,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING ${C}`,
           [
             i.tenantId,
             i.organizationId,
@@ -37,6 +37,9 @@ export class PostgresQuotationRepository implements QuotationRepository {
             i.quotationDate,
             i.validUntil,
             i.notes ?? null,
+            i.subtotal ?? 0,
+            i.discountTotal ?? 0,
+            i.total ?? 0,
             i.actorUserId,
           ],
         );
@@ -87,12 +90,15 @@ export class PostgresQuotationRepository implements QuotationRepository {
         );
         if (!customer.rows[0]) throw new ValidationError('Customer must belong to the active organization.');
         const r = await c.query(
-          `UPDATE sales_quotations SET customer_id=$1,quotation_date=$2,valid_until=$3,notes=$4,updated_at=now(),updated_by=$5,version_number=version_number+1 WHERE tenant_id=$6 AND organization_id=$7 AND branch_id=$8 AND financial_year_id=$9 AND id=$10 AND status='DRAFT' AND is_deleted=false AND version_number=$11 RETURNING ${C}`,
+          `UPDATE sales_quotations SET customer_id=$1,quotation_date=$2,valid_until=$3,notes=$4,subtotal=$5,discount_total=$6,total=$7,updated_at=now(),updated_by=$8,version_number=version_number+1 WHERE tenant_id=$9 AND organization_id=$10 AND branch_id=$11 AND financial_year_id=$12 AND id=$13 AND status='DRAFT' AND is_deleted=false AND version_number=$14 RETURNING ${C}`,
           [
             i.customerId,
             i.quotationDate,
             i.validUntil,
             i.notes ?? null,
+            i.subtotal ?? 0,
+            i.discountTotal ?? 0,
+            i.total ?? 0,
             i.actorUserId,
             i.tenantId,
             i.organizationId,
@@ -144,7 +150,7 @@ export class PostgresQuotationRepository implements QuotationRepository {
   }
   private async map(c: any, r: any): Promise<QuotationRecord> {
     const items = await c.query(
-      `SELECT id,item_id AS "itemId",line_number AS "lineNumber",description,quantity,unit_price AS "unitPrice",unit_of_measure AS "unitOfMeasure",created_at AS "createdAt",created_by AS "createdBy",updated_at AS "updatedAt",updated_by AS "updatedBy",version_number AS "versionNumber" FROM sales_quotation_items WHERE quotation_id=$1 AND tenant_id=$2 AND organization_id=$3 AND branch_id=$4 AND financial_year_id=$5 ORDER BY line_number`,
+      `SELECT id,item_id AS "itemId",item_code AS "itemCode",line_number AS "lineNumber",description,quantity,unit_price AS "unitPrice",unit_of_measure AS "unitOfMeasure",discount_percentage AS "discountPercentage",discount_amount AS "discountAmount",line_total AS "lineTotal",price_list_id AS "priceListId",discount_rule_id AS "discountRuleId",created_at AS "createdAt",created_by AS "createdBy",updated_at AS "updatedAt",updated_by AS "updatedBy",version_number AS "versionNumber" FROM sales_quotation_items WHERE quotation_id=$1 AND tenant_id=$2 AND organization_id=$3 AND branch_id=$4 AND financial_year_id=$5 ORDER BY line_number`,
       [r.id, r.tenantId, r.organizationId, r.branchId, r.financialYearId],
     );
     return {
@@ -154,7 +160,17 @@ export class PostgresQuotationRepository implements QuotationRepository {
       createdAt: new Date(r.createdAt),
       updatedAt: r.updatedAt ? new Date(r.updatedAt) : null,
       deletedAt: r.deletedAt ? new Date(r.deletedAt) : null,
-      items: items.rows.map((x: any) => ({ ...x, quantity: Number(x.quantity), unitPrice: Number(x.unitPrice) })),
+      subtotal: Number(r.subtotal ?? 0),
+      discountTotal: Number(r.discountTotal ?? 0),
+      total: Number(r.total ?? 0),
+      items: items.rows.map((x: any) => ({
+        ...x,
+        quantity: Number(x.quantity),
+        unitPrice: Number(x.unitPrice),
+        discountPercentage: Number(x.discountPercentage ?? 0),
+        discountAmount: Number(x.discountAmount ?? 0),
+        lineTotal: Number(x.lineTotal ?? Number(x.quantity) * Number(x.unitPrice)),
+      })),
     };
   }
   private async replaceItems(c: any, id: string, i: any) {
@@ -162,7 +178,7 @@ export class PostgresQuotationRepository implements QuotationRepository {
     for (let n = 0; n < i.items.length; n++) {
       const x = i.items[n];
       await c.query(
-        `INSERT INTO sales_quotation_items(tenant_id,organization_id,branch_id,financial_year_id,quotation_id,item_id,line_number,description,quantity,unit_price,unit_of_measure,created_by,updated_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$12)`,
+        `INSERT INTO sales_quotation_items(tenant_id,organization_id,branch_id,financial_year_id,quotation_id,item_id,item_code,line_number,description,quantity,unit_price,unit_of_measure,discount_percentage,discount_amount,line_total,price_list_id,discount_rule_id,created_by,updated_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$18)`,
         [
           i.tenantId,
           i.organizationId,
@@ -170,11 +186,17 @@ export class PostgresQuotationRepository implements QuotationRepository {
           i.financialYearId,
           id,
           x.itemId ?? null,
+          x.itemCode ?? null,
           n + 1,
           x.description.trim(),
           x.quantity,
           x.unitPrice,
           x.unitOfMeasure.trim(),
+          x.discountPercentage ?? 0,
+          x.discountAmount ?? 0,
+          x.lineTotal ?? x.quantity * x.unitPrice,
+          x.priceListId ?? null,
+          x.discountRuleId ?? null,
           i.actorUserId,
         ],
       );

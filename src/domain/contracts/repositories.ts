@@ -350,10 +350,16 @@ export interface InventoryRepository {
 
 export interface QuotationItemInput {
   itemId?: string | null;
+  itemCode?: string | null;
   description: string;
   quantity: number;
   unitPrice: number;
   unitOfMeasure: string;
+  discountPercentage?: number;
+  discountAmount?: number;
+  lineTotal?: number;
+  priceListId?: string | null;
+  discountRuleId?: string | null;
 }
 export interface QuotationItemRecord extends QuotationItemInput {
   id: string;
@@ -371,6 +377,9 @@ export interface QuotationRecord {
   validUntil: Date;
   status: import('./quotation.js').QuotationStatus;
   notes: string | null;
+  subtotal?: number;
+  discountTotal?: number;
+  total?: number;
   items: QuotationItemRecord[];
   createdAt: Date;
   createdBy: string | null;
@@ -392,6 +401,9 @@ export interface QuotationRepository {
     validUntil: string;
     notes?: string | null;
     items: QuotationItemInput[];
+    subtotal?: number;
+    discountTotal?: number;
+    total?: number;
     actorUserId: string;
   }): Promise<QuotationRecord>;
   getById(
@@ -424,6 +436,9 @@ export interface QuotationRepository {
     validUntil: string;
     notes?: string | null;
     items: QuotationItemInput[];
+    subtotal?: number;
+    discountTotal?: number;
+    total?: number;
     expectedVersion: number;
     actorUserId: string;
   }): Promise<QuotationRecord | null>;
@@ -462,6 +477,9 @@ export interface OrderRecord {
   status: import('./order.js').OrderStatus;
   notes: string | null;
   items: OrderItemRecord[];
+  subtotal?: number;
+  discountTotal?: number;
+  total?: number;
   createdAt: Date;
   createdBy: string | null;
   updatedAt: Date | null;
@@ -480,6 +498,9 @@ export interface OrderRepository {
     quotationId: string;
     warehouseId?: string;
     actorUserId: string;
+    subtotal?: number;
+    discountTotal?: number;
+    total?: number;
   }): Promise<OrderRecord>;
   getById(
     tenantId: string,
@@ -605,11 +626,16 @@ export interface InvoiceItemRecord {
   id: string;
   lineNumber: number;
   deliveryItemId: string;
+  itemCode?: string | null;
   description: string;
   quantity: number;
   unitPrice: number;
   unitOfMeasure: string;
   lineTotal: number;
+  discountPercentage: number;
+  discountAmount: number;
+  priceListId?: string | null;
+  discountRuleId?: string | null;
 }
 export interface InvoiceRecord {
   id: string;
@@ -630,6 +656,9 @@ export interface InvoiceRecord {
   taxableAmount?: number;
   taxRate?: number;
   taxAmount?: number;
+  subtotal?: number;
+  discountTotal?: number;
+  total?: number;
   notes: string | null;
   items: InvoiceItemRecord[];
   createdAt: Date;

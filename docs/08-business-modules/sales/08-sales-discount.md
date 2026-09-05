@@ -1,6 +1,6 @@
 # Sales Discounts Specification
 
-**Status:** IMPLEMENTED — BOUNDED FOUNDATION
+**Status:** IMPLEMENTED — BOUNDED FOUNDATION AND TRANSACTION SNAPSHOTS
 **Owner:** Sales, with Workflow/Pricing dependencies
 
 ## 1. Purpose and scope
@@ -48,5 +48,9 @@ approval, tax ordering, and transaction snapshots remain integration boundaries.
 
 ## IMPLEMENTATION STATUS
 
-**IMPLEMENTED — BOUNDED FOUNDATION.** Transaction snapshots, workflow approval,
-tax ordering, and pricing-provider integration remain **PENDING DEPENDENCY**.
+**IMPLEMENTED — BOUNDED FOUNDATION AND TRANSACTION SNAPSHOTS.** Published,
+effective-dated, organization-scoped percentage rules resolve deterministically
+and do not stack. Quotation creation and draft updates persist the resolved
+discount percentage and amount; order and invoice conversion copies those
+snapshots. Workflow approval remains dependency-gated, and tax calculation stays
+with the authoritative Tax capability.

@@ -578,6 +578,7 @@ export const customerSchemas = {
 export const salesQuotationSchemas = {
   item: z.object({
     lineNumber: z.number().int().positive().optional(),
+    itemCode: z.string().trim().min(1).max(100).nullable().optional(),
     description: z.string().trim().min(1).max(500),
     quantity: z.number().positive(),
     unitPrice: z.number().nonnegative(),
@@ -593,6 +594,9 @@ export const salesQuotationSchemas = {
     validUntil: z.string().date(),
     status: z.enum(['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'CANCELLED']),
     notes: z.string().nullable(),
+    subtotal: z.number(),
+    discountTotal: z.number(),
+    total: z.number(),
     items: z.array(
       z.object({
         id: z.string().uuid(),
@@ -613,6 +617,8 @@ export const salesQuotationSchemas = {
       .array(
         z.object({
           lineNumber: z.number().int().positive().optional(),
+          itemId: z.string().uuid().nullable().optional(),
+          itemCode: z.string().trim().min(1).max(100).nullable().optional(),
           description: z.string().trim().min(1).max(500),
           quantity: z.number().positive(),
           unitPrice: z.number().nonnegative(),
@@ -630,6 +636,8 @@ export const salesQuotationSchemas = {
       .array(
         z.object({
           lineNumber: z.number().int().positive().optional(),
+          itemId: z.string().uuid().nullable().optional(),
+          itemCode: z.string().trim().min(1).max(100).nullable().optional(),
           description: z.string().trim().min(1).max(500),
           quantity: z.number().positive(),
           unitPrice: z.number().nonnegative(),

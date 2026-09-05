@@ -208,12 +208,26 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     authorizationService,
     moduleAccessService,
   );
+  const pricingService = new PricingService(
+    new PostgresPricingRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+  );
+  const discountService = new DiscountService(
+    new PostgresDiscountRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+  );
   const quotationService = new QuotationService(
     new PostgresQuotationRepository(pool, config.TENANT_CONTEXT_KEY),
     authorizationService,
     moduleAccessService,
     auditLogger,
     transactionRunner,
+    pricingService,
+    discountService,
   );
   const inventoryService = new InventoryService(
     new PostgresInventoryRepository(pool, config.TENANT_CONTEXT_KEY),
@@ -319,18 +333,6 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
           context.idempotencyKey,
         ),
     },
-  );
-  const pricingService = new PricingService(
-    new PostgresPricingRepository(pool, config.TENANT_CONTEXT_KEY),
-    authorizationService,
-    moduleAccessService,
-    auditLogger,
-  );
-  const discountService = new DiscountService(
-    new PostgresDiscountRepository(pool, config.TENANT_CONTEXT_KEY),
-    authorizationService,
-    moduleAccessService,
-    auditLogger,
   );
   const itemMasterService = new ItemMasterService(
     new PostgresItemMasterRepository(pool, config.TENANT_CONTEXT_KEY),

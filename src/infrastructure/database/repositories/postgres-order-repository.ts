@@ -2,7 +2,7 @@ import type { Pool } from 'pg';
 import type { OrderRepository, OrderRecord } from '../../../domain/contracts/repositories.js';
 import { withTenantContext } from '../tenant-context.js';
 import { ValidationError } from '../../../domain/errors.js';
-const C = `id,tenant_id AS "tenantId",organization_id AS "organizationId",branch_id AS "branchId",financial_year_id AS "financialYearId",order_number AS "orderNumber",customer_id AS "customerId",quotation_id AS "quotationId",warehouse_id AS "warehouseId",reservation_status AS "reservationStatus",status,notes,created_at AS "createdAt",created_by AS "createdBy",updated_at AS "updatedAt",updated_by AS "updatedBy",deleted_at AS "deletedAt",deleted_by AS "deletedBy",is_deleted AS "isDeleted",version_number AS "versionNumber"`;
+const C = `id,tenant_id AS "tenantId",organization_id AS "organizationId",branch_id AS "branchId",financial_year_id AS "financialYearId",order_number AS "orderNumber",customer_id AS "customerId",quotation_id AS "quotationId",warehouse_id AS "warehouseId",reservation_status AS "reservationStatus",status,notes,subtotal::float8 AS subtotal,discount_total::float8 AS "discountTotal",total::float8 AS total,created_at AS "createdAt",created_by AS "createdBy",updated_at AS "updatedAt",updated_by AS "updatedBy",deleted_at AS "deletedAt",deleted_by AS "deletedBy",is_deleted AS "isDeleted",version_number AS "versionNumber"`;
 export class PostgresOrderRepository implements OrderRepository {
   constructor(
     private readonly pool: Pool,
@@ -15,7 +15,7 @@ export class PostgresOrderRepository implements OrderRepository {
       i.tenantId,
       async (c) => {
         const q = await c.query(
-          `SELECT ${'id,customer_id AS "customerId",branch_id AS "branchId",financial_year_id AS "financialYearId"'} FROM sales_quotations WHERE id=$1 AND tenant_id=$2 AND organization_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND status='ACCEPTED' AND is_deleted=false`,
+          `SELECT id,customer_id AS "customerId",branch_id AS "branchId",financial_year_id AS "financialYearId",subtotal,discount_total AS "discountTotal",total FROM sales_quotations WHERE id=$1 AND tenant_id=$2 AND organization_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND status='ACCEPTED' AND is_deleted=false`,
           [i.quotationId, i.tenantId, i.organizationId, i.branchId, i.financialYearId],
         );
         if (!q.rows[0])
@@ -38,7 +38,7 @@ export class PostgresOrderRepository implements OrderRepository {
           [i.tenantId, i.organizationId],
         );
         const r = await c.query(
-          `INSERT INTO sales_orders(tenant_id,organization_id,branch_id,financial_year_id,order_number,customer_id,quotation_id,warehouse_id,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING ${C}`,
+          `INSERT INTO sales_orders(tenant_id,organization_id,branch_id,financial_year_id,order_number,customer_id,quotation_id,warehouse_id,subtotal,discount_total,total,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING ${C}`,
           [
             i.tenantId,
             i.organizationId,
@@ -48,11 +48,14 @@ export class PostgresOrderRepository implements OrderRepository {
             q.rows[0].customerId,
             i.quotationId,
             i.warehouseId,
+            q.rows[0].subtotal ?? 0,
+            q.rows[0].discountTotal ?? 0,
+            q.rows[0].total ?? 0,
             i.actorUserId,
           ],
         );
         await c.query(
-          `INSERT INTO sales_order_items(tenant_id,organization_id,branch_id,financial_year_id,order_id,item_id,line_number,description,quantity,unit_price,unit_of_measure,created_by,updated_by) SELECT tenant_id,organization_id,branch_id,financial_year_id,$1,item_id,line_number,description,quantity,unit_price,unit_of_measure,$2,$2 FROM sales_quotation_items WHERE quotation_id=$3 AND tenant_id=$4`,
+          `INSERT INTO sales_order_items(tenant_id,organization_id,branch_id,financial_year_id,order_id,item_id,item_code,line_number,description,quantity,unit_price,unit_of_measure,discount_percentage,discount_amount,line_total,price_list_id,discount_rule_id,created_by,updated_by) SELECT tenant_id,organization_id,branch_id,financial_year_id,$1,item_id,item_code,line_number,description,quantity,unit_price,unit_of_measure,discount_percentage,discount_amount,line_total,price_list_id,discount_rule_id,$2,$2 FROM sales_quotation_items WHERE quotation_id=$3 AND tenant_id=$4`,
           [r.rows[0].id, i.actorUserId, i.quotationId, i.tenantId],
         );
         return this.map(c, r.rows[0]);
@@ -167,12 +170,22 @@ export class PostgresOrderRepository implements OrderRepository {
   }
   private async map(c: any, r: any): Promise<OrderRecord> {
     const x = await c.query(
-      `SELECT id,item_id AS "itemId",line_number AS "lineNumber",description,quantity,unit_price AS "unitPrice",unit_of_measure AS "unitOfMeasure" FROM sales_order_items WHERE order_id=$1 AND tenant_id=$2 ORDER BY line_number`,
+      `SELECT id,item_id AS "itemId",item_code AS "itemCode",line_number AS "lineNumber",description,quantity,unit_price AS "unitPrice",unit_of_measure AS "unitOfMeasure",discount_percentage AS "discountPercentage",discount_amount AS "discountAmount",line_total AS "lineTotal",price_list_id AS "priceListId",discount_rule_id AS "discountRuleId" FROM sales_order_items WHERE order_id=$1 AND tenant_id=$2 ORDER BY line_number`,
       [r.id, r.tenantId],
     );
     return {
       ...r,
-      items: x.rows.map((a: any) => ({ ...a, quantity: Number(a.quantity), unitPrice: Number(a.unitPrice) })),
+      subtotal: Number(r.subtotal ?? 0),
+      discountTotal: Number(r.discountTotal ?? 0),
+      total: Number(r.total ?? 0),
+      items: x.rows.map((a: any) => ({
+        ...a,
+        quantity: Number(a.quantity),
+        unitPrice: Number(a.unitPrice),
+        discountPercentage: Number(a.discountPercentage ?? 0),
+        discountAmount: Number(a.discountAmount ?? 0),
+        lineTotal: Number(a.lineTotal ?? Number(a.quantity) * Number(a.unitPrice)),
+      })),
       createdAt: new Date(r.createdAt),
       updatedAt: r.updatedAt ? new Date(r.updatedAt) : null,
       deletedAt: r.deletedAt ? new Date(r.deletedAt) : null,
