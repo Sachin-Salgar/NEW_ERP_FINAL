@@ -13,6 +13,7 @@ export interface AccessibleModule {
   route: string | null;
   isCore: boolean;
   sortOrder: number;
+  enabled: boolean;
 }
 
 export class ModuleAccessService {
@@ -75,6 +76,7 @@ export class ModuleAccessService {
       route: row.route ?? null,
       isCore: Boolean(row.isCore),
       sortOrder: Number(row.sortOrder ?? 0),
+      enabled: true,
     }));
   }
 
@@ -189,6 +191,7 @@ export class ModuleAccessService {
           route: module.route ?? null,
           isCore: Boolean(module.isCore),
           sortOrder: Number(module.sortOrder ?? 0),
+          enabled: Boolean(result.rows[0].enabled),
         };
       },
       { organizationId, userId: actorUserId },
