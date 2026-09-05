@@ -1,6 +1,6 @@
 # Security Audit — Core Enterprise
 
-**Date:** 2026-09-04
+**Date:** 2026-09-05
 **Scope:** Authentication, authorization, tenant context, PostgreSQL RLS, token handling, CORS/configuration, and fail-closed behavior in the current Core Enterprise implementation.  
 **Method:** Repository inspection plus existing unit/integration/CI evidence. This is an implementation/security architecture audit, not a penetration test.
 
@@ -72,6 +72,9 @@ The audit follows the current security documentation, approved ADRs, and governa
 - Admin Flutter Web E2E login/dashboard flow passes in CI.
 - Limited-user Flutter Web E2E login/dashboard flow passes in CI.
 - Flutter unit/widget test suite and analyzer have passed in the current validation cycle.
+- Local `npm audit --omit=dev --audit-level=high` reports 0 vulnerabilities.
+- Backend CI run `33948006381` passed dependency audit, lint, typecheck, unit tests, build, Docker build, and Trivy for commit `53ec31ddd635b5b1c0a971e4f060f055da2f67a2`.
+- Postgres CI run `33948006417` passed migrations, deterministic fixture seeding, backend startup, admin E2E, and limited-user E2E. Its only failure was the separate browser navigation matrix teardown residual.
 
 ## 4. No confirmed critical/high findings
 
@@ -87,16 +90,29 @@ The following are intentionally **not claimed as complete** by this document:
 - Production infrastructure hardening review.
 - Provider-specific TLS/security configuration verification.
 - Secret rotation exercise in the deployed environment.
-- Dependency vulnerability assessment using an external vulnerability database.
+- Production registry/image execution evidence beyond the CI Docker/Trivy scan.
 - Formal threat-model review for future business modules.
 
 These are operational/security assurance activities beyond the current repository implementation audit.
 
 ## 6. Verdict
 
-**STATIC SECURITY AUDIT: PASS — NO CONFIRMED CRITICAL/HIGH FINDINGS.**
+**STATIC SECURITY AUDIT: PASS WITH DEPLOYMENT-ONLY ITEMS — NO CONFIRMED CRITICAL/HIGH FINDINGS.**
 
-The implementation is aligned with the current security architecture for the inspected Core Enterprise paths. Dynamic penetration testing and production operational assurance remain separate activities and must not be represented as completed by this static audit.
+The implementation is aligned with the current security architecture for the inspected Core Enterprise paths. Dynamic penetration testing, production secret/key rotation, provider TLS, backup restoration, production worker supervision, and registry/runtime assurance remain separate deployment or operational activities and must not be represented as completed by this repository audit.
+
+## 8. Final disposition
+
+| Area | Classification | Evidence / limitation |
+|---|---|---|
+| Authentication, RS256/JWKS, legacy algorithm bounds, session and refresh replay controls | PASS | Source inspection, unit/integration coverage, and CI validation |
+| RBAC, module enablement, organization scope, authenticated tenant authority | PASS | Route/service middleware, authorization tests, and Postgres CI |
+| PostgreSQL RLS, FORCE RLS, tenant-aware constraints, non-superuser/NOBYPASSRLS validation | PASS | Migration inspection, RLS integration tests, and Postgres CI |
+| Secrets and cryptography | PASS WITH DEPLOYMENT-ONLY ITEMS | AES-256-GCM, password/token hashing, fail-closed production placeholders, and tests; production key rotation remains operational |
+| API validation, errors, pagination, tenant and organization boundaries | PASS | Unit/integration tests and route inspection |
+| Audit, outbox, notifications, worker tenant scope | PASS WITH DEPLOYMENT-ONLY ITEMS | Repository abstractions and tests exist; worker supervision/retention/monitoring remain operational |
+| Dependency/container/CI security | PASS | `npm audit` clean, Backend CI Docker/Trivy passed; published-image registry/runtime evidence remains deployment-specific |
+| Browser Matrix E2E | VALIDATION GAP | Isolated Flutter teardown assertion after test completion; no functional/security blocker evidenced |
 
 ## 7. Reconciled Audit Disposition
 

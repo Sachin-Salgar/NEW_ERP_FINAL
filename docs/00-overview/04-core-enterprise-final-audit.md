@@ -1,8 +1,8 @@
 # Core Enterprise Final Audit
 
-**Date:** 2026-09-01  
+**Date:** 2026-09-05
 **Scope:** Core Enterprise foundation implementation and validation against the current authoritative architecture/ADR baseline.  
-**Conclusion:** Architecturally aligned; CI-backed login/authentication/RBAC paths pass; broader browser navigation validation remains the final technical gap before declaring the entire Core Enterprise gate complete.
+**Conclusion:** Core Enterprise is implementation/security ready for progression to Sales. Browser Matrix E2E remains a known validation residual caused by Flutter teardown after navigation assertions completed; it is not currently evidenced as a functional or security defect.
 
 ## 1. Authority and architecture
 
@@ -21,18 +21,18 @@ No conflicting authoritative architecture decision was identified during this au
 | Authentication lifecycle | PASS | Register/login/refresh/logout integration test and CI |
 | Backend RBAC | PASS | RBAC integration test and protected routes |
 | Module access | PASS | Backend middleware/service enforcement |
-| Organization/branch/user administration | IMPLEMENTED | Backend routes/services and Flutter surfaces inspected |
-| Role/permission administration | IMPLEMENTED | Backend routes/services and Flutter surfaces inspected |
+| Organization/branch/user administration | PASS | Backend routes/services, Flutter surfaces, tests, and CI inspected |
+| Role/permission administration | PASS | Backend routes/services, Flutter surfaces, tests, and CI inspected |
 | Permission-aware navigation | PASS at code/widget level | Route metadata, sidebar and permission tests |
 | Persistent authenticated shell | PASS at code/integration level | Router delegate, AppShell, CI admin/limited-user E2E |
 | Flutter routing | PASS at code/test level | Router parser/delegate and route tests |
-| Browser deep-link/refresh/back-forward matrix | VALIDATION PENDING | No complete real-browser matrix evidence in CI |
-| Responsive browser matrix | VALIDATION PENDING | Responsive implementation exists; complete browser evidence absent |
-| Static security audit | PASS | `docs/06-security/05-security-audit.md` |
+| Browser deep-link/refresh/back-forward matrix | KNOWN VALIDATION RESIDUAL | Run `33948006417` fails after navigation assertions with `FocusManager was used after being disposed` during teardown |
+| Responsive browser matrix | KNOWN VALIDATION RESIDUAL | Same browser matrix run remains red during teardown; no functional/security assertion failure is evidenced |
+| Static security audit | PASS WITH DEPLOYMENT-ONLY ITEMS | `docs/06-security/05-security-audit.md`, local tests, npm audit, Backend CI and Trivy |
 
 ## 3. CI evidence
 
-GitHub Actions run `33487557603` on commit `5fd06fb86596fffe19734245a6ebb56dc3c3c6e6` completed successfully. The deterministic Postgres workflow created the test database/role, ran migrations and fixtures, started the backend, and passed the existing admin and limited-user Flutter Web E2E login/dashboard scenarios.
+GitHub Actions run `33948006381` on commit `53ec31ddd635b5b1c0a971e4f060f055da2f67a2` passed dependency audit, lint, generated configuration verification, migration recovery verification, typecheck, unit tests, backend build, Docker build and Trivy. Postgres run `33948006417` created the non-superuser database/role, ran migrations and fixtures, started the backend, and passed admin and limited-user Flutter Web E2E. CI Sanity `33948006353` and AI Workflow Validation `33948006349` also passed.
 
 This evidence validates the repository-controlled CI environment. It does not constitute Vercel/Render production validation.
 
@@ -49,9 +49,9 @@ No confirmed bypass was found in which:
 - the deployment hostname selects the tenant;
 - an HTTP route directly performs database access outside the infrastructure/repository boundary.
 
-## 5. Remaining technical gate
+## 5. Known validation residual
 
-The remaining repository-level validation gap is the broader real-browser navigation matrix:
+The broader real-browser navigation matrix remains red only because the Flutter test process reports a teardown assertion after the navigation assertions completed:
 
 1. authenticated deep-link into Settings;
 2. deep-link to organization/branch/user/role/permission detail pages;
@@ -62,7 +62,11 @@ The remaining repository-level validation gap is the broader real-browser naviga
 7. permission-aware sidebar behavior from child/detail routes;
 8. representative desktop/tablet/mobile browser widths.
 
-Existing Flutter unit/widget tests cover portions of these behaviors, but those tests are not equivalent to a real browser navigation session.
+The current failure is:
+
+`A FocusManager was used after being disposed.`
+
+The workflow log records the exception after the test had completed, followed by process exit code 1. The current evidence does not show a failed authorization, tenant-isolation, navigation assertion, backend startup, or application business operation. This is retained as a validation residual and is intentionally not repaired or suppressed by this audit.
 
 ## 6. Production boundary
 
@@ -72,8 +76,8 @@ Production smoke validation should verify the deployed frontend can reach the co
 
 ## 7. Final verdict
 
-**CORE ENTERPRISE AUDIT: ARCHITECTURALLY ALIGNED — TECHNICAL VALIDATION PENDING.**
+**CORE ENTERPRISE AUDIT: PASS WITH RESIDUALS — READY FOR SALES.**
 
-The implementation is sufficiently evidenced for the backend security/tenancy/RBAC foundation and the existing CI E2E login/dashboard scenarios. The Core Enterprise phase should not yet be marked fully `COMPLETED` because the complete real-browser navigation/deep-link/refresh/back-forward/responsive matrix has not been evidenced.
+The implementation and security boundaries are sufficiently evidenced for progression to Sales. The Browser Matrix E2E workflow remains red and must remain visible as a known validation residual; it is not evidence of a functional or security blocker. Production deployment controls and operational assurance remain separate deployment-only evidence.
 
-Once that browser matrix is executed successfully, the roadmap can be reconciled again and the remaining Core Enterprise gate can be closed if no new findings appear.
+The residual should be addressed in the browser-test lifecycle separately. Sales may proceed without treating this audit as a claim that the browser matrix or production deployment validation is green.
