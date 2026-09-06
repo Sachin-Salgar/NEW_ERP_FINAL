@@ -31,20 +31,45 @@ class PermissionService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final resp = await apiClient.get('/api/v1/rbac/permissions');
-      if (resp.statusCode == 200) {
+      final descriptors = <PermissionDescriptor>[];
+      final seenKeys = <String>{};
+      var page = 1;
+      var totalPages = 1;
+
+      do {
+        final resp = await apiClient.get(
+          '/api/v1/rbac/permissions?page=$page&page_size=100',
+        );
+        if (resp.statusCode != 200) {
+          error = resp.statusCode == 403
+              ? 'Error: Forbidden'
+              : 'Error: Failed to load permissions: ${resp.statusCode}';
+          permissions = [];
+          permissionDetails = const [];
+          break;
+        }
+
         final body = jsonDecode(resp.body) as Map<String, dynamic>;
         final list = (body['permissions'] as List<dynamic>?) ?? [];
-        permissionDetails = PermissionDescriptor.normalizePermissions(list);
+        for (final descriptor in PermissionDescriptor.normalizePermissions(list)) {
+          if (seenKeys.add(descriptor.permissionKey)) {
+            descriptors.add(descriptor);
+          }
+        }
+
+        final metadata = body['metadata'];
+        if (metadata is Map<String, dynamic>) {
+          final parsedTotalPages = metadata['total_pages'];
+          totalPages = parsedTotalPages is num ? parsedTotalPages.toInt() : 1;
+        } else {
+          totalPages = 1;
+        }
+        page++;
+      } while (page <= totalPages);
+
+      if (error == null) {
+        permissionDetails = List<PermissionDescriptor>.unmodifiable(descriptors);
         permissions = permissionDetails.map((item) => item.permissionKey).toList(growable: false);
-      } else if (resp.statusCode == 403) {
-        error = 'Error: Forbidden';
-        permissions = [];
-        permissionDetails = const [];
-      } else {
-        error = 'Error: Failed to load permissions: ${resp.statusCode}';
-        permissions = [];
-        permissionDetails = const [];
       }
     } catch (e) {
       error = 'Error: $e';

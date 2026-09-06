@@ -157,11 +157,32 @@ describe('Authorization RBAC vertical slice', () => {
       headers: { authorization: `Bearer ${adminAToken}`, 'x-tenant-id': tenantAResult.tenantId },
     });
     expect(permissionsResponse.statusCode).toBe(200);
-    expect(
-      permissionsResponse
-        .json()
-        .permissions.some((permission: { permissionKey: string }) => permission.permissionKey === 'branch.read'),
-    ).toBe(true);
+    const firstPage = permissionsResponse.json();
+    expect(firstPage.metadata.page).toBe(1);
+    expect(firstPage.metadata.page_size).toBe(20);
+    expect(firstPage.metadata.total).toBeGreaterThan(firstPage.metadata.page_size);
+    expect(firstPage.metadata.total_pages).toBeGreaterThan(1);
+    expect(firstPage.permissions).toHaveLength(firstPage.metadata.page_size);
+
+    const secondPageResponse = await app.inject({
+      method: 'GET',
+      url: '/api/v1/rbac/permissions?page=2&page_size=20',
+      headers: { authorization: 'Bearer ' + adminAToken, 'x-tenant-id': tenantAResult.tenantId },
+    });
+    expect(secondPageResponse.statusCode).toBe(200);
+    const secondPage = secondPageResponse.json();
+    expect(secondPage.metadata.page).toBe(2);
+    expect(secondPage.metadata.page_size).toBe(20);
+    expect(secondPage.permissions).not.toEqual(firstPage.permissions);
+    const purchasePermissionResponse = await app.inject({
+      method: 'GET',
+      url: '/api/v1/rbac/permissions?search=purchase.receipt.complete&page_size=20',
+      headers: { authorization: 'Bearer ' + adminAToken, 'x-tenant-id': tenantAResult.tenantId },
+    });
+    expect(purchasePermissionResponse.statusCode).toBe(200);
+    expect(purchasePermissionResponse.json().permissions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ permissionKey: 'purchase.receipt.complete' })]),
+    );
 
     const roleCreateResponse = await app.inject({
       method: 'POST',
