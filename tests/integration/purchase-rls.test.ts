@@ -124,5 +124,140 @@ describe('Purchase PostgreSQL isolation', () => {
       tenantBView.rows.map((row) => row.id),
       JSON.stringify(tenantBView.rows),
     ).toEqual([supplierB]);
+
+    const requisitionA = uuidV7();
+    const orderA = uuidV7();
+    const receiptA = uuidV7();
+    const tenantAContext = await withTenantContext(pool, 'app.current_tenant_id', tenantA, (client) =>
+      client.query(
+        `SELECT b.id AS branch_id, fy.id AS financial_year_id
+           FROM branches b
+           JOIN financial_years fy ON fy.tenant_id=b.tenant_id AND fy.organization_id=b.organization_id
+          WHERE b.tenant_id=$1 AND b.organization_id=$2
+          LIMIT 1`,
+        [tenantA, orgA.rows[0].id],
+      ),
+    );
+    if (!tenantAContext.rows[0]) return;
+    await withTenantContext(
+      pool,
+      'app.current_tenant_id',
+      tenantA,
+      async (client) => {
+        await client.query(
+          `INSERT INTO procurement_requisitions(id,tenant_id,organization_id,branch_id,financial_year_id,required_date)
+         VALUES($1,$2,$3,$4,$5,'2026-01-01')`,
+          [
+            requisitionA,
+            tenantA,
+            orgA.rows[0].id,
+            tenantAContext.rows[0].branch_id,
+            tenantAContext.rows[0].financial_year_id,
+          ],
+        );
+        await client.query(
+          `INSERT INTO procurement_purchase_orders(id,tenant_id,organization_id,branch_id,financial_year_id,supplier_id,order_date)
+         VALUES($1,$2,$3,$4,$5,$6,'2026-01-01')`,
+          [
+            orderA,
+            tenantA,
+            orgA.rows[0].id,
+            tenantAContext.rows[0].branch_id,
+            tenantAContext.rows[0].financial_year_id,
+            supplierA,
+          ],
+        );
+        await client.query(
+          `INSERT INTO procurement_receipts(id,tenant_id,organization_id,branch_id,financial_year_id,purchase_order_id,warehouse_id,receipt_date,operation_key)
+         VALUES($1,$2,$3,$4,$5,$6,$7,'2026-01-01',$8)`,
+          [
+            receiptA,
+            tenantA,
+            orgA.rows[0].id,
+            tenantAContext.rows[0].branch_id,
+            tenantAContext.rows[0].financial_year_id,
+            orderA,
+            uuidV7(),
+            `rls-org-${receiptA}`,
+          ],
+        );
+      },
+      { organizationId: String(orgA.rows[0].id) },
+    );
+
+    const organizationA2 = uuidV7();
+    const branchA2 = uuidV7();
+    const financialYearA2 = uuidV7();
+    const supplierA2 = uuidV7();
+    const requisitionA2 = uuidV7();
+    const orderA2 = uuidV7();
+    const receiptA2 = uuidV7();
+    await withTenantContext(
+      pool,
+      'app.current_tenant_id',
+      tenantA,
+      async (client) => {
+        await client.query(
+          `INSERT INTO organizations(id,tenant_id,code,name,status,is_default)
+         VALUES($1,$2,$3,'RLS Organization A2','active',false)`,
+          [organizationA2, tenantA, `RLS-A2-${organizationA2}`],
+        );
+        await client.query(
+          `INSERT INTO branches(id,tenant_id,organization_id,code,name,is_head_office,is_default)
+         VALUES($1,$2,$3,$4,'RLS Branch A2',false,false)`,
+          [branchA2, tenantA, organizationA2, `RLS-B2-${branchA2}`],
+        );
+        await client.query(
+          `INSERT INTO financial_years(id,tenant_id,organization_id,name,start_date,end_date,is_active,status,is_locked)
+         VALUES($1,$2,$3,'RLS FY A2','2026-01-01','2026-12-31',true,'open',false)`,
+          [financialYearA2, tenantA, organizationA2],
+        );
+        await client.query(
+          `INSERT INTO procurement_suppliers(id,tenant_id,organization_id,code,name)
+         VALUES($1,$2,$3,$4,'RLS Organization A2')`,
+          [supplierA2, tenantA, organizationA2, `RLS-S2-${supplierA2}`],
+        );
+        await client.query(
+          `INSERT INTO procurement_requisitions(id,tenant_id,organization_id,branch_id,financial_year_id,required_date)
+         VALUES($1,$2,$3,$4,$5,'2026-01-01')`,
+          [requisitionA2, tenantA, organizationA2, branchA2, financialYearA2],
+        );
+        await client.query(
+          `INSERT INTO procurement_purchase_orders(id,tenant_id,organization_id,branch_id,financial_year_id,supplier_id,order_date)
+         VALUES($1,$2,$3,$4,$5,$6,'2026-01-01')`,
+          [orderA2, tenantA, organizationA2, branchA2, financialYearA2, supplierA2],
+        );
+        await client.query(
+          `INSERT INTO procurement_receipts(id,tenant_id,organization_id,branch_id,financial_year_id,purchase_order_id,warehouse_id,receipt_date,operation_key)
+         VALUES($1,$2,$3,$4,$5,$6,$7,'2026-01-01',$8)`,
+          [receiptA2, tenantA, organizationA2, branchA2, financialYearA2, orderA2, uuidV7(), `rls-org-${receiptA2}`],
+        );
+      },
+      { organizationId: organizationA2 },
+    );
+
+    for (const [table, idA, idA2] of [
+      ['procurement_suppliers', supplierA, supplierA2],
+      ['procurement_requisitions', requisitionA, requisitionA2],
+      ['procurement_purchase_orders', orderA, orderA2],
+      ['procurement_receipts', receiptA, receiptA2],
+    ] as const) {
+      const organizationAOnly = await withTenantContext(
+        pool,
+        'app.current_tenant_id',
+        tenantA,
+        (client) => client.query(`SELECT id FROM ${table} WHERE id IN ($1,$2) ORDER BY id`, [idA, idA2]),
+        { organizationId: String(orgA.rows[0].id) },
+      );
+      const organizationA2Only = await withTenantContext(
+        pool,
+        'app.current_tenant_id',
+        tenantA,
+        (client) => client.query(`SELECT id FROM ${table} WHERE id IN ($1,$2) ORDER BY id`, [idA, idA2]),
+        { organizationId: organizationA2 },
+      );
+      expect(organizationAOnly.rows.map((row) => row.id)).toEqual([idA]);
+      expect(organizationA2Only.rows.map((row) => row.id)).toEqual([idA2]);
+    }
   });
 });

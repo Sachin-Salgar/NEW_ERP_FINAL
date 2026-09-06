@@ -387,5 +387,24 @@ describe('Purchase HTTP API', () => {
         route,
       ).toBe(403);
     }
+    for (const request of [
+      {
+        url: `/api/v1/purchase/requisitions/${requisitionId}/workflow`,
+        payload: { status: 'CANCELLED', expectedVersion: 1 },
+      },
+      {
+        url: `/api/v1/purchase/purchase-orders/${orderId}/workflow`,
+        payload: { status: 'CANCELLED', expectedVersion: 1 },
+      },
+      {
+        url: `/api/v1/purchase/receipts/${receiptId}/workflow`,
+        payload: { status: 'CANCELLED', expectedVersion: 1 },
+      },
+    ]) {
+      expect(
+        (await app.inject({ method: 'POST', url: request.url, headers, payload: request.payload })).statusCode,
+        request.url,
+      ).toBe(403);
+    }
   });
 });
