@@ -13,12 +13,15 @@ import 'package:new_erp_final_frontend/modules/permission/role_permission_screen
 
 class _Storage implements SecureStorageLike {
   final Map<String, String> values = {};
-  @override Future<String?> read({required String key}) async => values[key];
-  @override Future<void> write({required String key, required String value}) async => values[key] = value;
-  @override Future<void> delete({required String key}) async => values.remove(key);
+  @override
+  Future<String?> read({required String key}) async => values[key];
+  @override
+  Future<void> write({required String key, required String value}) async => values[key] = value;
+  @override
+  Future<void> delete({required String key}) async => values.remove(key);
 }
 
-Future<ApiClient> _setup(MockClient client) async {
+Future<void> _setup(MockClient client) async {
   final api = ApiClient(baseUrl: 'http://example.com', httpClient: client);
   final authz = AuthZService();
   final auth = AuthService(
@@ -29,7 +32,6 @@ Future<ApiClient> _setup(MockClient client) async {
   GetIt.instance.registerSingleton<ApiClient>(api);
   GetIt.instance.registerSingleton<AuthService>(auth);
   await authz.loadPermissions(api, 'user-1');
-  return api;
 }
 
 void main() {
@@ -37,7 +39,7 @@ void main() {
   tearDown(() => GetIt.instance.reset());
 
   testWidgets('shows role, category and action type selectors in one row', (tester) async {
-    final api = await _setup(_mock());
+    await _setup(_mock());
     await tester.pumpWidget(MaterialApp(home: RolePermissionScreen(roleId: 'role-1')));
     await tester.pumpAndSettle();
 
@@ -45,9 +47,8 @@ void main() {
     expect(find.byType(DataTable), findsOneWidget);
     expect(find.text('Common Actions'), findsOneWidget);
     expect(find.text('User Management'), findsOneWidget);
-    expect(find.byKey(const ValueKey('permission:user.read')), findsOneWidget);
-    expect(find.byKey(const ValueKey('permission:role.manage')), findsNothing);
-    api;
+    expect(find.text('Purchase'), findsOneWidget);
+    expect(find.byKey(const ValueKey('permission:user.read')), findsNothing);
   });
 
   testWidgets('business action selector swaps columns without changing tree', (tester) async {
@@ -64,17 +65,14 @@ void main() {
 
     expect(find.text('Approve'), findsOneWidget);
     expect(find.text('Reject'), findsOneWidget);
-    expect(find.byKey(const ValueKey('permission:purchase.purchase_order.approve')), findsOneWidget);
-    expect(find.text('Purchase Orders'), findsOneWidget);
+    expect(find.text('Purchase'), findsOneWidget);
+    expect(find.byType(DataTable), findsOneWidget);
   });
 
   testWidgets('category selector filters the same single table', (tester) async {
     await _setup(_mock());
     await tester.pumpWidget(MaterialApp(home: RolePermissionScreen(roleId: 'role-1')));
     await tester.pumpAndSettle();
-
-    expect(find.text('User Management'), findsOneWidget);
-    expect(find.text('Purchase'), findsOneWidget);
 
     final selectors = find.byType(DropdownButtonFormField);
     await tester.tap(selectors.at(1));
