@@ -9,7 +9,7 @@ import {
   type ProcurementPermission,
   type ProcurementRepository,
 } from '../../domain/contracts/procurement.js';
-import { ForbiddenError, UnauthorizedError, ValidationError } from '../../domain/errors.js';
+import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../../domain/errors.js';
 
 export class ProcurementService {
   constructor(
@@ -241,17 +241,6 @@ export class ProcurementService {
     await this.authorize(c, PROCUREMENT_PERMISSIONS.receiptCreate);
     return this.tx.runInTransaction(async () => {
       const receipt = await this.repository.createReceipt({ ...c, ...input });
-      for (const line of receipt.lines) {
-        if (!this.inventory.receiveStock) throw new ValidationError('Inventory receipt integration is unavailable.');
-        await this.inventory.receiveStock(c, {
-          warehouseId: input.warehouseId,
-          itemId: line.itemId,
-          quantity: line.quantity,
-          sourceType: 'PURCHASE_RECEIPT',
-          sourceId: receipt.id,
-          operationKey: `${input.operationKey}:${line.itemId}`,
-        });
-      }
       await this.audit.record(
         {
           tenantId: c.tenantId,
@@ -273,19 +262,80 @@ export class ProcurementService {
   listReceipts(c: ProcurementContext, page: number, pageSize: number) {
     return this.read(c, PROCUREMENT_PERMISSIONS.receiptRead, () => this.repository.listReceipts(c, page, pageSize));
   }
+  updateReceipt(
+    c: ProcurementContext,
+    input: {
+      id: string;
+      warehouseId: string;
+      receiptDate: string;
+      lines: Array<{ itemId: string; quantity: number }>;
+      expectedVersion: number;
+    },
+  ) {
+    this.id(input.id, 'Receipt ID');
+    this.id(input.warehouseId, 'Warehouse ID');
+    this.receiptLines(input.lines);
+    return this.write(c, PROCUREMENT_PERMISSIONS.receiptUpdate, 'procurement.receipt.updated', 'purchase_receipt', () =>
+      this.repository.updateReceipt({ ...c, ...input, receiptDate: this.text(input.receiptDate, 'Receipt date') }),
+    );
+  }
   transitionReceipt(c: ProcurementContext, input: { id: string; status: string; expectedVersion: number }) {
     return this.transition(c, PROCUREMENT_PERMISSIONS.receiptWorkflow, 'receipt', input, (value) =>
       this.repository.transitionReceipt({ ...c, ...value }),
     );
   }
   completeReceipt(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
-    return this.transition(c, PROCUREMENT_PERMISSIONS.receiptComplete, 'receipt', { ...i, status: 'COMPLETED' }, (v) =>
-      this.repository.transitionReceipt({ ...c, ...v }),
-    );
+    this.id(i.id, 'Receipt ID');
+    return this.tx.runInTransaction(async () => {
+      await this.authorize(c, PROCUREMENT_PERMISSIONS.receiptComplete);
+      const result = await this.repository.completeReceipt({ ...c, ...i });
+      if (!result) throw new NotFoundError('Receipt not found.');
+      if (!result.alreadyCompleted) {
+        if (!this.inventory.receiveStock) throw new ValidationError('Inventory receipt integration is unavailable.');
+        const receipt = result.receipt as {
+          warehouse_id?: string;
+          warehouseId?: string;
+          operation_key?: string;
+          operationKey?: string;
+        };
+        const warehouseId = String(receipt.warehouseId ?? receipt.warehouse_id);
+        const operationKey = String(receipt.operationKey ?? receipt.operation_key);
+        for (const line of result.lines)
+          await this.inventory.receiveStock(c, {
+            warehouseId,
+            itemId: line.itemId,
+            quantity: line.quantity,
+            sourceType: 'PURCHASE_RECEIPT',
+            sourceId: i.id,
+            operationKey: `${operationKey}:${line.itemId}`,
+          });
+        await this.audit.record(
+          {
+            tenantId: c.tenantId,
+            actorUserId: c.userId,
+            action: 'procurement.receipt.completed',
+            resourceType: 'purchase_receipt',
+            resourceId: i.id,
+            outcome: 'success',
+          },
+          { requireTransaction: true },
+        );
+      }
+      return result.receipt;
+    });
   }
   cancelReceipt(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
-    return this.transition(c, PROCUREMENT_PERMISSIONS.receiptCancel, 'receipt', { ...i, status: 'CANCELLED' }, (v) =>
-      this.repository.transitionReceipt({ ...c, ...v }),
+    this.id(i.id, 'Receipt ID');
+    return this.write(
+      c,
+      PROCUREMENT_PERMISSIONS.receiptCancel,
+      'procurement.receipt.cancelled',
+      'purchase_receipt',
+      async () => {
+        const result = await this.repository.cancelReceipt({ ...c, ...i });
+        if (!result) throw new NotFoundError('Receipt not found or is not a draft.');
+        return result;
+      },
     );
   }
   private async read<T>(c: ProcurementContext, p: ProcurementPermission, fn: () => Promise<T>) {
@@ -302,7 +352,9 @@ export class ProcurementService {
     await this.authorize(c, p);
     return this.tx.runInTransaction(async () => {
       const result = await fn();
-      const id = String((result as { id: string }).id);
+      if (result === null || result === undefined)
+        throw new NotFoundError('Requested procurement resource was not found.');
+      const id = String((result as unknown as { id: string }).id);
       await this.audit.record(
         { tenantId: c.tenantId, actorUserId: c.userId, action, resourceType: type, resourceId: id, outcome: 'success' },
         { requireTransaction: true },
@@ -334,6 +386,7 @@ export class ProcurementService {
           : type === 'order'
             ? await this.repository.getPurchaseOrder(c, input.id)
             : await this.repository.getReceipt(c, input.id);
+      if (!current) throw new NotFoundError(`${type} not found.`);
       const currentStatus = String((current as { status?: string } | null)?.status ?? '');
       const transitions: Record<string, Record<string, string[]>> = {
         requisition: { DRAFT: ['SUBMITTED', 'CANCELLED'], SUBMITTED: ['APPROVED', 'REJECTED', 'CANCELLED'] },
@@ -379,6 +432,14 @@ export class ProcurementService {
       )
     )
       throw new ValidationError('Valid purchase lines are required.');
+  }
+  private receiptLines(lines: Array<{ itemId: string; quantity: number }>) {
+    if (
+      !Array.isArray(lines) ||
+      !lines.length ||
+      lines.some((line) => !isUuid(line.itemId) || !Number.isFinite(line.quantity) || line.quantity <= 0)
+    )
+      throw new ValidationError('Receipt lines must contain valid items and positive quantities.');
   }
   private text(value: string | undefined, label: string) {
     const v = value?.trim();

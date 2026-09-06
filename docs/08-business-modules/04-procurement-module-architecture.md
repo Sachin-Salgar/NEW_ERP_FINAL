@@ -175,7 +175,15 @@ quantities through the Inventory receipt contract in the same transaction.
 
 Supplier records support soft deletion. All Purchase records use FORCE RLS,
 composite tenant/organization/context ownership constraints, audit columns, and
-versioned updates. Purchase returns, RFQ/quotation management, vendor invoices,
-and payment processing remain outside this bounded implementation; vendor
-returns require an approved Inventory return contract for the Purchase domain
-before they are enabled.
+versioned updates. The Flutter Purchase workspace provides paginated/searchable
+supplier, requisition, order, and receipt views with create/edit/detail actions
+and permission-gated lifecycle controls. The public permission namespace is
+`purchase.*`, including resource-specific create/update and workflow actions.
+Receipts require an approved active order, reject quantities beyond the
+outstanding order balance, support partial/multiple receipts, and complete
+idempotently through the Inventory boundary.
+
+Purchase returns, RFQ/quotation management, vendor invoices, and payment
+processing remain outside this bounded implementation; vendor returns require
+an approved Inventory return contract for the Purchase domain before they are
+enabled.

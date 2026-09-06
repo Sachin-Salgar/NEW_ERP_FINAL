@@ -46,5 +46,7 @@
     ,"0042-grant-procurement-admin-permissions":{"strategy":"compensating-migration","destructiveDownAllowed":false,"note":"Purchase authorization grants are corrected forward without removing role history."}
     ,"0043-purchase-integrity-correction":{"strategy":"forward-only-security","destructiveDownAllowed":false,"note":"Composite organization ownership, RLS, audit, version, and soft-delete safeguards are corrected forward."}
     ,"0044-purchase-permissions":{"strategy":"forward-only-security","destructiveDownAllowed":false,"note":"Purchase permission namespace migration is corrected forward while preserving authorization history."}
+    ,"0045-correct-organization-module-rls-context":{"strategy":"forward-only-security","destructiveDownAllowed":false,"note":"Correct organization module RLS to use the transaction-local organization context without weakening tenant isolation or removing access records."},
+    "0046-harden-organization-module-rls-null-context":{"strategy":"forward-only-security","destructiveDownAllowed":false,"note":"Treat an unset organization context as empty under FORCE RLS without weakening tenant isolation or removing access records."}
   }
 }

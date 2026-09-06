@@ -103,6 +103,15 @@ export interface ProcurementRepository {
       operationKey: string;
     },
   ): Promise<{ id: string; lines: Array<{ itemId: string; quantity: number }> }>;
+  updateReceipt(
+    input: ProcurementContext & {
+      id: string;
+      warehouseId: string;
+      receiptDate: string;
+      lines: Array<{ itemId: string; quantity: number }>;
+      expectedVersion: number;
+    },
+  ): Promise<unknown | null>;
   getReceipt(context: ProcurementContext, id: string): Promise<unknown | null>;
   listReceipts(
     context: ProcurementContext,
@@ -112,4 +121,10 @@ export interface ProcurementRepository {
   transitionReceipt(
     input: ProcurementContext & { id: string; status: string; expectedVersion: number },
   ): Promise<unknown | null>;
+  completeReceipt(input: ProcurementContext & { id: string; expectedVersion: number }): Promise<{
+    receipt: unknown;
+    lines: Array<{ itemId: string; quantity: number }>;
+    alreadyCompleted: boolean;
+  } | null>;
+  cancelReceipt(input: ProcurementContext & { id: string; expectedVersion: number }): Promise<unknown | null>;
 }

@@ -255,6 +255,28 @@ const procurementRoutes: FastifyPluginAsync = async (f) => {
       receipt: await f.procurementService.getReceipt(ctx(r), requestParam(r.params, 'id') ?? ''),
     }),
   );
+  f.patch(
+    '/purchase/receipts/:id',
+    { preHandler: [requireAuth, requirePermission('purchase.receipt.update')] },
+    async (r) => ({
+      success: true,
+      receipt: await f.procurementService.updateReceipt(ctx(r), {
+        ...(r.body as Record<string, unknown>),
+        id: requestParam(r.params, 'id') ?? '',
+      } as Parameters<typeof f.procurementService.updateReceipt>[1]),
+    }),
+  );
+  f.put(
+    '/purchase/receipts/:id',
+    { preHandler: [requireAuth, requirePermission('purchase.receipt.update')] },
+    async (r) => ({
+      success: true,
+      receipt: await f.procurementService.updateReceipt(ctx(r), {
+        ...(r.body as Record<string, unknown>),
+        id: requestParam(r.params, 'id') ?? '',
+      } as Parameters<typeof f.procurementService.updateReceipt>[1]),
+    }),
+  );
   f.post(
     '/purchase/receipts/:id/workflow',
     { preHandler: [requireAuth, requirePermission('purchase.receipt.workflow')] },
