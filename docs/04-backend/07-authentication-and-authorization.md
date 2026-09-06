@@ -157,6 +157,17 @@ dependents cannot be deleted. Tenant administration routes use explicit platform
 checks and operate only on the authenticated tenant context. The Flutter role matrix renders
 module/resource/action cells from the catalog and persists canonical permission keys.
 
+The canonical security-administration keys are `security.session.read`,
+`security.session.revoke`, `security.session.revoke_all`, `security.audit_log.read`,
+`security.audit_log.export`, `security.policy.read`, and `security.policy.update`.
+The canonical location keys are `organization.location.read`, `.create`, `.update`,
+`.delete`, `.activate`, and `.deactivate`; shorter aliases such as `session.read`,
+`audit.read`, or `location.read` are not registered. Tenant lifecycle uses the existing
+`tenant_status_enum`: suspend moves an eligible tenant to `suspended`, reactivate returns
+it to `active`, deactivate soft-deletes it as `cancelled`, and activate restores a
+cancelled tenant. Invalid transitions are rejected and deletion is blocked when tenant
+records or audit history remain.
+
 ```text
 Configured Backend Endpoint
   ↓

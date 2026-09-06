@@ -6,6 +6,7 @@ import { AuthenticationService } from '../../src/application/services/authentica
 import { AuthorizationService } from '../../src/application/services/authorization-service.js';
 import { PlatformBootstrapService } from '../../src/application/services/platform-bootstrap-service.js';
 import { TenantBootstrapService } from '../../src/application/services/tenant-bootstrap-service.js';
+import { TenantAdministrationService } from '../../src/application/services/tenant-administration-service.js';
 import { BcryptPasswordHasher } from '../../src/infrastructure/security/bcrypt-password-hasher.js';
 import { PostgresPlatformRepository } from '../../src/infrastructure/database/repositories/postgres-platform-repository.js';
 import { resolveDatabaseUrl } from '../../src/config/schema.js';
@@ -30,6 +31,7 @@ describe('Phase 2 platform and identity foundation', () => {
     const tenantService = new TenantBootstrapService(repository, passwordHasher);
     const authService = new AuthenticationService(repository, passwordHasher);
     const authorizationService = new AuthorizationService(repository);
+    const tenantAdministrationService = new TenantAdministrationService(pool);
 
     await bootstrapService.seedReferenceData();
 
@@ -119,6 +121,13 @@ describe('Phase 2 platform and identity foundation', () => {
     expect(scoped.rolePermissionsCount.rows[0].count).toBeGreaterThan(0);
     expect(scoped.orgAccess.rows[0].count).toBe(1);
     expect(scoped.branchAccess.rows[0].count).toBe(1);
+
+    await expect(tenantAdministrationService.transition(result.tenantId, 'suspend')).resolves.toMatchObject({ status: 'suspended' });
+    await expect(tenantAdministrationService.transition(result.tenantId, 'suspend')).rejects.toThrow('Invalid tenant lifecycle transition');
+    await expect(tenantAdministrationService.transition(result.tenantId, 'reactivate')).resolves.toMatchObject({ status: 'active' });
+    await expect(tenantAdministrationService.transition(result.tenantId, 'deactivate')).resolves.toMatchObject({ status: 'cancelled', isDeleted: true });
+    await expect(tenantAdministrationService.transition(result.tenantId, 'activate')).resolves.toMatchObject({ status: 'active', isDeleted: false });
+    await expect(tenantAdministrationService.delete(result.tenantId)).rejects.toThrow('Tenant deletion is blocked');
 
     await expect(authorizationService.hasPermission(result.tenantId, result.userId, 'role.create')).resolves.toBe(true);
     await expect(authorizationService.hasPermission(result.tenantId, result.userId, 'permission.manage')).resolves.toBe(
