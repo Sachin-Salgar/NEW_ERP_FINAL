@@ -38,7 +38,7 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
   }
 
   Future<void> _deactivate() async {
-    if (!auth.hasPermission('branch.manage')) return;
+    if (!auth.hasPermission('branch.deactivate')) return;
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
@@ -60,7 +60,8 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
   Widget build(BuildContext context) {
     if (loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     if (branch == null) return Scaffold(body: Center(child: Text(error ?? 'Branch not found')));
-    final manage = auth.hasPermission('branch.manage');
+    final canUpdate = auth.hasPermission('branch.update');
+    final canDeactivate = auth.hasPermission('branch.deactivate');
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -84,7 +85,7 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
                       SettingsBackButton(
                         parentRoute: '/settings/branches',
                       ),
-                      if (manage)
+                      if (canUpdate)
                         FilledButton.icon(
                           onPressed: () => Navigator.pushNamed(
                             context,
@@ -133,7 +134,7 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
                             ],
                           ),
                           const SizedBox(height: 28),
-                          if (manage)
+                          if (canDeactivate)
                             FilledButton.icon(
                               onPressed: _deactivate,
                               icon: const Icon(Icons.block_outlined),

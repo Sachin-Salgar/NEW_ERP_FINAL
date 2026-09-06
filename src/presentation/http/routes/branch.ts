@@ -8,7 +8,7 @@ interface BranchIdParams {
 }
 
 const branchRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.get('/branches', { preHandler: [requireAuth, requirePermission('organization.read')] }, async (request) => {
+  fastify.get('/branches', { preHandler: [requireAuth, requirePermission('branch.read')] }, async (request) => {
     if (!request.tenantId || !request.user) throw new ValidationError('Authenticated tenant context is required.');
     const organizationId = request.user.organizationId ?? null;
     if (!organizationId) throw new ValidationError('An active organization is required before resolving branches.');
@@ -22,7 +22,7 @@ const branchRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post<{ Params: BranchIdParams }>(
     '/branches/:id/select',
-    { preHandler: [requireAuth, requirePermission('organization.read')] },
+    { preHandler: [requireAuth, requirePermission('branch.read')] },
     async (request, reply) => {
       if (!request.tenantId || !request.user) throw new ValidationError('Authenticated tenant context is required.');
       const organizationId = request.user.organizationId ?? null;

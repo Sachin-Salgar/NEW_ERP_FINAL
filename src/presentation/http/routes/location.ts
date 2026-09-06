@@ -27,7 +27,7 @@ interface CreateLocationBody {
 type UpdateLocationBody = Partial<Omit<CreateLocationBody, 'organizationId'>>;
 
 const locationRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.get('/locations', { preHandler: [requireAuth, requirePermission('organization.read')] }, async (request) => {
+  fastify.get('/locations', { preHandler: [requireAuth, requirePermission('organization.location.read')] }, async (request) => {
     if (!request.tenantId || !request.user) throw new ValidationError('Authenticated tenant context is required.');
     const organizationId = request.user.organizationId ?? null;
     if (!organizationId) throw new ValidationError('An active organization is required before resolving locations.');
@@ -41,7 +41,7 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get<{ Params: LocationIdParams }>(
     '/locations/:id',
-    { preHandler: [requireAuth, requirePermission('organization.read')] },
+    { preHandler: [requireAuth, requirePermission('organization.location.read')] },
     async (request) => {
       if (!request.tenantId || !request.user) throw new ValidationError('Authenticated tenant context is required.');
       const organizationId = request.user.organizationId ?? null;
@@ -60,7 +60,7 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get(
     '/locations/active',
-    { preHandler: [requireAuth, requirePermission('organization.read')] },
+    { preHandler: [requireAuth, requirePermission('organization.location.read')] },
     async (request) => {
       if (!request.tenantId || !request.user) throw new ValidationError('Authenticated tenant context is required.');
       const organizationId = request.user.organizationId ?? null;
@@ -79,7 +79,7 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post<{ Params: LocationIdParams }>(
     '/locations/:id/select',
-    { preHandler: [requireAuth, requirePermission('organization.read')] },
+    { preHandler: [requireAuth, requirePermission('organization.location.read')] },
     async (request, reply) => {
       if (!request.tenantId || !request.user) throw new ValidationError('Authenticated tenant context is required.');
       const organizationId = request.user.organizationId ?? null;
@@ -136,7 +136,7 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post<{ Body: CreateLocationBody }>(
     '/locations',
-    { preHandler: [requireAuth, requirePermission('organization.manage')] },
+    { preHandler: [requireAuth, requirePermission('organization.location.create')] },
     async (request, reply) => {
       if (!request.tenantId || !request.user) throw new ValidationError('Authenticated tenant context is required.');
       const body = request.body;
@@ -162,7 +162,7 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.patch<{ Params: LocationIdParams; Body: UpdateLocationBody }>(
     '/locations/:id',
-    { preHandler: [requireAuth, requirePermission('organization.manage')] },
+    { preHandler: [requireAuth, requirePermission('organization.location.update')] },
     async (request) => {
       if (!request.tenantId || !request.user) throw new ValidationError('Authenticated tenant context is required.');
       const locationId = request.params.id.trim();
@@ -199,7 +199,7 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post<{ Params: LocationIdParams }>(
     '/locations/:id/deactivate',
-    { preHandler: [requireAuth, requirePermission('organization.manage')] },
+    { preHandler: [requireAuth, requirePermission('organization.location.deactivate')] },
     async (request) => {
       if (!request.tenantId || !request.user) throw new ValidationError('Authenticated tenant context is required.');
       const locationId = request.params.id.trim();

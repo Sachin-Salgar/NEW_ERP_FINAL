@@ -58,7 +58,7 @@ void main() {
       expect(rolePermissions.moduleCode, 'security');
       expect(
         AppRoutes.routePermissions['/settings/roles/permissions'],
-        'role.manage',
+        'role_permission.read',
       );
 
       final settingsPermissions = AppRoutes.forRoute('/settings/permissions');
@@ -102,7 +102,7 @@ void main() {
       );
       expect(
         AppRoutes.routePermissions['/settings/roles/permissions'],
-        'role.manage',
+        'role_permission.read',
       );
     });
 

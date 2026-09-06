@@ -74,7 +74,7 @@ class _EditBranchScreenState extends State<EditBranchScreen> {
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    if (!auth.hasPermission('branch.manage')) {
+    if (!auth.hasPermission('branch.update')) {
       return const Scaffold(
         body: Center(child: Text('You do not have permission to manage branches.')),
       );

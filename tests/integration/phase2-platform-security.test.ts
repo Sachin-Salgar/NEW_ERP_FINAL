@@ -120,7 +120,7 @@ describe('Phase 2 platform and identity foundation', () => {
     expect(scoped.orgAccess.rows[0].count).toBe(1);
     expect(scoped.branchAccess.rows[0].count).toBe(1);
 
-    await expect(authorizationService.hasPermission(result.tenantId, result.userId, 'role.manage')).resolves.toBe(true);
+    await expect(authorizationService.hasPermission(result.tenantId, result.userId, 'role.create')).resolves.toBe(true);
     await expect(authorizationService.hasPermission(result.tenantId, result.userId, 'permission.manage')).resolves.toBe(
       false,
     );

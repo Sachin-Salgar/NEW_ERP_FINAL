@@ -247,6 +247,33 @@ describe('Phase 2 platform security services', () => {
     expect(userPermissions).not.toContain('user.manage');
   });
 
+  it('publishes granular core and role-permission capabilities without active manage aliases', () => {
+    const keys = new Set(DEFAULT_PLATFORM_SEED.permissions.map((permission) => permission.permissionKey));
+
+    for (const key of [
+      'organization.create',
+      'organization.update',
+      'organization.deactivate',
+      'organization.location.read',
+      'organization.location.create',
+      'organization.location.update',
+      'organization.location.deactivate',
+      'branch.create',
+      'branch.update',
+      'branch.deactivate',
+      'role.create',
+      'role.update',
+      'role_permission.read',
+      'role_permission.grant',
+      'role_permission.revoke',
+    ]) {
+      expect(keys.has(key)).toBe(true);
+    }
+    for (const legacyKey of ['organization.manage', 'branch.manage', 'role.manage', 'permission.manage', 'session.manage']) {
+      expect(keys.has(legacyKey)).toBe(false);
+    }
+  });
+
   it('evaluates role and direct permissions for a user', async () => {
     const service = new AuthorizationService(new FakeAuthorizationRepository());
 

@@ -48,6 +48,7 @@
     ,"0044-purchase-permissions":{"strategy":"forward-only-security","destructiveDownAllowed":false,"note":"Purchase permission namespace migration is corrected forward while preserving authorization history."}
     ,"0045-correct-organization-module-rls-context":{"strategy":"forward-only-security","destructiveDownAllowed":false,"note":"Correct organization module RLS to use the transaction-local organization context without weakening tenant isolation or removing access records."},
     "0046-harden-organization-module-rls-null-context":{"strategy":"forward-only-security","destructiveDownAllowed":false,"note":"Treat an unset organization context as empty under FORCE RLS without weakening tenant isolation or removing access records."},
-    "0047-granular-user-permissions":{"strategy":"forward-only-security","destructiveDownAllowed":false,"note":"Replace the legacy user.manage catalog permission with granular User permissions and migrate existing role assignments without weakening authorization."}
+    "0047-granular-user-permissions":{"strategy":"forward-only-security","destructiveDownAllowed":false,"note":"Replace the legacy user.manage catalog permission with granular User permissions and migrate existing role assignments without weakening authorization."},
+    "0048-granular-core-security-permissions":{"strategy":"forward-only-security","destructiveDownAllowed":false,"note":"Replace implemented core and RBAC manage catalog permissions with explicit actions and migrate existing role assignments without weakening tenant isolation."}
   }
 }

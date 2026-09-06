@@ -79,7 +79,7 @@ class _EditOrganizationScreenState extends State<EditOrganizationScreen> {
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    if (!auth.hasPermission('organization.manage')) {
+    if (!auth.hasPermission('organization.update')) {
       return const Scaffold(
         body: Center(child: Text('You do not have permission to manage organizations.')),
       );

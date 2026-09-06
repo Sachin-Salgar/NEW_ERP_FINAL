@@ -53,7 +53,7 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!auth.hasPermission('branch.manage')) {
+    if (!auth.hasPermission('branch.create')) {
       return const Scaffold(
         body: Center(child: Text('You do not have permission to manage branches.')),
       );

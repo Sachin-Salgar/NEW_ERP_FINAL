@@ -51,7 +51,7 @@ class _BranchListScreenState extends State<BranchListScreen> {
                   title: 'Branches',
                   subtitle: 'Branches for this organization',
                   breadcrumbs: const [ErpBreadcrumbItem(label: 'Dashboard'), ErpBreadcrumbItem(label: 'Organizations'), ErpBreadcrumbItem(label: 'Branches')],
-                  actions: auth.hasPermission('branch.manage') ? [FilledButton.icon(
+                  actions: auth.hasPermission('branch.create') ? [FilledButton.icon(
                    onPressed: () => Navigator.of(context).pushNamed('/settings/branches/create', arguments: widget.organizationId),
                     icon: const Icon(Icons.add), label: const Text('Add Branch'),
                   )] : null,

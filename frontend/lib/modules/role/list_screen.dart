@@ -78,7 +78,7 @@ class _RoleListScreenState extends State<RoleListScreen> {
                       title: 'Roles',
                       subtitle: 'Manage security roles and access assignments',
                       breadcrumbs: breadcrumbs,
-                      actions: _auth.hasPermission('role.manage')
+                      actions: _auth.hasPermission('role.create')
                           ? [
                               FilledButton.icon(
                                 onPressed: () => Navigator.pushNamed(
@@ -220,7 +220,7 @@ class _RoleActions extends StatelessWidget {
     final id = role['id']?.toString() ?? '';
     return Wrap(
       children: [
-        if (auth.hasPermission('role.manage'))
+        if (auth.hasPermission('role.update'))
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             tooltip: 'Edit role',
@@ -229,7 +229,7 @@ class _RoleActions extends StatelessWidget {
               arguments: id,
             ),
           ),
-        if (auth.hasPermission('role.manage'))
+        if (auth.hasPermission('role.update'))
           IconButton(
             icon: const Icon(Icons.admin_panel_settings_outlined),
             tooltip: 'Manage permissions',

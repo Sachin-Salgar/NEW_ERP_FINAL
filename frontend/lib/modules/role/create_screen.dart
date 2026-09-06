@@ -36,7 +36,7 @@ class _RoleCreateScreenState extends State<RoleCreateScreen> {
     return ChangeNotifierProvider(
       create: (_) => RoleService(apiClient: GetIt.instance.get<ApiClient>()),
       child: Consumer<RoleService>(builder: (context, svc, _) {
-        final hasPermission = auth.hasPermission('role.manage');
+        final hasPermission = auth.hasPermission('role.create');
 
         if (!hasPermission) {
           return Scaffold(

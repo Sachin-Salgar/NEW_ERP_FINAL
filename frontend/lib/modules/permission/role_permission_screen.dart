@@ -228,7 +228,9 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
       ],
       child: Consumer2<PermissionService, RoleService>(
         builder: (context, permissions, roles, _) {
-          final canManage = auth.hasPermission('role.manage');
+          final canManage =
+              auth.hasPermission('role_permission.grant') &&
+              auth.hasPermission('role_permission.revoke');
           if (!permissions.isLoading &&
               !permissions.fetchedOnce &&
               permissions.error == null) {

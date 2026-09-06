@@ -45,7 +45,7 @@ class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
   }
 
   Future<void> _deactivate() async {
-    if (!auth.hasPermission('organization.manage')) return;
+    if (!auth.hasPermission('organization.deactivate')) return;
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
@@ -77,7 +77,8 @@ class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
       return Scaffold(
         body: Center(child: Text(error ?? 'Organization not found')),
       );
-    final manage = auth.hasPermission('organization.manage');
+    final canUpdate = auth.hasPermission('organization.update');
+    final canDeactivate = auth.hasPermission('organization.deactivate');
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -100,7 +101,7 @@ class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
                       SettingsBackButton(
                         parentRoute: '/settings/organizations',
                       ),
-                      if (manage)
+                      if (canUpdate)
                         FilledButton.icon(
                           onPressed: () => Navigator.pushNamed(
                             context,
@@ -158,7 +159,7 @@ class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
                                 icon: const Icon(Icons.store_outlined),
                                 label: const Text('Branches'),
                               ),
-                              if (manage)
+                              if (canDeactivate)
                                 FilledButton.icon(
                                   onPressed: _deactivate,
                                   icon: const Icon(Icons.block_outlined),

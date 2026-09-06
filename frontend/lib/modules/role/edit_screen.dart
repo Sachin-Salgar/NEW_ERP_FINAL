@@ -31,7 +31,7 @@ class _RoleEditScreenState extends State<RoleEditScreen> {
     return ChangeNotifierProvider(
       create: (_) => RoleService(apiClient: GetIt.instance.get<ApiClient>()),
       child: Consumer<RoleService>(builder: (context, svc, _) {
-        if (!auth.hasPermission('role.manage')) return const Scaffold(body: Center(child: Text('You do not have permission to edit roles.')));
+        if (!auth.hasPermission('role.update')) return const Scaffold(body: Center(child: Text('You do not have permission to edit roles.')));
         if (!_loadedOnce && !svc.isLoading && svc.error == null) {
           WidgetsBinding.instance.addPostFrameCallback((_) async {
             final role = await svc.getRole(widget.roleId);

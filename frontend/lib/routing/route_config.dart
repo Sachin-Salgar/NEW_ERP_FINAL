@@ -53,15 +53,15 @@ class AppRoutes {
     '/sales/credit-notes': 'sales.credit_note.read', '/sales/credit-notes/create': 'sales.credit_note.create', '/sales/credit-notes/details': 'sales.credit_note.read',
     '/sales/reports': 'sales.reporting.read', '/sales/pricing': 'sales.pricing.read', '/sales/pricing/create': 'sales.pricing.create', '/sales/discounts': 'sales.discount.read', '/sales/discounts/create': 'sales.discount.create',
     '/purchase': 'purchase.supplier.read',
-    '/settings': null, '/settings/organizations': 'organization.read', '/settings/organizations/create': 'organization.manage', '/settings/organizations/details': 'organization.read', '/settings/organizations/edit': 'organization.manage',
-    '/settings/branches': 'branch.read', '/settings/branches/create': 'branch.manage', '/settings/branches/details': 'branch.read', '/settings/branches/edit': 'branch.manage',
+    '/settings': null, '/settings/organizations': 'organization.read', '/settings/organizations/create': 'organization.create', '/settings/organizations/details': 'organization.read', '/settings/organizations/edit': 'organization.update',
+    '/settings/branches': 'branch.read', '/settings/branches/create': 'branch.create', '/settings/branches/details': 'branch.read', '/settings/branches/edit': 'branch.update',
     '/settings/users': 'user.read', '/settings/users/create': 'user.create', '/settings/users/details': 'user.read',
-    '/settings/roles': 'role.read', '/settings/roles/create': 'role.manage', '/settings/roles/permissions': 'role.manage', '/settings/roles/edit': 'role.manage',
+    '/settings/roles': 'role.read', '/settings/roles/create': 'role.create', '/settings/roles/permissions': 'role_permission.read', '/settings/roles/edit': 'role.update',
     '/settings/permissions': 'permission.read', '/settings/permissions/details': 'permission.read',
-    '/organizations': 'organization.read', '/organizations/create': 'organization.manage', '/organizations/details': 'organization.read', '/organizations/edit': 'organization.manage',
-    '/organizations/branches': 'branch.read', '/organizations/branches/create': 'branch.manage', '/organizations/branches/details': 'branch.read', '/organizations/branches/edit': 'branch.manage',
+    '/organizations': 'organization.read', '/organizations/create': 'organization.create', '/organizations/details': 'organization.read', '/organizations/edit': 'organization.update',
+    '/organizations/branches': 'branch.read', '/organizations/branches/create': 'branch.create', '/organizations/branches/details': 'branch.read', '/organizations/branches/edit': 'branch.update',
     '/users': 'user.read', '/users/create': 'user.create', '/users/details': 'user.read',
-    '/roles': 'role.read', '/roles/create': 'role.manage', '/roles/edit': 'role.manage', '/permissions': 'permission.read',
+    '/roles': 'role.read', '/roles/create': 'role.create', '/roles/edit': 'role.update', '/permissions': 'permission.read',
   };
 
   static const _legacyAliases = <String, String>{

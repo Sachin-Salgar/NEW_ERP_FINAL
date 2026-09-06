@@ -62,7 +62,7 @@ class _CreateOrganizationScreenState extends State<CreateOrganizationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!auth.hasPermission('organization.manage')) {
+    if (!auth.hasPermission('organization.create')) {
       return const Scaffold(
         body: Center(
           child: Text('You do not have permission to manage organizations.'),

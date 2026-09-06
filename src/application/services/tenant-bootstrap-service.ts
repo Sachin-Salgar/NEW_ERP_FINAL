@@ -7,15 +7,23 @@ import type { TransactionRunner } from '../contracts/transaction.js';
 const normalizeBootstrapPermissions = (permissions: string[]): string[] => {
   const normalized = new Set<string>();
   for (const permission of permissions) {
-    if (permission === 'user.manage') {
-      normalized.add('user.read');
-      normalized.add('user.create');
-      normalized.add('user.update');
-      normalized.add('user.activate');
-      normalized.add('user.deactivate');
-      continue;
-    }
-    normalized.add(permission);
+    const replacements: Record<string, string[]> = {
+      'user.manage': ['user.read', 'user.create', 'user.update', 'user.activate', 'user.deactivate'],
+      'organization.manage': [
+        'organization.read',
+        'organization.create',
+        'organization.update',
+        'organization.deactivate',
+        'organization.location.read',
+        'organization.location.create',
+        'organization.location.update',
+        'organization.location.deactivate',
+      ],
+      'branch.manage': ['branch.read', 'branch.create', 'branch.update', 'branch.deactivate'],
+      'role.manage': ['role.read', 'role.create', 'role.update', 'role_permission.read', 'role_permission.grant', 'role_permission.revoke'],
+      'permission.manage': ['permission.read'],
+    };
+    for (const replacement of replacements[permission] ?? [permission]) normalized.add(replacement);
   }
   return [...normalized];
 };

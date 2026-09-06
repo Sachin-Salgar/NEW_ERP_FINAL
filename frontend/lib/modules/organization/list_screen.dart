@@ -57,7 +57,7 @@ class _OrganizationListScreenState extends State<OrganizationListScreen> {
                   title: 'Organizations',
                   subtitle: 'Manage organizations in the ERP',
                   breadcrumbs: const [ErpBreadcrumbItem(label: 'Dashboard'), ErpBreadcrumbItem(label: 'Organizations')],
-                  actions: auth.hasPermission('organization.manage')
+                  actions: auth.hasPermission('organization.create')
                       ? [FilledButton.icon(onPressed: () => Navigator.of(context).pushNamed('/settings/organizations/create'), icon: const Icon(Icons.add), label: const Text('Add Organization'))]
                       : null,
                 )),
