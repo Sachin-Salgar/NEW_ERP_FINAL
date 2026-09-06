@@ -1104,6 +1104,54 @@ export class PostgresPlatformRepository
     });
   }
 
+  async listActiveSessions(tenantId: string, userId?: string): Promise<SessionRecord[]> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `SELECT id, tenant_id as "tenantId", user_id as "userId", organization_id as "organizationId",
+                location_id as "locationId", branch_id as "branchId", financial_year_id as "financialYearId",
+                access_token_id as "accessTokenId", is_active as "isActive", expires_at as "expiresAt",
+                login_at as "loginAt", last_activity_at as "lastActivityAt", revoked_at as "revokedAt",
+                logout_at as "logoutAt"
+         FROM user_sessions
+         WHERE tenant_id = $1 AND is_active = true
+           AND ($2::uuid IS NULL OR user_id = $2)
+         ORDER BY last_activity_at DESC`,
+        [tenantId, userId ?? null],
+      );
+    });
+
+    return result.rows.map((row) => ({
+      id: row.id,
+      tenantId: row.tenantId,
+      userId: row.userId,
+      organizationId: row.organizationId,
+      locationId: row.locationId ?? null,
+      branchId: row.branchId,
+      financialYearId: row.financialYearId ?? null,
+      accessTokenId: row.accessTokenId,
+      isActive: row.isActive,
+      expiresAt: new Date(row.expiresAt),
+      loginAt: new Date(row.loginAt),
+      lastActivityAt: new Date(row.lastActivityAt),
+      revokedAt: row.revokedAt ? new Date(row.revokedAt) : null,
+      logoutAt: row.logoutAt ? new Date(row.logoutAt) : null,
+    }));
+  }
+
+  async invalidateAllSessions(tenantId: string, userId: string, exceptSessionId?: string): Promise<number> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      return client.query(
+        `UPDATE user_sessions
+         SET is_active = false, revoked_at = NOW(), logout_at = NOW(),
+             termination_reason = 'administrative_revoke_all', updated_at = NOW(), version = version + 1
+         WHERE tenant_id = $1 AND user_id = $2 AND is_active = true
+           AND ($3::uuid IS NULL OR id <> $3)`,
+        [tenantId, userId, exceptSessionId ?? null],
+      );
+    });
+    return result.rowCount ?? 0;
+  }
+
   async findRoleByTenantAndCode(
     tenantId: string,
     code: string,

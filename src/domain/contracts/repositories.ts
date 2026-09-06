@@ -77,6 +77,8 @@ export interface SessionRepository {
   findSession(sessionId: string, tenantId: string): Promise<SessionRecord | null>;
   findSessionByRefreshTokenHash(tenantId: string, refreshTokenHash: string): Promise<SessionRecord | null>;
   invalidateSession(sessionId: string, tenantId: string): Promise<void>;
+  listActiveSessions(tenantId: string, userId?: string): Promise<SessionRecord[]>;
+  invalidateAllSessions(tenantId: string, userId: string, exceptSessionId?: string): Promise<number>;
 }
 
 export interface UserRegistrationRecord {

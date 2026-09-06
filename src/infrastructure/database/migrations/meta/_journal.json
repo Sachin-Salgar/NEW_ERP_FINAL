@@ -50,6 +50,7 @@
     { "idx": 45, "version": "7", "when": 1788628200000, "tag": "0045-correct-organization-module-rls-context", "breakpoints": true },
     { "idx": 46, "version": "7", "when": 1788628800000, "tag": "0046-harden-organization-module-rls-null-context", "breakpoints": true },
     { "idx": 47, "version": "7", "when": 1788629400000, "tag": "0047-granular-user-permissions", "breakpoints": true },
-    { "idx": 48, "version": "7", "when": 1788629460000, "tag": "0048-granular-core-security-permissions", "breakpoints": true }
+    { "idx": 48, "version": "7", "when": 1788629460000, "tag": "0048-granular-core-security-permissions", "breakpoints": true },
+    { "idx": 49, "version": "7", "when": 1788691500000, "tag": "0049-security-administration-permissions", "breakpoints": true }
   ]
 }

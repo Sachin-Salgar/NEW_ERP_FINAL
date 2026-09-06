@@ -138,6 +138,14 @@ class FakeAuthRepository {
     return undefined;
   }
 
+  async listActiveSessions() {
+    return [];
+  }
+
+  async invalidateAllSessions() {
+    return 0;
+  }
+
   async assignUserToOrganization() {
     return true;
   }
@@ -266,6 +274,10 @@ describe('Phase 2 platform security services', () => {
       'role_permission.read',
       'role_permission.grant',
       'role_permission.revoke',
+      'security.session.read',
+      'security.session.revoke',
+      'security.session.revoke_all',
+      'security.audit_log.read',
     ]) {
       expect(keys.has(key)).toBe(true);
     }

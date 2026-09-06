@@ -29,6 +29,7 @@ import { ItemMasterService } from '../../application/services/item-master-servic
 import { InventoryService } from '../../application/services/inventory-service.js';
 import { ProcurementService } from '../../application/services/procurement-service.js';
 import { TaxService } from '../../application/services/tax-service.js';
+import { SecurityAdministrationService } from '../../application/services/security-administration-service.js';
 import { PostgresTaxRepository } from '../../infrastructure/database/repositories/postgres-tax-repository.js';
 import { PostgresFinanceRepository } from '../../infrastructure/database/repositories/postgres-finance-repository.js';
 import { PostgresSalesReportingRepository } from '../../infrastructure/database/repositories/postgres-sales-reporting-repository.js';
@@ -83,6 +84,7 @@ import inventoryRoutes from './routes/inventory.js';
 import procurementRoutes from './routes/procurement.js';
 import taxRoutes from './routes/tax.js';
 import rbacRoutes from './routes/rbac.js';
+import securityAdministrationRoutes from './routes/security-administration.js';
 import { paginateListResponse } from './pagination.js';
 import { requestObject } from './request-input.js';
 import { schemaForRoute, setupSwagger } from './swagger.js';
@@ -374,6 +376,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     transactionRunner,
   );
   const tenantMembershipService = new TenantMembershipService(repository);
+  const securityAdministrationService = new SecurityAdministrationService(repository, pool, config.TENANT_CONTEXT_KEY);
 
   const accountSecurityRepository = new PostgresAccountSecurityRepository(pool, config.TENANT_CONTEXT_KEY);
   const notificationService = new PostgresNotificationService(pool, config.TENANT_CONTEXT_KEY);
@@ -404,6 +407,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('accountSecurityService', accountSecurityService);
   app.decorate('mfaService', mfaService);
   app.decorate('auditLogger', auditLogger);
+  app.decorate('securityAdministrationService', securityAdministrationService);
   app.decorate('customerService', customerService);
   app.decorate('quotationService', quotationService);
   app.decorate('orderService', orderService);
@@ -511,6 +515,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(accountSecurityRoutes, { prefix: config.API_PREFIX });
   await app.register(mfaRoutes, { prefix: config.API_PREFIX });
   await app.register(rbacRoutes, { prefix: config.API_PREFIX });
+  await app.register(securityAdministrationRoutes, { prefix: config.API_PREFIX });
   await app.register(branchRoutes, { prefix: config.API_PREFIX });
   await app.register(coreEnterpriseRoutes, { prefix: config.API_PREFIX });
   await app.register(locationRoutes, { prefix: config.API_PREFIX });
