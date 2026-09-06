@@ -1,12 +1,6 @@
 -- Active development baseline: CORE platform and security infrastructure.
 --
----
--- PostgreSQL database dump
---
-
-
--- Dumped from database version 17.10
--- Dumped by pg_dump version 17.10
+-- Core creates shared extensions and search-path prerequisites.
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -18,7 +12,6 @@ SELECT pg_catalog.set_config('search_path', '', false);
 SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
-
 --
 -- Name: app; Type: SCHEMA; Schema: -; Owner: -
 --
@@ -28,6 +21,7 @@ CREATE SCHEMA app;
 
 --
 
+
 -- Name: public; Type: SCHEMA; Schema: -; Owner: -
 --
 
@@ -35,6 +29,7 @@ CREATE SCHEMA app;
 
 
 --
+
 
 -- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
 --
@@ -44,6 +39,7 @@ COMMENT ON SCHEMA public IS '';
 
 --
 
+
 -- Name: citext; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -51,6 +47,7 @@ CREATE EXTENSION IF NOT EXISTS citext WITH SCHEMA public;
 
 
 --
+
 
 -- Name: EXTENSION citext; Type: COMMENT; Schema: -; Owner: -
 --
@@ -60,6 +57,7 @@ COMMENT ON EXTENSION citext IS 'data type for case-insensitive character strings
 
 --
 
+
 -- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -68,6 +66,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 
 --
 
+
 -- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner: -
 --
 
@@ -75,6 +74,7 @@ COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
 
 
 --
+
 
 -- Name: credential_status_enum; Type: TYPE; Schema: public; Owner: -
 --
@@ -88,6 +88,7 @@ CREATE TYPE public.credential_status_enum AS ENUM (
 
 --
 
+
 -- Name: fy_status_enum; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -100,6 +101,7 @@ CREATE TYPE public.fy_status_enum AS ENUM (
 
 --
 
+
 -- Name: identity_status_enum; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -111,6 +113,7 @@ CREATE TYPE public.identity_status_enum AS ENUM (
 
 
 --
+
 
 -- Name: membership_status_enum; Type: TYPE; Schema: public; Owner: -
 --
@@ -125,6 +128,7 @@ CREATE TYPE public.membership_status_enum AS ENUM (
 
 --
 
+
 -- Name: org_status_enum; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -136,6 +140,7 @@ CREATE TYPE public.org_status_enum AS ENUM (
 
 
 --
+
 
 -- Name: permission_scope_enum; Type: TYPE; Schema: public; Owner: -
 --
@@ -151,6 +156,7 @@ CREATE TYPE public.permission_scope_enum AS ENUM (
 
 --
 
+
 -- Name: reset_policy_enum; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -164,6 +170,7 @@ CREATE TYPE public.reset_policy_enum AS ENUM (
 
 --
 
+
 -- Name: session_context_enum; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -174,6 +181,7 @@ CREATE TYPE public.session_context_enum AS ENUM (
 
 
 --
+
 
 -- Name: subscription_status_enum; Type: TYPE; Schema: public; Owner: -
 --
@@ -187,6 +195,7 @@ CREATE TYPE public.subscription_status_enum AS ENUM (
 
 
 --
+
 
 -- Name: tenant_status_enum; Type: TYPE; Schema: public; Owner: -
 --
@@ -203,6 +212,7 @@ CREATE TYPE public.tenant_status_enum AS ENUM (
 
 --
 
+
 -- Name: user_status_enum; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -215,6 +225,7 @@ CREATE TYPE public.user_status_enum AS ENUM (
 
 
 --
+
 
 -- Name: assign_session_context_compatibility(); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -256,6 +267,7 @@ $$;
 
 --
 
+
 -- Name: assign_user_identity_compatibility(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -291,6 +303,7 @@ $$;
 
 --
 
+
 -- Name: initialize_core_organization_modules(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -315,6 +328,7 @@ $$;
 
 
 --
+
 
 -- Name: initialize_core_tenant_modules(); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -352,6 +366,7 @@ $$;
 
 --
 
+
 -- Name: platform_delete_tenant(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -368,6 +383,7 @@ $$;
 
 
 --
+
 
 -- Name: platform_update_tenant_status(uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -390,6 +406,7 @@ $$;
 
 --
 
+
 -- Name: prevent_audit_event_mutation(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -403,6 +420,7 @@ $$;
 
 
 --
+
 
 -- Name: sync_auth_login_identifiers(); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -436,6 +454,7 @@ SET default_table_access_method = heap;
 
 --
 
+
 -- Name: audit_events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -466,6 +485,7 @@ ALTER TABLE ONLY public.audit_events FORCE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: auth_login_identifiers; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -484,6 +504,7 @@ CREATE TABLE public.auth_login_identifiers (
 
 --
 
+
 -- Name: TABLE auth_login_identifiers; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -492,6 +513,7 @@ COMMENT ON TABLE public.auth_login_identifiers IS 'Deployment-independent login 
 
 --
 
+
 -- Name: COLUMN auth_login_identifiers.tenant_id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -499,6 +521,7 @@ COMMENT ON COLUMN public.auth_login_identifiers.tenant_id IS 'Candidate tenant d
 
 
 --
+
 
 -- Name: branches; Type: TABLE; Schema: public; Owner: -
 --
@@ -537,6 +560,7 @@ ALTER TABLE ONLY public.branches FORCE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: code_counters; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -549,6 +573,7 @@ CREATE TABLE public.code_counters (
 
 
 --
+
 
 -- Name: email_verification_tokens; Type: TABLE; Schema: public; Owner: -
 --
@@ -567,6 +592,7 @@ ALTER TABLE ONLY public.email_verification_tokens FORCE ROW LEVEL SECURITY;
 
 
 --
+
 
 -- Name: financial_years; Type: TABLE; Schema: public; Owner: -
 --
@@ -600,6 +626,7 @@ ALTER TABLE ONLY public.financial_years FORCE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: identities; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -615,6 +642,7 @@ CREATE TABLE public.identities (
 
 
 --
+
 
 -- Name: identity_credentials; Type: TABLE; Schema: public; Owner: -
 --
@@ -636,6 +664,7 @@ CREATE TABLE public.identity_credentials (
 
 
 --
+
 
 -- Name: locations; Type: TABLE; Schema: public; Owner: -
 --
@@ -672,6 +701,7 @@ ALTER TABLE ONLY public.locations FORCE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: mfa_enrollments; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -687,6 +717,7 @@ ALTER TABLE ONLY public.mfa_enrollments FORCE ROW LEVEL SECURITY;
 
 
 --
+
 
 -- Name: mfa_recovery_codes; Type: TABLE; Schema: public; Owner: -
 --
@@ -704,6 +735,7 @@ ALTER TABLE ONLY public.mfa_recovery_codes FORCE ROW LEVEL SECURITY;
 
 
 --
+
 
 -- Name: modules; Type: TABLE; Schema: public; Owner: -
 --
@@ -725,6 +757,7 @@ CREATE TABLE public.modules (
 
 --
 
+
 -- Name: notification_delivery_attempts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -744,6 +777,7 @@ ALTER TABLE ONLY public.notification_delivery_attempts FORCE ROW LEVEL SECURITY;
 
 
 --
+
 
 -- Name: notifications; Type: TABLE; Schema: public; Owner: -
 --
@@ -776,6 +810,7 @@ ALTER TABLE ONLY public.notifications FORCE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: organization_modules; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -796,6 +831,7 @@ ALTER TABLE ONLY public.organization_modules FORCE ROW LEVEL SECURITY;
 
 
 --
+
 
 -- Name: organizations; Type: TABLE; Schema: public; Owner: -
 --
@@ -834,6 +870,7 @@ ALTER TABLE ONLY public.organizations FORCE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: outbox_events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -861,6 +898,7 @@ ALTER TABLE ONLY public.outbox_events FORCE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: password_reset_tokens; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -878,6 +916,7 @@ ALTER TABLE ONLY public.password_reset_tokens FORCE ROW LEVEL SECURITY;
 
 
 --
+
 
 -- Name: permissions; Type: TABLE; Schema: public; Owner: -
 --
@@ -897,6 +936,7 @@ CREATE TABLE public.permissions (
 
 --
 
+
 -- Name: platform_membership_roles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -907,6 +947,7 @@ CREATE TABLE public.platform_membership_roles (
 
 
 --
+
 
 -- Name: platform_memberships; Type: TABLE; Schema: public; Owner: -
 --
@@ -928,6 +969,7 @@ CREATE TABLE public.platform_memberships (
 
 --
 
+
 -- Name: platform_permissions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -946,6 +988,7 @@ CREATE TABLE public.platform_permissions (
 
 --
 
+
 -- Name: platform_role_permissions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -956,6 +999,7 @@ CREATE TABLE public.platform_role_permissions (
 
 
 --
+
 
 -- Name: platform_roles; Type: TABLE; Schema: public; Owner: -
 --
@@ -974,6 +1018,7 @@ CREATE TABLE public.platform_roles (
 
 
 --
+
 
 -- Name: platform_security_policy; Type: TABLE; Schema: public; Owner: -
 --
@@ -995,6 +1040,7 @@ CREATE TABLE public.platform_security_policy (
 
 --
 
+
 -- Name: refresh_token_history; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1014,6 +1060,7 @@ ALTER TABLE ONLY public.refresh_token_history FORCE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: role_permissions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1027,6 +1074,7 @@ ALTER TABLE ONLY public.role_permissions FORCE ROW LEVEL SECURITY;
 
 
 --
+
 
 -- Name: roles; Type: TABLE; Schema: public; Owner: -
 --
@@ -1054,6 +1102,7 @@ ALTER TABLE ONLY public.roles FORCE ROW LEVEL SECURITY;
 
 
 --
+
 
 -- Name: scheduled_jobs; Type: TABLE; Schema: public; Owner: -
 --
@@ -1085,6 +1134,7 @@ ALTER TABLE ONLY public.scheduled_jobs FORCE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: security_bootstrap_state; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1096,6 +1146,7 @@ CREATE TABLE public.security_bootstrap_state (
 
 
 --
+
 
 -- Name: security_policies; Type: TABLE; Schema: public; Owner: -
 --
@@ -1117,6 +1168,7 @@ ALTER TABLE ONLY public.security_policies FORCE ROW LEVEL SECURITY;
 
 
 --
+
 
 -- Name: stored_files; Type: TABLE; Schema: public; Owner: -
 --
@@ -1141,6 +1193,7 @@ ALTER TABLE ONLY public.stored_files FORCE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: subscription_plans; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1158,6 +1211,7 @@ CREATE TABLE public.subscription_plans (
 
 
 --
+
 
 -- Name: tenant_memberships; Type: TABLE; Schema: public; Owner: -
 --
@@ -1180,6 +1234,7 @@ CREATE TABLE public.tenant_memberships (
 
 --
 
+
 -- Name: tenant_modules; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1200,6 +1255,7 @@ ALTER TABLE ONLY public.tenant_modules FORCE ROW LEVEL SECURITY;
 
 
 --
+
 
 -- Name: tenant_subscriptions; Type: TABLE; Schema: public; Owner: -
 --
@@ -1228,6 +1284,7 @@ ALTER TABLE ONLY public.tenant_subscriptions FORCE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: tenants; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1255,6 +1312,7 @@ CREATE TABLE public.tenants (
 
 --
 
+
 -- Name: user_branch_access; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1268,6 +1326,7 @@ ALTER TABLE ONLY public.user_branch_access FORCE ROW LEVEL SECURITY;
 
 
 --
+
 
 -- Name: user_location_access; Type: TABLE; Schema: public; Owner: -
 --
@@ -1288,6 +1347,7 @@ ALTER TABLE ONLY public.user_location_access FORCE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: user_organization_access; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1301,6 +1361,7 @@ ALTER TABLE ONLY public.user_organization_access FORCE ROW LEVEL SECURITY;
 
 
 --
+
 
 -- Name: user_permissions; Type: TABLE; Schema: public; Owner: -
 --
@@ -1317,6 +1378,7 @@ ALTER TABLE ONLY public.user_permissions FORCE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: user_roles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1330,6 +1392,7 @@ ALTER TABLE ONLY public.user_roles FORCE ROW LEVEL SECURITY;
 
 
 --
+
 
 -- Name: user_sessions; Type: TABLE; Schema: public; Owner: -
 --
@@ -1375,6 +1438,7 @@ ALTER TABLE ONLY public.user_sessions FORCE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1415,6 +1479,7 @@ ALTER TABLE ONLY public.users FORCE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: audit_events audit_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1423,6 +1488,7 @@ ALTER TABLE ONLY public.audit_events
 
 
 --
+
 
 -- Name: auth_login_identifiers auth_login_identifiers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1433,6 +1499,7 @@ ALTER TABLE ONLY public.auth_login_identifiers
 
 --
 
+
 -- Name: branches branches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1441,6 +1508,7 @@ ALTER TABLE ONLY public.branches
 
 
 --
+
 
 -- Name: code_counters code_counters_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1451,6 +1519,7 @@ ALTER TABLE ONLY public.code_counters
 
 --
 
+
 -- Name: email_verification_tokens email_verification_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1459,6 +1528,7 @@ ALTER TABLE ONLY public.email_verification_tokens
 
 
 --
+
 
 -- Name: financial_years financial_years_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1469,6 +1539,7 @@ ALTER TABLE ONLY public.financial_years
 
 --
 
+
 -- Name: identities identities_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1477,6 +1548,7 @@ ALTER TABLE ONLY public.identities
 
 
 --
+
 
 -- Name: identity_credentials identity_credentials_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1487,6 +1559,7 @@ ALTER TABLE ONLY public.identity_credentials
 
 --
 
+
 -- Name: identity_credentials identity_credentials_provider_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1495,6 +1568,7 @@ ALTER TABLE ONLY public.identity_credentials
 
 
 --
+
 
 -- Name: locations locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1505,6 +1579,7 @@ ALTER TABLE ONLY public.locations
 
 --
 
+
 -- Name: mfa_enrollments mfa_enrollments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1513,6 +1588,7 @@ ALTER TABLE ONLY public.mfa_enrollments
 
 
 --
+
 
 -- Name: mfa_recovery_codes mfa_recovery_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1523,6 +1599,7 @@ ALTER TABLE ONLY public.mfa_recovery_codes
 
 --
 
+
 -- Name: modules modules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1531,6 +1608,7 @@ ALTER TABLE ONLY public.modules
 
 
 --
+
 
 -- Name: notification_delivery_attempts notification_delivery_attempts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1541,6 +1619,7 @@ ALTER TABLE ONLY public.notification_delivery_attempts
 
 --
 
+
 -- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1549,6 +1628,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
+
 
 -- Name: organization_modules organization_modules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1559,6 +1639,7 @@ ALTER TABLE ONLY public.organization_modules
 
 --
 
+
 -- Name: organizations organizations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1567,6 +1648,7 @@ ALTER TABLE ONLY public.organizations
 
 
 --
+
 
 -- Name: outbox_events outbox_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1577,6 +1659,7 @@ ALTER TABLE ONLY public.outbox_events
 
 --
 
+
 -- Name: password_reset_tokens password_reset_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1585,6 +1668,7 @@ ALTER TABLE ONLY public.password_reset_tokens
 
 
 --
+
 
 -- Name: permissions permissions_permission_key_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1595,6 +1679,7 @@ ALTER TABLE ONLY public.permissions
 
 --
 
+
 -- Name: permissions permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1603,6 +1688,7 @@ ALTER TABLE ONLY public.permissions
 
 
 --
+
 
 -- Name: platform_membership_roles platform_membership_roles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1613,6 +1699,7 @@ ALTER TABLE ONLY public.platform_membership_roles
 
 --
 
+
 -- Name: platform_memberships platform_memberships_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1621,6 +1708,7 @@ ALTER TABLE ONLY public.platform_memberships
 
 
 --
+
 
 -- Name: platform_permissions platform_permissions_permission_key_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1631,6 +1719,7 @@ ALTER TABLE ONLY public.platform_permissions
 
 --
 
+
 -- Name: platform_permissions platform_permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1639,6 +1728,7 @@ ALTER TABLE ONLY public.platform_permissions
 
 
 --
+
 
 -- Name: platform_role_permissions platform_role_permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1649,6 +1739,7 @@ ALTER TABLE ONLY public.platform_role_permissions
 
 --
 
+
 -- Name: platform_roles platform_roles_code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1657,6 +1748,7 @@ ALTER TABLE ONLY public.platform_roles
 
 
 --
+
 
 -- Name: platform_roles platform_roles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1667,6 +1759,7 @@ ALTER TABLE ONLY public.platform_roles
 
 --
 
+
 -- Name: platform_security_policy platform_security_policy_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1675,6 +1768,7 @@ ALTER TABLE ONLY public.platform_security_policy
 
 
 --
+
 
 -- Name: refresh_token_history refresh_token_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1685,6 +1779,7 @@ ALTER TABLE ONLY public.refresh_token_history
 
 --
 
+
 -- Name: role_permissions role_permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1693,6 +1788,7 @@ ALTER TABLE ONLY public.role_permissions
 
 
 --
+
 
 -- Name: roles roles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1703,6 +1799,7 @@ ALTER TABLE ONLY public.roles
 
 --
 
+
 -- Name: scheduled_jobs scheduled_jobs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1711,6 +1808,7 @@ ALTER TABLE ONLY public.scheduled_jobs
 
 
 --
+
 
 -- Name: security_bootstrap_state security_bootstrap_state_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1721,6 +1819,7 @@ ALTER TABLE ONLY public.security_bootstrap_state
 
 --
 
+
 -- Name: security_policies security_policies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1729,6 +1828,7 @@ ALTER TABLE ONLY public.security_policies
 
 
 --
+
 
 -- Name: stored_files stored_files_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1739,6 +1839,7 @@ ALTER TABLE ONLY public.stored_files
 
 --
 
+
 -- Name: subscription_plans subscription_plans_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1747,6 +1848,7 @@ ALTER TABLE ONLY public.subscription_plans
 
 
 --
+
 
 -- Name: tenant_memberships tenant_memberships_identity_tenant_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1757,6 +1859,7 @@ ALTER TABLE ONLY public.tenant_memberships
 
 --
 
+
 -- Name: tenant_memberships tenant_memberships_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1765,6 +1868,7 @@ ALTER TABLE ONLY public.tenant_memberships
 
 
 --
+
 
 -- Name: tenant_modules tenant_modules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1775,6 +1879,7 @@ ALTER TABLE ONLY public.tenant_modules
 
 --
 
+
 -- Name: tenant_subscriptions tenant_subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1783,6 +1888,7 @@ ALTER TABLE ONLY public.tenant_subscriptions
 
 
 --
+
 
 -- Name: tenants tenants_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1793,6 +1899,7 @@ ALTER TABLE ONLY public.tenants
 
 --
 
+
 -- Name: organization_modules uq_organization_module; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1801,6 +1908,7 @@ ALTER TABLE ONLY public.organization_modules
 
 
 --
+
 
 -- Name: user_branch_access user_branch_access_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1811,6 +1919,7 @@ ALTER TABLE ONLY public.user_branch_access
 
 --
 
+
 -- Name: user_location_access user_location_access_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1819,6 +1928,7 @@ ALTER TABLE ONLY public.user_location_access
 
 
 --
+
 
 -- Name: user_organization_access user_organization_access_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1829,6 +1939,7 @@ ALTER TABLE ONLY public.user_organization_access
 
 --
 
+
 -- Name: user_permissions user_permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1837,6 +1948,7 @@ ALTER TABLE ONLY public.user_permissions
 
 
 --
+
 
 -- Name: user_roles user_roles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1847,6 +1959,7 @@ ALTER TABLE ONLY public.user_roles
 
 --
 
+
 -- Name: user_sessions user_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1855,6 +1968,7 @@ ALTER TABLE ONLY public.user_sessions
 
 
 --
+
 
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
@@ -1865,6 +1979,7 @@ ALTER TABLE ONLY public.users
 
 --
 
+
 -- Name: idx_audit_events_platform_context_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1872,6 +1987,7 @@ CREATE INDEX idx_audit_events_platform_context_created_at ON public.audit_events
 
 
 --
+
 
 -- Name: idx_audit_events_tenant_actor_created_at; Type: INDEX; Schema: public; Owner: -
 --
@@ -1881,6 +1997,7 @@ CREATE INDEX idx_audit_events_tenant_actor_created_at ON public.audit_events USI
 
 --
 
+
 -- Name: idx_audit_events_tenant_correlation; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1888,6 +2005,7 @@ CREATE INDEX idx_audit_events_tenant_correlation ON public.audit_events USING bt
 
 
 --
+
 
 -- Name: idx_audit_events_tenant_created_at; Type: INDEX; Schema: public; Owner: -
 --
@@ -1897,6 +2015,7 @@ CREATE INDEX idx_audit_events_tenant_created_at ON public.audit_events USING btr
 
 --
 
+
 -- Name: idx_audit_events_tenant_resource; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1904,6 +2023,7 @@ CREATE INDEX idx_audit_events_tenant_resource ON public.audit_events USING btree
 
 
 --
+
 
 -- Name: idx_auth_login_identifiers_identity_type; Type: INDEX; Schema: public; Owner: -
 --
@@ -1913,6 +2033,7 @@ CREATE INDEX idx_auth_login_identifiers_identity_type ON public.auth_login_ident
 
 --
 
+
 -- Name: idx_auth_login_identifiers_lookup; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1920,6 +2041,7 @@ CREATE INDEX idx_auth_login_identifiers_lookup ON public.auth_login_identifiers 
 
 
 --
+
 
 -- Name: idx_code_counters_tenant_entity; Type: INDEX; Schema: public; Owner: -
 --
@@ -1929,6 +2051,7 @@ CREATE INDEX idx_code_counters_tenant_entity ON public.code_counters USING btree
 
 --
 
+
 -- Name: idx_email_verification_tokens_user_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1936,6 +2059,7 @@ CREATE INDEX idx_email_verification_tokens_user_active ON public.email_verificat
 
 
 --
+
 
 -- Name: idx_identities_security_version; Type: INDEX; Schema: public; Owner: -
 --
@@ -1945,6 +2069,7 @@ CREATE INDEX idx_identities_security_version ON public.identities USING btree (s
 
 --
 
+
 -- Name: idx_identities_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1952,6 +2077,7 @@ CREATE INDEX idx_identities_status ON public.identities USING btree (status);
 
 
 --
+
 
 -- Name: idx_identity_credentials_identity_status; Type: INDEX; Schema: public; Owner: -
 --
@@ -1961,6 +2087,7 @@ CREATE INDEX idx_identity_credentials_identity_status ON public.identity_credent
 
 --
 
+
 -- Name: idx_mfa_recovery_codes_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1968,6 +2095,7 @@ CREATE INDEX idx_mfa_recovery_codes_active ON public.mfa_recovery_codes USING bt
 
 
 --
+
 
 -- Name: idx_notifications_claimable; Type: INDEX; Schema: public; Owner: -
 --
@@ -1977,6 +2105,7 @@ CREATE INDEX idx_notifications_claimable ON public.notifications USING btree (te
 
 --
 
+
 -- Name: idx_notifications_due; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1984,6 +2113,7 @@ CREATE INDEX idx_notifications_due ON public.notifications USING btree (tenant_i
 
 
 --
+
 
 -- Name: idx_organization_modules_tenant_module; Type: INDEX; Schema: public; Owner: -
 --
@@ -1993,6 +2123,7 @@ CREATE INDEX idx_organization_modules_tenant_module ON public.organization_modul
 
 --
 
+
 -- Name: idx_organization_modules_tenant_org; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2000,6 +2131,7 @@ CREATE INDEX idx_organization_modules_tenant_org ON public.organization_modules 
 
 
 --
+
 
 -- Name: idx_outbox_events_claimable; Type: INDEX; Schema: public; Owner: -
 --
@@ -2009,6 +2141,7 @@ CREATE INDEX idx_outbox_events_claimable ON public.outbox_events USING btree (te
 
 --
 
+
 -- Name: idx_outbox_events_pending; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2016,6 +2149,7 @@ CREATE INDEX idx_outbox_events_pending ON public.outbox_events USING btree (tena
 
 
 --
+
 
 -- Name: idx_password_reset_tokens_user_active; Type: INDEX; Schema: public; Owner: -
 --
@@ -2025,6 +2159,7 @@ CREATE INDEX idx_password_reset_tokens_user_active ON public.password_reset_toke
 
 --
 
+
 -- Name: idx_platform_memberships_identity_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2032,6 +2167,7 @@ CREATE INDEX idx_platform_memberships_identity_status ON public.platform_members
 
 
 --
+
 
 -- Name: idx_refresh_token_history_session; Type: INDEX; Schema: public; Owner: -
 --
@@ -2041,6 +2177,7 @@ CREATE INDEX idx_refresh_token_history_session ON public.refresh_token_history U
 
 --
 
+
 -- Name: idx_role_permissions_tenant_role; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2048,6 +2185,7 @@ CREATE INDEX idx_role_permissions_tenant_role ON public.role_permissions USING b
 
 
 --
+
 
 -- Name: idx_scheduled_jobs_due; Type: INDEX; Schema: public; Owner: -
 --
@@ -2057,6 +2195,7 @@ CREATE INDEX idx_scheduled_jobs_due ON public.scheduled_jobs USING btree (tenant
 
 --
 
+
 -- Name: idx_stored_files_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2064,6 +2203,7 @@ CREATE INDEX idx_stored_files_active ON public.stored_files USING btree (tenant_
 
 
 --
+
 
 -- Name: idx_tenant_memberships_identity_status; Type: INDEX; Schema: public; Owner: -
 --
@@ -2073,6 +2213,7 @@ CREATE INDEX idx_tenant_memberships_identity_status ON public.tenant_memberships
 
 --
 
+
 -- Name: idx_tenant_memberships_tenant_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2080,6 +2221,7 @@ CREATE INDEX idx_tenant_memberships_tenant_status ON public.tenant_memberships U
 
 
 --
+
 
 -- Name: idx_user_branch_access_tenant_user; Type: INDEX; Schema: public; Owner: -
 --
@@ -2089,6 +2231,7 @@ CREATE INDEX idx_user_branch_access_tenant_user ON public.user_branch_access USI
 
 --
 
+
 -- Name: idx_user_location_access_tenant_org; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2096,6 +2239,7 @@ CREATE INDEX idx_user_location_access_tenant_org ON public.user_location_access 
 
 
 --
+
 
 -- Name: idx_user_location_access_tenant_user; Type: INDEX; Schema: public; Owner: -
 --
@@ -2105,6 +2249,7 @@ CREATE INDEX idx_user_location_access_tenant_user ON public.user_location_access
 
 --
 
+
 -- Name: idx_user_organization_access_tenant_user; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2112,6 +2257,7 @@ CREATE INDEX idx_user_organization_access_tenant_user ON public.user_organizatio
 
 
 --
+
 
 -- Name: idx_user_permissions_tenant_user; Type: INDEX; Schema: public; Owner: -
 --
@@ -2121,6 +2267,7 @@ CREATE INDEX idx_user_permissions_tenant_user ON public.user_permissions USING b
 
 --
 
+
 -- Name: idx_user_roles_tenant_user; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2128,6 +2275,7 @@ CREATE INDEX idx_user_roles_tenant_user ON public.user_roles USING btree (tenant
 
 
 --
+
 
 -- Name: idx_user_sessions_identity_active; Type: INDEX; Schema: public; Owner: -
 --
@@ -2137,6 +2285,7 @@ CREATE INDEX idx_user_sessions_identity_active ON public.user_sessions USING btr
 
 --
 
+
 -- Name: idx_user_sessions_membership_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2144,6 +2293,7 @@ CREATE INDEX idx_user_sessions_membership_active ON public.user_sessions USING b
 
 
 --
+
 
 -- Name: idx_user_sessions_platform_membership_active; Type: INDEX; Schema: public; Owner: -
 --
@@ -2153,6 +2303,7 @@ CREATE INDEX idx_user_sessions_platform_membership_active ON public.user_session
 
 --
 
+
 -- Name: idx_user_sessions_tenant_location; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2160,6 +2311,7 @@ CREATE INDEX idx_user_sessions_tenant_location ON public.user_sessions USING btr
 
 
 --
+
 
 -- Name: idx_users_default_location_tenant; Type: INDEX; Schema: public; Owner: -
 --
@@ -2169,6 +2321,7 @@ CREATE INDEX idx_users_default_location_tenant ON public.users USING btree (tena
 
 --
 
+
 -- Name: unique_tenant_module; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2176,6 +2329,7 @@ CREATE UNIQUE INDEX unique_tenant_module ON public.tenant_modules USING btree (t
 
 
 --
+
 
 -- Name: uq_active_financial_year; Type: INDEX; Schema: public; Owner: -
 --
@@ -2185,6 +2339,7 @@ CREATE UNIQUE INDEX uq_active_financial_year ON public.financial_years USING btr
 
 --
 
+
 -- Name: uq_auth_login_identifiers_identity_owned; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2192,6 +2347,7 @@ CREATE UNIQUE INDEX uq_auth_login_identifiers_identity_owned ON public.auth_logi
 
 
 --
+
 
 -- Name: uq_branch_id_tenant; Type: INDEX; Schema: public; Owner: -
 --
@@ -2201,6 +2357,7 @@ CREATE UNIQUE INDEX uq_branch_id_tenant ON public.branches USING btree (id, tena
 
 --
 
+
 -- Name: uq_default_branch; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2208,6 +2365,7 @@ CREATE UNIQUE INDEX uq_default_branch ON public.branches USING btree (organizati
 
 
 --
+
 
 -- Name: uq_default_location; Type: INDEX; Schema: public; Owner: -
 --
@@ -2217,6 +2375,7 @@ CREATE UNIQUE INDEX uq_default_location ON public.locations USING btree (organiz
 
 --
 
+
 -- Name: uq_default_organization; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2224,6 +2383,7 @@ CREATE UNIQUE INDEX uq_default_organization ON public.organizations USING btree 
 
 
 --
+
 
 -- Name: uq_email_verification_tokens_hash; Type: INDEX; Schema: public; Owner: -
 --
@@ -2233,6 +2393,7 @@ CREATE UNIQUE INDEX uq_email_verification_tokens_hash ON public.email_verificati
 
 --
 
+
 -- Name: uq_fy_id_tenant; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2240,6 +2401,7 @@ CREATE UNIQUE INDEX uq_fy_id_tenant ON public.financial_years USING btree (id, t
 
 
 --
+
 
 -- Name: uq_head_office; Type: INDEX; Schema: public; Owner: -
 --
@@ -2249,6 +2411,7 @@ CREATE UNIQUE INDEX uq_head_office ON public.branches USING btree (organization_
 
 --
 
+
 -- Name: uq_location_id_tenant; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2256,6 +2419,7 @@ CREATE UNIQUE INDEX uq_location_id_tenant ON public.locations USING btree (id, t
 
 
 --
+
 
 -- Name: uq_mfa_recovery_codes_hash; Type: INDEX; Schema: public; Owner: -
 --
@@ -2265,6 +2429,7 @@ CREATE UNIQUE INDEX uq_mfa_recovery_codes_hash ON public.mfa_recovery_codes USIN
 
 --
 
+
 -- Name: uq_modules_code; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2272,6 +2437,7 @@ CREATE UNIQUE INDEX uq_modules_code ON public.modules USING btree (code);
 
 
 --
+
 
 -- Name: uq_notification_attempt_no; Type: INDEX; Schema: public; Owner: -
 --
@@ -2281,6 +2447,7 @@ CREATE UNIQUE INDEX uq_notification_attempt_no ON public.notification_delivery_a
 
 --
 
+
 -- Name: uq_org_id_tenant; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2288,6 +2455,7 @@ CREATE UNIQUE INDEX uq_org_id_tenant ON public.organizations USING btree (id, te
 
 
 --
+
 
 -- Name: uq_password_reset_tokens_hash; Type: INDEX; Schema: public; Owner: -
 --
@@ -2297,6 +2465,7 @@ CREATE UNIQUE INDEX uq_password_reset_tokens_hash ON public.password_reset_token
 
 --
 
+
 -- Name: uq_platform_memberships_active_identity; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2304,6 +2473,7 @@ CREATE UNIQUE INDEX uq_platform_memberships_active_identity ON public.platform_m
 
 
 --
+
 
 -- Name: uq_refresh_token_history_hash; Type: INDEX; Schema: public; Owner: -
 --
@@ -2313,6 +2483,7 @@ CREATE UNIQUE INDEX uq_refresh_token_history_hash ON public.refresh_token_histor
 
 --
 
+
 -- Name: uq_role_id_tenant; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2320,6 +2491,7 @@ CREATE UNIQUE INDEX uq_role_id_tenant ON public.roles USING btree (id, tenant_id
 
 
 --
+
 
 -- Name: uq_stored_files_storage_key; Type: INDEX; Schema: public; Owner: -
 --
@@ -2329,6 +2501,7 @@ CREATE UNIQUE INDEX uq_stored_files_storage_key ON public.stored_files USING btr
 
 --
 
+
 -- Name: uq_subscription_plans_name; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2336,6 +2509,7 @@ CREATE UNIQUE INDEX uq_subscription_plans_name ON public.subscription_plans USIN
 
 
 --
+
 
 -- Name: uq_tenant_branch_code_active; Type: INDEX; Schema: public; Owner: -
 --
@@ -2345,6 +2519,7 @@ CREATE UNIQUE INDEX uq_tenant_branch_code_active ON public.branches USING btree 
 
 --
 
+
 -- Name: uq_tenant_email_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2352,6 +2527,7 @@ CREATE UNIQUE INDEX uq_tenant_email_active ON public.users USING btree (tenant_i
 
 
 --
+
 
 -- Name: uq_tenant_org_code_active; Type: INDEX; Schema: public; Owner: -
 --
@@ -2361,6 +2537,7 @@ CREATE UNIQUE INDEX uq_tenant_org_code_active ON public.organizations USING btre
 
 --
 
+
 -- Name: uq_tenant_org_location_code_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2368,6 +2545,7 @@ CREATE UNIQUE INDEX uq_tenant_org_location_code_active ON public.locations USING
 
 
 --
+
 
 -- Name: uq_tenant_role_code_active; Type: INDEX; Schema: public; Owner: -
 --
@@ -2377,6 +2555,7 @@ CREATE UNIQUE INDEX uq_tenant_role_code_active ON public.roles USING btree (tena
 
 --
 
+
 -- Name: uq_tenant_role_name_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2384,6 +2563,7 @@ CREATE UNIQUE INDEX uq_tenant_role_name_active ON public.roles USING btree (tena
 
 
 --
+
 
 -- Name: uq_tenant_slug_active; Type: INDEX; Schema: public; Owner: -
 --
@@ -2393,6 +2573,7 @@ CREATE UNIQUE INDEX uq_tenant_slug_active ON public.tenants USING btree (slug) W
 
 --
 
+
 -- Name: uq_tenant_subdomain_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2400,6 +2581,7 @@ CREATE UNIQUE INDEX uq_tenant_subdomain_active ON public.tenants USING btree (su
 
 
 --
+
 
 -- Name: uq_tenant_username_active; Type: INDEX; Schema: public; Owner: -
 --
@@ -2409,6 +2591,7 @@ CREATE UNIQUE INDEX uq_tenant_username_active ON public.users USING btree (tenan
 
 --
 
+
 -- Name: uq_user_id_tenant; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2416,6 +2599,7 @@ CREATE UNIQUE INDEX uq_user_id_tenant ON public.users USING btree (id, tenant_id
 
 
 --
+
 
 -- Name: uq_user_sessions_id_tenant; Type: INDEX; Schema: public; Owner: -
 --
@@ -2425,6 +2609,7 @@ CREATE UNIQUE INDEX uq_user_sessions_id_tenant ON public.user_sessions USING btr
 
 --
 
+
 -- Name: uq_users_identity_tenant; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2432,6 +2617,7 @@ CREATE UNIQUE INDEX uq_users_identity_tenant ON public.users USING btree (identi
 
 
 --
+
 
 -- Name: user_sessions trg_assign_session_context_compatibility; Type: TRIGGER; Schema: public; Owner: -
 --
@@ -2441,6 +2627,7 @@ CREATE TRIGGER trg_assign_session_context_compatibility BEFORE INSERT ON public.
 
 --
 
+
 -- Name: users trg_assign_user_identity_compatibility; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -2448,6 +2635,7 @@ CREATE TRIGGER trg_assign_user_identity_compatibility BEFORE INSERT ON public.us
 
 
 --
+
 
 -- Name: organizations trg_initialize_core_organization_modules; Type: TRIGGER; Schema: public; Owner: -
 --
@@ -2457,6 +2645,7 @@ CREATE TRIGGER trg_initialize_core_organization_modules AFTER INSERT ON public.o
 
 --
 
+
 -- Name: tenants trg_initialize_core_tenant_modules; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -2464,6 +2653,7 @@ CREATE TRIGGER trg_initialize_core_tenant_modules AFTER INSERT ON public.tenants
 
 
 --
+
 
 -- Name: audit_events trg_prevent_audit_event_delete; Type: TRIGGER; Schema: public; Owner: -
 --
@@ -2473,6 +2663,7 @@ CREATE TRIGGER trg_prevent_audit_event_delete BEFORE DELETE ON public.audit_even
 
 --
 
+
 -- Name: audit_events trg_prevent_audit_event_update; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -2481,6 +2672,7 @@ CREATE TRIGGER trg_prevent_audit_event_update BEFORE UPDATE ON public.audit_even
 
 --
 
+
 -- Name: users trg_sync_auth_login_identifiers; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -2488,6 +2680,7 @@ CREATE TRIGGER trg_sync_auth_login_identifiers AFTER INSERT OR UPDATE OF usernam
 
 
 --
+
 
 -- Name: audit_events audit_events_actor_platform_membership_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2498,6 +2691,7 @@ ALTER TABLE ONLY public.audit_events
 
 --
 
+
 -- Name: auth_login_identifiers auth_login_identifiers_identity_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2506,6 +2700,7 @@ ALTER TABLE ONLY public.auth_login_identifiers
 
 
 --
+
 
 -- Name: auth_login_identifiers auth_login_identifiers_tenant_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2516,6 +2711,7 @@ ALTER TABLE ONLY public.auth_login_identifiers
 
 --
 
+
 -- Name: auth_login_identifiers auth_login_identifiers_user_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2524,6 +2720,7 @@ ALTER TABLE ONLY public.auth_login_identifiers
 
 
 --
+
 
 -- Name: branches branches_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2534,6 +2731,7 @@ ALTER TABLE ONLY public.branches
 
 --
 
+
 -- Name: financial_years financial_years_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2542,6 +2740,7 @@ ALTER TABLE ONLY public.financial_years
 
 
 --
+
 
 -- Name: audit_events fk_audit_events_actor_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2552,6 +2751,7 @@ ALTER TABLE ONLY public.audit_events
 
 --
 
+
 -- Name: audit_events fk_audit_events_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2560,6 +2760,7 @@ ALTER TABLE ONLY public.audit_events
 
 
 --
+
 
 -- Name: branches fk_branch_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2570,6 +2771,7 @@ ALTER TABLE ONLY public.branches
 
 --
 
+
 -- Name: code_counters fk_code_counters_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2578,6 +2780,7 @@ ALTER TABLE ONLY public.code_counters
 
 
 --
+
 
 -- Name: email_verification_tokens fk_email_verification_tokens_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2588,6 +2791,7 @@ ALTER TABLE ONLY public.email_verification_tokens
 
 --
 
+
 -- Name: financial_years fk_fy_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2596,6 +2800,7 @@ ALTER TABLE ONLY public.financial_years
 
 
 --
+
 
 -- Name: locations fk_location_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2606,6 +2811,7 @@ ALTER TABLE ONLY public.locations
 
 --
 
+
 -- Name: mfa_enrollments fk_mfa_enrollments_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2614,6 +2820,7 @@ ALTER TABLE ONLY public.mfa_enrollments
 
 
 --
+
 
 -- Name: mfa_recovery_codes fk_mfa_recovery_codes_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2624,6 +2831,7 @@ ALTER TABLE ONLY public.mfa_recovery_codes
 
 --
 
+
 -- Name: modules fk_modules_parent; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2632,6 +2840,7 @@ ALTER TABLE ONLY public.modules
 
 
 --
+
 
 -- Name: notification_delivery_attempts fk_notification_attempt_notification; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2642,6 +2851,7 @@ ALTER TABLE ONLY public.notification_delivery_attempts
 
 --
 
+
 -- Name: notifications fk_notifications_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2650,6 +2860,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
+
 
 -- Name: organization_modules fk_organization_modules_module; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2660,6 +2871,7 @@ ALTER TABLE ONLY public.organization_modules
 
 --
 
+
 -- Name: organization_modules fk_organization_modules_organization; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2668,6 +2880,7 @@ ALTER TABLE ONLY public.organization_modules
 
 
 --
+
 
 -- Name: organization_modules fk_organization_modules_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2678,6 +2891,7 @@ ALTER TABLE ONLY public.organization_modules
 
 --
 
+
 -- Name: outbox_events fk_outbox_events_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2686,6 +2900,7 @@ ALTER TABLE ONLY public.outbox_events
 
 
 --
+
 
 -- Name: password_reset_tokens fk_password_reset_tokens_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2696,6 +2911,7 @@ ALTER TABLE ONLY public.password_reset_tokens
 
 --
 
+
 -- Name: refresh_token_history fk_refresh_token_history_session; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2704,6 +2920,7 @@ ALTER TABLE ONLY public.refresh_token_history
 
 
 --
+
 
 -- Name: refresh_token_history fk_refresh_token_history_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2714,6 +2931,7 @@ ALTER TABLE ONLY public.refresh_token_history
 
 --
 
+
 -- Name: role_permissions fk_role_permissions_role; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2722,6 +2940,7 @@ ALTER TABLE ONLY public.role_permissions
 
 
 --
+
 
 -- Name: scheduled_jobs fk_scheduled_jobs_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2732,6 +2951,7 @@ ALTER TABLE ONLY public.scheduled_jobs
 
 --
 
+
 -- Name: user_sessions fk_session_branch_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2740,6 +2960,7 @@ ALTER TABLE ONLY public.user_sessions
 
 
 --
+
 
 -- Name: user_sessions fk_session_location_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2750,6 +2971,7 @@ ALTER TABLE ONLY public.user_sessions
 
 --
 
+
 -- Name: user_sessions fk_session_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2758,6 +2980,7 @@ ALTER TABLE ONLY public.user_sessions
 
 
 --
+
 
 -- Name: user_sessions fk_session_user_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2768,6 +2991,7 @@ ALTER TABLE ONLY public.user_sessions
 
 --
 
+
 -- Name: stored_files fk_stored_files_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2776,6 +3000,7 @@ ALTER TABLE ONLY public.stored_files
 
 
 --
+
 
 -- Name: user_branch_access fk_ub_access_branch; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2786,6 +3011,7 @@ ALTER TABLE ONLY public.user_branch_access
 
 --
 
+
 -- Name: user_branch_access fk_ub_access_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2794,6 +3020,7 @@ ALTER TABLE ONLY public.user_branch_access
 
 
 --
+
 
 -- Name: user_location_access fk_ula_access_location; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2804,6 +3031,7 @@ ALTER TABLE ONLY public.user_location_access
 
 --
 
+
 -- Name: user_location_access fk_ula_access_org; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2812,6 +3040,7 @@ ALTER TABLE ONLY public.user_location_access
 
 
 --
+
 
 -- Name: user_location_access fk_ula_access_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2822,6 +3051,7 @@ ALTER TABLE ONLY public.user_location_access
 
 --
 
+
 -- Name: user_organization_access fk_uo_access_org; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2830,6 +3060,7 @@ ALTER TABLE ONLY public.user_organization_access
 
 
 --
+
 
 -- Name: user_organization_access fk_uo_access_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2840,6 +3071,7 @@ ALTER TABLE ONLY public.user_organization_access
 
 --
 
+
 -- Name: users fk_user_branch_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2848,6 +3080,7 @@ ALTER TABLE ONLY public.users
 
 
 --
+
 
 -- Name: users fk_user_location_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2858,6 +3091,7 @@ ALTER TABLE ONLY public.users
 
 --
 
+
 -- Name: users fk_user_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2866,6 +3100,7 @@ ALTER TABLE ONLY public.users
 
 
 --
+
 
 -- Name: user_permissions fk_user_perms_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2876,6 +3111,7 @@ ALTER TABLE ONLY public.user_permissions
 
 --
 
+
 -- Name: user_roles fk_user_roles_role; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2884,6 +3120,7 @@ ALTER TABLE ONLY public.user_roles
 
 
 --
+
 
 -- Name: user_roles fk_user_roles_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2894,6 +3131,7 @@ ALTER TABLE ONLY public.user_roles
 
 --
 
+
 -- Name: user_sessions fk_user_sessions_financial_year_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2902,6 +3140,7 @@ ALTER TABLE ONLY public.user_sessions
 
 
 --
+
 
 -- Name: identity_credentials identity_credentials_identity_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2912,6 +3151,7 @@ ALTER TABLE ONLY public.identity_credentials
 
 --
 
+
 -- Name: locations locations_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2920,6 +3160,7 @@ ALTER TABLE ONLY public.locations
 
 
 --
+
 
 -- Name: organizations organizations_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2930,6 +3171,7 @@ ALTER TABLE ONLY public.organizations
 
 --
 
+
 -- Name: platform_membership_roles platform_membership_roles_platform_membership_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2938,6 +3180,7 @@ ALTER TABLE ONLY public.platform_membership_roles
 
 
 --
+
 
 -- Name: platform_membership_roles platform_membership_roles_platform_role_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2948,6 +3191,7 @@ ALTER TABLE ONLY public.platform_membership_roles
 
 --
 
+
 -- Name: platform_memberships platform_memberships_identity_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2956,6 +3200,7 @@ ALTER TABLE ONLY public.platform_memberships
 
 
 --
+
 
 -- Name: platform_memberships platform_memberships_revoked_by_identity_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2966,6 +3211,7 @@ ALTER TABLE ONLY public.platform_memberships
 
 --
 
+
 -- Name: platform_role_permissions platform_role_permissions_platform_permission_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2974,6 +3220,7 @@ ALTER TABLE ONLY public.platform_role_permissions
 
 
 --
+
 
 -- Name: platform_role_permissions platform_role_permissions_platform_role_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -2984,6 +3231,7 @@ ALTER TABLE ONLY public.platform_role_permissions
 
 --
 
+
 -- Name: role_permissions role_permissions_permission_id_permissions_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2992,6 +3240,7 @@ ALTER TABLE ONLY public.role_permissions
 
 
 --
+
 
 -- Name: role_permissions role_permissions_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -3002,6 +3251,7 @@ ALTER TABLE ONLY public.role_permissions
 
 --
 
+
 -- Name: roles roles_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3010,6 +3260,7 @@ ALTER TABLE ONLY public.roles
 
 
 --
+
 
 -- Name: security_policies security_policies_tenant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -3020,6 +3271,7 @@ ALTER TABLE ONLY public.security_policies
 
 --
 
+
 -- Name: tenant_memberships tenant_memberships_identity_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3028,6 +3280,7 @@ ALTER TABLE ONLY public.tenant_memberships
 
 
 --
+
 
 -- Name: tenant_memberships tenant_memberships_revoked_by_identity_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -3038,6 +3291,7 @@ ALTER TABLE ONLY public.tenant_memberships
 
 --
 
+
 -- Name: tenant_memberships tenant_memberships_tenant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3046,6 +3300,7 @@ ALTER TABLE ONLY public.tenant_memberships
 
 
 --
+
 
 -- Name: tenant_modules tenant_modules_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -3056,6 +3311,7 @@ ALTER TABLE ONLY public.tenant_modules
 
 --
 
+
 -- Name: tenant_subscriptions tenant_subscriptions_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3064,6 +3320,7 @@ ALTER TABLE ONLY public.tenant_subscriptions
 
 
 --
+
 
 -- Name: user_branch_access user_branch_access_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -3074,6 +3331,7 @@ ALTER TABLE ONLY public.user_branch_access
 
 --
 
+
 -- Name: user_location_access user_location_access_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3082,6 +3340,7 @@ ALTER TABLE ONLY public.user_location_access
 
 
 --
+
 
 -- Name: user_organization_access user_organization_access_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -3092,6 +3351,7 @@ ALTER TABLE ONLY public.user_organization_access
 
 --
 
+
 -- Name: user_permissions user_permissions_permission_id_permissions_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3100,6 +3360,7 @@ ALTER TABLE ONLY public.user_permissions
 
 
 --
+
 
 -- Name: user_permissions user_permissions_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -3110,6 +3371,7 @@ ALTER TABLE ONLY public.user_permissions
 
 --
 
+
 -- Name: user_roles user_roles_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3118,6 +3380,7 @@ ALTER TABLE ONLY public.user_roles
 
 
 --
+
 
 -- Name: user_sessions user_sessions_identity_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -3128,6 +3391,7 @@ ALTER TABLE ONLY public.user_sessions
 
 --
 
+
 -- Name: user_sessions user_sessions_platform_membership_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3136,6 +3400,7 @@ ALTER TABLE ONLY public.user_sessions
 
 
 --
+
 
 -- Name: user_sessions user_sessions_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -3146,6 +3411,7 @@ ALTER TABLE ONLY public.user_sessions
 
 --
 
+
 -- Name: user_sessions user_sessions_tenant_membership_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3154,6 +3420,7 @@ ALTER TABLE ONLY public.user_sessions
 
 
 --
+
 
 -- Name: users users_identity_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -3164,6 +3431,7 @@ ALTER TABLE ONLY public.users
 
 --
 
+
 -- Name: users users_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3173,12 +3441,14 @@ ALTER TABLE ONLY public.users
 
 --
 
+
 -- Name: audit_events; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.audit_events ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: audit_events audit_events_context_visibility_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3188,6 +3458,7 @@ CREATE POLICY audit_events_context_visibility_policy ON public.audit_events USIN
 
 --
 
+
 -- Name: branches; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -3195,12 +3466,14 @@ ALTER TABLE public.branches ENABLE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: code_counters; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.code_counters ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: code_counters code_counters_tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3210,12 +3483,14 @@ CREATE POLICY code_counters_tenant_isolation_policy ON public.code_counters USIN
 
 --
 
+
 -- Name: email_verification_tokens; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.email_verification_tokens ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: email_verification_tokens email_verification_tokens_tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3225,6 +3500,7 @@ CREATE POLICY email_verification_tokens_tenant_isolation_policy ON public.email_
 
 --
 
+
 -- Name: financial_years; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -3232,12 +3508,14 @@ ALTER TABLE public.financial_years ENABLE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: locations; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.locations ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: locations locations_tenant_and_org_access_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3249,12 +3527,14 @@ CREATE POLICY locations_tenant_and_org_access_policy ON public.locations USING (
 
 --
 
+
 -- Name: mfa_enrollments; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.mfa_enrollments ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: mfa_enrollments mfa_enrollments_tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3264,12 +3544,14 @@ CREATE POLICY mfa_enrollments_tenant_isolation_policy ON public.mfa_enrollments 
 
 --
 
+
 -- Name: mfa_recovery_codes; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.mfa_recovery_codes ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: mfa_recovery_codes mfa_recovery_codes_tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3279,12 +3561,14 @@ CREATE POLICY mfa_recovery_codes_tenant_isolation_policy ON public.mfa_recovery_
 
 --
 
+
 -- Name: notification_delivery_attempts; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.notification_delivery_attempts ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: notification_delivery_attempts notification_delivery_attempts_tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3294,12 +3578,14 @@ CREATE POLICY notification_delivery_attempts_tenant_isolation_policy ON public.n
 
 --
 
+
 -- Name: notifications; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: notifications notifications_tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3309,12 +3595,14 @@ CREATE POLICY notifications_tenant_isolation_policy ON public.notifications USIN
 
 --
 
+
 -- Name: organization_modules; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.organization_modules ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: organization_modules organization_modules_tenant_org_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3324,6 +3612,7 @@ CREATE POLICY organization_modules_tenant_org_isolation_policy ON public.organiz
 
 --
 
+
 -- Name: organizations; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -3331,12 +3620,14 @@ ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: outbox_events; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.outbox_events ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: outbox_events outbox_events_tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3346,12 +3637,14 @@ CREATE POLICY outbox_events_tenant_isolation_policy ON public.outbox_events USIN
 
 --
 
+
 -- Name: password_reset_tokens; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.password_reset_tokens ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: password_reset_tokens password_reset_tokens_tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3361,12 +3654,14 @@ CREATE POLICY password_reset_tokens_tenant_isolation_policy ON public.password_r
 
 --
 
+
 -- Name: refresh_token_history; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.refresh_token_history ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: refresh_token_history refresh_token_history_tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3376,12 +3671,14 @@ CREATE POLICY refresh_token_history_tenant_isolation_policy ON public.refresh_to
 
 --
 
+
 -- Name: role_permissions; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.role_permissions ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: roles; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -3390,12 +3687,14 @@ ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: scheduled_jobs; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.scheduled_jobs ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: scheduled_jobs scheduled_jobs_tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3405,12 +3704,14 @@ CREATE POLICY scheduled_jobs_tenant_isolation_policy ON public.scheduled_jobs US
 
 --
 
+
 -- Name: security_policies; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.security_policies ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: security_policies security_policies_tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3420,12 +3721,14 @@ CREATE POLICY security_policies_tenant_isolation_policy ON public.security_polic
 
 --
 
+
 -- Name: stored_files; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.stored_files ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: stored_files stored_files_tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3435,6 +3738,7 @@ CREATE POLICY stored_files_tenant_isolation_policy ON public.stored_files USING 
 
 --
 
+
 -- Name: branches tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -3442,6 +3746,7 @@ CREATE POLICY tenant_isolation_policy ON public.branches USING ((tenant_id = (cu
 
 
 --
+
 
 -- Name: financial_years tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3451,6 +3756,7 @@ CREATE POLICY tenant_isolation_policy ON public.financial_years USING ((tenant_i
 
 --
 
+
 -- Name: locations tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -3458,6 +3764,7 @@ CREATE POLICY tenant_isolation_policy ON public.locations USING ((tenant_id = (c
 
 
 --
+
 
 -- Name: organizations tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3467,6 +3774,7 @@ CREATE POLICY tenant_isolation_policy ON public.organizations USING ((tenant_id 
 
 --
 
+
 -- Name: role_permissions tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -3474,6 +3782,7 @@ CREATE POLICY tenant_isolation_policy ON public.role_permissions USING ((tenant_
 
 
 --
+
 
 -- Name: roles tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3483,6 +3792,7 @@ CREATE POLICY tenant_isolation_policy ON public.roles USING ((tenant_id = (curre
 
 --
 
+
 -- Name: tenant_modules tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -3490,6 +3800,7 @@ CREATE POLICY tenant_isolation_policy ON public.tenant_modules USING ((tenant_id
 
 
 --
+
 
 -- Name: tenant_subscriptions tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3499,6 +3810,7 @@ CREATE POLICY tenant_isolation_policy ON public.tenant_subscriptions USING ((ten
 
 --
 
+
 -- Name: user_branch_access tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -3506,6 +3818,7 @@ CREATE POLICY tenant_isolation_policy ON public.user_branch_access USING ((tenan
 
 
 --
+
 
 -- Name: user_organization_access tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3515,6 +3828,7 @@ CREATE POLICY tenant_isolation_policy ON public.user_organization_access USING (
 
 --
 
+
 -- Name: user_permissions tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -3522,6 +3836,7 @@ CREATE POLICY tenant_isolation_policy ON public.user_permissions USING ((tenant_
 
 
 --
+
 
 -- Name: user_roles tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3531,6 +3846,7 @@ CREATE POLICY tenant_isolation_policy ON public.user_roles USING ((tenant_id = (
 
 --
 
+
 -- Name: user_sessions tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -3538,6 +3854,7 @@ CREATE POLICY tenant_isolation_policy ON public.user_sessions USING ((tenant_id 
 
 
 --
+
 
 -- Name: users tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3547,12 +3864,14 @@ CREATE POLICY tenant_isolation_policy ON public.users USING ((tenant_id = (curre
 
 --
 
+
 -- Name: tenant_modules; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.tenant_modules ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: tenant_subscriptions; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -3561,6 +3880,7 @@ ALTER TABLE public.tenant_subscriptions ENABLE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: user_branch_access; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -3568,12 +3888,14 @@ ALTER TABLE public.user_branch_access ENABLE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: user_location_access; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.user_location_access ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: user_location_access user_location_access_tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3583,12 +3905,14 @@ CREATE POLICY user_location_access_tenant_isolation_policy ON public.user_locati
 
 --
 
+
 -- Name: user_organization_access; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.user_organization_access ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: user_permissions; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -3597,6 +3921,7 @@ ALTER TABLE public.user_permissions ENABLE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: user_roles; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -3604,12 +3929,14 @@ ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: user_sessions; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.user_sessions ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: user_sessions user_sessions_active_location_policy; Type: POLICY; Schema: public; Owner: -
 --
@@ -3622,6 +3949,7 @@ CREATE POLICY user_sessions_active_location_policy ON public.user_sessions USING
 
 
 --
+
 
 -- Name: users; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -3644,3 +3972,23 @@ REVOKE ALL ON FUNCTION public.assign_user_identity_compatibility() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.assign_session_context_compatibility() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.platform_update_tenant_status(uuid, text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.platform_delete_tenant(uuid) FROM PUBLIC;
+
+-- Name: prevent_implicit_sales_quotation_context_backfill(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.prevent_implicit_sales_quotation_context_backfill() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  IF (OLD.branch_id IS NULL AND NEW.branch_id IS NOT NULL)
+     OR (OLD.financial_year_id IS NULL AND NEW.financial_year_id IS NOT NULL) THEN
+    IF current_setting('app.allow_quotation_context_reclassification', true) IS DISTINCT FROM 'true' THEN
+      RAISE EXCEPTION 'Sales quotation context reclassification requires explicit authorization';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+--

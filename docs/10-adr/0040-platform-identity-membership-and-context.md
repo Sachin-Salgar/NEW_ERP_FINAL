@@ -13,7 +13,7 @@ The ERP uses one identity with independent tenant and platform memberships. A te
 
 This ADR supersedes the scoped identity, session, authorization, RLS, and audit decisions in ADR-0006 and ADR-0014 where they describe a tenant-only model. Existing tenant behavior remains valid until the additive implementation sequence below replaces it.
 
-The repository has no production-data migration requirement. The implementation uses a clean development reset and deterministic reseed. The active development baseline is intentionally replaced by dependency-ordered Core, Customer, and Sales migrations; the historical migration chain remains recoverable from Git history and is not treated as the active chain.
+The repository has no production-data migration requirement. The implementation uses a clean development reset and deterministic reseed. The active development baseline is intentionally replaced by dependency-ordered domain migrations; the historical migration chain remains recoverable from Git history and is not treated as the active chain.
 
 ## 1. Current repository evidence
 
@@ -38,14 +38,14 @@ The current `requirePlatformPermission` middleware is not a platform boundary. I
 
 ### 2.1 `identities`
 
-| Column | Type | Null | Default | Key/constraint |
-|---|---|---:|---|---|
-| `id` | `uuid` | no | `gen_random_uuid()` | PK |
-| `status` | `identity_status_enum` | no | `active` | active/locked/disabled |
-| `security_version` | `integer` | no | `1` | increments on credential compromise |
-| `created_at` | `timestamptz` | no | `now()` | |
-| `updated_at` | `timestamptz` | yes | null | |
-| `disabled_at` | `timestamptz` | yes | null | |
+| Column             | Type                   | Null | Default             | Key/constraint                      |
+| ------------------ | ---------------------- | ---: | ------------------- | ----------------------------------- |
+| `id`               | `uuid`                 |   no | `gen_random_uuid()` | PK                                  |
+| `status`           | `identity_status_enum` |   no | `active`            | active/locked/disabled              |
+| `security_version` | `integer`              |   no | `1`                 | increments on credential compromise |
+| `created_at`       | `timestamptz`          |   no | `now()`             |                                     |
+| `updated_at`       | `timestamptz`          |  yes | null                |                                     |
+| `disabled_at`      | `timestamptz`          |  yes | null                |                                     |
 
 Indexes: `(status)`, `(security_version)`.
 
@@ -53,19 +53,19 @@ Indexes: `(status)`, `(security_version)`.
 
 ### 2.2 `identity_credentials`
 
-| Column | Type | Null | Default | Key/constraint |
-|---|---|---:|---|---|
-| `id` | `uuid` | no | `gen_random_uuid()` | PK |
-| `identity_id` | `uuid` | no | | FK `identities.id` |
-| `provider` | `varchar(40)` | no | `'local'` | |
-| `credential_type` | `varchar(40)` | no | `'password'` | |
-| `secret_hash` | `varchar(255)` | no | | bcrypt/compatible hash |
-| `status` | `credential_status_enum` | no | `active` | |
-| `failed_attempt_count` | `integer` | no | `0` | |
-| `locked_until` | `timestamptz` | yes | null | |
-| `password_changed_at` | `timestamptz` | yes | null | |
-| `created_at` | `timestamptz` | no | `now()` | |
-| `updated_at` | `timestamptz` | yes | null | |
+| Column                 | Type                     | Null | Default             | Key/constraint         |
+| ---------------------- | ------------------------ | ---: | ------------------- | ---------------------- |
+| `id`                   | `uuid`                   |   no | `gen_random_uuid()` | PK                     |
+| `identity_id`          | `uuid`                   |   no |                     | FK `identities.id`     |
+| `provider`             | `varchar(40)`            |   no | `'local'`           |                        |
+| `credential_type`      | `varchar(40)`            |   no | `'password'`        |                        |
+| `secret_hash`          | `varchar(255)`           |   no |                     | bcrypt/compatible hash |
+| `status`               | `credential_status_enum` |   no | `active`            |                        |
+| `failed_attempt_count` | `integer`                |   no | `0`                 |                        |
+| `locked_until`         | `timestamptz`            |  yes | null                |                        |
+| `password_changed_at`  | `timestamptz`            |  yes | null                |                        |
+| `created_at`           | `timestamptz`            |   no | `now()`             |                        |
+| `updated_at`           | `timestamptz`            |  yes | null                |                        |
 
 Unique: `(identity_id, provider, credential_type)`. Index: `(identity_id, status)`.
 
@@ -75,14 +75,14 @@ This permits future LDAP, AD, OIDC, and other providers without moving password 
 
 The table remains the deployment-independent lookup boundary but changes ownership:
 
-| Column | Type | Null | Default | Key/constraint |
-|---|---|---:|---|---|
-| `id` | `uuid` | no | `gen_random_uuid()` | PK |
-| `identity_id` | `uuid` | no | | FK `identities.id` |
-| `identifier_type` | `varchar(30)` | no | | username/email |
-| `identifier` | `citext` | no | | normalized |
-| `is_primary` | `boolean` | no | `false` | |
-| `created_at` | `timestamptz` | no | `now()` | |
+| Column            | Type          | Null | Default             | Key/constraint     |
+| ----------------- | ------------- | ---: | ------------------- | ------------------ |
+| `id`              | `uuid`        |   no | `gen_random_uuid()` | PK                 |
+| `identity_id`     | `uuid`        |   no |                     | FK `identities.id` |
+| `identifier_type` | `varchar(30)` |   no |                     | username/email     |
+| `identifier`      | `citext`      |   no |                     | normalized         |
+| `is_primary`      | `boolean`     |   no | `false`             |                    |
+| `created_at`      | `timestamptz` |   no | `now()`             |                    |
 
 Unique: `(identifier_type, identifier)`. Index: `(identity_id, identifier_type)`.
 
@@ -90,32 +90,32 @@ An identifier is globally unique for an identity. A person with memberships in s
 
 ### 2.4 `tenant_memberships`
 
-| Column | Type | Null | Default | Key/constraint |
-|---|---|---:|---|---|
-| `id` | `uuid` | no | `gen_random_uuid()` | PK |
-| `identity_id` | `uuid` | no | | FK `identities.id` |
-| `tenant_id` | `uuid` | no | | FK `tenants.id` |
-| `status` | `membership_status_enum` | no | `active` | |
-| `security_version` | `integer` | no | `1` | |
-| `created_at` | `timestamptz` | no | `now()` | |
-| `updated_at` | `timestamptz` | yes | null | |
-| `revoked_at` | `timestamptz` | yes | null | |
-| `revoked_by_identity_id` | `uuid` | yes | null | FK `identities.id` |
+| Column                   | Type                     | Null | Default             | Key/constraint     |
+| ------------------------ | ------------------------ | ---: | ------------------- | ------------------ |
+| `id`                     | `uuid`                   |   no | `gen_random_uuid()` | PK                 |
+| `identity_id`            | `uuid`                   |   no |                     | FK `identities.id` |
+| `tenant_id`              | `uuid`                   |   no |                     | FK `tenants.id`    |
+| `status`                 | `membership_status_enum` |   no | `active`            |                    |
+| `security_version`       | `integer`                |   no | `1`                 |                    |
+| `created_at`             | `timestamptz`            |   no | `now()`             |                    |
+| `updated_at`             | `timestamptz`            |  yes | null                |                    |
+| `revoked_at`             | `timestamptz`            |  yes | null                |                    |
+| `revoked_by_identity_id` | `uuid`                   |  yes | null                | FK `identities.id` |
 
 Unique: `(identity_id, tenant_id)`. Indexes: `(identity_id, status)`, `(tenant_id, status)`.
 
 ### 2.5 `platform_memberships`
 
-| Column | Type | Null | Default | Key/constraint |
-|---|---|---:|---|---|
-| `id` | `uuid` | no | `gen_random_uuid()` | PK |
-| `identity_id` | `uuid` | no | | FK `identities.id` |
-| `status` | `membership_status_enum` | no | `active` | |
-| `security_version` | `integer` | no | `1` | |
-| `created_at` | `timestamptz` | no | `now()` | |
-| `updated_at` | `timestamptz` | yes | null | |
-| `revoked_at` | `timestamptz` | yes | null | |
-| `revoked_by_identity_id` | `uuid` | yes | null | FK `identities.id` |
+| Column                   | Type                     | Null | Default             | Key/constraint     |
+| ------------------------ | ------------------------ | ---: | ------------------- | ------------------ |
+| `id`                     | `uuid`                   |   no | `gen_random_uuid()` | PK                 |
+| `identity_id`            | `uuid`                   |   no |                     | FK `identities.id` |
+| `status`                 | `membership_status_enum` |   no | `active`            |                    |
+| `security_version`       | `integer`                |   no | `1`                 |                    |
+| `created_at`             | `timestamptz`            |   no | `now()`             |                    |
+| `updated_at`             | `timestamptz`            |  yes | null                |                    |
+| `revoked_at`             | `timestamptz`            |  yes | null                |                    |
+| `revoked_by_identity_id` | `uuid`                   |  yes | null                | FK `identities.id` |
 
 Unique partial index: one active membership per `identity_id`. Index: `(identity_id, status)`.
 
@@ -187,15 +187,15 @@ The first successful login may default to the only active tenant membership. Mul
 
 Retain the table name for compatibility and add:
 
-| Column | Type | Null | Default | Constraint |
-|---|---|---:|---|---|
-| `identity_id` | `uuid` | no | | FK `identities.id` |
-| `context_type` | `session_context_enum` | no | `'tenant'` | tenant/platform |
-| `tenant_membership_id` | `uuid` | yes | null | FK `tenant_memberships.id` |
-| `platform_membership_id` | `uuid` | yes | null | FK `platform_memberships.id` |
-| `security_version` | `integer` | no | `1` | captured at issue |
-| `tenant_id` | `uuid` | yes | null | compatibility/tenant context |
-| `user_id` | `uuid` | yes | null | compatibility tenant account |
+| Column                   | Type                   | Null | Default    | Constraint                   |
+| ------------------------ | ---------------------- | ---: | ---------- | ---------------------------- |
+| `identity_id`            | `uuid`                 |   no |            | FK `identities.id`           |
+| `context_type`           | `session_context_enum` |   no | `'tenant'` | tenant/platform              |
+| `tenant_membership_id`   | `uuid`                 |  yes | null       | FK `tenant_memberships.id`   |
+| `platform_membership_id` | `uuid`                 |  yes | null       | FK `platform_memberships.id` |
+| `security_version`       | `integer`              |   no | `1`        | captured at issue            |
+| `tenant_id`              | `uuid`                 |  yes | null       | compatibility/tenant context |
+| `user_id`                | `uuid`                 |  yes | null       | compatibility tenant account |
 
 The existing organization, branch, location, token hash, expiry, revocation, and version columns remain.
 
@@ -251,45 +251,45 @@ The application uses two configured database URLs after implementation:
 
 ### `erp_app`
 
-| Attribute | Value |
-|---|---|
-| LOGIN | yes |
-| SUPERUSER | no |
-| CREATEDB | no |
-| CREATEROLE | no |
-| REPLICATION | no |
-| BYPASSRLS | no |
-| Table privileges | existing tenant CRUD privileges only |
+| Attribute           | Value                                    |
+| ------------------- | ---------------------------------------- |
+| LOGIN               | yes                                      |
+| SUPERUSER           | no                                       |
+| CREATEDB            | no                                       |
+| CREATEROLE          | no                                       |
+| REPLICATION         | no                                       |
+| BYPASSRLS           | no                                       |
+| Table privileges    | existing tenant CRUD privileges only     |
 | Sequence privileges | existing application sequence privileges |
-| Function privileges | no platform procedure execution |
+| Function privileges | no platform procedure execution          |
 
 ### `erp_platform_executor`
 
-| Attribute | Value |
-|---|---|
-| LOGIN | yes, separate secret |
-| SUPERUSER | no |
-| CREATEDB | no |
-| CREATEROLE | no |
-| REPLICATION | no |
-| BYPASSRLS | no |
-| Table privileges | none |
-| Sequence privileges | none |
+| Attribute           | Value                                       |
+| ------------------- | ------------------------------------------- |
+| LOGIN               | yes, separate secret                        |
+| SUPERUSER           | no                                          |
+| CREATEDB            | no                                          |
+| CREATEROLE          | no                                          |
+| REPLICATION         | no                                          |
+| BYPASSRLS           | no                                          |
+| Table privileges    | none                                        |
+| Sequence privileges | none                                        |
 | Function privileges | `EXECUTE` only on named platform procedures |
 
 ### `erp_procedure_owner`
 
-| Attribute | Value |
-|---|---|
-| LOGIN | no |
-| SUPERUSER | no |
-| CREATEDB | no |
-| CREATEROLE | no |
-| REPLICATION | no |
-| BYPASSRLS | no |
-| Table privileges | ownership/explicit privileges required by the named procedures |
+| Attribute           | Value                                                          |
+| ------------------- | -------------------------------------------------------------- |
+| LOGIN               | no                                                             |
+| SUPERUSER           | no                                                             |
+| CREATEDB            | no                                                             |
+| CREATEROLE          | no                                                             |
+| REPLICATION         | no                                                             |
+| BYPASSRLS           | no                                                             |
+| Table privileges    | ownership/explicit privileges required by the named procedures |
 | Sequence privileges | ownership/explicit privileges required by the named procedures |
-| Function privileges | owns the named procedures; `EXECUTE` revoked from `PUBLIC` |
+| Function privileges | owns the named procedures; `EXECUTE` revoked from `PUBLIC`     |
 
 `erp_platform_executor` is provisioned outside application migrations by the database owner. The platform service uses a separate pool configured with `PLATFORM_DATABASE_URL`. The normal application pool never receives these credentials.
 
@@ -314,23 +314,23 @@ RLS on affected tenant tables remains `FORCE ROW LEVEL SECURITY`. The platform o
 
 The existing table is extended additively:
 
-| Column | Type | Null | Default | Constraint |
-|---|---|---:|---|---|
-| `id` | `uuid` | no | `gen_random_uuid()` | PK |
-| `actor_identity_id` | `uuid` | no for authenticated events | | FK `identities.id` |
-| `actor_membership_id` | `uuid` | yes | null | tenant/platform membership FK |
-| `context_type` | `audit_context_enum` | no | `'tenant'` | tenant/platform |
-| `tenant_id` | `uuid` | yes | null | FK `tenants.id` `ON DELETE SET NULL` |
-| `target_tenant_id` | `uuid` | yes | null | FK `tenants.id` `ON DELETE SET NULL` |
-| `actor_user_id` | `uuid` | yes | null | compatibility FK |
-| `action` | `varchar(160)` | no | | |
-| `resource_type` | `varchar(120)` | no | | |
-| `resource_id` | `varchar(255)` | yes | null | |
-| `permission` | `varchar(160)` | yes | null | canonical key |
-| `outcome` | `varchar(16)` | no | | success/failure |
-| `correlation_id` | `varchar(255)` | yes | null | |
-| `metadata` | `jsonb` | no | `'{}'` | allowlisted |
-| `created_at` | `timestamptz` | no | `now()` | |
+| Column                | Type                 |                        Null | Default             | Constraint                           |
+| --------------------- | -------------------- | --------------------------: | ------------------- | ------------------------------------ |
+| `id`                  | `uuid`               |                          no | `gen_random_uuid()` | PK                                   |
+| `actor_identity_id`   | `uuid`               | no for authenticated events |                     | FK `identities.id`                   |
+| `actor_membership_id` | `uuid`               |                         yes | null                | tenant/platform membership FK        |
+| `context_type`        | `audit_context_enum` |                          no | `'tenant'`          | tenant/platform                      |
+| `tenant_id`           | `uuid`               |                         yes | null                | FK `tenants.id` `ON DELETE SET NULL` |
+| `target_tenant_id`    | `uuid`               |                         yes | null                | FK `tenants.id` `ON DELETE SET NULL` |
+| `actor_user_id`       | `uuid`               |                         yes | null                | compatibility FK                     |
+| `action`              | `varchar(160)`       |                          no |                     |                                      |
+| `resource_type`       | `varchar(120)`       |                          no |                     |                                      |
+| `resource_id`         | `varchar(255)`       |                         yes | null                |                                      |
+| `permission`          | `varchar(160)`       |                         yes | null                | canonical key                        |
+| `outcome`             | `varchar(16)`        |                          no |                     | success/failure                      |
+| `correlation_id`      | `varchar(255)`       |                         yes | null                |                                      |
+| `metadata`            | `jsonb`              |                          no | `'{}'`              | allowlisted                          |
+| `created_at`          | `timestamptz`        |                          no | `now()`             |                                      |
 
 Tenant action:
 
@@ -426,11 +426,17 @@ Application startup never creates roles, databases, users, or credentials.
 
 The active development migration history is a clean baseline, not a production-data upgrade chain. Historical migrations 0000–0057 remain available in Git history for reconstruction and comparison. The active baseline is dependency ordered:
 
-1. **0000_core_platform**: shared platform, identity, memberships, authorization, audit, tenant context, security functions, and RLS infrastructure.
-2. **0001_customer**: the implemented Customer-domain persistence and its tenant/organization security.
-3. **0002_sales**: implemented Sales persistence and its transaction-supporting dependencies, after Core and Customer.
+1. **0000_core_platform.sql**: shared platform, identity, memberships, authorization, audit, tenant context, security functions, and RLS infrastructure.
+2. **0001_customer.sql**: the implemented Customer-domain persistence and its tenant/organization security.
+3. **0002_sales.sql**: implemented Sales persistence after Core and Customer.
+4. **0003_inventory.sql**: implemented Inventory persistence and deferred Sales-to-Inventory foreign keys.
+5. **0004_procurement.sql**: implemented Procurement persistence.
+6. **0005_finance.sql**: implemented Finance persistence.
+7. **0006_tax.sql**: implemented Tax persistence.
 
 Each migration is applied transactionally from an empty development database. No later-domain object may be required by an earlier migration. Production-data compatibility is not required for this development-only replacement; production recovery remains restore/forward-compensation governed by ADR-0007.
+
+The domain ownership boundary is intentional: Core owns shared platform and security infrastructure; Customer owns customer persistence; Sales owns sales documents and workflows; Inventory owns inventory persistence and the deferred Sales-to-Inventory constraints; Procurement owns purchasing persistence; Finance owns financial postings; and Tax owns tax rules. The dependency graph is Core -> Customer/Sales/Inventory/Procurement/Finance/Tax, with Sales depending on Customer and Inventory receiving the cross-domain Sales foreign keys after both domains exist.
 
 1. **Identity base**: create enums, `identities`, and `identity_credentials`.
 2. **Memberships**: create `tenant_memberships` and `platform_memberships`, then add `users.identity_id`.
@@ -466,16 +472,16 @@ JWT → platform session validation → platform membership validation
 
 Required platform endpoint contract:
 
-| Endpoint | Context | Permission | Target | Database path | Audit |
-|---|---|---|---|---|---|
-| `POST /platform/tenants` | platform | `platform.tenant.create` | new tenant | tenant bootstrap + platform procedure | platform tenant.created |
-| `GET /platform/tenants` | platform | `platform.tenant.read` | none | platform read transaction | none |
-| `PATCH /platform/tenants/:tenantId` | platform | `platform.tenant.update` | validated tenant UUID | platform procedure | platform tenant.updated |
-| `POST /platform/tenants/:tenantId/activate` | platform | `platform.tenant.activate` | validated tenant UUID | platform procedure | platform tenant.activated |
-| `POST /platform/tenants/:tenantId/deactivate` | platform | `platform.tenant.deactivate` | validated tenant UUID | platform procedure | platform tenant.deactivated |
-| `POST /platform/tenants/:tenantId/suspend` | platform | `platform.tenant.suspend` | validated tenant UUID | platform procedure | platform tenant.suspended |
-| `POST /platform/tenants/:tenantId/reactivate` | platform | `platform.tenant.reactivate` | validated tenant UUID | platform procedure | platform tenant.reactivated |
-| `DELETE /platform/tenants/:tenantId` | platform | `platform.tenant.delete` | validated tenant UUID | guarded platform procedure | platform tenant.deleted |
+| Endpoint                                      | Context  | Permission                   | Target                | Database path                         | Audit                       |
+| --------------------------------------------- | -------- | ---------------------------- | --------------------- | ------------------------------------- | --------------------------- |
+| `POST /platform/tenants`                      | platform | `platform.tenant.create`     | new tenant            | tenant bootstrap + platform procedure | platform tenant.created     |
+| `GET /platform/tenants`                       | platform | `platform.tenant.read`       | none                  | platform read transaction             | none                        |
+| `PATCH /platform/tenants/:tenantId`           | platform | `platform.tenant.update`     | validated tenant UUID | platform procedure                    | platform tenant.updated     |
+| `POST /platform/tenants/:tenantId/activate`   | platform | `platform.tenant.activate`   | validated tenant UUID | platform procedure                    | platform tenant.activated   |
+| `POST /platform/tenants/:tenantId/deactivate` | platform | `platform.tenant.deactivate` | validated tenant UUID | platform procedure                    | platform tenant.deactivated |
+| `POST /platform/tenants/:tenantId/suspend`    | platform | `platform.tenant.suspend`    | validated tenant UUID | platform procedure                    | platform tenant.suspended   |
+| `POST /platform/tenants/:tenantId/reactivate` | platform | `platform.tenant.reactivate` | validated tenant UUID | platform procedure                    | platform tenant.reactivated |
+| `DELETE /platform/tenants/:tenantId`          | platform | `platform.tenant.delete`     | validated tenant UUID | guarded platform procedure            | platform tenant.deleted     |
 
 Platform administration does not grant customer, inventory, sales, procurement, finance, HR, or reporting permissions.
 

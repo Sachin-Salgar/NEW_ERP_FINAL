@@ -20,6 +20,10 @@ const migrationChecks: Record<string, (client: Client) => Promise<boolean>> = {
     (await policyExists(client, 'audit_events', 'audit_events_context_visibility_policy')),
   '0001_customer': (client) => tableExists(client, 'customers'),
   '0002_sales': (client) => tableExists(client, 'sales_quotations'),
+  '0003_inventory': (client) => tableExists(client, 'inventory_items'),
+  '0004_procurement': (client) => tableExists(client, 'procurement_purchase_orders'),
+  '0005_finance': (client) => tableExists(client, 'finance_postings'),
+  '0006_tax': (client) => tableExists(client, 'tax_rules'),
 };
 
 async function tableExists(client: Client, tableName: string): Promise<boolean> {

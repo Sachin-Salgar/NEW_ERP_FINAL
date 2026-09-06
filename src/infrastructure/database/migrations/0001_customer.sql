@@ -1,6 +1,6 @@
--- Active development baseline: 0001_customer domain.
+-- Active development baseline: CUSTOMER domain.
 --
--- Core creates the shared schema, extensions, and search-path prerequisites.
+-- Core creates shared extensions and search-path prerequisites.
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -12,7 +12,6 @@ SELECT pg_catalog.set_config('search_path', '', false);
 SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
-
 -- Name: customers; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -37,6 +36,7 @@ ALTER TABLE ONLY public.customers FORCE ROW LEVEL SECURITY;
 
 --
 
+
 -- Name: customers customers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -46,6 +46,7 @@ ALTER TABLE ONLY public.customers
 
 --
 
+
 -- Name: idx_customer_tenant_org_name; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -54,6 +55,7 @@ CREATE INDEX idx_customer_tenant_org_name ON public.customers USING btree (tenan
 
 --
 
+
 -- Name: uq_customer_id_tenant; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -61,6 +63,7 @@ CREATE UNIQUE INDEX uq_customer_id_tenant ON public.customers USING btree (id, t
 
 
 --
+
 
 -- Name: customers fk_customer_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
@@ -71,6 +74,7 @@ ALTER TABLE ONLY public.customers
 
 --
 
+
 -- Name: customers fk_customers_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -80,12 +84,14 @@ ALTER TABLE ONLY public.customers
 
 --
 
+
 -- Name: customers; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 
 --
+
 
 -- Name: customers customers_tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
