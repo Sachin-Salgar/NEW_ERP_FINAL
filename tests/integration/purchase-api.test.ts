@@ -99,6 +99,114 @@ describe('Purchase HTTP API', () => {
     expect(login.statusCode).toBe(200);
     const headers = { authorization: `Bearer ${login.json().accessToken}`, 'x-tenant-id': uuidV7() };
 
+    const permissionMatrix = [
+      ['purchase.supplier.read', 'GET', '/api/v1/purchase/suppliers', undefined],
+      ['purchase.supplier.create', 'POST', '/api/v1/purchase/suppliers', { name: 'Permission probe' }],
+      [
+        'purchase.supplier.update',
+        'PATCH',
+        `/api/v1/purchase/suppliers/${uuidV7()}`,
+        { name: 'Probe', expectedVersion: 1 },
+      ],
+      ['purchase.supplier.delete', 'DELETE', `/api/v1/purchase/suppliers/${uuidV7()}`, { expectedVersion: 1 }],
+      ['purchase.requisition.read', 'GET', '/api/v1/purchase/requisitions', undefined],
+      [
+        'purchase.requisition.create',
+        'POST',
+        '/api/v1/purchase/requisitions',
+        {
+          requiredDate: '2026-01-01',
+          lines: [{ itemId: uuidV7(), description: 'Probe', quantity: 1, unitOfMeasure: 'EA' }],
+        },
+      ],
+      [
+        'purchase.requisition.update',
+        'PATCH',
+        `/api/v1/purchase/requisitions/${uuidV7()}`,
+        { requiredDate: '2026-01-01', expectedVersion: 1 },
+      ],
+      ...['submit', 'approve', 'reject', 'cancel'].map((action) => [
+        `purchase.requisition.${action}`,
+        'POST',
+        `/api/v1/purchase/requisitions/${uuidV7()}/${action}`,
+        { expectedVersion: 1 },
+      ]),
+      ['purchase.order.read', 'GET', '/api/v1/purchase/purchase-orders', undefined],
+      [
+        'purchase.order.create',
+        'POST',
+        '/api/v1/purchase/purchase-orders',
+        {
+          supplierId: uuidV7(),
+          orderDate: '2026-01-01',
+          lines: [{ itemId: uuidV7(), description: 'Probe', quantity: 1, unitOfMeasure: 'EA' }],
+        },
+      ],
+      [
+        'purchase.order.update',
+        'PATCH',
+        `/api/v1/purchase/purchase-orders/${uuidV7()}`,
+        { orderDate: '2026-01-01', expectedVersion: 1 },
+      ],
+      ...['submit', 'approve', 'reject', 'cancel'].map((action) => [
+        `purchase.order.${action}`,
+        'POST',
+        `/api/v1/purchase/purchase-orders/${uuidV7()}/${action}`,
+        { expectedVersion: 1 },
+      ]),
+      ['purchase.receipt.read', 'GET', '/api/v1/purchase/receipts', undefined],
+      [
+        'purchase.receipt.create',
+        'POST',
+        '/api/v1/purchase/receipts',
+        {
+          purchaseOrderId: uuidV7(),
+          warehouseId: uuidV7(),
+          receiptDate: '2026-01-01',
+          operationKey: `permission-probe-${uuidV7()}`,
+          lines: [{ itemId: uuidV7(), quantity: 1 }],
+        },
+      ],
+      [
+        'purchase.receipt.update',
+        'PATCH',
+        `/api/v1/purchase/receipts/${uuidV7()}`,
+        {
+          warehouseId: uuidV7(),
+          receiptDate: '2026-01-01',
+          lines: [{ itemId: uuidV7(), quantity: 1 }],
+          expectedVersion: 1,
+        },
+      ],
+      ...['complete', 'cancel'].map((action) => [
+        `purchase.receipt.${action}`,
+        'POST',
+        `/api/v1/purchase/receipts/${uuidV7()}/${action}`,
+        { expectedVersion: 1 },
+      ]),
+    ] as const;
+    for (const [permission, method, url, payload] of permissionMatrix as unknown as Array<
+      [string, 'GET' | 'POST' | 'PATCH' | 'DELETE', string, Record<string, unknown> | undefined]
+    >) {
+      await withTenantContext(pool, 'app.current_tenant_id', bootstrap.tenantId, (client) =>
+        client.query(
+          `DELETE FROM user_permissions
+            WHERE tenant_id=$1 AND user_id=$2
+              AND permission_id=(SELECT id FROM permissions WHERE permission_key=$3)`,
+          [bootstrap.tenantId, bootstrap.userId, permission],
+        ),
+      );
+      expect((await app.inject({ method, url, headers, payload })).statusCode, permission).toBe(403);
+      await withTenantContext(pool, 'app.current_tenant_id', bootstrap.tenantId, (client) =>
+        client.query(
+          `INSERT INTO user_permissions(tenant_id,user_id,permission_id,allow)
+           SELECT $1,$2,id,true FROM permissions WHERE permission_key=$3
+           ON CONFLICT (tenant_id,user_id,permission_id) DO UPDATE SET allow=true`,
+          [bootstrap.tenantId, bootstrap.userId, permission],
+        ),
+      );
+    }
+
     const invalid = await app.inject({
       method: 'POST',
       url: '/api/v1/purchase/suppliers',
