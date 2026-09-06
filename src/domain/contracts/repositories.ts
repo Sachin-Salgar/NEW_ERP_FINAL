@@ -889,6 +889,8 @@ export interface CoreEnterpriseRepository {
     >,
   ): Promise<OrganizationRecord | null>;
   deactivateOrganization(tenantId: string, organizationId: string): Promise<boolean>;
+  activateOrganization(tenantId: string, organizationId: string): Promise<boolean>;
+  deleteOrganization(tenantId: string, organizationId: string): Promise<boolean>;
   generateBranchCode(tenantId: string, organizationId: string): Promise<string>;
   createBranch(
     tenantId: string,
@@ -954,6 +956,8 @@ export interface CoreEnterpriseRepository {
     >,
   ): Promise<BranchRecord | null>;
   deactivateBranch(tenantId: string, organizationId: string, branchId: string): Promise<boolean>;
+  activateBranch(tenantId: string, organizationId: string, branchId: string): Promise<boolean>;
+  deleteBranch(tenantId: string, organizationId: string, branchId: string): Promise<boolean>;
   generateLocationCode(tenantId: string, organizationId: string): Promise<string>;
   createLocation(
     tenantId: string,
@@ -1015,6 +1019,8 @@ export interface CoreEnterpriseRepository {
     >,
   ): Promise<LocationRecord | null>;
   deactivateLocation(tenantId: string, organizationId: string, locationId: string): Promise<boolean>;
+  activateLocation(tenantId: string, organizationId: string, locationId: string): Promise<boolean>;
+  deleteLocation(tenantId: string, organizationId: string, locationId: string): Promise<boolean>;
   listUsers(tenantId: string): Promise<UserAdminRecord[]>;
   getUserById(tenantId: string, userId: string): Promise<UserAdminRecord | null>;
   listUserOrganizationAccess(tenantId: string, userId: string): Promise<UserOrganizationAccessRecord[]>;
@@ -1093,6 +1099,9 @@ export interface AuthorizationRepository {
     createdAt?: Date | string | null;
     updatedAt?: Date | string | null;
   } | null>;
+  activateRole?(tenantId: string, roleId: string): Promise<boolean>;
+  deactivateRole?(tenantId: string, roleId: string): Promise<boolean>;
+  deleteRole?(tenantId: string, roleId: string): Promise<boolean>;
   listPermissions(tenantId: string): Promise<
     Array<{
       id: string;

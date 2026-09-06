@@ -178,4 +178,18 @@ export class LocationService {
     }
     return this.repository.deactivateLocation(tenantId, organizationId, normalizedId);
   }
+
+  async activateLocation(tenantId: string, organizationId: string, locationId: string): Promise<boolean> {
+    this.requireContext(tenantId, organizationId);
+    const normalizedId = (locationId ?? '').trim();
+    if (!normalizedId) throw new ValidationError('Location ID is required.');
+    return this.repository.activateLocation(tenantId, organizationId, normalizedId);
+  }
+
+  async deleteLocation(tenantId: string, organizationId: string, locationId: string): Promise<boolean> {
+    this.requireContext(tenantId, organizationId);
+    const normalizedId = (locationId ?? '').trim();
+    if (!normalizedId) throw new ValidationError('Location ID is required.');
+    return this.repository.deleteLocation(tenantId, organizationId, normalizedId);
+  }
 }

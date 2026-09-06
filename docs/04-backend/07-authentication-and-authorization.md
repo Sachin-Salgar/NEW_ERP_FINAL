@@ -147,6 +147,16 @@ Security-sensitive events should be audited, including successful/failed authent
 
 ## 7.13 Summary
 
+### Granular security administration
+
+The active permission catalog is backend-owned and exposes lifecycle actions for organizations,
+locations, branches, and roles, plus role-permission grant/revoke, tenant-scoped session
+revocation, persisted tenant security policy read/update, and append-only audit-log read/export.
+Lifecycle deletion is a guarded soft-delete operation; system roles and records with protected
+dependents cannot be deleted. Tenant administration routes use explicit platform-scope permission
+checks and operate only on the authenticated tenant context. The Flutter role matrix renders
+module/resource/action cells from the catalog and persists canonical permission keys.
+
 ```text
 Configured Backend Endpoint
   ↓

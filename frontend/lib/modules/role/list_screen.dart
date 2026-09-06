@@ -220,7 +220,9 @@ class _RoleActions extends StatelessWidget {
     final id = role['id']?.toString() ?? '';
     return Wrap(
       children: [
-        if (auth.hasPermission('role.update'))
+        if (auth.hasPermission('role_permission.read') ||
+            auth.hasPermission('role_permission.grant') ||
+            auth.hasPermission('role_permission.revoke'))
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             tooltip: 'Edit role',

@@ -116,6 +116,30 @@ const securityAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
       return { success: true as const, logs };
     },
   );
+
+  fastify.get('/security/audit-logs/export', { preHandler: [requireAuth, requirePermission('security.audit_log.export')] }, async (request, reply) => {
+    if (!request.tenantId) throw new ValidationError('Tenant context is required.');
+    const query = listQuery.parse(request.query);
+    const csv = await request.server.securityAdministrationService.exportAuditLogs(request.tenantId, query.limit);
+    reply.type('text/csv; charset=utf-8');
+    return csv;
+  });
+
+  fastify.get('/security/policy', { preHandler: [requireAuth, requirePermission('security.policy.read')] }, async (request) => {
+    if (!request.tenantId) throw new ValidationError('Tenant context is required.');
+    return { success: true, policy: await request.server.securityAdministrationService.getSecurityPolicy(request.tenantId) };
+  });
+
+  fastify.patch<{ Body: { mfaRequired?: boolean; sessionLifetimeMinutes?: number; maxFailedLoginAttempts?: number; lockoutMinutes?: number } }>(
+    '/security/policy',
+    { preHandler: [requireAuth, requirePermission('security.policy.update')] },
+    async (request) => {
+      if (!request.tenantId) throw new ValidationError('Tenant context is required.');
+      const policy = await request.server.securityAdministrationService.updateSecurityPolicy(request.tenantId, request.body);
+      await recordSecurityEvent(request, { tenantId: request.tenantId, actorUserId: request.user?.id, action: 'security.policy.update', resourceType: 'security_policy', resourceId: request.tenantId, outcome: 'success', metadata: { ...policy } });
+      return { success: true, policy };
+    },
+  );
 };
 
 export default securityAdministrationRoutes;

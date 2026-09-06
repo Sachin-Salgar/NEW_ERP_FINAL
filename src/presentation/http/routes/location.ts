@@ -219,6 +219,18 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
       return { success: true, deactivated: true };
     },
   );
+  fastify.post<{ Params: LocationIdParams }>('/locations/:id/activate', { preHandler: [requireAuth, requirePermission('organization.location.activate')] }, async (request) => {
+    if (!request.tenantId || !request.user?.organizationId) throw new ValidationError('Authenticated organization context is required.');
+    const activated = await request.server.locationService.activateLocation(request.tenantId, request.user.organizationId, request.params.id.trim());
+    if (!activated) throw new NotFoundError('Location not found.');
+    return { success: true, activated: true };
+  });
+  fastify.delete<{ Params: LocationIdParams }>('/locations/:id', { preHandler: [requireAuth, requirePermission('organization.location.delete')] }, async (request) => {
+    if (!request.tenantId || !request.user?.organizationId) throw new ValidationError('Authenticated organization context is required.');
+    const deleted = await request.server.locationService.deleteLocation(request.tenantId, request.user.organizationId, request.params.id.trim());
+    if (!deleted) throw new NotFoundError('Location not found.');
+    return { success: true, deleted: true };
+  });
 };
 
 export default locationRoutes;

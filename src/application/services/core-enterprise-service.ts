@@ -146,6 +146,18 @@ export class CoreEnterpriseService {
     return this.repository.deactivateOrganization(tenantId, organizationId.trim());
   }
 
+  async activateOrganization(tenantId: string, organizationId: string): Promise<boolean> {
+    this.ensureTenantContext(tenantId);
+    if (!organizationId?.trim()) throw new ValidationError('Organization ID is required.');
+    return this.repository.activateOrganization(tenantId, organizationId.trim());
+  }
+
+  async deleteOrganization(tenantId: string, organizationId: string): Promise<boolean> {
+    this.ensureTenantContext(tenantId);
+    if (!organizationId?.trim()) throw new ValidationError('Organization ID is required.');
+    return this.repository.deleteOrganization(tenantId, organizationId.trim());
+  }
+
   async createBranch(
     tenantId: string,
     organizationId: string,
@@ -266,6 +278,20 @@ export class CoreEnterpriseService {
     if (!organizationId || !organizationId.trim()) throw new ValidationError('Organization ID is required.');
     if (!branchId || !branchId.trim()) throw new ValidationError('Branch ID is required.');
     return this.repository.deactivateBranch(tenantId, organizationId.trim(), branchId.trim());
+  }
+
+  async activateBranch(tenantId: string, organizationId: string, branchId: string): Promise<boolean> {
+    this.ensureTenantContext(tenantId);
+    if (!organizationId?.trim()) throw new ValidationError('Organization ID is required.');
+    if (!branchId?.trim()) throw new ValidationError('Branch ID is required.');
+    return this.repository.activateBranch(tenantId, organizationId.trim(), branchId.trim());
+  }
+
+  async deleteBranch(tenantId: string, organizationId: string, branchId: string): Promise<boolean> {
+    this.ensureTenantContext(tenantId);
+    if (!organizationId?.trim()) throw new ValidationError('Organization ID is required.');
+    if (!branchId?.trim()) throw new ValidationError('Branch ID is required.');
+    return this.repository.deleteBranch(tenantId, organizationId.trim(), branchId.trim());
   }
 
   async listUsers(tenantId: string): Promise<UserAdminRecord[]> {

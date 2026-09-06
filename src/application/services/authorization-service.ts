@@ -31,6 +31,18 @@ export class AuthorizationService {
     return this.authorizationRepository.updateRole(tenantId, roleId, changes);
   }
 
+  async activateRole(tenantId: string, roleId: string): Promise<boolean> {
+    return this.authorizationRepository.activateRole?.(tenantId, roleId) ?? false;
+  }
+
+  async deactivateRole(tenantId: string, roleId: string): Promise<boolean> {
+    return this.authorizationRepository.deactivateRole?.(tenantId, roleId) ?? false;
+  }
+
+  async deleteRole(tenantId: string, roleId: string): Promise<boolean> {
+    return this.authorizationRepository.deleteRole?.(tenantId, roleId) ?? false;
+  }
+
   async listPermissions(tenantId: string): Promise<PermissionDescriptor[]> {
     return this.authorizationRepository.listPermissions(tenantId);
   }

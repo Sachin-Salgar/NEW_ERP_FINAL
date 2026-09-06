@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { v7 as uuidV7 } from 'uuid';
+import { ValidationError } from '../../../domain/errors.js';
 
 import type { PermissionDescriptor, UserPermissionRecord } from '../../../domain/contracts/authorization.js';
 import type { CreateSessionInput, SessionRecord } from '../../../domain/contracts/authentication.js';
@@ -688,6 +689,43 @@ export class PostgresPlatformRepository
       createdAt: row.createdAt ? new Date(row.createdAt) : null,
       updatedAt: row.updatedAt ? new Date(row.updatedAt) : null,
     };
+  }
+
+  async activateRole(tenantId: string, roleId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) =>
+      client.query(
+        `UPDATE roles SET is_deleted = false, deleted_at = NULL, deleted_by = NULL, updated_at = NOW()
+         WHERE tenant_id = $1 AND id = $2 AND is_deleted = true AND is_system = false RETURNING id`,
+        [tenantId, roleId],
+      ),
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async deactivateRole(tenantId: string, roleId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) =>
+      client.query(
+        `UPDATE roles SET is_deleted = true, deleted_at = NOW(), updated_at = NOW()
+         WHERE tenant_id = $1 AND id = $2 AND is_deleted = false AND is_system = false RETURNING id`,
+        [tenantId, roleId],
+      ),
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async deleteRole(tenantId: string, roleId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      const role = await client.query(`SELECT is_system FROM roles WHERE tenant_id = $1 AND id = $2 AND is_deleted = false`, [tenantId, roleId]);
+      if (role.rows[0]?.is_system) throw new ValidationError('System roles cannot be deleted.');
+      const users = await client.query(`SELECT COUNT(*) AS count FROM user_roles WHERE tenant_id = $1 AND role_id = $2`, [tenantId, roleId]);
+      if (Number(users.rows[0]?.count ?? 0) > 0) throw new ValidationError('Role cannot be deleted while assigned to users.');
+      return client.query(
+        `UPDATE roles SET is_deleted = true, deleted_at = NOW(), updated_at = NOW()
+         WHERE tenant_id = $1 AND id = $2 AND is_deleted = false RETURNING id`,
+        [tenantId, roleId],
+      );
+    });
+    return (result.rowCount ?? 0) > 0;
   }
 
   async listPermissions(tenantId: string): Promise<
@@ -1846,6 +1884,39 @@ export class PostgresPlatformRepository
     return (result.rowCount ?? 0) > 0;
   }
 
+  async activateOrganization(tenantId: string, organizationId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) =>
+      client.query(
+        `UPDATE organizations SET status = 'active', is_deleted = false, deleted_at = NULL, deleted_by = NULL, updated_at = NOW()
+         WHERE tenant_id = $1 AND id = $2 AND is_deleted = true RETURNING id`,
+        [tenantId, organizationId],
+      ),
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async deleteOrganization(tenantId: string, organizationId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      const dependencies = await client.query(
+        `SELECT
+           (SELECT COUNT(*) FROM branches WHERE tenant_id = $1 AND organization_id = $2 AND is_deleted = false) AS branches,
+           (SELECT COUNT(*) FROM locations WHERE tenant_id = $1 AND organization_id = $2 AND is_deleted = false) AS locations,
+           (SELECT COUNT(*) FROM users WHERE tenant_id = $1 AND organization_id = $2 AND is_deleted = false) AS users`,
+        [tenantId, organizationId],
+      );
+      const row = dependencies.rows[0];
+      if (Number(row?.branches ?? 0) > 0 || Number(row?.locations ?? 0) > 0 || Number(row?.users ?? 0) > 0) {
+        throw new ValidationError('Organization cannot be deleted while it has active dependent records.');
+      }
+      return client.query(
+        `UPDATE organizations SET status = 'inactive', is_deleted = true, deleted_at = NOW(), updated_at = NOW()
+         WHERE tenant_id = $1 AND id = $2 AND is_deleted = false RETURNING id`,
+        [tenantId, organizationId],
+      );
+    });
+    return (result.rowCount ?? 0) > 0;
+  }
+
   private async generateBranchCodeWithClient(
     client: { query: (text: string, params?: any[]) => Promise<any> },
     tenantId: string,
@@ -2304,6 +2375,36 @@ export class PostgresPlatformRepository
     return (result.rowCount ?? 0) > 0;
   }
 
+  async activateBranch(tenantId: string, organizationId: string, branchId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) =>
+      client.query(
+        `UPDATE branches SET status = 'active', is_deleted = false, deleted_at = NULL, deleted_by = NULL, updated_at = NOW()
+         WHERE tenant_id = $1 AND organization_id = $2 AND id = $3 AND is_deleted = true RETURNING id`,
+        [tenantId, organizationId, branchId],
+      ),
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async deleteBranch(tenantId: string, organizationId: string, branchId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      const dependencies = await client.query(
+        `SELECT COUNT(*) AS locations FROM locations
+         WHERE tenant_id = $1 AND organization_id = $2 AND branch_id = $3 AND is_deleted = false`,
+        [tenantId, organizationId, branchId],
+      );
+      if (Number(dependencies.rows[0]?.locations ?? 0) > 0) {
+        throw new ValidationError('Branch cannot be deleted while it has active dependent locations.');
+      }
+      return client.query(
+        `UPDATE branches SET status = 'inactive', is_deleted = true, deleted_at = NOW(), updated_at = NOW()
+         WHERE tenant_id = $1 AND organization_id = $2 AND id = $3 AND is_deleted = false RETURNING id`,
+        [tenantId, organizationId, branchId],
+      );
+    });
+    return (result.rowCount ?? 0) > 0;
+  }
+
   async generateLocationCode(tenantId: string, organizationId: string): Promise<string> {
     const nextNumber = await this.reserveNextCodeValue(tenantId, 'location', organizationId);
     return `LOC${String(nextNumber).padStart(6, '0')}`;
@@ -2569,6 +2670,28 @@ export class PostgresPlatformRepository
       );
     });
 
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async activateLocation(tenantId: string, organizationId: string, locationId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) =>
+      client.query(
+        `UPDATE locations SET status = 'active', is_deleted = false, deleted_at = NULL, deleted_by = NULL, updated_at = NOW()
+         WHERE tenant_id = $1 AND organization_id = $2 AND id = $3 AND is_deleted = true RETURNING id`,
+        [tenantId, organizationId, locationId],
+      ),
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async deleteLocation(tenantId: string, organizationId: string, locationId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) =>
+      client.query(
+        `UPDATE locations SET status = 'inactive', is_deleted = true, deleted_at = NOW(), updated_at = NOW()
+         WHERE tenant_id = $1 AND organization_id = $2 AND id = $3 AND is_deleted = false RETURNING id`,
+        [tenantId, organizationId, locationId],
+      ),
+    );
     return (result.rowCount ?? 0) > 0;
   }
 
