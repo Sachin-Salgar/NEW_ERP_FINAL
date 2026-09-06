@@ -123,6 +123,33 @@ function moduleCodeForPermission(permissionKey: string): string {
   }
 }
 
+/**
+ * The User routes still contain the historical `user.manage` declaration.
+ * Authorization is intentionally resolved to the granular capability here so
+ * `user.manage` cannot act as a broad bypass for Create/Update/Activate/
+ * Deactivate. This keeps existing route declarations backward-compatible while
+ * the persisted permission model moves to the granular User actions.
+ */
+function resolvePermissionKey(request: FastifyRequest, permissionKey: string): string {
+  if (permissionKey !== 'user.manage') return permissionKey;
+
+  const method = request.method.toUpperCase();
+  const path = request.url.split('?')[0] ?? '';
+
+  if (method === 'GET') return 'user.read';
+  if (method === 'PATCH') return 'user.update';
+  if (method === 'DELETE') return 'user.delete';
+  if (method === 'POST') {
+    if (path === '/auth/register') return 'user.create';
+    if (/\/users\/[^/]+\/activate$/.test(path)) return 'user.activate';
+    if (/\/users\/[^/]+\/deactivate$/.test(path)) return 'user.deactivate';
+    if (/\/users\/[^/]+\/(organizations|branches)\/[^/]+\/access$/.test(path)) return 'user.update';
+    if (/\/rbac\/users\/[^/]+\/roles(?:\/[^/]+)?$/.test(path)) return 'user.update';
+  }
+
+  return permissionKey;
+}
+
 export function requirePermission(permissionKey: string) {
   return async function requirePermissionHandler(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
     if (!request.user || !request.tenantId)
@@ -130,17 +157,18 @@ export function requirePermission(permissionKey: string) {
     if (!request.user.organizationId)
       throw new ForbiddenError('An active organization is required to perform this action.');
 
+    const resolvedPermissionKey = resolvePermissionKey(request, permissionKey);
     const moduleEnabled = await request.server.moduleAccessService.isModuleEnabled(
       request.tenantId,
       request.user.organizationId,
-      moduleCodeForPermission(permissionKey),
+      moduleCodeForPermission(resolvedPermissionKey),
     );
     if (!moduleEnabled) throw new ForbiddenError('Module access denied.');
 
     const allowed = await request.server.authorizationService.hasPermission(
       request.tenantId,
       request.user.id,
-      permissionKey,
+      resolvedPermissionKey,
     );
     if (!allowed) throw new ForbiddenError('Permission denied.');
   };
@@ -160,17 +188,18 @@ export function requirePermissionOrSelf(
     if (!request.user.organizationId)
       throw new ForbiddenError('An active organization is required to perform this action.');
 
+    const resolvedPermissionKey = resolvePermissionKey(request, permissionKey);
     const moduleEnabled = await request.server.moduleAccessService.isModuleEnabled(
       request.tenantId,
       request.user.organizationId,
-      moduleCodeForPermission(permissionKey),
+      moduleCodeForPermission(resolvedPermissionKey),
     );
     if (!moduleEnabled) throw new ForbiddenError('Module access denied.');
 
     const allowed = await request.server.authorizationService.hasPermission(
       request.tenantId,
       request.user.id,
-      permissionKey,
+      resolvedPermissionKey,
     );
     if (!allowed) throw new ForbiddenError('Permission denied.');
   };
