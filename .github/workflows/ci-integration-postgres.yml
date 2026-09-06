@@ -93,6 +93,8 @@ jobs:
           port = os.environ['CI_POSTGRES_PORT']
           with open(os.environ['GITHUB_ENV'], 'a') as f:
               f.write(f'TEST_DATABASE_URL=postgres://{role}:{password}@localhost:{port}/{db}\n')
+              admin_password = urllib.parse.quote(os.environ['CI_POSTGRES_PASSWORD'], safe='')
+              f.write(f'DATABASE_URL=postgres://postgres:{admin_password}@localhost:{port}/postgres\n')
           PY
 
       - name: Run migrations

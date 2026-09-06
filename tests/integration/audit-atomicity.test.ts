@@ -5,6 +5,7 @@ import { Pool } from 'pg';
 import { PostgresAuditLogger } from '../../src/infrastructure/audit/postgres-audit-logger.js';
 import { UnitOfWork } from '../../src/infrastructure/database/unit-of-work.js';
 import { resolveDatabaseUrl } from '../../src/config/schema.js';
+import { v7 as uuidV7 } from 'uuid';
 
 dotenv.config({ path: '.env.local' });
 
@@ -17,8 +18,20 @@ describe('security mutation audit atomicity', () => {
   let originalName: string;
 
   beforeAll(async () => {
+    const fixtureTenantId = uuidV7();
+    await pool.query(
+      `INSERT INTO tenants (id, name, subdomain, slug, status)
+       VALUES ($1, $2, $3, $4, 'active')`,
+      [
+        fixtureTenantId,
+        `Audit Atomicity Tenant ${fixtureTenantId}`,
+        `audit-${fixtureTenantId}`,
+        `audit-${fixtureTenantId}`,
+      ],
+    );
     const result = await pool.query<{ id: string; name: string }>(
-      'SELECT id, name FROM tenants WHERE is_deleted = false ORDER BY created_at LIMIT 1',
+      'SELECT id, name FROM tenants WHERE id = $1 AND is_deleted = false',
+      [fixtureTenantId],
     );
     if (result.rowCount !== 1) {
       throw new Error('Audit atomicity verification requires one tenant');
@@ -40,10 +53,12 @@ describe('security mutation audit atomicity', () => {
 
     await expect(
       unitOfWork.runInTransaction(async () => {
-        await unitOfWork.getClient().query(
-          'UPDATE tenants SET name = $1, updated_at = clock_timestamp() WHERE id = $2',
-          [`${originalName} (audit rollback)`, tenantId],
-        );
+        await unitOfWork
+          .getClient()
+          .query('UPDATE tenants SET name = $1, updated_at = clock_timestamp() WHERE id = $2', [
+            `${originalName} (audit rollback)`,
+            tenantId,
+          ]);
         await audit.record(
           {
             tenantId: invalidTenantId,

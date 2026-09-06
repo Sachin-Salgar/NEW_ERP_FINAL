@@ -77,7 +77,11 @@ describe('Customer HTTP API', () => {
     app = await createApplication(config, pool);
 
     for (const request of [
-      { method: 'POST' as const, url: '/api/v1/customers', payload: { organizationId: bootstrap.organizationId, name: 'No Auth' } },
+      {
+        method: 'POST' as const,
+        url: '/api/v1/customers',
+        payload: { organizationId: bootstrap.organizationId, name: 'No Auth' },
+      },
       { method: 'GET' as const, url: '/api/v1/customers' },
       { method: 'GET' as const, url: `/api/v1/customers/${uuidV7()}` },
       { method: 'PATCH' as const, url: `/api/v1/customers/${uuidV7()}`, payload: { name: 'No Auth' } },
@@ -178,7 +182,9 @@ describe('Customer HTTP API', () => {
       if (!moduleId) throw new Error('CRM module seed is missing.');
       await client.query(
         `INSERT INTO organization_modules (id, tenant_id, organization_id, module_id, enabled, enabled_at)
-         VALUES ($1, $2, $3, $4, true, NOW())`,
+         VALUES ($1, $2, $3, $4, true, NOW())
+         ON CONFLICT (organization_id, module_id) DO UPDATE
+           SET enabled = true, disabled_at = NULL, enabled_at = EXCLUDED.enabled_at`,
         [uuidV7(), bootstrap.tenantId, organizationB.id, moduleId],
       );
     });

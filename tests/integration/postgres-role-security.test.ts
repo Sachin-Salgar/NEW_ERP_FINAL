@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Pool } from 'pg';
 
 import { resolveDatabaseUrl } from '../../src/config/schema.js';
+import { v7 as uuidV7 } from 'uuid';
 
 dotenv.config({ path: '.env.local' });
 
@@ -40,8 +41,24 @@ describe('PostgreSQL platform security boundary', () => {
         await client.query(`ALTER ROLE ${role} LOGIN PASSWORD '${rolePassword.replaceAll("'", "''")}'`);
       }
 
+      const fixtureTenantIds = [uuidV7(), uuidV7()];
+      await client.query(
+        `INSERT INTO tenants (id, name, subdomain, slug, status)
+         VALUES ($1, $2, $3, $4, 'active'), ($5, $6, $7, $8, 'active')`,
+        [
+          fixtureTenantIds[0],
+          `Postgres Security Tenant A ${fixtureTenantIds[0]}`,
+          `pg-sec-a-${fixtureTenantIds[0]}`,
+          `pg-sec-a-${fixtureTenantIds[0]}`,
+          fixtureTenantIds[1],
+          `Postgres Security Tenant B ${fixtureTenantIds[1]}`,
+          `pg-sec-b-${fixtureTenantIds[1]}`,
+          `pg-sec-b-${fixtureTenantIds[1]}`,
+        ],
+      );
       const tenants = await client.query<{ id: string }>(
-        'SELECT id FROM tenants WHERE is_deleted = false ORDER BY created_at LIMIT 2',
+        'SELECT id FROM tenants WHERE id = ANY($1::uuid[]) ORDER BY created_at',
+        [fixtureTenantIds],
       );
       if (tenants.rowCount !== 2) {
         throw new Error('PostgreSQL security verification requires two existing tenants');
