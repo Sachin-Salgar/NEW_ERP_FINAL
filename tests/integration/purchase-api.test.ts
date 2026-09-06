@@ -97,8 +97,11 @@ describe('Purchase HTTP API', () => {
       payload: { identifier: input.administrator.username, password: input.administrator.password },
     });
     expect(login.statusCode).toBe(200);
-    const headers = { authorization: `Bearer ${login.json().accessToken}`, 'x-tenant-id': uuidV7() };
+    const headers = { authorization: `Bearer ${login.json().accessToken}`, 'x-tenant-id': bootstrap.tenantId };
 
+    const authenticatedUser = login.json().user;
+    expect(authenticatedUser.tenantId).toBe(bootstrap.tenantId);
+    expect(authenticatedUser.organizationId).toBe(bootstrap.organizationId);
     const permissionMatrix = [
       ['purchase.supplier.read', 'GET', '/api/v1/purchase/suppliers', undefined],
       ['purchase.supplier.create', 'POST', '/api/v1/purchase/suppliers', { name: 'Permission probe' }],
@@ -196,7 +199,9 @@ describe('Purchase HTTP API', () => {
           [bootstrap.tenantId, bootstrap.userId, permission],
         ),
       );
-      expect((await app.inject({ method, url, headers, payload })).statusCode, permission).toBe(403);
+      const denied = await app.inject({ method, url, headers, payload });
+      expect(denied.statusCode, permission).toBe(403);
+      expect(denied.json().error.code, permission).toBe('FORBIDDEN');
       await withTenantContext(pool, 'app.current_tenant_id', bootstrap.tenantId, (client) =>
         client.query(
           `INSERT INTO user_permissions(tenant_id,user_id,permission_id,allow)
@@ -205,6 +210,10 @@ describe('Purchase HTTP API', () => {
           [bootstrap.tenantId, bootstrap.userId, permission],
         ),
       );
+      const authorized = await app.inject({ method, url, headers, payload });
+      expect(authorized.statusCode, permission).not.toBe(401);
+      expect(authorized.statusCode, permission).not.toBe(403);
+      if (authorized.statusCode >= 400) expect(authorized.json().error.code, permission).not.toBe('FORBIDDEN');
     }
 
     const invalid = await app.inject({
