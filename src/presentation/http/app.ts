@@ -32,12 +32,14 @@ import { TaxService } from '../../application/services/tax-service.js';
 import { SecurityAdministrationService } from '../../application/services/security-administration-service.js';
 import { TenantAdministrationService } from '../../application/services/tenant-administration-service.js';
 import { TenantBootstrapService } from '../../application/services/tenant-bootstrap-service.js';
+import { PlatformAuthorizationService } from '../../application/services/platform-authorization-service.js';
 import { PostgresTaxRepository } from '../../infrastructure/database/repositories/postgres-tax-repository.js';
 import { PostgresFinanceRepository } from '../../infrastructure/database/repositories/postgres-finance-repository.js';
 import { PostgresSalesReportingRepository } from '../../infrastructure/database/repositories/postgres-sales-reporting-repository.js';
 import { createDatabasePool } from '../../infrastructure/database/connection.js';
 import { PostgresQueryPerformanceMonitor } from '../../infrastructure/database/query-performance-monitor.js';
 import { IdentityAwarePostgresPlatformRepository } from '../../infrastructure/database/repositories/identity-aware-postgres-platform-repository.js';
+import { PostgresPlatformAuthorizationRepository } from '../../infrastructure/database/repositories/postgres-platform-authorization-repository.js';
 import { PostgresAccountSecurityRepository } from '../../infrastructure/database/repositories/postgres-account-security-repository.js';
 import { PostgresMfaRepository } from '../../infrastructure/database/repositories/postgres-mfa-repository.js';
 import { PostgresCustomerRepository } from '../../infrastructure/database/repositories/postgres-customer-repository.js';
@@ -88,6 +90,8 @@ import taxRoutes from './routes/tax.js';
 import rbacRoutes from './routes/rbac.js';
 import securityAdministrationRoutes from './routes/security-administration.js';
 import tenantAdministrationRoutes from './routes/tenant-administration.js';
+import platformTenantRoutes from './routes/platform-tenants.js';
+import platformAdministrationRoutes from './routes/platform-administration.js';
 import { paginateListResponse } from './pagination.js';
 import { requestObject } from './request-input.js';
 import { schemaForRoute, setupSwagger } from './swagger.js';
@@ -192,6 +196,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     ],
   });
   const repository = new IdentityAwarePostgresPlatformRepository(pool);
+  const platformAuthorizationService = new PlatformAuthorizationService(new PostgresPlatformAuthorizationRepository(pool));
   const passwordHasher = new BcryptPasswordHasher();
   const jwtTokenService = new JwtTokenService(config);
   const authService = new AuthenticationService(repository, passwordHasher, jwtTokenService, {
@@ -415,6 +420,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('securityAdministrationService', securityAdministrationService);
   app.decorate('tenantAdministrationService', tenantAdministrationService);
   app.decorate('tenantBootstrapService', tenantBootstrapService);
+  app.decorate('platformAuthorizationService', platformAuthorizationService);
   app.decorate('customerService', customerService);
   app.decorate('quotationService', quotationService);
   app.decorate('orderService', orderService);
@@ -457,8 +463,8 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
       if (error instanceof Error && error.message.includes('reuse detected')) {
         const claims = jwtTokenService.verifyRefreshToken(refreshToken);
         await recordSecurityEvent(request, {
-          tenantId: claims.tenantId,
-          actorUserId: claims.sub,
+          tenantId: claims.tenantId ?? undefined,
+          actorUserId: undefined,
           action: 'auth.refresh.replay',
           resourceType: 'session',
           resourceId: claims.sessionId,
@@ -524,6 +530,8 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(rbacRoutes, { prefix: config.API_PREFIX });
   await app.register(securityAdministrationRoutes, { prefix: config.API_PREFIX });
   await app.register(tenantAdministrationRoutes, { prefix: config.API_PREFIX });
+  await app.register(platformTenantRoutes, { prefix: config.API_PREFIX });
+  await app.register(platformAdministrationRoutes, { prefix: config.API_PREFIX });
   await app.register(branchRoutes, { prefix: config.API_PREFIX });
   await app.register(coreEnterpriseRoutes, { prefix: config.API_PREFIX });
   await app.register(locationRoutes, { prefix: config.API_PREFIX });

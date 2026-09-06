@@ -54,14 +54,25 @@ export class RotatingJwtTokenService implements TokenService {
     this.trustedKeys = new Map(options.keys.filter((key) => key.state !== 'retired').map((key) => [key.kid, key]));
   }
 
-  createAccessToken(input: { userId: string; tenantId: string; sessionId: string; expiresInSeconds?: number }): string {
+  createAccessToken(input: {
+    userId: string;
+    identityId?: string;
+    tenantId: string | null;
+    sessionId: string;
+    contextType?: 'tenant' | 'platform';
+    membershipId?: string;
+    expiresInSeconds?: number;
+  }): string {
     return this.signToken('access', input);
   }
 
   createRefreshToken(input: {
     userId: string;
-    tenantId: string;
+    identityId?: string;
+    tenantId: string | null;
     sessionId: string;
+    contextType?: 'tenant' | 'platform';
+    membershipId?: string;
     expiresInSeconds?: number;
   }): string {
     return this.signToken('refresh', input);
@@ -100,14 +111,24 @@ export class RotatingJwtTokenService implements TokenService {
 
   private signToken(
     tokenType: 'access' | 'refresh',
-    input: { userId: string; tenantId: string; sessionId: string; expiresInSeconds?: number },
+    input: {
+      userId: string;
+      identityId?: string;
+      tenantId: string | null;
+      sessionId: string;
+      contextType?: 'tenant' | 'platform';
+      membershipId?: string;
+      expiresInSeconds?: number;
+    },
   ): string {
     const expiresInSeconds = input.expiresInSeconds ?? (tokenType === 'access' ? 60 * 60 : 60 * 60 * 24 * 14);
     return jwt.sign(
       {
-        sub: input.userId,
+        sub: input.identityId ?? input.userId,
         tenantId: input.tenantId,
         sessionId: input.sessionId,
+        contextType: input.contextType ?? 'tenant',
+        membershipId: input.membershipId,
         tokenType,
         iss: this.options.issuer,
       },
@@ -161,8 +182,10 @@ export class RotatingJwtTokenService implements TokenService {
 
     return {
       sub: String(decodedPayload.sub),
-      tenantId: String(decodedPayload.tenantId),
+      tenantId: decodedPayload.tenantId as string,
       sessionId: String(decodedPayload.sessionId),
+      contextType: decodedPayload.contextType === 'platform' ? 'platform' : 'tenant',
+      membershipId: typeof decodedPayload.membershipId === 'string' ? decodedPayload.membershipId : undefined,
       tokenType: expectedType,
       iss: String(decodedPayload.iss ?? ''),
       iat: Number(decodedPayload.iat ?? 0),

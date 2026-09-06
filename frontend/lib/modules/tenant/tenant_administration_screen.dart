@@ -53,12 +53,203 @@ class _TenantAdministrationScreenState
     await _load();
   }
 
+  Future<void> _updateTenant() async {
+    final name = TextEditingController(text: _tenant?['name']?.toString());
+    final displayName = TextEditingController(
+      text: _tenant?['displayName']?.toString(),
+    );
+    final updated = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit tenant'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: name,
+              decoration: const InputDecoration(labelText: 'Name'),
+            ),
+            TextField(
+              controller: displayName,
+              decoration: const InputDecoration(labelText: 'Display name'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final response = await _api.patch(
+                '/api/v1/tenants/current',
+                body: {'name': name.text, 'displayName': displayName.text},
+              );
+              if (!context.mounted) return;
+              if (response.statusCode >= 400) {
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(SnackBar(content: Text(response.body)));
+                return;
+              }
+              Navigator.pop(context, true);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (updated == true) await _load();
+  }
+
+  Future<void> _deleteTenant() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete tenant?'),
+        content: const Text(
+          'Deletion is allowed only when the backend confirms that no protected tenant data remains.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final response = await _api.delete('/api/v1/tenants/current');
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          response.statusCode < 400
+              ? 'Tenant deleted.'
+              : 'Tenant deletion failed: ${response.body}',
+        ),
+      ),
+    );
+    if (response.statusCode < 400) await _load();
+  }
+
   Future<void> _memberAction(String userId, String action) async {
     final response = await _api.post(
       '/api/v1/tenants/current/members/$userId/$action',
     );
     if (response.statusCode >= 400) throw Exception(response.body);
     await _load();
+  }
+
+  Future<void> _editMember(Map<String, dynamic> member) async {
+    final username = TextEditingController(
+      text: member['username']?.toString(),
+    );
+    final email = TextEditingController(text: member['email']?.toString());
+    final updated = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit tenant member'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: username,
+              decoration: const InputDecoration(labelText: 'Username'),
+            ),
+            TextField(
+              controller: email,
+              decoration: const InputDecoration(labelText: 'Email'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final response = await _api.patch(
+                '/api/v1/tenants/current/members/${member['id']}',
+                body: {'username': username.text, 'email': email.text},
+              );
+              if (!context.mounted) return;
+              if (response.statusCode >= 400) {
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(SnackBar(content: Text(response.body)));
+                return;
+              }
+              Navigator.pop(context, true);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (updated == true) await _load();
+  }
+
+  Future<void> _showAccess(Map<String, dynamic> member) async {
+    final response = await _api.get(
+      '/api/v1/tenants/current/access/${member['id']}',
+    );
+    if (!mounted) return;
+    if (response.statusCode >= 400) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(response.body)));
+      return;
+    }
+    final access =
+        (jsonDecode(response.body)['access'] as Map<String, dynamic>?) ?? {};
+    final organizations = (access['organizations'] as List<dynamic>?) ?? [];
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Access: ${member['username']}'),
+        content: organizations.isEmpty
+            ? const Text('No organization access assigned.')
+            : SizedBox(
+                width: 420,
+                child: ListView(
+                  shrinkWrap: true,
+                  children: organizations
+                      .map(
+                        (organization) => ListTile(
+                          title: Text(
+                            organization['organizationName']?.toString() ??
+                                organization['organizationId'].toString(),
+                          ),
+                          trailing: IconButton(
+                            tooltip: 'Revoke access',
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: () async {
+                              final revoke = await _api.delete(
+                                '/api/v1/tenants/current/access/${member['id']}/organizations/${organization['organizationId']}',
+                              );
+                              if (context.mounted && revoke.statusCode < 400) {
+                                Navigator.pop(context);
+                                await _load();
+                              }
+                            },
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _grantAccess(String userId, String organizationId) async {
@@ -144,11 +335,33 @@ class _TenantAdministrationScreenState
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          Text(
-            _tenant!['displayName']?.toString() ??
-                _tenant!['name']?.toString() ??
-                'Tenant',
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                _tenant!['displayName']?.toString() ??
+                    _tenant!['name']?.toString() ??
+                    'Tenant',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Wrap(
+                children: [
+                  IconButton(
+                    tooltip: 'Edit tenant',
+                    onPressed: _updateTenant,
+                    icon: const Icon(Icons.edit_outlined),
+                  ),
+                  IconButton(
+                    tooltip: 'Delete tenant',
+                    onPressed: _deleteTenant,
+                    icon: const Icon(Icons.delete_outline),
+                  ),
+                ],
+              ),
+            ],
           ),
           Text('Status: ${_tenant!['status']}'),
           Wrap(
@@ -212,6 +425,22 @@ class _TenantAdministrationScreenState
                           _memberAction(member['id'].toString(), 'activate'),
                       icon: const Icon(Icons.play_circle_outline),
                     ),
+                  IconButton(
+                    tooltip: 'Edit member',
+                    onPressed: () => _editMember(member),
+                    icon: const Icon(Icons.edit_outlined),
+                  ),
+                  IconButton(
+                    tooltip: 'Remove member',
+                    onPressed: () =>
+                        _memberAction(member['id'].toString(), 'delete'),
+                    icon: const Icon(Icons.person_remove_outlined),
+                  ),
+                  IconButton(
+                    tooltip: 'View access',
+                    onPressed: () => _showAccess(member),
+                    icon: const Icon(Icons.business_outlined),
+                  ),
                   if (_organizations.isNotEmpty)
                     PopupMenuButton<String>(
                       tooltip: 'Grant organization access',

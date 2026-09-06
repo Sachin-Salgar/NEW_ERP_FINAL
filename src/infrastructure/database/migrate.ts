@@ -86,6 +86,31 @@ const migrationChecks: Record<string, (client: Client) => Promise<boolean>> = {
     (await policyExists(client, 'audit_events', 'audit_events_tenant_isolation_policy')) &&
     (await triggerExists(client, 'trg_prevent_audit_event_update', 'audit_events')) &&
     (await triggerExists(client, 'trg_prevent_audit_event_delete', 'audit_events')),
+  '0052-platform-identity-membership-context': async (client) =>
+    (await tableExists(client, 'identities')) &&
+    (await tableExists(client, 'identity_credentials')) &&
+    (await tableExists(client, 'tenant_memberships')) &&
+    (await tableExists(client, 'platform_memberships')) &&
+    (await tableExists(client, 'platform_roles')) &&
+    (await tableExists(client, 'platform_permissions')) &&
+    (await columnExists(client, 'users', 'identity_id')) &&
+    (await columnExists(client, 'user_sessions', 'context_type')) &&
+    (await columnExists(client, 'audit_events', 'actor_identity_id')),
+  '0053-platform-compatibility-triggers': async (client) =>
+    (await functionExists(client, 'assign_user_identity_compatibility')) &&
+    (await functionExists(client, 'assign_session_context_compatibility')) &&
+    (await triggerExists(client, 'trg_assign_user_identity_compatibility', 'users')) &&
+    (await triggerExists(client, 'trg_assign_session_context_compatibility', 'user_sessions')) &&
+    (await policyExists(client, 'audit_events', 'audit_events_tenant_context_policy')),
+  '0054-platform-procedures-and-audit-context': async (client) =>
+    (await tableExists(client, 'security_bootstrap_state')) &&
+    (await functionExists(client, 'platform_update_tenant_status(uuid,text)')) &&
+    (await functionExists(client, 'platform_delete_tenant(uuid)')),
+  '0055-platform-administration': async (client) =>
+    (await tableExists(client, 'platform_security_policy')) &&
+    (await columnExists(client, 'audit_events', 'actor_platform_membership_id')),
+  '0056-platform-lifecycle-enum-correction': async (client) =>
+    (await functionExists(client, 'platform_update_tenant_status(uuid,text)')),
 };
 
 async function tableExists(client: Client, tableName: string): Promise<boolean> {

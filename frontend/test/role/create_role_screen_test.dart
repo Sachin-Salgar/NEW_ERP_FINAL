@@ -21,7 +21,7 @@ void main() {
     final mockClient = MockClient((request) async {
       // Allow permission fetch if requested
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.manage']}), 200);
+        return http.Response(jsonEncode({'permissions': ['role.create']}), 200);
       }
       return http.Response('{}', 200);
     });
@@ -29,7 +29,7 @@ void main() {
     final apiClient = ApiClient(baseUrl: 'http://example.com', httpClient: mockClient);
     registerTestServices(apiClient: apiClient);
 
-    // Give user the role.manage permission so form is accessible
+    // Give user the role.create permission so form is accessible
     final authz = GetIt.instance.get<AuthZService>();
     await authz.loadPermissions(apiClient, 'user-id');
 
@@ -51,7 +51,7 @@ void main() {
     final apiClient = ApiClient(baseUrl: 'http://example.com', httpClient: mockClient);
     registerTestServices(apiClient: apiClient);
 
-    // No role.manage permission
+    // No role.create permission
     final authz = GetIt.instance.get<AuthZService>();
     await authz.loadPermissions(apiClient, 'user-id');
 
@@ -71,7 +71,7 @@ void main() {
       }
 
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.manage']}), 200);
+        return http.Response(jsonEncode({'permissions': ['role.create']}), 200);
       }
 
       return http.Response('{}', 200);
@@ -104,7 +104,7 @@ void main() {
   testWidgets('Client-side validation prevents empty submit', (WidgetTester tester) async {
     final mockClient = MockClient((request) async {
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.manage']}), 200);
+        return http.Response(jsonEncode({'permissions': ['role.create']}), 200);
       }
       return http.Response('{}', 200);
     });
@@ -131,7 +131,7 @@ void main() {
         return http.Response(jsonEncode({'message': 'Validation failed: code invalid'}), 400);
       }
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.manage']}), 200);
+        return http.Response(jsonEncode({'permissions': ['role.create']}), 200);
       }
       return http.Response('{}', 200);
     });
@@ -161,7 +161,7 @@ void main() {
         return http.Response('Forbidden', 403);
       }
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.manage']}), 200);
+        return http.Response(jsonEncode({'permissions': ['role.create']}), 200);
       }
       return http.Response('{}', 200);
     });
@@ -190,7 +190,7 @@ void main() {
         return http.Response('Internal Server Error', 500);
       }
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.manage']}), 200);
+        return http.Response(jsonEncode({'permissions': ['role.create']}), 200);
       }
       return http.Response('{}', 200);
     });

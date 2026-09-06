@@ -1,0 +1,3 @@
+ALTER TABLE user_sessions ALTER COLUMN tenant_id DROP NOT NULL;
+ALTER TABLE user_sessions ALTER COLUMN user_id DROP NOT NULL;
+ALTER TABLE audit_events ALTER COLUMN tenant_id DROP NOT NULL;

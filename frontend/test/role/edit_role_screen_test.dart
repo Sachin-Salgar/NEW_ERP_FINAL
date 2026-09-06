@@ -23,7 +23,7 @@ void main() {
         return http.Response(jsonEncode({'role': {'id': 'r1', 'code': 'admin', 'name': 'Admin', 'description': 'Administrator', 'isSystem': true}}), 200);
       }
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.manage']}), 200);
+        return http.Response(jsonEncode({'permissions': ['role.update']}), 200);
       }
       return http.Response('{}', 200);
     });
@@ -82,7 +82,7 @@ void main() {
       }
 
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.manage']}), 200);
+        return http.Response(jsonEncode({'permissions': ['role.update']}), 200);
       }
 
       return http.Response('{}', 200);
@@ -121,7 +121,7 @@ void main() {
         return http.Response(jsonEncode({'message': 'Validation failed: code invalid'}), 400);
       }
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.manage']}), 200);
+        return http.Response(jsonEncode({'permissions': ['role.update']}), 200);
       }
       return http.Response('{}', 200);
     });
@@ -153,7 +153,7 @@ void main() {
         return http.Response('Forbidden', 403);
       }
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.manage']}), 200);
+        return http.Response(jsonEncode({'permissions': ['role.update']}), 200);
       }
       return http.Response('{}', 200);
     });
@@ -185,7 +185,7 @@ void main() {
         return http.Response('Internal Server Error', 500);
       }
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.manage']}), 200);
+        return http.Response(jsonEncode({'permissions': ['role.update']}), 200);
       }
       return http.Response('{}', 200);
     });

@@ -75,7 +75,7 @@ void main() {
         return http.Response(
           jsonEncode({
             'success': true,
-            'permissions': ['user.manage'],
+            'permissions': ['user.read', 'user.update'],
           }),
           200,
         );
@@ -183,7 +183,7 @@ void main() {
           return http.Response(
             jsonEncode({
               'success': true,
-              'permissions': ['user.manage'],
+              'permissions': ['user.read', 'user.update'],
             }),
             200,
           );

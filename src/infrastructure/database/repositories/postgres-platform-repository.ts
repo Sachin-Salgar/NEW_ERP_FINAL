@@ -261,6 +261,7 @@ export class PostgresPlatformRepository
     identifier: string,
   ): Promise<{
     id: string;
+    identityId?: string;
     tenantId: string;
     organizationId?: string | null;
     defaultBranchId?: string | null;
@@ -277,10 +278,12 @@ export class PostgresPlatformRepository
     // Run the lookup under tenant context to satisfy RLS
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
-        `SELECT id, tenant_id as "tenantId", organization_id as "organizationId", default_branch_id as "defaultBranchId", default_location_id as "defaultLocationId",
-                username, email, password_hash as "passwordHash", status
-         FROM users
-         WHERE tenant_id = $1 AND is_deleted = false AND (LOWER(username) = LOWER($2) OR LOWER(email) = LOWER($2))
+        `SELECT u.id, u.identity_id as "identityId", u.tenant_id as "tenantId", u.organization_id as "organizationId", u.default_branch_id as "defaultBranchId", u.default_location_id as "defaultLocationId",
+                u.username, u.email, c.secret_hash as "passwordHash", u.status
+         FROM users u
+         JOIN identities i ON i.id = u.identity_id AND i.status = 'active'
+         JOIN identity_credentials c ON c.identity_id = i.id AND c.provider = 'local' AND c.credential_type = 'password' AND c.status = 'active'
+         WHERE u.tenant_id = $1 AND u.is_deleted = false AND (LOWER(u.username) = LOWER($2) OR LOWER(u.email) = LOWER($2))
          LIMIT 1`,
         [tenantId, normalizedIdentifier],
       );
@@ -293,6 +296,7 @@ export class PostgresPlatformRepository
     const row = result.rows[0];
     return {
       id: row.id,
+      identityId: row.identityId,
       tenantId: row.tenantId,
       organizationId: row.organizationId ?? null,
       defaultBranchId: row.defaultBranchId ?? null,
@@ -309,6 +313,7 @@ export class PostgresPlatformRepository
     userId: string,
   ): Promise<{
     id: string;
+    identityId?: string;
     tenantId: string;
     organizationId?: string | null;
     defaultBranchId?: string | null;
@@ -326,10 +331,12 @@ export class PostgresPlatformRepository
     // Ensure the query runs under tenant context to satisfy RLS policies
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
-        `SELECT id, tenant_id as "tenantId", organization_id as "organizationId", default_branch_id as "defaultBranchId", default_location_id as "defaultLocationId",
-                username, email, password_hash as "passwordHash", status, failed_login_count as "failedLoginCount", locked_until as "lockedUntil"
-         FROM users
-         WHERE tenant_id = $1 AND id = $2 AND is_deleted = false
+        `SELECT u.id, u.identity_id as "identityId", u.tenant_id as "tenantId", u.organization_id as "organizationId", u.default_branch_id as "defaultBranchId", u.default_location_id as "defaultLocationId",
+                u.username, u.email, c.secret_hash as "passwordHash", u.status, c.failed_attempt_count as "failedLoginCount", c.locked_until as "lockedUntil"
+         FROM users u
+         JOIN identities i ON i.id = u.identity_id AND i.status = 'active'
+         JOIN identity_credentials c ON c.identity_id = i.id AND c.provider = 'local' AND c.credential_type = 'password' AND c.status = 'active'
+         WHERE u.tenant_id = $1 AND u.id = $2 AND u.is_deleted = false
          LIMIT 1`,
         [tenantId, userId],
       );
@@ -342,6 +349,7 @@ export class PostgresPlatformRepository
     const row = result.rows[0];
     return {
       id: row.id,
+      identityId: row.identityId,
       tenantId: row.tenantId,
       organizationId: row.organizationId ?? null,
       defaultBranchId: row.defaultBranchId ?? null,

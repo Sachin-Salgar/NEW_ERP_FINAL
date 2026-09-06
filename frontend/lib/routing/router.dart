@@ -40,6 +40,7 @@ import '../modules/permission/permission_list_screen.dart';
 import '../modules/permission/role_permission_screen.dart';
 import '../modules/security/security_administration_screen.dart';
 import '../modules/tenant/tenant_administration_screen.dart';
+import '../modules/platform/platform_administration_screen.dart';
 import '../modules/role/create_screen.dart';
 import '../modules/role/edit_screen.dart';
 import '../modules/role/list_screen.dart';
@@ -844,6 +845,8 @@ class AppRouter {
         return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/settings/security', child: const SecurityAdministrationScreen()));
       case '/settings/tenant':
         return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/settings/tenant', child: const TenantAdministrationScreen()));
+      case '/platform':
+        return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/platform', child: const PlatformAdministrationScreen()));
       case '/settings/permissions/details':
         return MaterialPageRoute(
           settings: settings,

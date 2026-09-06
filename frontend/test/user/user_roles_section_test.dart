@@ -71,7 +71,7 @@ void main() {
   ) async {
     final effectivePermissions = <String>[];
     final client = MockClient((request) async {
-      if (request.url.path.contains('/api/v1/users/user-1')) {
+      if (request.url.path == '/api/v1/users/user-1') {
         return http.Response(
           jsonEncode({
             'user': {'id': 'user-1', 'username': 'demo'},
@@ -152,7 +152,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('You do not have permission to manage user roles.'),
+      find.text('You do not have permission to view user roles.'),
       findsOneWidget,
     );
   });
@@ -160,13 +160,13 @@ void main() {
   testWidgets('assigning a role updates the current roles list', (
     WidgetTester tester,
   ) async {
-    final effectivePermissions = <String>['user.manage', 'user.read'];
+    final effectivePermissions = <String>['user.update', 'user.read'];
     var roleAssigned = false;
     List<String>? assignedRoleNames;
     final client = MockClient((request) async {
       final path = request.url.path;
 
-      if (path.contains('/api/v1/users/user-1')) {
+      if (path == '/api/v1/users/user-1') {
         return http.Response(
           jsonEncode({
             'user': {'id': 'user-1', 'username': 'demo'},
@@ -286,7 +286,7 @@ void main() {
     WidgetTester tester,
   ) async {
     final effectivePermissions = <String>[
-      'user.manage',
+      'user.update',
       'user.read',
       'role.write',
     ];
@@ -294,7 +294,7 @@ void main() {
     List<String>? assignedRoleNames;
     final client = MockClient((request) async {
       final path = request.url.path;
-      if (path.contains('/api/v1/users/user-1')) {
+      if (path == '/api/v1/users/user-1') {
         return http.Response(
           jsonEncode({
             'user': {'id': 'user-1', 'username': 'demo'},
@@ -418,11 +418,11 @@ void main() {
   testWidgets('roles section shows available roles', (
     WidgetTester tester,
   ) async {
-    final effectivePermissions = <String>['user.manage', 'user.read'];
+    final effectivePermissions = <String>['user.update', 'user.read'];
     final client = MockClient((request) async {
       final path = request.url.path;
 
-      if (path.contains('/api/v1/users/user-1')) {
+      if (path == '/api/v1/users/user-1') {
         return http.Response(
           jsonEncode({
             'user': {'id': 'user-1', 'username': 'demo'},
@@ -502,7 +502,7 @@ void main() {
   ) async {
     final client = MockClient((request) async {
       final path = request.url.path;
-      if (path.contains('/api/v1/users/user-1')) {
+      if (path == '/api/v1/users/user-1') {
         return http.Response(
           jsonEncode({
             'user': {'id': 'user-1', 'username': 'demo'},
@@ -523,7 +523,7 @@ void main() {
         return http.Response(
           jsonEncode({
             'success': true,
-            'permissions': ['user.manage'],
+            'permissions': ['user.read'],
           }),
           200,
         );
@@ -541,7 +541,7 @@ void main() {
   ) async {
     final client = MockClient((request) async {
       final path = request.url.path;
-      if (path.contains('/api/v1/users/user-1')) {
+      if (path == '/api/v1/users/user-1') {
         return http.Response(
           jsonEncode({
             'user': {'id': 'user-1', 'username': 'demo'},
@@ -559,7 +559,7 @@ void main() {
         return http.Response(
           jsonEncode({
             'success': true,
-            'permissions': ['user.manage'],
+            'permissions': ['user.read', 'user.update'],
           }),
           200,
         );
@@ -581,7 +581,7 @@ void main() {
   ) async {
     final client = MockClient((request) async {
       final path = request.url.path;
-      if (path.contains('/api/v1/users/user-1')) {
+      if (path == '/api/v1/users/user-1') {
         return http.Response(
           jsonEncode({
             'user': {'id': 'user-1', 'username': 'demo'},
@@ -602,7 +602,7 @@ void main() {
         return http.Response(
           jsonEncode({
             'success': true,
-            'permissions': ['user.manage'],
+            'permissions': ['user.read', 'user.update'],
           }),
           200,
         );
@@ -624,7 +624,7 @@ void main() {
   ) async {
     final client = MockClient((request) async {
       final path = request.url.path;
-      if (path.contains('/api/v1/users/user-1')) {
+      if (path == '/api/v1/users/user-1') {
         return http.Response(
           jsonEncode({
             'user': {'id': 'user-1', 'username': 'demo'},
@@ -645,7 +645,7 @@ void main() {
         return http.Response(
           jsonEncode({
             'success': true,
-            'permissions': ['user.manage'],
+            'permissions': ['user.read', 'user.update'],
           }),
           200,
         );
@@ -667,7 +667,7 @@ void main() {
   ) async {
     final client = MockClient((request) async {
       final path = request.url.path;
-      if (path.contains('/api/v1/users/user-1')) {
+      if (path == '/api/v1/users/user-1') {
         return http.Response(
           jsonEncode({
             'user': {'id': 'user-1', 'username': 'demo'},
@@ -685,7 +685,7 @@ void main() {
         return http.Response(
           jsonEncode({
             'success': true,
-            'permissions': ['user.manage'],
+            'permissions': ['user.read', 'user.update'],
           }),
           200,
         );
@@ -704,7 +704,7 @@ void main() {
   ) async {
     final client = MockClient((request) async {
       final path = request.url.path;
-      if (path.contains('/api/v1/users/user-1')) {
+      if (path == '/api/v1/users/user-1') {
         return http.Response(
           jsonEncode({
             'user': {'id': 'user-1', 'username': 'demo'},
@@ -725,7 +725,7 @@ void main() {
         return http.Response(
           jsonEncode({
             'success': true,
-            'permissions': ['user.manage'],
+            'permissions': ['user.read', 'user.update'],
           }),
           200,
         );

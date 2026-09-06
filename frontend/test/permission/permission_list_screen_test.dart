@@ -61,13 +61,13 @@ void main() {
     await tester.pumpWidget(TestApp(child: PermissionListScreen()));
     await tester.pumpAndSettle();
 
-    expect(find.text('View Perm'), findsOneWidget);
+    expect(find.text('Read Perm'), findsOneWidget);
     expect(find.text('Write Perm'), findsOneWidget);
 
-    await tester.tap(find.text('View Perm'));
+    await tester.tap(find.text('Read Perm'));
     await tester.pumpAndSettle();
 
-    expect(find.text('View Perm'), findsWidgets);
+    expect(find.text('Read Perm'), findsWidgets);
   });
 
   testWidgets('Permission list shows permission denied', (WidgetTester tester) async {

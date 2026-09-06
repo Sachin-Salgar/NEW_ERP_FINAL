@@ -25,14 +25,24 @@ export class JwtTokenService implements TokenService {
     }
   }
 
-  createAccessToken(input: { userId: string; tenantId: string; sessionId: string; expiresInSeconds?: number }): string {
+  createAccessToken(input: {
+    userId: string;
+    identityId?: string;
+    tenantId: string | null;
+    sessionId: string;
+    contextType?: 'tenant' | 'platform';
+    membershipId?: string;
+    expiresInSeconds?: number;
+  }): string {
     if (this.asymmetricDelegate) return this.asymmetricDelegate.createAccessToken(input);
 
     const expiresInSeconds = input.expiresInSeconds ?? 60 * 60;
     const payload: Omit<AccessTokenClaims, 'iat' | 'exp'> & { iat?: number; exp?: number } = {
-      sub: input.userId,
-      tenantId: input.tenantId,
+      sub: input.identityId ?? input.userId,
+      tenantId: input.tenantId as string,
       sessionId: input.sessionId,
+      contextType: input.contextType ?? 'tenant',
+      membershipId: input.membershipId,
       tokenType: 'access',
       iss: this.config.JWT_ISSUER,
     };
@@ -45,17 +55,22 @@ export class JwtTokenService implements TokenService {
 
   createRefreshToken(input: {
     userId: string;
-    tenantId: string;
+    identityId?: string;
+    tenantId: string | null;
     sessionId: string;
+    contextType?: 'tenant' | 'platform';
+    membershipId?: string;
     expiresInSeconds?: number;
   }): string {
     if (this.asymmetricDelegate) return this.asymmetricDelegate.createRefreshToken(input);
 
     const expiresInSeconds = input.expiresInSeconds ?? 60 * 60 * 24 * 14;
     const payload: Omit<RefreshTokenClaims, 'iat' | 'exp'> & { iat?: number; exp?: number } = {
-      sub: input.userId,
-      tenantId: input.tenantId,
+      sub: input.identityId ?? input.userId,
+      tenantId: input.tenantId as string,
       sessionId: input.sessionId,
+      contextType: input.contextType ?? 'tenant',
+      membershipId: input.membershipId,
       tokenType: 'refresh',
       iss: this.config.JWT_ISSUER,
     };
@@ -121,7 +136,6 @@ export class JwtTokenService implements TokenService {
       typeof decodedPayload === 'string' ||
       !decodedPayload ||
       !decodedPayload.sub ||
-      !decodedPayload.tenantId ||
       !decodedPayload.sessionId
     ) {
       throw new UnauthorizedError('Malformed authentication token.');
@@ -134,8 +148,10 @@ export class JwtTokenService implements TokenService {
 
     const claims = {
       sub: String(decodedPayload.sub),
-      tenantId: String(decodedPayload.tenantId),
+      tenantId: decodedPayload.tenantId as string,
       sessionId: String(decodedPayload.sessionId),
+      contextType: decodedPayload.contextType === 'platform' ? 'platform' : 'tenant',
+      membershipId: typeof decodedPayload.membershipId === 'string' ? decodedPayload.membershipId : undefined,
       tokenType: decodedPayload.tokenType as 'access' | 'refresh',
       iss: String(decodedPayload.iss ?? ''),
       iat: Number(decodedPayload.iat ?? 0),

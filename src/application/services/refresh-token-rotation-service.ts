@@ -26,9 +26,10 @@ export class RefreshTokenRotationService {
 
   async rotate(refreshToken: string): Promise<RefreshRotationResult> {
     const claims = this.tokenService.verifyRefreshToken(refreshToken);
+    if (!claims.tenantId || claims.contextType === 'platform') throw new UnauthorizedError('Refresh token is invalid or expired.');
     const oldHash = this.tokenService.hashTokenValue(refreshToken);
 
-    const outcome = await withTenantContext(
+    const outcome: RotationOutcome = await withTenantContext(
       this.pool,
       this.tenantContextKey,
       claims.tenantId,
@@ -39,16 +40,19 @@ export class RefreshTokenRotationService {
           refresh_token_hash: string;
           is_active: boolean;
           expires_at: Date;
+          identity_id: string | null;
         }>(
-          `SELECT id, user_id, refresh_token_hash, is_active, expires_at
-           FROM user_sessions
-           WHERE tenant_id = $1 AND id = $2
+          `SELECT s.id, s.user_id, s.refresh_token_hash, s.is_active, s.expires_at,
+                 COALESCE(s.identity_id, u.identity_id) as identity_id
+          FROM user_sessions s
+          JOIN users u ON u.id = s.user_id AND u.tenant_id = s.tenant_id
+          WHERE s.tenant_id = $1 AND s.id = $2
            FOR UPDATE`,
           [claims.tenantId, claims.sessionId],
         );
         const session = sessionResult.rows[0];
 
-        if (!session || session.user_id !== claims.sub) {
+        if (!session || (session.identity_id ?? session.user_id) !== claims.sub) {
           return { kind: 'invalid' };
         }
 
@@ -108,7 +112,8 @@ export class RefreshTokenRotationService {
 
         const refreshTokenReplacement = this.tokenService.createRefreshToken({
           userId: session.user_id,
-          tenantId: claims.tenantId,
+          identityId: session.identity_id ?? undefined,
+          tenantId: claims.tenantId || '',
           sessionId: session.id,
           expiresInSeconds: 60 * 60 * 24 * 14,
         });
@@ -156,7 +161,7 @@ export class RefreshTokenRotationService {
         const accessTtlSeconds = 60 * 60;
         const accessToken = this.tokenService.createAccessToken({
           userId: session.user_id,
-          tenantId: claims.tenantId,
+          tenantId: claims.tenantId || '',
           sessionId: session.id,
           expiresInSeconds: accessTtlSeconds,
         });
@@ -168,7 +173,7 @@ export class RefreshTokenRotationService {
             refreshToken: refreshTokenReplacement,
             accessTokenExpiresAt: new Date(Date.now() + accessTtlSeconds * 1000),
             userId: session.user_id,
-            tenantId: claims.tenantId,
+            tenantId: claims.tenantId || '',
             sessionId: session.id,
             user: {
               id: user.id,

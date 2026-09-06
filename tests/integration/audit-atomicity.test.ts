@@ -1,0 +1,63 @@
+import dotenv from 'dotenv';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { Pool } from 'pg';
+
+import { PostgresAuditLogger } from '../../src/infrastructure/audit/postgres-audit-logger.js';
+import { UnitOfWork } from '../../src/infrastructure/database/unit-of-work.js';
+import { resolveDatabaseUrl } from '../../src/config/schema.js';
+
+dotenv.config({ path: '.env.local' });
+
+describe('security mutation audit atomicity', () => {
+  const pool = new Pool({
+    connectionString: resolveDatabaseUrl(process.env, { forTest: true }),
+    ssl: false,
+  });
+  let tenantId: string;
+  let originalName: string;
+
+  beforeAll(async () => {
+    const result = await pool.query<{ id: string; name: string }>(
+      'SELECT id, name FROM tenants WHERE is_deleted = false ORDER BY created_at LIMIT 1',
+    );
+    if (result.rowCount !== 1) {
+      throw new Error('Audit atomicity verification requires one tenant');
+    }
+    tenantId = result.rows[0].id;
+    originalName = result.rows[0].name;
+  });
+
+  afterAll(async () => {
+    await pool.end();
+  });
+
+  it('rolls back the protected mutation when the required audit insert fails', async () => {
+    const unitOfWork = new UnitOfWork(pool);
+    const audit = new PostgresAuditLogger(pool, {
+      tenantContextKey: 'app.current_tenant_id',
+    });
+    const invalidTenantId = '00000000-0000-0000-0000-000000000000';
+
+    await expect(
+      unitOfWork.runInTransaction(async () => {
+        await unitOfWork.getClient().query(
+          'UPDATE tenants SET name = $1, updated_at = clock_timestamp() WHERE id = $2',
+          [`${originalName} (audit rollback)`, tenantId],
+        );
+        await audit.record(
+          {
+            tenantId: invalidTenantId,
+            action: 'tenant.lifecycle.updated',
+            resourceType: 'tenant',
+            resourceId: tenantId,
+            outcome: 'success',
+          },
+          { requireTransaction: true },
+        );
+      }),
+    ).rejects.toThrow();
+
+    const row = await pool.query<{ name: string }>('SELECT name FROM tenants WHERE id = $1', [tenantId]);
+    expect(row.rows[0].name).toBe(originalName);
+  });
+});

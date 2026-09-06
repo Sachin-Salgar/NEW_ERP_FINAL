@@ -43,10 +43,12 @@ export interface PlatformBootstrapRepository {
 export interface LoginCandidate {
   userId: string;
   tenantId: string;
+  identityId?: string;
 }
 
 export interface UserAccountRecord {
   id: string;
+  identityId?: string;
   tenantId: string;
   organizationId?: string | null;
   defaultBranchId?: string | null;

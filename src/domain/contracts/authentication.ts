@@ -1,7 +1,9 @@
 export type AuthTokenType = 'access' | 'refresh';
+export type AuthenticationContextType = 'tenant' | 'platform';
 
 export interface AuthenticatedUser {
   id: string;
+  identityId?: string;
   tenantId: string;
   organizationId?: string | null;
   branchId?: string | null;
@@ -20,6 +22,12 @@ export interface SessionRecord {
   id: string;
   tenantId: string;
   userId: string;
+  identityId?: string;
+  contextType?: AuthenticationContextType;
+  membershipId?: string | null;
+  tenantMembershipId?: string | null;
+  platformMembershipId?: string | null;
+  securityVersion?: number;
   organizationId?: string | null;
   locationId?: string | null;
   branchId?: string | null;
@@ -59,12 +67,19 @@ export interface CreateSessionInput {
   ipAddress?: string | null;
   device?: string | null;
   refreshTokenHash: string;
+  identityId?: string;
+  contextType?: AuthenticationContextType;
+  tenantMembershipId?: string | null;
+  platformMembershipId?: string | null;
+  securityVersion?: number;
 }
 
 export interface AccessTokenClaims {
   sub: string;
   tenantId: string;
   sessionId: string;
+  contextType?: AuthenticationContextType;
+  membershipId?: string;
   tokenType: 'access';
   iss: string;
   iat: number;
@@ -75,6 +90,8 @@ export interface RefreshTokenClaims {
   sub: string;
   tenantId: string;
   sessionId: string;
+  contextType?: AuthenticationContextType;
+  membershipId?: string;
   tokenType: 'refresh';
   iss: string;
   iat: number;

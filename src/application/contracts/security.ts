@@ -41,12 +41,30 @@ export interface PasswordHasher {
 }
 
 export interface TokenService {
-  createAccessToken(input: { userId: string; tenantId: string; sessionId: string; expiresInSeconds?: number }): string;
-  createRefreshToken(input: { userId: string; tenantId: string; sessionId: string; expiresInSeconds?: number }): string;
+  createAccessToken(input: {
+    userId: string;
+    identityId?: string;
+    tenantId: string | null;
+    sessionId: string;
+    contextType?: 'tenant' | 'platform';
+    membershipId?: string;
+    expiresInSeconds?: number;
+  }): string;
+  createRefreshToken(input: {
+    userId: string;
+    identityId?: string;
+    tenantId: string | null;
+    sessionId: string;
+    contextType?: 'tenant' | 'platform';
+    membershipId?: string;
+    expiresInSeconds?: number;
+  }): string;
   verifyAccessToken(token: string): {
     sub: string;
-    tenantId: string;
+    tenantId: string | null;
     sessionId: string;
+    contextType?: 'tenant' | 'platform';
+    membershipId?: string;
     tokenType: 'access';
     iss: string;
     iat: number;
@@ -54,8 +72,10 @@ export interface TokenService {
   };
   verifyRefreshToken(token: string): {
     sub: string;
-    tenantId: string;
+    tenantId: string | null;
     sessionId: string;
+    contextType?: 'tenant' | 'platform';
+    membershipId?: string;
     tokenType: 'refresh';
     iss: string;
     iat: number;

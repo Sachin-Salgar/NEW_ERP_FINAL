@@ -76,6 +76,7 @@ If an ADR conflicts with another authoritative document and the scope cannot be 
 | [0022](./0022-query-performance-monitoring.md) | Query Performance Monitoring | Approved | 2026-09-04 | PostgreSQL query performance measurement and diagnosis |
 | [0023](./0023-table-partitioning.md) | Table Partitioning Strategy | Approved | 2026-09-04 | Selective partitioning of high-volume PostgreSQL tables |
 | [0024](./0024-api-versioning-strategy.md) | API Versioning Strategy | Approved | 2026-09-04 | Public HTTP API compatibility and version lifecycle |
+| [0040](./0040-platform-identity-membership-and-context.md) | Platform Identity, Membership, and Context Architecture | Approved | 2026-09-06 | Identity, platform context, sessions, permissions, RLS, audit, bootstrap, and deployment |
 
 This table is the authoritative status index for the ADRs listed above. Each ADR's `Status` field must agree with this table.
 
@@ -99,7 +100,7 @@ Implementation must not rely on a Proposed ADR.
 
 ADRs use sequential identifiers: `ADR-0001`, `ADR-0002`, etc.
 
-The next available identifier after the current index is **ADR-0025**.
+The next available identifier after the current index is **ADR-0041**.
 
 ## Related Documentation
 

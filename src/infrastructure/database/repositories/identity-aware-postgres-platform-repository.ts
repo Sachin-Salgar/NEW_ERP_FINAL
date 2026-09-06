@@ -27,11 +27,10 @@ export class IdentityAwarePostgresPlatformRepository extends PostgresPlatformRep
 
     try {
       const result = await client.query<LoginCandidate>(
-        `SELECT i.user_id as "userId", i.tenant_id as "tenantId"
+        `SELECT i.user_id as "userId", i.tenant_id as "tenantId", i.identity_id as "identityId"
           FROM auth_login_identifiers i
           WHERE i.is_active = true
-            AND i.tenant_id::text <> ''
-            AND i.user_id::text <> ''
+            AND i.identity_id IS NOT NULL
             AND i.identifier = $1::citext
           ORDER BY i.tenant_id, i.user_id`,
         [normalized],

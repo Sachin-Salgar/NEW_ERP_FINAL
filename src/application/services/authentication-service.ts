@@ -181,6 +181,7 @@ export class AuthenticationService {
     const refreshToken = this.tokenService
       ? this.tokenService.createRefreshToken({
           userId: user.id,
+          identityId: user.identityId,
           tenantId: resolvedTenantId,
           sessionId,
           expiresInSeconds: 60 * 60 * 24 * 14,
@@ -191,6 +192,7 @@ export class AuthenticationService {
       id: sessionId,
       tenantId: resolvedTenantId,
       userId: user.id,
+      identityId: user.identityId,
       organizationId: user.organizationId ?? null,
       locationId: user.defaultLocationId ?? null,
       branchId: user.defaultBranchId ?? null,
@@ -205,6 +207,7 @@ export class AuthenticationService {
     const accessToken = this.tokenService
       ? this.tokenService.createAccessToken({
           userId: user.id,
+          identityId: user.identityId,
           tenantId: resolvedTenantId,
           sessionId: session.id,
           expiresInSeconds: 60 * 60,
@@ -215,6 +218,7 @@ export class AuthenticationService {
       success: true,
       user: {
         id: user.id,
+        identityId: user.identityId,
         tenantId: user.tenantId,
         organizationId: user.organizationId,
         branchId: user.defaultBranchId ?? null,

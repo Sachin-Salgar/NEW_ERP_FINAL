@@ -4,7 +4,7 @@
 **Authority:** Architecture documents and Approved ADRs define the intended system; this document records what is actually implemented and what remains to be validated or built.
 
 **Last reconciled:** 2026-09-06
-**Branch:** `feature/purchase-module`
+**Branch:** `main`
 
 ## Status definitions
 
@@ -27,7 +27,7 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 
 ## 2. Current checkpoint
 
-**Current phase:** Core Enterprise foundation and security boundaries are ready for progression to Sales. Backend quality/container validation and deterministic Postgres-backed validation of migrations, backend startup, admin and limited-user Flutter Web E2E login/dashboard flows pass. The broader browser navigation matrix remains a known validation residual caused by a Flutter teardown assertion after navigation assertions completed.
+**Current phase:** ADR-0040 platform identity, independent memberships, context authorization, RLS/procedure boundaries, audit atomicity, bootstrap, and tenant administration are implemented and validated. Core Enterprise remains ready for progression to Sales. The broader browser navigation matrix remains a known validation residual caused by a Flutter teardown assertion after navigation assertions completed.
 
 ### Validation evidence captured
 
@@ -36,6 +36,8 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 - The successful CI run completed the Postgres setup/migration/fixture/backend startup path and both Flutter Web E2E steps: **Run admin E2E test → success** and **Run limited-user E2E test → success**.
 - This CI run validates the repository-controlled test environment; it does not use or depend on Vercel/Render production deployment configuration.
 - Remaining browser validation item: the broader authenticated browser navigation matrix is a **KNOWN VALIDATION RESIDUAL**; run `33948006417` fails after navigation assertions with `FocusManager was used after being disposed` during Flutter teardown.
+- ADR-0040 fresh zero-state acceptance passed against a temporary local PostgreSQL database: all migrations from zero, production bootstrap CLI, platform and tenant HTTP authentication/context, tenant isolation, platform-to-tenant separation, membership revocation, audit attribution, and audit-failure rollback.
+- Machine-derived permission inventory passed with zero catalog-only or missing enforcement references.
 
 ### Implemented
 
