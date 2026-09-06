@@ -1,5 +1,4 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-
 import type { AuthenticatedUser } from '../../../domain/contracts/authentication.js';
 import { ForbiddenError, UnauthorizedError } from '../../../domain/errors.js';
 import type { AuthenticationService } from '../../../application/services/authentication-service.js';
@@ -31,176 +30,20 @@ import type { TaxService } from '../../../application/services/tax-service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
-    appConfig: AppConfig;
-    dbPool: import('pg').Pool;
-    authService: AuthenticationService;
-    authorizationService: AuthorizationService;
-    branchService: import('../../../application/services/branch-service.js').BranchService;
-    coreEnterpriseService: CoreEnterpriseService;
-    locationService: LocationService;
-    moduleAccessService: ModuleAccessService;
-    registrationService: UserRegistrationService;
-    jwtTokenService: JwtTokenService;
-    tenantMembershipService: TenantMembershipService;
-    accountSecurityService: AccountSecurityService;
-    mfaService: MfaService;
-    auditLogger: AuditLogger;
-    customerService: CustomerService;
-    quotationService: QuotationService;
-    orderService: OrderService;
-    deliveryService: DeliveryService;
-    invoiceService: InvoiceService;
-    salesReturnService: SalesReturnService;
-    creditNoteService: CreditNoteService;
-    pricingService: PricingService;
-    discountService: DiscountService;
-    salesReportingService: SalesReportingService;
-    itemMasterService: ItemMasterService;
-    inventoryService: InventoryService;
-    procurementService: ProcurementService;
-    taxService: TaxService;
+    appConfig: AppConfig; dbPool: import('pg').Pool; authService: AuthenticationService; authorizationService: AuthorizationService;
+    branchService: import('../../../application/services/branch-service.js').BranchService; coreEnterpriseService: CoreEnterpriseService;
+    locationService: LocationService; moduleAccessService: ModuleAccessService; registrationService: UserRegistrationService;
+    jwtTokenService: JwtTokenService; tenantMembershipService: TenantMembershipService; accountSecurityService: AccountSecurityService;
+    mfaService: MfaService; auditLogger: AuditLogger; customerService: CustomerService; quotationService: QuotationService;
+    orderService: OrderService; deliveryService: DeliveryService; invoiceService: InvoiceService; salesReturnService: SalesReturnService;
+    creditNoteService: CreditNoteService; pricingService: PricingService; discountService: DiscountService; salesReportingService: SalesReportingService;
+    itemMasterService: ItemMasterService; inventoryService: InventoryService; procurementService: ProcurementService; taxService: TaxService;
   }
-
-  interface FastifyRequest {
-    user?: AuthenticatedUser;
-    tenantId?: string;
-    sessionId?: string;
-  }
+  interface FastifyRequest { user?: AuthenticatedUser; tenantId?: string; sessionId?: string; }
 }
-
-export function getBearerToken(request: FastifyRequest): string | null {
-  const header = request.headers.authorization;
-  if (!header || typeof header !== 'string') return null;
-  const match = /^Bearer\s+(.+)$/i.exec(header.trim());
-  return match?.[1] ?? null;
-}
-
-export async function requireAuth(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
-  const token = getBearerToken(request);
-  if (!token) throw new UnauthorizedError('Authentication token is required.');
-
-  const claims = request.server.jwtTokenService.verifyAccessToken(token);
-  const session = await request.server.authService.validateSession(claims.sessionId, claims.tenantId);
-  if (!session) throw new UnauthorizedError('Session is invalid or expired.');
-
-  request.user = session;
-  request.tenantId = session.tenantId;
-  request.sessionId = claims.sessionId;
-}
-
-export function requireModule(moduleCode: string) {
-  return async function requireModuleHandler(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
-    if (!request.user || !request.tenantId)
-      throw new UnauthorizedError('Authentication is required to access a module.');
-    if (!request.user.organizationId) throw new ForbiddenError('An active organization is required to access modules.');
-
-    const enabled = await request.server.moduleAccessService.isModuleEnabled(
-      request.tenantId,
-      request.user.organizationId,
-      moduleCode,
-    );
-    if (!enabled) throw new ForbiddenError('Module access denied.');
-  };
-}
-
-function moduleCodeForPermission(permissionKey: string): string {
-  const prefix = permissionKey.split('.')[0]?.trim() ?? '';
-  switch (prefix) {
-    case 'tenant':
-      return 'tenant-configuration';
-    case 'user':
-      return 'user-management';
-    case 'role':
-    case 'permission':
-    case 'session':
-      return 'security';
-    case 'customer':
-      return 'crm';
-    case 'sales':
-      return 'sales';
-    default:
-      return prefix;
-  }
-}
-
-/**
- * The User routes still contain the historical `user.manage` declaration.
- * Authorization is intentionally resolved to the granular capability here so
- * `user.manage` cannot act as a broad bypass for Create/Update/Activate/
- * Deactivate. This keeps existing route declarations backward-compatible while
- * the persisted permission model moves to the granular User actions.
- */
-function resolvePermissionKey(request: FastifyRequest, permissionKey: string): string {
-  if (permissionKey !== 'user.manage') return permissionKey;
-
-  const method = request.method.toUpperCase();
-  const path = request.url.split('?')[0] ?? '';
-
-  if (method === 'GET') return 'user.read';
-  if (method === 'PATCH') return 'user.update';
-  if (method === 'DELETE') return 'user.delete';
-  if (method === 'POST') {
-    if (path === '/auth/register') return 'user.create';
-    if (/\/users\/[^/]+\/activate$/.test(path)) return 'user.activate';
-    if (/\/users\/[^/]+\/deactivate$/.test(path)) return 'user.deactivate';
-    if (/\/users\/[^/]+\/(organizations|branches)\/[^/]+\/access$/.test(path)) return 'user.update';
-    if (/\/rbac\/users\/[^/]+\/roles(?:\/[^/]+)?$/.test(path)) return 'user.update';
-  }
-
-  return permissionKey;
-}
-
-export function requirePermission(permissionKey: string) {
-  return async function requirePermissionHandler(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
-    if (!request.user || !request.tenantId)
-      throw new UnauthorizedError('Authentication is required to perform this action.');
-    if (!request.user.organizationId)
-      throw new ForbiddenError('An active organization is required to perform this action.');
-
-    const resolvedPermissionKey = resolvePermissionKey(request, permissionKey);
-    const moduleEnabled = await request.server.moduleAccessService.isModuleEnabled(
-      request.tenantId,
-      request.user.organizationId,
-      moduleCodeForPermission(resolvedPermissionKey),
-    );
-    if (!moduleEnabled) throw new ForbiddenError('Module access denied.');
-
-    const allowed = await request.server.authorizationService.hasPermission(
-      request.tenantId,
-      request.user.id,
-      resolvedPermissionKey,
-    );
-    if (!allowed) throw new ForbiddenError('Permission denied.');
-  };
-}
-
-export function requirePermissionOrSelf(
-  permissionKey: string,
-  selfIdGetter?: (request: FastifyRequest) => string | null | undefined,
-) {
-  return async function requirePermissionOrSelfHandler(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
-    if (!request.user || !request.tenantId)
-      throw new UnauthorizedError('Authentication is required to perform this action.');
-
-    const resolvedSelfId = selfIdGetter ? selfIdGetter(request) : null;
-    if (resolvedSelfId && request.user.id === resolvedSelfId) return;
-
-    if (!request.user.organizationId)
-      throw new ForbiddenError('An active organization is required to perform this action.');
-
-    const resolvedPermissionKey = resolvePermissionKey(request, permissionKey);
-    const moduleEnabled = await request.server.moduleAccessService.isModuleEnabled(
-      request.tenantId,
-      request.user.organizationId,
-      moduleCodeForPermission(resolvedPermissionKey),
-    );
-    if (!moduleEnabled) throw new ForbiddenError('Module access denied.');
-
-    const allowed = await request.server.authorizationService.hasPermission(
-      request.tenantId,
-      request.user.id,
-      resolvedPermissionKey,
-    );
-    if (!allowed) throw new ForbiddenError('Permission denied.');
-  };
-}
+export function getBearerToken(request: FastifyRequest): string | null { const header = request.headers.authorization; if (!header || typeof header !== 'string') return null; const match = /^Bearer\s+(.+)$/i.exec(header.trim()); return match?.[1] ?? null; }
+export async function requireAuth(request: FastifyRequest, _reply: FastifyReply): Promise<void> { const token = getBearerToken(request); if (!token) throw new UnauthorizedError('Authentication token is required.'); const claims = request.server.jwtTokenService.verifyAccessToken(token); const session = await request.server.authService.validateSession(claims.sessionId, claims.tenantId); if (!session) throw new UnauthorizedError('Session is invalid or expired.'); request.user = session; request.tenantId = session.tenantId; request.sessionId = claims.sessionId; }
+export function requireModule(moduleCode: string) { return async function requireModuleHandler(request: FastifyRequest, _reply: FastifyReply): Promise<void> { if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication is required to access a module.'); if (!request.user.organizationId) throw new ForbiddenError('An active organization is required to access modules.'); const enabled = await request.server.moduleAccessService.isModuleEnabled(request.tenantId, request.user.organizationId, moduleCode); if (!enabled) throw new ForbiddenError('Module access denied.'); }; }
+function moduleCodeForPermission(permissionKey: string): string { const prefix = permissionKey.split('.')[0]?.trim() ?? ''; switch (prefix) { case 'tenant': return 'tenant-configuration'; case 'user': return 'user-management'; case 'role': case 'permission': case 'session': return 'security'; case 'customer': return 'crm'; case 'sales': return 'sales'; default: return prefix; } }
+export function requirePermission(permissionKey: string) { return async function requirePermissionHandler(request: FastifyRequest, _reply: FastifyReply): Promise<void> { if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication is required to perform this action.'); if (!request.user.organizationId) throw new ForbiddenError('An active organization is required to perform this action.'); const moduleEnabled = await request.server.moduleAccessService.isModuleEnabled(request.tenantId, request.user.organizationId, moduleCodeForPermission(permissionKey)); if (!moduleEnabled) throw new ForbiddenError('Module access denied.'); const allowed = await request.server.authorizationService.hasPermission(request.tenantId, request.user.id, permissionKey); if (!allowed) throw new ForbiddenError('Permission denied.'); }; }
+export function requirePermissionOrSelf(permissionKey: string, selfIdGetter?: (request: FastifyRequest) => string | null | undefined) { return async function requirePermissionOrSelfHandler(request: FastifyRequest, _reply: FastifyReply): Promise<void> { if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication is required to perform this action.'); const resolvedSelfId = selfIdGetter ? selfIdGetter(request) : null; if (resolvedSelfId && request.user.id === resolvedSelfId) return; if (!request.user.organizationId) throw new ForbiddenError('An active organization is required to perform this action.'); const moduleEnabled = await request.server.moduleAccessService.isModuleEnabled(request.tenantId, request.user.organizationId, moduleCodeForPermission(permissionKey)); if (!moduleEnabled) throw new ForbiddenError('Module access denied.'); const allowed = await request.server.authorizationService.hasPermission(request.tenantId, request.user.id, permissionKey); if (!allowed) throw new ForbiddenError('Permission denied.'); }; }
