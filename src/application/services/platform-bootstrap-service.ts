@@ -59,6 +59,8 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
   { moduleCode: 'tenant-configuration', resource: 'tenant.member', action: 'create', scope: 'tenant', permissionKey: 'tenant.member.create', displayName: 'Add tenant members' },
   { moduleCode: 'tenant-configuration', resource: 'tenant.member', action: 'update', scope: 'tenant', permissionKey: 'tenant.member.update', displayName: 'Update tenant members' },
   { moduleCode: 'tenant-configuration', resource: 'tenant.member', action: 'delete', scope: 'tenant', permissionKey: 'tenant.member.delete', displayName: 'Remove tenant members' },
+  { moduleCode: 'tenant-configuration', resource: 'tenant.member', action: 'activate', scope: 'tenant', permissionKey: 'tenant.member.activate', displayName: 'Activate tenant members' },
+  { moduleCode: 'tenant-configuration', resource: 'tenant.member', action: 'deactivate', scope: 'tenant', permissionKey: 'tenant.member.deactivate', displayName: 'Deactivate tenant members' },
   { moduleCode: 'tenant-configuration', resource: 'tenant.access', action: 'read', scope: 'tenant', permissionKey: 'tenant.access.read', displayName: 'View tenant access' },
   { moduleCode: 'tenant-configuration', resource: 'tenant.access', action: 'grant', scope: 'tenant', permissionKey: 'tenant.access.grant', displayName: 'Grant tenant access' },
   { moduleCode: 'tenant-configuration', resource: 'tenant.access', action: 'revoke', scope: 'tenant', permissionKey: 'tenant.access.revoke', displayName: 'Revoke tenant access' },

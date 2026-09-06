@@ -52,6 +52,7 @@
     { "idx": 47, "version": "7", "when": 1788629400000, "tag": "0047-granular-user-permissions", "breakpoints": true },
     { "idx": 48, "version": "7", "when": 1788629460000, "tag": "0048-granular-core-security-permissions", "breakpoints": true },
     { "idx": 49, "version": "7", "when": 1788691500000, "tag": "0049-security-administration-permissions", "breakpoints": true },
-    { "idx": 50, "version": "7", "when": 1788692100000, "tag": "0050-granular-lifecycle-security-policy", "breakpoints": true }
+    { "idx": 50, "version": "7", "when": 1788692100000, "tag": "0050-granular-lifecycle-security-policy", "breakpoints": true },
+    { "idx": 51, "version": "7", "when": 1788692160000, "tag": "0051-tenant-member-actions", "breakpoints": true }
   ]
 }

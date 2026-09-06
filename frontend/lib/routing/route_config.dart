@@ -35,11 +35,13 @@ class AppRoutes {
   static const settingsUsers = AppRouteConfig(path: '/settings/users', title: 'Users', group: 'SETTINGS', permissionKey: 'user.read', moduleCode: 'user-management', icon: Icons.people_outline);
   static const settingsRoles = AppRouteConfig(path: '/settings/roles', title: 'Roles', group: 'SETTINGS', permissionKey: 'role.read', moduleCode: 'security', icon: Icons.admin_panel_settings_outlined);
   static const settingsPermissions = AppRouteConfig(path: '/settings/permissions', title: 'Permissions', group: 'SETTINGS', permissionKey: 'permission.read', moduleCode: 'security', icon: Icons.lock_outline);
+  static const settingsSecurity = AppRouteConfig(path: '/settings/security', title: 'Security Administration', group: 'SETTINGS', permissionKey: 'security.policy.read', moduleCode: 'security', icon: Icons.security_outlined);
+  static const settingsTenant = AppRouteConfig(path: '/settings/tenant', title: 'Tenant Administration', group: 'SETTINGS', permissionKey: 'tenant.read', moduleCode: 'tenant-configuration', icon: Icons.business_outlined);
   static const users = AppRouteConfig(path: '/users', title: 'Users', group: 'MANAGEMENT', permissionKey: 'user.read', moduleCode: 'user-management', icon: Icons.people_outline);
   static const roles = AppRouteConfig(path: '/roles', title: 'Roles', group: 'MANAGEMENT', permissionKey: 'role.read', moduleCode: 'security', icon: Icons.admin_panel_settings_outlined);
   static const permissions = AppRouteConfig(path: '/permissions', title: 'Permissions', group: 'MANAGEMENT', permissionKey: 'permission.read', moduleCode: 'security', icon: Icons.lock_outline);
 
-  static const settingsNavigation = <AppRouteConfig>[settingsOrganizations, settingsBranches, settingsUsers, settingsRoles, settingsPermissions];
+  static const settingsNavigation = <AppRouteConfig>[settingsOrganizations, settingsBranches, settingsUsers, settingsRoles, settingsPermissions, settingsSecurity, settingsTenant];
   static const topLevel = <AppRouteConfig>[dashboard, settings, customers, inventoryItems, inventoryFoundation, salesQuotations, salesOrders, salesDeliveries, salesInvoices, salesReturns, salesCreditNotes, salesReports, salesPricing, salesDiscounts, purchase];
 
   static const routePermissions = <String, String?>{
@@ -58,6 +60,7 @@ class AppRoutes {
     '/settings/users': 'user.read', '/settings/users/create': 'user.create', '/settings/users/details': 'user.read',
     '/settings/roles': 'role.read', '/settings/roles/create': 'role.create', '/settings/roles/permissions': 'role_permission.read', '/settings/roles/edit': 'role.update',
     '/settings/permissions': 'permission.read', '/settings/permissions/details': 'permission.read',
+    '/settings/security': 'security.policy.read', '/settings/tenant': 'tenant.read',
     '/organizations': 'organization.read', '/organizations/create': 'organization.create', '/organizations/details': 'organization.read', '/organizations/edit': 'organization.update',
     '/organizations/branches': 'branch.read', '/organizations/branches/create': 'branch.create', '/organizations/branches/details': 'branch.read', '/organizations/branches/edit': 'branch.update',
     '/users': 'user.read', '/users/create': 'user.create', '/users/details': 'user.read',

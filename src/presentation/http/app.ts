@@ -31,6 +31,7 @@ import { ProcurementService } from '../../application/services/procurement-servi
 import { TaxService } from '../../application/services/tax-service.js';
 import { SecurityAdministrationService } from '../../application/services/security-administration-service.js';
 import { TenantAdministrationService } from '../../application/services/tenant-administration-service.js';
+import { TenantBootstrapService } from '../../application/services/tenant-bootstrap-service.js';
 import { PostgresTaxRepository } from '../../infrastructure/database/repositories/postgres-tax-repository.js';
 import { PostgresFinanceRepository } from '../../infrastructure/database/repositories/postgres-finance-repository.js';
 import { PostgresSalesReportingRepository } from '../../infrastructure/database/repositories/postgres-sales-reporting-repository.js';
@@ -380,6 +381,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   const tenantMembershipService = new TenantMembershipService(repository);
   const securityAdministrationService = new SecurityAdministrationService(repository, pool, config.TENANT_CONTEXT_KEY);
   const tenantAdministrationService = new TenantAdministrationService(pool, config.TENANT_CONTEXT_KEY);
+  const tenantBootstrapService = new TenantBootstrapService(repository, passwordHasher, transactionRunner);
 
   const accountSecurityRepository = new PostgresAccountSecurityRepository(pool, config.TENANT_CONTEXT_KEY);
   const notificationService = new PostgresNotificationService(pool, config.TENANT_CONTEXT_KEY);
@@ -412,6 +414,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('auditLogger', auditLogger);
   app.decorate('securityAdministrationService', securityAdministrationService);
   app.decorate('tenantAdministrationService', tenantAdministrationService);
+  app.decorate('tenantBootstrapService', tenantBootstrapService);
   app.decorate('customerService', customerService);
   app.decorate('quotationService', quotationService);
   app.decorate('orderService', orderService);

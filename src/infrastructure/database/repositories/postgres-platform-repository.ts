@@ -3094,6 +3094,20 @@ export class PostgresPlatformRepository
     return result;
   }
 
+  async revokeUserOrganizationAccess(tenantId: string, userId: string, organizationId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, (client) =>
+      client.query(`DELETE FROM user_organization_access WHERE tenant_id = $1 AND user_id = $2 AND organization_id = $3`, [tenantId, userId, organizationId]),
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async revokeUserBranchAccess(tenantId: string, userId: string, branchId: string): Promise<boolean> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, (client) =>
+      client.query(`DELETE FROM user_branch_access WHERE tenant_id = $1 AND user_id = $2 AND branch_id = $3`, [tenantId, userId, branchId]),
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
   async activateUser(tenantId: string, userId: string): Promise<boolean> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(

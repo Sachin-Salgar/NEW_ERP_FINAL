@@ -1,0 +1,137 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+
+import '../../core/network/api_client.dart';
+
+class SecurityAdministrationScreen extends StatefulWidget {
+  const SecurityAdministrationScreen({super.key});
+  @override
+  State<SecurityAdministrationScreen> createState() =>
+      _SecurityAdministrationScreenState();
+}
+
+class _SecurityAdministrationScreenState
+    extends State<SecurityAdministrationScreen> {
+  late final ApiClient _api;
+  Map<String, dynamic>? _policy;
+  List<dynamic> _sessions = [];
+  List<dynamic> _logs = [];
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _api = GetIt.instance.get<ApiClient>();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final results = await Future.wait([
+        _api.get('/api/v1/security/policy'),
+        _api.get('/api/v1/security/sessions'),
+        _api.get('/api/v1/security/audit-logs'),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _policy = jsonDecode(results[0].body)['policy'] as Map<String, dynamic>;
+        _sessions =
+            (jsonDecode(results[1].body)['sessions'] as List<dynamic>?) ?? [];
+        _logs = (jsonDecode(results[2].body)['logs'] as List<dynamic>?) ?? [];
+      });
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    }
+  }
+
+  Future<void> _revoke(String id) async {
+    await _api.post('/api/v1/security/sessions/$id/revoke');
+    await _load();
+  }
+
+  Future<void> _revokeAll(String userId) async {
+    await _api.post('/api/v1/security/users/$userId/sessions/revoke-all');
+    await _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null)
+      return Scaffold(
+        body: Center(
+          child: Text('Unable to load security administration: $_error'),
+        ),
+      );
+    if (_policy == null)
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    return Scaffold(
+      appBar: AppBar(title: const Text('Security Administration')),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          const Text(
+            'Security Policy',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          SwitchListTile(
+            title: const Text('Require MFA'),
+            value: _policy!['mfaRequired'] == true,
+            onChanged: (value) async {
+              await _api.patch(
+                '/api/v1/security/policy',
+                body: {'mfaRequired': value},
+              );
+              await _load();
+            },
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Active Sessions',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          ..._sessions.map(
+            (session) => ListTile(
+              title: Text(session['userId']?.toString() ?? 'Session'),
+              subtitle: Text(session['loginAt']?.toString() ?? ''),
+              trailing: Wrap(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.logout),
+                    onPressed: () => _revoke(session['id'].toString()),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.logout_outlined),
+                    tooltip: 'Revoke all sessions',
+                    onPressed: () => _revokeAll(session['userId'].toString()),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Audit Logs',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              TextButton(
+                onPressed: () => _api.get('/api/v1/security/audit-logs/export'),
+                child: const Text('Export'),
+              ),
+            ],
+          ),
+          ..._logs.map(
+            (log) => ListTile(
+              title: Text(log['action']?.toString() ?? ''),
+              subtitle: Text(log['createdAt']?.toString() ?? ''),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

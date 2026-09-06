@@ -39,6 +39,8 @@ VALUES
   ('tenant-configuration', 'tenant.member', 'create', 'tenant', 'tenant.member.create', 'Add tenant members', true),
   ('tenant-configuration', 'tenant.member', 'update', 'tenant', 'tenant.member.update', 'Update tenant members', true),
   ('tenant-configuration', 'tenant.member', 'delete', 'tenant', 'tenant.member.delete', 'Remove tenant members', true),
+  ('tenant-configuration', 'tenant.member', 'activate', 'tenant', 'tenant.member.activate', 'Activate tenant members', true),
+  ('tenant-configuration', 'tenant.member', 'deactivate', 'tenant', 'tenant.member.deactivate', 'Deactivate tenant members', true),
   ('tenant-configuration', 'tenant.access', 'read', 'tenant', 'tenant.access.read', 'View tenant access', true),
   ('tenant-configuration', 'tenant.access', 'grant', 'tenant', 'tenant.access.grant', 'Grant tenant access', true),
   ('tenant-configuration', 'tenant.access', 'revoke', 'tenant', 'tenant.access.revoke', 'Revoke tenant access', true)

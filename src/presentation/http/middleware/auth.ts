@@ -29,6 +29,7 @@ import type { InventoryService } from '../../../application/services/inventory-s
 import type { ProcurementService } from '../../../application/services/procurement-service.js';
 import type { TaxService } from '../../../application/services/tax-service.js';
 import type { TenantAdministrationService } from '../../../application/services/tenant-administration-service.js';
+import type { TenantBootstrapService } from '../../../application/services/tenant-bootstrap-service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -42,6 +43,7 @@ declare module 'fastify' {
     itemMasterService: ItemMasterService; inventoryService: InventoryService; procurementService: ProcurementService; taxService: TaxService;
     securityAdministrationService: SecurityAdministrationService;
     tenantAdministrationService: TenantAdministrationService;
+    tenantBootstrapService: TenantBootstrapService;
   }
   interface FastifyRequest { user?: AuthenticatedUser; tenantId?: string; sessionId?: string; }
 }

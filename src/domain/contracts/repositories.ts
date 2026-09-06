@@ -1037,6 +1037,8 @@ export interface CoreEnterpriseRepository {
   ): Promise<UserAdminRecord | null>;
   assignUserToOrganization(tenantId: string, userId: string, organizationId: string): Promise<boolean>;
   assignUserToBranch(tenantId: string, userId: string, branchId: string): Promise<boolean>;
+  revokeUserOrganizationAccess(tenantId: string, userId: string, organizationId: string): Promise<boolean>;
+  revokeUserBranchAccess(tenantId: string, userId: string, branchId: string): Promise<boolean>;
   activateUser(tenantId: string, userId: string): Promise<boolean>;
   deactivateUser(tenantId: string, userId: string): Promise<boolean>;
 }

@@ -370,6 +370,16 @@ export class CoreEnterpriseService {
     return this.repository.assignUserToBranch(tenantId, userId.trim(), branchId.trim());
   }
 
+  async revokeUserOrganizationAccess(tenantId: string, userId: string, organizationId: string): Promise<boolean> {
+    this.ensureTenantContext(tenantId);
+    return this.repository.revokeUserOrganizationAccess(tenantId, userId.trim(), organizationId.trim());
+  }
+
+  async revokeUserBranchAccess(tenantId: string, userId: string, branchId: string): Promise<boolean> {
+    this.ensureTenantContext(tenantId);
+    return this.repository.revokeUserBranchAccess(tenantId, userId.trim(), branchId.trim());
+  }
+
   async activateUser(tenantId: string, userId: string): Promise<boolean> {
     this.ensureTenantContext(tenantId);
     if (!userId || !userId.trim()) throw new ValidationError('User ID is required.');
