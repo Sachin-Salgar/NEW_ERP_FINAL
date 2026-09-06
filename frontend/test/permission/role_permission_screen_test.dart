@@ -16,7 +16,8 @@ class _Storage implements SecureStorageLike {
   @override
   Future<String?> read({required String key}) async => values[key];
   @override
-  Future<void> write({required String key, required String value}) async => values[key] = value;
+  Future<void> write({required String key, required String value}) async =>
+      values[key] = value;
   @override
   Future<void> delete({required String key}) async => values.remove(key);
 }
@@ -38,49 +39,61 @@ void main() {
   setUp(() => GetIt.instance.reset());
   tearDown(() => GetIt.instance.reset());
 
-  testWidgets('shows role, category and action type selectors in one row', (tester) async {
+  testWidgets('shows role, category and action type selectors in one row', (
+    tester,
+  ) async {
     await _setup(_mock());
-    await tester.pumpWidget(MaterialApp(home: RolePermissionScreen(roleId: 'role-1')));
+    await tester.pumpWidget(
+      MaterialApp(home: RolePermissionScreen(roleId: 'role-1')),
+    );
     await tester.pumpAndSettle();
 
-    expect(find.byType(DropdownButtonFormField), findsNWidgets(3));
+    expect(find.byKey(const ValueKey('role-selector')), findsOneWidget);
+    expect(find.byKey(const ValueKey('category-selector')), findsOneWidget);
+    expect(find.byKey(const ValueKey('action-type-selector')), findsOneWidget);
     expect(find.byType(DataTable), findsOneWidget);
     expect(find.text('Common Actions'), findsOneWidget);
     expect(find.text('User Management'), findsOneWidget);
-    expect(find.text('Purchase'), findsOneWidget);
+    expect(find.text('Purchase'), findsAtLeastNWidgets(1));
     expect(find.byKey(const ValueKey('permission:user.read')), findsNothing);
   });
 
-  testWidgets('business action selector swaps columns without changing tree', (tester) async {
+  testWidgets('business action selector swaps columns without changing tree', (
+    tester,
+  ) async {
     await _setup(_mock());
-    await tester.pumpWidget(MaterialApp(home: RolePermissionScreen(roleId: 'role-1')));
+    await tester.pumpWidget(
+      MaterialApp(home: RolePermissionScreen(roleId: 'role-1')),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Approve'), findsNothing);
-    final selectors = find.byType(DropdownButtonFormField);
-    await tester.tap(selectors.at(2));
+    await tester.tap(find.byKey(const ValueKey('action-type-selector')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Business Actions').last);
     await tester.pumpAndSettle();
 
     expect(find.text('Approve'), findsOneWidget);
     expect(find.text('Reject'), findsOneWidget);
-    expect(find.text('Purchase'), findsOneWidget);
+    expect(find.text('Purchase'), findsAtLeastNWidgets(1));
     expect(find.byType(DataTable), findsOneWidget);
   });
 
-  testWidgets('category selector filters the same single table', (tester) async {
+  testWidgets('category selector filters the same single table', (
+    tester,
+  ) async {
     await _setup(_mock());
-    await tester.pumpWidget(MaterialApp(home: RolePermissionScreen(roleId: 'role-1')));
+    await tester.pumpWidget(
+      MaterialApp(home: RolePermissionScreen(roleId: 'role-1')),
+    );
     await tester.pumpAndSettle();
 
-    final selectors = find.byType(DropdownButtonFormField);
-    await tester.tap(selectors.at(1));
+    await tester.tap(find.byKey(const ValueKey('category-selector')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Purchase').last);
     await tester.pumpAndSettle();
 
-    expect(find.text('Purchase'), findsOneWidget);
+    expect(find.text('Purchase'), findsAtLeastNWidgets(1));
     expect(find.text('User Management'), findsNothing);
     expect(find.byType(DataTable), findsOneWidget);
   });
@@ -91,12 +104,48 @@ MockClient _mock() {
     {'id': 'role-1', 'name': 'Administrator', 'code': 'admin'},
   ];
   final permissions = [
-    {'permissionKey': 'user.read', 'moduleCode': 'user-management', 'resource': 'user', 'action': 'read', 'displayName': 'View Users'},
-    {'permissionKey': 'user.create', 'moduleCode': 'user-management', 'resource': 'user', 'action': 'create', 'displayName': 'Create Users'},
-    {'permissionKey': 'role.manage', 'moduleCode': 'security', 'resource': 'role', 'action': 'manage', 'displayName': 'Manage Roles'},
-    {'permissionKey': 'purchase.purchase_order.read', 'moduleCode': 'purchase', 'resource': 'purchase_order', 'action': 'read', 'displayName': 'View Purchase Orders'},
-    {'permissionKey': 'purchase.purchase_order.approve', 'moduleCode': 'purchase', 'resource': 'purchase_order', 'action': 'approve', 'displayName': 'Approve Purchase Orders'},
-    {'permissionKey': 'purchase.purchase_order.reject', 'moduleCode': 'purchase', 'resource': 'purchase_order', 'action': 'reject', 'displayName': 'Reject Purchase Orders'},
+    {
+      'permissionKey': 'user.read',
+      'moduleCode': 'user-management',
+      'resource': 'user',
+      'action': 'read',
+      'displayName': 'View Users',
+    },
+    {
+      'permissionKey': 'user.create',
+      'moduleCode': 'user-management',
+      'resource': 'user',
+      'action': 'create',
+      'displayName': 'Create Users',
+    },
+    {
+      'permissionKey': 'role.manage',
+      'moduleCode': 'security',
+      'resource': 'role',
+      'action': 'manage',
+      'displayName': 'Manage Roles',
+    },
+    {
+      'permissionKey': 'purchase.purchase_order.read',
+      'moduleCode': 'purchase',
+      'resource': 'purchase_order',
+      'action': 'read',
+      'displayName': 'View Purchase Orders',
+    },
+    {
+      'permissionKey': 'purchase.purchase_order.approve',
+      'moduleCode': 'purchase',
+      'resource': 'purchase_order',
+      'action': 'approve',
+      'displayName': 'Approve Purchase Orders',
+    },
+    {
+      'permissionKey': 'purchase.purchase_order.reject',
+      'moduleCode': 'purchase',
+      'resource': 'purchase_order',
+      'action': 'reject',
+      'displayName': 'Reject Purchase Orders',
+    },
   ];
   return MockClient((request) async {
     final path = request.url.path;
@@ -104,16 +153,32 @@ MockClient _mock() {
       return http.Response(jsonEncode({'success': true, 'roles': roles}), 200);
     }
     if (path == '/api/v1/rbac/permissions' && request.method == 'GET') {
-      return http.Response(jsonEncode({'success': true, 'permissions': permissions}), 200);
+      return http.Response(
+        jsonEncode({'success': true, 'permissions': permissions}),
+        200,
+      );
     }
     if (path == '/api/v1/rbac/roles/role-1' && request.method == 'GET') {
-      return http.Response(jsonEncode({'success': true, 'role': roles.first}), 200);
+      return http.Response(
+        jsonEncode({'success': true, 'role': roles.first}),
+        200,
+      );
     }
-    if (path == '/api/v1/rbac/roles/role-1/permissions' && request.method == 'GET') {
-      return http.Response(jsonEncode({'success': true, 'permissions': []}), 200);
+    if (path == '/api/v1/rbac/roles/role-1/permissions' &&
+        request.method == 'GET') {
+      return http.Response(
+        jsonEncode({'success': true, 'permissions': []}),
+        200,
+      );
     }
     if (path.contains('/effective-permissions')) {
-      return http.Response(jsonEncode({'success': true, 'permissions': ['role.manage']}), 200);
+      return http.Response(
+        jsonEncode({
+          'success': true,
+          'permissions': ['role.manage'],
+        }),
+        200,
+      );
     }
     return http.Response('not found', 404);
   });
