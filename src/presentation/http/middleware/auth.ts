@@ -26,6 +26,7 @@ import type { AppConfig } from '../../../config/schema.js';
 import type { AuditLogger } from '../../../application/contracts/audit.js';
 import type { ItemMasterService } from '../../../application/services/item-master-service.js';
 import type { InventoryService } from '../../../application/services/inventory-service.js';
+import type { ProcurementService } from '../../../application/services/procurement-service.js';
 import type { TaxService } from '../../../application/services/tax-service.js';
 
 declare module 'fastify' {
@@ -56,6 +57,7 @@ declare module 'fastify' {
     salesReportingService: SalesReportingService;
     itemMasterService: ItemMasterService;
     inventoryService: InventoryService;
+    procurementService: ProcurementService;
     taxService: TaxService;
   }
 

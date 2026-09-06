@@ -27,6 +27,7 @@ import { DiscountService } from '../../application/services/discount-service.js'
 import { SalesReportingService } from '../../application/services/sales-reporting-service.js';
 import { ItemMasterService } from '../../application/services/item-master-service.js';
 import { InventoryService } from '../../application/services/inventory-service.js';
+import { ProcurementService } from '../../application/services/procurement-service.js';
 import { TaxService } from '../../application/services/tax-service.js';
 import { PostgresTaxRepository } from '../../infrastructure/database/repositories/postgres-tax-repository.js';
 import { PostgresFinanceRepository } from '../../infrastructure/database/repositories/postgres-finance-repository.js';
@@ -47,6 +48,7 @@ import { PostgresPricingRepository } from '../../infrastructure/database/reposit
 import { PostgresDiscountRepository } from '../../infrastructure/database/repositories/postgres-discount-repository.js';
 import { PostgresItemMasterRepository } from '../../infrastructure/database/repositories/postgres-item-master-repository.js';
 import { PostgresInventoryRepository } from '../../infrastructure/database/repositories/postgres-inventory-repository.js';
+import { PostgresProcurementRepository } from '../../infrastructure/database/repositories/postgres-procurement-repository.js';
 import { PostgresNotificationService } from '../../infrastructure/database/repositories/postgres-operational-services.js';
 import { AccountSecurityNotificationAdapter } from '../../application/adapters/account-security-notifications.js';
 import { buildErrorHandler } from '../../infrastructure/http/error-handler.js';
@@ -78,6 +80,7 @@ import discountRoutes from './routes/discount.js';
 import salesReportingRoutes from './routes/sales-reporting.js';
 import itemMasterRoutes from './routes/item-master.js';
 import inventoryRoutes from './routes/inventory.js';
+import procurementRoutes from './routes/procurement.js';
 import taxRoutes from './routes/tax.js';
 import rbacRoutes from './routes/rbac.js';
 import { paginateListResponse } from './pagination.js';
@@ -235,6 +238,22 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     moduleAccessService,
     auditLogger,
     transactionRunner,
+  );
+  const procurementService = new ProcurementService(
+    new PostgresProcurementRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+    transactionRunner,
+    {
+      receiveStock: (context, request) => inventoryService.receive(context, request),
+      listReservationsBySource: (context, sourceType, sourceId) => inventoryService.listReservationsBySource(context, sourceType, sourceId),
+      fulfillReservationsBySource: (context, sourceType, sourceId, operationKey) => inventoryService.fulfillReservationsBySource(context, sourceType, sourceId, operationKey),
+      reserveStock: (context, request) => inventoryService.reserve(context, request),
+      releaseReservation: (context, reservationId, idempotencyKey) => inventoryService.release(context, reservationId, idempotencyKey),
+      fulfillReservation: (context, reservationId, idempotencyKey) => inventoryService.fulfill(context, reservationId, idempotencyKey),
+      returnStock: (context, request) => inventoryService.returnStock(context, request),
+    },
   );
   const orderService = new OrderService(
     new PostgresOrderRepository(pool, config.TENANT_CONTEXT_KEY),
@@ -397,6 +416,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('salesReportingService', salesReportingService);
   app.decorate('itemMasterService', itemMasterService);
   app.decorate('inventoryService', inventoryService);
+  app.decorate('procurementService', procurementService);
   app.decorate('taxService', taxService);
 
   app.addHook('onReady', async () => {
@@ -506,6 +526,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(salesReportingRoutes, { prefix: config.API_PREFIX });
   await app.register(itemMasterRoutes, { prefix: config.API_PREFIX });
   await app.register(inventoryRoutes, { prefix: config.API_PREFIX });
+  await app.register(procurementRoutes, { prefix: config.API_PREFIX });
   await app.register(taxRoutes, { prefix: config.API_PREFIX });
   return app;
 }

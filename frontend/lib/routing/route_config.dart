@@ -131,6 +131,14 @@ class AppRoutes {
     moduleCode: 'sales',
     icon: Icons.discount_outlined,
   );
+  static const purchase = AppRouteConfig(
+    path: '/purchase',
+    title: 'Purchase',
+    group: 'PURCHASE',
+    permissionKey: 'purchase.supplier.read',
+    moduleCode: 'purchase',
+    icon: Icons.shopping_bag_outlined,
+  );
   static const settings = AppRouteConfig(
     path: '/settings',
     title: 'Settings',
@@ -243,6 +251,7 @@ class AppRoutes {
     salesReports,
     salesPricing,
     salesDiscounts,
+    purchase,
   ];
 
   static const routePermissions = <String, String?>{
@@ -274,6 +283,7 @@ class AppRoutes {
     '/sales/pricing/create': 'sales.pricing.create',
     '/sales/discounts': 'sales.discount.read',
     '/sales/discounts/create': 'sales.discount.create',
+    '/purchase': 'purchase.supplier.read',
     '/settings': null,
     '/settings/organizations': 'organization.read',
     '/settings/organizations/create': 'organization.manage',

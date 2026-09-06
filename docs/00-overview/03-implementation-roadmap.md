@@ -3,8 +3,8 @@
 **Status:** Living implementation roadmap  
 **Authority:** Architecture documents and Approved ADRs define the intended system; this document records what is actually implemented and what remains to be validated or built.
 
-**Last reconciled:** 2026-09-05
-**Branch:** `feature/sales-documentation-specifications`
+**Last reconciled:** 2026-09-06
+**Branch:** `feature/purchase-module`
 
 ## Status definitions
 
@@ -60,6 +60,7 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 - Deterministic Postgres-backed CI environment for backend integration and Flutter Web E2E login/dashboard validation.
 - Customer foundation and HTTP API vertical slice, including tenant-scoped persistence, RLS, authorization, soft delete, audit, pagination, validation, and dedicated API integration coverage.
 - Customer Flutter frontend vertical slice, including CRM navigation, permission/module-aware routing, authenticated CRUD screens, server-side search/pagination, soft-delete confirmation, and focused service/routing tests.
+- Bounded Purchase module backend and Flutter navigation vertical slice, including supplier soft-delete, requisition/order lifecycle actions, receipt-to-Inventory integration, purchase permissions/module registration, tenant/organization RLS, optimistic versioning, and migration recovery governance.
 
 ### Remaining work and residuals
 
@@ -146,20 +147,20 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 
 Project Management is explicitly removed/deferred and is not an implementation target.
 
-| Sequence | Module             | Status                                                                                                                                                              |
-| -------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1        | Core Enterprise    | **COMPLETED WITH KNOWN VALIDATION RESIDUAL — READY FOR SALES**                                                                                                      |
+| Sequence | Module             | Status                                                                                                                                                                                                                |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1        | Core Enterprise    | **COMPLETED WITH KNOWN VALIDATION RESIDUAL — READY FOR SALES**                                                                                                                                                        |
 | 2        | Sales              | **PARTIAL — QUOTATION, ORDER, DELIVERY, INVOICE, RETURN, CREDIT NOTE, PRICING, AND DISCOUNT BOUNDED FOUNDATIONS IMPLEMENTED** — [Sales specification package](../08-business-modules/03-sales-module-architecture.md) |
-| 3        | Procurement        | **PENDING**                                                                                                                                                         |
-| 4        | Inventory          | **PARTIAL — ITEM MASTER, WAREHOUSE, STOCK, RESERVATION, FULFILLMENT, AND RETURN MOVEMENT FOUNDATION IMPLEMENTED; ADVANCED OPERATIONS REMAIN DEFERRED**             |
-| 5        | Manufacturing      | **PENDING**                                                                                                                                                         |
-| 6        | Finance            | **PARTIAL — bounded posting foundation implemented; broader accounting remains pending**                                                                           |
-| 7        | Human Resources    | **PENDING**                                                                                                                                                         |
-| 8        | CRM                | **PARTIAL** — Customer foundation and HTTP API are implemented; contacts, leads, opportunities, activities, and broader CRM capabilities remain pending.            |
-| 9        | Quality Management | **PENDING**                                                                                                                                                         |
-| 10       | Asset Maintenance  | **PENDING**                                                                                                                                                         |
-| 11       | BI & Analytics     | **PENDING**                                                                                                                                                         |
-| 12       | Workflow / BPM     | **PENDING**                                                                                                                                                         |
+| 3        | Procurement        | **IMPLEMENTED — VALIDATION PENDING** — bounded Purchase v1 backend/frontend slice implemented; dedicated Purchase integration, RLS, transaction, frontend, and production validation remain in this hardening pass.   |
+| 4        | Inventory          | **PARTIAL — ITEM MASTER, WAREHOUSE, STOCK, RESERVATION, FULFILLMENT, AND RETURN MOVEMENT FOUNDATION IMPLEMENTED; ADVANCED OPERATIONS REMAIN DEFERRED**                                                                |
+| 5        | Manufacturing      | **PENDING**                                                                                                                                                                                                           |
+| 6        | Finance            | **PARTIAL — bounded posting foundation implemented; broader accounting remains pending**                                                                                                                              |
+| 7        | Human Resources    | **PENDING**                                                                                                                                                                                                           |
+| 8        | CRM                | **PARTIAL** — Customer foundation and HTTP API are implemented; contacts, leads, opportunities, activities, and broader CRM capabilities remain pending.                                                              |
+| 9        | Quality Management | **PENDING**                                                                                                                                                                                                           |
+| 10       | Asset Maintenance  | **PENDING**                                                                                                                                                                                                           |
+| 11       | BI & Analytics     | **PENDING**                                                                                                                                                                                                           |
+| 12       | Workflow / BPM     | **PENDING**                                                                                                                                                                                                           |
 
 Business modules must not open until the Core Enterprise gate is completed unless an approved architectural decision changes the sequence.
 
