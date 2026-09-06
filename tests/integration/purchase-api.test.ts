@@ -352,5 +352,40 @@ describe('Purchase HTTP API', () => {
         })
       ).statusCode,
     ).toBe(200);
+
+    await withTenantContext(pool, 'app.current_tenant_id', bootstrap.tenantId, async (client) => {
+      await client.query(
+        `DELETE FROM user_permissions
+          WHERE tenant_id=$1 AND user_id=$2
+            AND permission_id IN (
+              SELECT id FROM permissions
+               WHERE permission_key IN (
+                 'purchase.requisition.submit','purchase.requisition.approve',
+                 'purchase.requisition.reject','purchase.requisition.cancel',
+                 'purchase.order.submit','purchase.order.approve',
+                 'purchase.order.reject','purchase.order.cancel',
+                 'purchase.receipt.complete','purchase.receipt.cancel'
+               )
+            )`,
+        [bootstrap.tenantId, bootstrap.userId],
+      );
+    });
+    for (const route of [
+      `/api/v1/purchase/requisitions/${requisitionId}/submit`,
+      `/api/v1/purchase/requisitions/${requisitionId}/approve`,
+      `/api/v1/purchase/requisitions/${requisitionId}/reject`,
+      `/api/v1/purchase/requisitions/${requisitionId}/cancel`,
+      `/api/v1/purchase/purchase-orders/${orderId}/submit`,
+      `/api/v1/purchase/purchase-orders/${orderId}/approve`,
+      `/api/v1/purchase/purchase-orders/${orderId}/reject`,
+      `/api/v1/purchase/purchase-orders/${orderId}/cancel`,
+      `/api/v1/purchase/receipts/${receiptId}/complete`,
+      `/api/v1/purchase/receipts/${receiptId}/cancel`,
+    ]) {
+      expect(
+        (await app.inject({ method: 'POST', url: route, headers, payload: { expectedVersion: 1 } })).statusCode,
+        route,
+      ).toBe(403);
+    }
   });
 });

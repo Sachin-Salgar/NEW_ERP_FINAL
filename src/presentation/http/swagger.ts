@@ -182,9 +182,56 @@ export function schemaForRoute(method: string, url: string) {
       schema.body = toJsonSchema(expectedVersion);
     else if (method === 'POST' && normalizedUrl === '/purchase/receipts/:id/workflow')
       schema.body = toJsonSchema(expectedVersion.extend({ status: z.literal('CANCELLED') }));
+    const resource = normalizedUrl.startsWith('/purchase/suppliers')
+      ? 'supplier'
+      : normalizedUrl.startsWith('/purchase/requisitions')
+        ? 'requisition'
+        : normalizedUrl.startsWith('/purchase/purchase-orders')
+          ? 'purchaseOrder'
+          : normalizedUrl.startsWith('/purchase/receipts')
+            ? 'receipt'
+            : undefined;
+    const listResource =
+      resource === 'supplier'
+        ? 'suppliers'
+        : resource === 'requisition'
+          ? 'requisitions'
+          : resource === 'purchaseOrder'
+            ? 'purchaseOrders'
+            : resource === 'receipt'
+              ? 'receipts'
+              : undefined;
+    const isList = method === 'GET' && !normalizedUrl.match(/\/:id$/);
+    const responseProperties: Record<string, object> = { success: { const: true } };
+    if (resource && isList && listResource) {
+      responseProperties[listResource] = { type: 'array', items: { type: 'object', additionalProperties: true } };
+      responseProperties.metadata = {
+        type: 'object',
+        required: ['page', 'page_size', 'total', 'total_pages'],
+        properties: {
+          page: { type: 'integer', minimum: 1 },
+          page_size: { type: 'integer', minimum: 1, maximum: 100 },
+          total: { type: 'integer', minimum: 0 },
+          total_pages: { type: 'integer', minimum: 0 },
+        },
+        additionalProperties: false,
+      };
+    } else if (resource) {
+      responseProperties[resource] = { type: 'object', additionalProperties: true };
+    }
     schema.response = {
-      200: { type: 'object', properties: { success: { const: true } }, additionalProperties: true },
-      201: { type: 'object', properties: { success: { const: true } }, additionalProperties: true },
+      200: {
+        type: 'object',
+        required: ['success', ...(resource ? (isList ? [listResource!] : [resource]) : [])],
+        properties: responseProperties,
+        additionalProperties: false,
+      },
+      201: {
+        type: 'object',
+        required: ['success', ...(resource ? [resource] : [])],
+        properties: responseProperties,
+        additionalProperties: false,
+      },
     };
   }
   return schema;

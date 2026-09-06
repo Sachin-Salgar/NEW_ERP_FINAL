@@ -105,7 +105,7 @@ describe('Purchase to Inventory integration', () => {
       authorization: ['Bearer', login.json().accessToken].join(' '),
       'x-tenant-id': bootstrap.tenantId,
     };
-    const create = async (quantity: number, operationKey: string, lineItemId = itemId) => {
+    const create = async (quantity: number, operationKey: string, lineItemId = itemId, createReceipt = true) => {
       const supplier = await app!.inject({
         method: 'POST',
         url: '/api/v1/purchase/suppliers',
@@ -152,6 +152,7 @@ describe('Purchase to Inventory integration', () => {
           })
         ).statusCode,
       ).toBe(200);
+      if (!createReceipt) return { orderId, receiptId: undefined };
       const receipt = await app!.inject({
         method: 'POST',
         url: '/api/v1/purchase/receipts',
@@ -258,5 +259,54 @@ describe('Purchase to Inventory integration', () => {
       { organizationId: bootstrap.organizationId },
     );
     expect(rollbackMovements.rows[0].count).toBe(0);
+
+    const splitOrder = await create(10, `split-order-${uuidV7()}`, itemId, false);
+    const completeSplitReceipt = async (quantity: number) => {
+      const draft = await app!.inject({
+        method: 'POST',
+        url: '/api/v1/purchase/receipts',
+        headers,
+        payload: {
+          purchaseOrderId: splitOrder.orderId,
+          warehouseId,
+          receiptDate: '2026-01-12',
+          operationKey: `split-${quantity}-${uuidV7()}`,
+          lines: [{ itemId, quantity }],
+        },
+      });
+      expect(draft.statusCode).toBe(201);
+      const current = await app!.inject({
+        method: 'GET',
+        url: `/api/v1/purchase/receipts/${draft.json().receipt.id}`,
+        headers,
+      });
+      const completed = await app!.inject({
+        method: 'POST',
+        url: `/api/v1/purchase/receipts/${draft.json().receipt.id}/complete`,
+        headers,
+        payload: { expectedVersion: current.json().receipt.version },
+      });
+      expect(completed.statusCode).toBe(200);
+    };
+    await completeSplitReceipt(4);
+    await completeSplitReceipt(3);
+    await completeSplitReceipt(3);
+    const splitMovements = await withTenantContext(
+      pool,
+      'app.current_tenant_id',
+      bootstrap.tenantId,
+      (client) =>
+        client.query(
+          `SELECT count(*)::int AS count, COALESCE(sum(im.quantity),0)::numeric AS total
+             FROM inventory_movements im
+             JOIN procurement_receipts pr ON pr.id=im.source_id
+            WHERE im.tenant_id=$1 AND im.organization_id=$2 AND im.source_type='PURCHASE_RECEIPT'
+              AND im.item_id=$3 AND pr.purchase_order_id=$4`,
+          [bootstrap.tenantId, bootstrap.organizationId, itemId, splitOrder.orderId],
+        ),
+      { organizationId: bootstrap.organizationId },
+    );
+    expect(splitMovements.rows[0].count).toBe(3);
+    expect(Number(splitMovements.rows[0].total)).toBe(10);
   });
 });
