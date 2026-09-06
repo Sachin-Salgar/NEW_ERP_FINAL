@@ -17,7 +17,7 @@ const idParams = (names: string[]) =>
 export function schemaForRoute(method: string, url: string) {
   const normalizedUrl = url.replace(/^\/(?:api\/v\d+\/)?/, '/');
   const params = [...normalizedUrl.matchAll(/:([A-Za-z0-9_]+)/g)].map((match) => match[1]);
-  const schema: { params?: object; body?: object; querystring?: object } = {};
+  const schema: { params?: object; body?: object; querystring?: object; response?: Record<number, object> } = {};
   if (params.length > 0) schema.params = toJsonSchema(idParams(params));
 
   if (method === 'POST' && normalizedUrl === '/auth/register') schema.body = toJsonSchema(authSchemas.registerRequest);
@@ -78,6 +78,115 @@ export function schemaForRoute(method: string, url: string) {
     );
   else if (method === 'POST' && normalizedUrl.match(/^\/sales\/orders\/:id\/(confirm|cancel|close)$/))
     schema.body = toJsonSchema(z.object({ expectedVersion: z.number().int().positive() }));
+  else if (normalizedUrl.startsWith('/purchase/')) {
+    schema.querystring = toJsonSchema(
+      z.object({
+        page: z.coerce.number().int().positive().optional(),
+        page_size: z.coerce.number().int().positive().max(100).optional(),
+        order: z.enum(['asc', 'desc']).optional(),
+        sort: z.string().trim().min(1).optional(),
+        search: z.string().trim().optional(),
+      }),
+    );
+    const line = z.object({
+      itemId: z.string().uuid(),
+      description: z.string().trim().min(1).max(500),
+      quantity: z.number().finite().positive(),
+      unitPrice: z.number().finite().nonnegative().optional(),
+      unitOfMeasure: z.string().trim().min(1).max(50),
+    });
+    const receiptLine = z.object({ itemId: z.string().uuid(), quantity: z.number().finite().positive() });
+    const expectedVersion = z.object({ expectedVersion: z.number().int().positive() });
+    const workflow = expectedVersion.extend({ status: z.enum(['SUBMITTED', 'APPROVED', 'REJECTED', 'CANCELLED']) });
+    if (method === 'POST' && normalizedUrl === '/purchase/suppliers')
+      schema.body = toJsonSchema(
+        z.object({
+          name: z.string().trim().min(1).max(255),
+          code: z.string().trim().max(50).optional(),
+          email: z.string().email().max(255).optional(),
+        }),
+      );
+    else if (method === 'PATCH' && normalizedUrl === '/purchase/suppliers/:id')
+      schema.body = toJsonSchema(
+        z.object({
+          name: z.string().trim().min(1).max(255),
+          email: z.string().email().max(255).optional(),
+          expectedVersion: z.number().int().positive(),
+        }),
+      );
+    else if (method === 'DELETE' && normalizedUrl === '/purchase/suppliers/:id')
+      schema.body = toJsonSchema(expectedVersion);
+    else if (method === 'POST' && normalizedUrl === '/purchase/requisitions')
+      schema.body = toJsonSchema(
+        z.object({
+          requiredDate: z.string().min(1),
+          justification: z.string().trim().max(500).optional(),
+          lines: z.array(line).min(1),
+        }),
+      );
+    else if (method === 'PATCH' && normalizedUrl === '/purchase/requisitions/:id')
+      schema.body = toJsonSchema(
+        z.object({
+          requiredDate: z.string().min(1),
+          justification: z.string().trim().max(500).optional(),
+          expectedVersion: z.number().int().positive(),
+        }),
+      );
+    else if (
+      method === 'POST' &&
+      normalizedUrl.match(/^\/purchase\/requisitions\/:id\/(submit|approve|reject|cancel)$/)
+    )
+      schema.body = toJsonSchema(expectedVersion);
+    else if (method === 'POST' && normalizedUrl === '/purchase/requisitions/:id/workflow')
+      schema.body = toJsonSchema(workflow);
+    else if (method === 'POST' && normalizedUrl === '/purchase/purchase-orders')
+      schema.body = toJsonSchema(
+        z.object({
+          supplierId: z.string().uuid(),
+          requisitionId: z.string().uuid().optional(),
+          orderDate: z.string().min(1),
+          lines: z.array(line).min(1),
+        }),
+      );
+    else if (method === 'PATCH' && normalizedUrl === '/purchase/purchase-orders/:id')
+      schema.body = toJsonSchema(
+        z.object({ orderDate: z.string().min(1), expectedVersion: z.number().int().positive() }),
+      );
+    else if (
+      method === 'POST' &&
+      normalizedUrl.match(/^\/purchase\/purchase-orders\/:id\/(submit|approve|reject|cancel)$/)
+    )
+      schema.body = toJsonSchema(expectedVersion);
+    else if (method === 'POST' && normalizedUrl === '/purchase/purchase-orders/:id/workflow')
+      schema.body = toJsonSchema(workflow);
+    else if (method === 'POST' && normalizedUrl === '/purchase/receipts')
+      schema.body = toJsonSchema(
+        z.object({
+          purchaseOrderId: z.string().uuid(),
+          warehouseId: z.string().uuid(),
+          receiptDate: z.string().min(1),
+          lines: z.array(receiptLine).min(1),
+          operationKey: z.string().trim().min(1).max(128),
+        }),
+      );
+    else if (method === 'PATCH' && normalizedUrl === '/purchase/receipts/:id')
+      schema.body = toJsonSchema(
+        z.object({
+          warehouseId: z.string().uuid(),
+          receiptDate: z.string().min(1),
+          lines: z.array(receiptLine).min(1),
+          expectedVersion: z.number().int().positive(),
+        }),
+      );
+    else if (method === 'POST' && normalizedUrl.match(/^\/purchase\/receipts\/:id\/(complete|cancel)$/))
+      schema.body = toJsonSchema(expectedVersion);
+    else if (method === 'POST' && normalizedUrl === '/purchase/receipts/:id/workflow')
+      schema.body = toJsonSchema(expectedVersion.extend({ status: z.literal('CANCELLED') }));
+    schema.response = {
+      200: { type: 'object', properties: { success: { const: true } }, additionalProperties: true },
+      201: { type: 'object', properties: { success: { const: true } }, additionalProperties: true },
+    };
+  }
   return schema;
 }
 

@@ -40,6 +40,40 @@ export class PostgresProcurementRepository implements ProcurementRepository {
       if (current.status === 'COMPLETED' || current.status === 'POSTED')
         return { receipt: current, lines, alreadyCompleted: true };
       if (current.status !== 'DRAFT') throw new ValidationError(`Receipt cannot be completed from ${current.status}.`);
+      const purchaseOrder = (
+        await db.query(
+          `SELECT id FROM procurement_purchase_orders
+             WHERE id=$1 AND tenant_id=$2 AND organization_id=$3
+               AND status='APPROVED' AND is_deleted=false
+             FOR UPDATE`,
+          [current.purchase_order_id, c.tenantId, c.organizationId],
+        )
+      ).rows[0];
+      if (!purchaseOrder) throw new ValidationError('An approved purchase order is required.');
+      const purchaseOrderLines = (
+        await db.query(
+          `SELECT pol.item_id AS "itemId", pol.quantity,
+             COALESCE((
+               SELECT SUM(prl.quantity)
+                 FROM procurement_receipt_lines prl
+                 JOIN procurement_receipts pr ON pr.id=prl.receipt_id
+                WHERE pr.purchase_order_id=pol.purchase_order_id
+                  AND prl.item_id=pol.item_id
+                  AND pr.tenant_id=$1 AND pr.organization_id=$2
+                  AND pr.status='COMPLETED'
+             ),0) AS received
+             FROM procurement_purchase_order_lines pol
+            WHERE pol.purchase_order_id=$3 AND pol.tenant_id=$1 AND pol.organization_id=$2`,
+          [c.tenantId, c.organizationId, current.purchase_order_id],
+        )
+      ).rows;
+      for (const line of lines) {
+        const allowed = purchaseOrderLines.find((row) => row.itemId === line.itemId);
+        if (!allowed || line.quantity > Number(allowed.quantity) - Number(allowed.received))
+          throw new ValidationError(
+            `Receipt quantity exceeds outstanding purchase order quantity for item ${line.itemId}.`,
+          );
+      }
       const receipt = (
         await db.query(
           `UPDATE procurement_receipts SET status='COMPLETED',updated_at=now(),updated_by=$5,version=version+1

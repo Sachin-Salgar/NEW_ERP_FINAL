@@ -38,6 +38,8 @@ describe('Purchase HTTP API', () => {
       subscriptionPlanName: 'Starter',
     };
     const bootstrap = await new TenantBootstrapService(repository, new BcryptPasswordHasher()).bootstrapTenant(input);
+    const itemId = uuidV7();
+    const warehouseId = uuidV7();
     await withTenantContext(pool, 'app.current_tenant_id', bootstrap.tenantId, async (client) => {
       await client.query(
         `INSERT INTO financial_years (id,tenant_id,organization_id,name,start_date,end_date,is_active,status,is_locked)
@@ -57,11 +59,32 @@ describe('Purchase HTTP API', () => {
          ON CONFLICT (organization_id,module_id) DO UPDATE SET enabled=true,disabled_at=NULL`,
         [uuidV7(), bootstrap.tenantId, bootstrap.organizationId, moduleId],
       );
+      const inventoryModule = await client.query(`SELECT id FROM modules WHERE code='inventory'`);
+      await client.query(
+        `INSERT INTO tenant_modules(id,tenant_id,module_id,enabled,enabled_at) VALUES($1,$2,$3,true,NOW())
+         ON CONFLICT (tenant_id,module_id) DO UPDATE SET enabled=true,disabled_at=NULL`,
+        [uuidV7(), bootstrap.tenantId, inventoryModule.rows[0].id],
+      );
+      await client.query(
+        `INSERT INTO organization_modules(id,tenant_id,organization_id,module_id,enabled,enabled_at) VALUES($1,$2,$3,$4,true,NOW())
+         ON CONFLICT (organization_id,module_id) DO UPDATE SET enabled=true,disabled_at=NULL`,
+        [uuidV7(), bootstrap.tenantId, bootstrap.organizationId, inventoryModule.rows[0].id],
+      );
       await client.query(
         `INSERT INTO user_permissions(tenant_id,user_id,permission_id,allow)
-         SELECT $1,$2,id,true FROM permissions WHERE module_code='purchase'
+         SELECT $1,$2,id,true FROM permissions WHERE module_code IN ('purchase','inventory')
          ON CONFLICT (tenant_id,user_id,permission_id) DO UPDATE SET allow=true`,
         [bootstrap.tenantId, bootstrap.userId],
+      );
+      await client.query(
+        `INSERT INTO inventory_items(id,tenant_id,organization_id,code,name,unit_of_measure,created_by)
+         VALUES($1,$2,$3,$4,'Purchase API Item','EA',$5)`,
+        [itemId, bootstrap.tenantId, bootstrap.organizationId, `PA-${itemId}`, bootstrap.userId],
+      );
+      await client.query(
+        `INSERT INTO inventory_warehouses(id,tenant_id,organization_id,code,name,created_by)
+         VALUES($1,$2,$3,$4,'Purchase API Warehouse',$5)`,
+        [warehouseId, bootstrap.tenantId, bootstrap.organizationId, `PA-${warehouseId}`, bootstrap.userId],
       );
     });
 
@@ -83,6 +106,19 @@ describe('Purchase HTTP API', () => {
       payload: { name: '   ', code: 'SUP-INVALID' },
     });
     expect(invalid.statusCode).toBe(400);
+    const unexpectedField = await app.inject({
+      method: 'POST',
+      url: '/api/v1/purchase/suppliers',
+      headers,
+      payload: { name: 'Strict Supplier', unexpected: true },
+    });
+    expect(unexpectedField.statusCode).toBe(400);
+    const invalidPage = await app.inject({
+      method: 'GET',
+      url: '/api/v1/purchase/suppliers?page_size=101',
+      headers,
+    });
+    expect(invalidPage.statusCode).toBe(400);
 
     const created = await app.inject({
       method: 'POST',
@@ -132,5 +168,189 @@ describe('Purchase HTTP API', () => {
     const listed = await app.inject({ method: 'GET', url: '/api/v1/purchase/suppliers', headers });
     expect(listed.statusCode).toBe(200);
     expect(listed.json().suppliers.some((item: { id: string }) => item.id === supplier.id)).toBe(false);
+
+    const activeSupplierResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v1/purchase/suppliers',
+      headers,
+      payload: { name: 'Lifecycle Supplier', code: `LIFE-${uuidV7()}` },
+    });
+    const activeSupplierId = activeSupplierResponse.json().supplier.id;
+    const requisitionResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v1/purchase/requisitions',
+      headers,
+      payload: {
+        requiredDate: '2026-02-01',
+        justification: 'Lifecycle test',
+        lines: [{ itemId, description: 'Purchase API Item', quantity: 10, unitPrice: 5, unitOfMeasure: 'EA' }],
+      },
+    });
+    expect(requisitionResponse.statusCode).toBe(201);
+    const requisitionId = requisitionResponse.json().requisition.id;
+    let requisition = await app.inject({
+      method: 'GET',
+      url: `/api/v1/purchase/requisitions/${requisitionId}`,
+      headers,
+    });
+    let requisitionVersion = requisition.json().requisition.version;
+    expect(
+      (
+        await app.inject({
+          method: 'PATCH',
+          url: `/api/v1/purchase/requisitions/${requisitionId}`,
+          headers,
+          payload: { requiredDate: '2026-02-02', justification: 'Updated', expectedVersion: requisitionVersion },
+        })
+      ).statusCode,
+    ).toBe(200);
+    requisition = await app.inject({ method: 'GET', url: `/api/v1/purchase/requisitions/${requisitionId}`, headers });
+    requisitionVersion = requisition.json().requisition.version;
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: `/api/v1/purchase/requisitions/${requisitionId}/submit`,
+          headers,
+          payload: { expectedVersion: requisitionVersion },
+        })
+      ).statusCode,
+    ).toBe(200);
+    requisition = await app.inject({ method: 'GET', url: `/api/v1/purchase/requisitions/${requisitionId}`, headers });
+    requisitionVersion = requisition.json().requisition.version;
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: `/api/v1/purchase/requisitions/${requisitionId}/approve`,
+          headers,
+          payload: { expectedVersion: requisitionVersion },
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect(
+      (
+        await app.inject({
+          method: 'PATCH',
+          url: `/api/v1/purchase/requisitions/${requisitionId}`,
+          headers,
+          payload: {
+            requiredDate: '2026-03-01',
+            justification: 'Rejected update',
+            expectedVersion: requisitionVersion,
+          },
+        })
+      ).statusCode,
+    ).toBe(404);
+
+    const orderResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v1/purchase/purchase-orders',
+      headers,
+      payload: {
+        supplierId: activeSupplierId,
+        orderDate: '2026-02-05',
+        lines: [{ itemId, description: 'Purchase API Item', quantity: 10, unitPrice: 5, unitOfMeasure: 'EA' }],
+      },
+    });
+    expect(orderResponse.statusCode).toBe(201);
+    const orderId = orderResponse.json().purchaseOrder.id;
+    let order = await app.inject({ method: 'GET', url: `/api/v1/purchase/purchase-orders/${orderId}`, headers });
+    let orderVersion = order.json().purchaseOrder.version;
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: `/api/v1/purchase/purchase-orders/${orderId}/submit`,
+          headers,
+          payload: { expectedVersion: orderVersion },
+        })
+      ).statusCode,
+    ).toBe(200);
+    order = await app.inject({ method: 'GET', url: `/api/v1/purchase/purchase-orders/${orderId}`, headers });
+    orderVersion = order.json().purchaseOrder.version;
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: `/api/v1/purchase/purchase-orders/${orderId}/approve`,
+          headers,
+          payload: { expectedVersion: orderVersion },
+        })
+      ).statusCode,
+    ).toBe(200);
+
+    const receiptResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v1/purchase/receipts',
+      headers,
+      payload: {
+        purchaseOrderId: orderId,
+        warehouseId,
+        receiptDate: '2026-02-06',
+        operationKey: `api-receipt-${uuidV7()}`,
+        lines: [{ itemId, quantity: 6 }],
+      },
+    });
+    expect(receiptResponse.statusCode).toBe(201);
+    const receiptId = receiptResponse.json().receipt.id;
+    const secondDraft = await app.inject({
+      method: 'POST',
+      url: '/api/v1/purchase/receipts',
+      headers,
+      payload: {
+        purchaseOrderId: orderId,
+        warehouseId,
+        receiptDate: '2026-02-06',
+        operationKey: `api-draft-${uuidV7()}`,
+        lines: [{ itemId, quantity: 6 }],
+      },
+    });
+    expect(secondDraft.statusCode).toBe(201);
+    const duplicateLines = await app.inject({
+      method: 'POST',
+      url: '/api/v1/purchase/receipts',
+      headers,
+      payload: {
+        purchaseOrderId: orderId,
+        warehouseId,
+        receiptDate: '2026-02-06',
+        operationKey: `api-duplicate-${uuidV7()}`,
+        lines: [
+          { itemId, quantity: 1 },
+          { itemId, quantity: 1 },
+        ],
+      },
+    });
+    expect(duplicateLines.statusCode).toBe(400);
+    let receipt = await app.inject({ method: 'GET', url: `/api/v1/purchase/receipts/${receiptId}`, headers });
+    let receiptVersion = receipt.json().receipt.version;
+    expect(
+      (
+        await app.inject({
+          method: 'PATCH',
+          url: `/api/v1/purchase/receipts/${receiptId}`,
+          headers,
+          payload: {
+            warehouseId,
+            receiptDate: '2026-02-07',
+            lines: [{ itemId, quantity: 5 }],
+            expectedVersion: receiptVersion,
+          },
+        })
+      ).statusCode,
+    ).toBe(200);
+    receipt = await app.inject({ method: 'GET', url: `/api/v1/purchase/receipts/${receiptId}`, headers });
+    receiptVersion = receipt.json().receipt.version;
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: `/api/v1/purchase/receipts/${receiptId}/complete`,
+          headers,
+          payload: { expectedVersion: receiptVersion },
+        })
+      ).statusCode,
+    ).toBe(200);
   });
 });

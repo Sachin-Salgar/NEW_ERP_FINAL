@@ -203,6 +203,10 @@ Receipt: DRAFT -> COMPLETED, or DRAFT -> CANCELLED
 
 Completed and cancelled receipts are immutable. Workflow mutations use
 optimistic version checks, and only the completion operation posts inventory.
+Receipt completion locks the approved purchase order while rechecking completed
+quantities, preventing concurrent completions from exceeding the order balance.
+Receipt status changes and Inventory receipt movements commit or roll back as one
+transaction; movement operation keys make retries idempotent.
 
 Purchase returns, RFQ/quotation management, vendor invoices, and payment
 processing remain outside this bounded implementation; vendor returns require

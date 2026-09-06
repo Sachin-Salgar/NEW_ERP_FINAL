@@ -237,6 +237,8 @@ export class ProcurementService {
       input.lines.some((line) => !isUuid(line.itemId) || !Number.isFinite(line.quantity) || line.quantity <= 0)
     )
       throw new ValidationError('Receipt lines must contain valid items and positive quantities.');
+    if (new Set(input.lines.map((line) => line.itemId)).size !== input.lines.length)
+      throw new ValidationError('Duplicate receipt item lines are not allowed.');
     if (!input.operationKey?.trim()) throw new ValidationError('Operation key is required.');
     await this.authorize(c, PROCUREMENT_PERMISSIONS.receiptCreate);
     return this.tx.runInTransaction(async () => {
@@ -448,10 +450,13 @@ export class ProcurementService {
           !this.text(l.description, 'Line description') ||
           !Number.isFinite(l.quantity) ||
           l.quantity <= 0 ||
+          (l.unitPrice !== undefined && (!Number.isFinite(l.unitPrice) || l.unitPrice < 0)) ||
           !this.text(l.unitOfMeasure, 'Unit of measure'),
       )
     )
       throw new ValidationError('Valid purchase lines are required.');
+    if (new Set(lines.map((line) => line.itemId)).size !== lines.length)
+      throw new ValidationError('Duplicate item lines are not allowed.');
   }
   private receiptLines(lines: Array<{ itemId: string; quantity: number }>) {
     if (
@@ -460,6 +465,8 @@ export class ProcurementService {
       lines.some((line) => !isUuid(line.itemId) || !Number.isFinite(line.quantity) || line.quantity <= 0)
     )
       throw new ValidationError('Receipt lines must contain valid items and positive quantities.');
+    if (new Set(lines.map((line) => line.itemId)).size !== lines.length)
+      throw new ValidationError('Duplicate receipt item lines are not allowed.');
   }
   private text(value: string | undefined, label: string) {
     const v = value?.trim();
