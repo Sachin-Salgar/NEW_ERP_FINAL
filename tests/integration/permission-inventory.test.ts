@@ -42,4 +42,5 @@ describe('machine-derived permission inventory', () => {
     });
     expect({ total: result.rowCount, missing: missing.map((permission) => permission.permissionKey) }).toEqual({ total: result.rowCount, missing: [] });
   });
+
 });

@@ -66,7 +66,7 @@ void main() {
     GetIt.instance.reset();
   });
 
-  testWidgets('permission gate hides role assignment UI without user.manage', (
+  testWidgets('permission gate hides role assignment UI without user.update', (
     WidgetTester tester,
   ) async {
     final effectivePermissions = <String>[];

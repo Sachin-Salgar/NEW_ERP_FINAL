@@ -256,6 +256,46 @@ export class PostgresPlatformRepository
     }
   }
 
+  async seedPlatformAuthorization(): Promise<void> {
+    const permissions = [
+      ['platform', 'tenant', 'read', 'platform.tenant.read', 'Read tenants'],
+      ['platform', 'tenant', 'create', 'platform.tenant.create', 'Create tenants'],
+      ['platform', 'tenant', 'update', 'platform.tenant.update', 'Update tenants'],
+      ['platform', 'tenant', 'delete', 'platform.tenant.delete', 'Delete tenants'],
+      ['platform', 'tenant', 'activate', 'platform.tenant.activate', 'Activate tenants'],
+      ['platform', 'tenant', 'deactivate', 'platform.tenant.deactivate', 'Deactivate tenants'],
+      ['platform', 'tenant', 'suspend', 'platform.tenant.suspend', 'Suspend tenants'],
+      ['platform', 'tenant', 'reactivate', 'platform.tenant.reactivate', 'Reactivate tenants'],
+      ['platform', 'members', '*', 'platform.members.manage', 'Manage platform members'],
+      ['platform', 'roles', '*', 'platform.roles.manage', 'Manage platform roles'],
+      ['platform', 'permissions', '*', 'platform.permissions.manage', 'Manage platform permissions'],
+      ['platform', 'security', '*', 'platform.security.manage', 'Manage platform security'],
+      ['platform', 'audit', 'read', 'platform.audit.read', 'Read platform audit'],
+      ['platform', 'audit', 'export', 'platform.audit.export', 'Export platform audit'],
+    ] as const;
+    for (const [moduleCode, resource, action, permissionKey, displayName] of permissions) {
+      await this.pool.query(
+        `INSERT INTO platform_permissions
+          (module_code, resource, action, scope, permission_key, display_name, is_system)
+         VALUES ($1, $2, $3, 'global', $4, $5, true)
+         ON CONFLICT (permission_key) DO NOTHING`,
+        [moduleCode, resource, action, permissionKey, displayName],
+      );
+    }
+    await this.pool.query(
+      `INSERT INTO platform_roles (code, name, description, is_system)
+       VALUES ('platform_owner', 'Platform Owner', 'Protected platform administrator role', true)
+       ON CONFLICT (code) DO NOTHING`,
+    );
+    await this.pool.query(
+      `INSERT INTO platform_role_permissions (platform_role_id, platform_permission_id)
+       SELECT r.id, p.id
+       FROM platform_roles r CROSS JOIN platform_permissions p
+       WHERE r.code = 'platform_owner' AND r.is_system = true
+       ON CONFLICT DO NOTHING`,
+    );
+  }
+
   async findByTenantAndIdentifier(
     tenantId: string,
     identifier: string,

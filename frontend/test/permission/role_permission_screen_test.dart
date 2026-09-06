@@ -164,7 +164,7 @@ MockClient _mock() {
       'displayName': 'Deactivate Users',
     },
     {
-      'permissionKey': 'role.manage',
+      'permissionKey': 'role.create',
       'moduleCode': 'security',
       'resource': 'role',
       'action': 'manage',
@@ -220,7 +220,7 @@ MockClient _mock() {
       return http.Response(
         jsonEncode({
           'success': true,
-          'permissions': ['role.manage'],
+          'permissions': ['role.create'],
         }),
         200,
       );

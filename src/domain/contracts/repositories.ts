@@ -38,6 +38,7 @@ export interface PlatformBootstrapRepository {
       isSystem?: boolean;
     }>,
   ): Promise<void>;
+  seedPlatformAuthorization(): Promise<void>;
 }
 
 export interface LoginCandidate {

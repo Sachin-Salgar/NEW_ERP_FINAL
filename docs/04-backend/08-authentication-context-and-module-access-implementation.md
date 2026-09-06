@@ -35,8 +35,8 @@ Core modules are automatically enabled for newly-created tenants and organizatio
 ## API surface
 
 - `GET /api/v1/auth/modules` — returns modules enabled for the active organization and entitled for the tenant.
-- `POST /api/v1/auth/modules/:code/enable` — enables an organization module; requires `tenant.manage`.
-- `POST /api/v1/auth/modules/:code/disable` — disables a non-core organization module; requires `tenant.manage`.
+- `POST /api/v1/auth/modules/:code/enable` — enables an organization module; requires `tenant.update`.
+- `POST /api/v1/auth/modules/:code/disable` — disables a non-core organization module; requires `tenant.update`.
 
 Protected permission checks also enforce the corresponding module boundary before evaluating the permission itself.
 

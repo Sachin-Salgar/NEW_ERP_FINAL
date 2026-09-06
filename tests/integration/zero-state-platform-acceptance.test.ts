@@ -50,6 +50,13 @@ describe('fresh zero-state platform acceptance', () => {
     setupPool = new Pool({ connectionString: databaseUrl });
     await setupPool.query(securitySql);
     await new PlatformBootstrapService(new PostgresPlatformRepository(setupPool)).seedReferenceData();
+    const retiredPermissions = await setupPool.query(
+      `SELECT permission_key
+       FROM permissions
+       WHERE permission_key = ANY($1::text[])`,
+      [['tenant.manage', 'organization.manage', 'branch.manage', 'user.manage', 'role.manage', 'permission.manage', 'session.manage']],
+    );
+    expect(retiredPermissions.rows).toEqual([]);
     const sessionColumn = await setupPool.query(`SELECT is_nullable FROM information_schema.columns WHERE table_name = 'user_sessions' AND column_name = 'tenant_id'`);
     expect(sessionColumn.rows[0]?.is_nullable).toBe('YES');
 

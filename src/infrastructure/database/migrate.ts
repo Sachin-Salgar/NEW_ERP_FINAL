@@ -11,106 +11,13 @@ import { createDatabaseClientOptions, type DatabaseSslMode } from './connection.
 const MIGRATION_TABLE = '__drizzle_migrations';
 
 const migrationChecks: Record<string, (client: Client) => Promise<boolean>> = {
-  '0000_core-platform-phase-1': async (client) => {
-    const tableNames = [
-      'tenants',
-      'tenant_subscriptions',
-      'tenant_modules',
-      'organizations',
-      'branches',
-      'financial_years',
-      'users',
-      'roles',
-      'permissions',
-      'role_permissions',
-      'user_sessions',
-      'user_roles',
-      'user_permissions',
-      'user_organization_access',
-      'user_branch_access',
-      'modules',
-      'subscription_plans',
-    ];
-    const typeNames = [
-      'fy_status_enum',
-      'org_status_enum',
-      'permission_scope_enum',
-      'reset_policy_enum',
-      'subscription_status_enum',
-      'tenant_status_enum',
-      'user_status_enum',
-    ];
-
-    for (const tableName of tableNames) {
-      if (!(await tableExists(client, tableName))) {
-        return false;
-      }
-    }
-
-    for (const typeName of typeNames) {
-      if (!(await typeExists(client, typeName))) {
-        return false;
-      }
-    }
-
-    return true;
-  },
-  '0001_location-domain': async (client) =>
-    (await tableExists(client, 'locations')) &&
-    (await tableExists(client, 'user_location_access')) &&
-    (await columnExists(client, 'user_sessions', 'location_id')) &&
-    !(await columnExists(client, 'user_location_access', 'id')),
-  '0002-organization-module-access': async (client) =>
-    (await tableExists(client, 'organization_modules')) &&
-    (await tableExists(client, 'tenant_modules')) &&
-    (await functionExists(client, 'initialize_core_organization_modules')) &&
-    (await functionExists(client, 'initialize_core_tenant_modules')) &&
-    (await triggerExists(client, 'trg_initialize_core_organization_modules', 'organizations')) &&
-    (await triggerExists(client, 'trg_initialize_core_tenant_modules', 'tenants')) &&
-    (await policyExists(client, 'organization_modules', 'organization_modules_tenant_org_isolation_policy')),
-  '0003-identity-based-login': async (client) =>
-    (await tableExists(client, 'auth_login_identifiers')) &&
-    (await columnExists(client, 'users', 'tenant_id')) &&
-    (await indexExists(client, 'idx_auth_login_identifiers_lookup')),
-  '0004-sync-login-identifiers': async (client) =>
-    (await functionExists(client, 'sync_auth_login_identifiers')) &&
-    (await triggerExists(client, 'trg_sync_auth_login_identifiers', 'users')),
-  '0005-code-counters': async (client) =>
-    (await tableExists(client, 'code_counters')) &&
-    (await policyExists(client, 'code_counters', 'code_counters_tenant_isolation_policy')),
-  '0006-default-location-context': async (client) =>
-    (await columnExists(client, 'users', 'default_location_id')) &&
-    (await constraintExists(client, 'users', 'fk_user_location_tenant')),
-  '0007-audit-events': async (client) =>
-    (await tableExists(client, 'audit_events')) &&
-    (await policyExists(client, 'audit_events', 'audit_events_tenant_isolation_policy')) &&
-    (await triggerExists(client, 'trg_prevent_audit_event_update', 'audit_events')) &&
-    (await triggerExists(client, 'trg_prevent_audit_event_delete', 'audit_events')),
-  '0052-platform-identity-membership-context': async (client) =>
+  '0000_initial-platform-baseline': async (client) =>
     (await tableExists(client, 'identities')) &&
-    (await tableExists(client, 'identity_credentials')) &&
     (await tableExists(client, 'tenant_memberships')) &&
     (await tableExists(client, 'platform_memberships')) &&
-    (await tableExists(client, 'platform_roles')) &&
-    (await tableExists(client, 'platform_permissions')) &&
-    (await columnExists(client, 'users', 'identity_id')) &&
-    (await columnExists(client, 'user_sessions', 'context_type')) &&
-    (await columnExists(client, 'audit_events', 'actor_identity_id')),
-  '0053-platform-compatibility-triggers': async (client) =>
-    (await functionExists(client, 'assign_user_identity_compatibility')) &&
-    (await functionExists(client, 'assign_session_context_compatibility')) &&
-    (await triggerExists(client, 'trg_assign_user_identity_compatibility', 'users')) &&
-    (await triggerExists(client, 'trg_assign_session_context_compatibility', 'user_sessions')) &&
-    (await policyExists(client, 'audit_events', 'audit_events_tenant_context_policy')),
-  '0054-platform-procedures-and-audit-context': async (client) =>
-    (await tableExists(client, 'security_bootstrap_state')) &&
+    (await tableExists(client, 'audit_events')) &&
     (await functionExists(client, 'platform_update_tenant_status(uuid,text)')) &&
-    (await functionExists(client, 'platform_delete_tenant(uuid)')),
-  '0055-platform-administration': async (client) =>
-    (await tableExists(client, 'platform_security_policy')) &&
-    (await columnExists(client, 'audit_events', 'actor_platform_membership_id')),
-  '0056-platform-lifecycle-enum-correction': async (client) =>
-    (await functionExists(client, 'platform_update_tenant_status(uuid,text)')),
+    (await policyExists(client, 'audit_events', 'audit_events_context_visibility_policy')),
 };
 
 async function tableExists(client: Client, tableName: string): Promise<boolean> {
@@ -120,52 +27,10 @@ async function tableExists(client: Client, tableName: string): Promise<boolean> 
   return result.rows[0]?.exists ?? false;
 }
 
-async function columnExists(client: Client, tableName: string, columnName: string): Promise<boolean> {
-  const result = await client.query<{ exists: boolean }>(
-    `SELECT EXISTS (
-       SELECT 1
-       FROM information_schema.columns
-       WHERE table_schema = 'public'
-         AND table_name = $1
-         AND column_name = $2
-     ) AS exists;`,
-    [tableName, columnName],
-  );
-
-  return result.rows[0]?.exists ?? false;
-}
-
 async function functionExists(client: Client, functionName: string): Promise<boolean> {
   const result = await client.query<{ exists: boolean }>('SELECT to_regprocedure($1) IS NOT NULL AS exists', [
     `public.${functionName}`,
   ]);
-  return result.rows[0]?.exists ?? false;
-}
-
-async function triggerExists(client: Client, triggerName: string, tableName: string): Promise<boolean> {
-  const result = await client.query<{ exists: boolean }>(
-    `SELECT EXISTS (
-      SELECT 1
-      FROM pg_trigger t
-      JOIN pg_class c ON c.oid = t.tgrelid
-      WHERE c.relname = $1
-        AND t.tgname = $2
-    ) AS exists;`,
-    [tableName, triggerName],
-  );
-  return result.rows[0]?.exists ?? false;
-}
-
-async function indexExists(client: Client, indexName: string): Promise<boolean> {
-  const result = await client.query<{ exists: boolean }>(
-    `SELECT EXISTS (
-       SELECT 1
-       FROM pg_indexes
-       WHERE schemaname = 'public'
-         AND indexname = $1
-     ) AS exists;`,
-    [indexName],
-  );
   return result.rows[0]?.exists ?? false;
 }
 
@@ -183,27 +48,6 @@ async function policyExists(client: Client, tableName: string, policyName: strin
   return result.rows[0]?.exists ?? false;
 }
 
-async function constraintExists(client: Client, tableName: string, constraintName: string): Promise<boolean> {
-  const result = await client.query<{ exists: boolean }>(
-    `SELECT EXISTS (
-       SELECT 1
-       FROM information_schema.table_constraints
-       WHERE table_schema = 'public'
-         AND table_name = $1
-         AND constraint_name = $2
-     ) AS exists;`,
-    [tableName, constraintName],
-  );
-  return result.rows[0]?.exists ?? false;
-}
-
-async function typeExists(client: Client, typeName: string): Promise<boolean> {
-  const result = await client.query<{ exists: boolean }>('SELECT to_regtype($1) IS NOT NULL AS exists', [
-    `public.${typeName}`,
-  ]);
-  return result.rows[0]?.exists ?? false;
-}
-
 async function ensureMigrationTable(client: Client): Promise<void> {
   await client.query(`
     CREATE TABLE IF NOT EXISTS public."${MIGRATION_TABLE}" (
@@ -212,6 +56,13 @@ async function ensureMigrationTable(client: Client): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+}
+
+async function hasMigrationHistory(client: Client): Promise<boolean> {
+  const result = await client.query<{ count: string }>(
+    `SELECT count(*)::text AS count FROM public."${MIGRATION_TABLE}"`,
+  );
+  return result.rows[0]?.count !== '0';
 }
 
 async function readMigrationJournal(): Promise<Array<{ tag: string }>> {
@@ -267,6 +118,17 @@ export async function runMigrations(databaseUrl?: string, sslMode?: DatabaseSslM
 
       const migrationDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
       const journalEntries = await readMigrationJournal();
+      const baselineEntry = journalEntries[0];
+      if (!baselineEntry || baselineEntry.tag !== '0000_initial-platform-baseline') {
+        throw new Error('Migration journal must begin with 0000_initial-platform-baseline.');
+      }
+      const baselinePath = path.join(migrationDir, `${baselineEntry.tag}.sql`);
+      const baselineHash = createHash('sha256').update(readFileSync(baselinePath)).digest('hex');
+      if (!(await migrationAlreadyTracked(client, baselineHash)) && (await hasMigrationHistory(client))) {
+        throw new Error(
+          'Historical migration state detected. Development databases must be rebuilt from zero before applying the consolidated baseline.',
+        );
+      }
 
       for (const entry of journalEntries) {
         const fileName = `${entry.tag}.sql`;
