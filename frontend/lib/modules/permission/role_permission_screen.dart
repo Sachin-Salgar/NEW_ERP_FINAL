@@ -9,6 +9,8 @@ import '../role/role_service.dart';
 import 'permission_metadata.dart';
 import 'permission_service.dart';
 
+enum _ActionGroup { common, business }
+
 class RolePermissionScreen extends StatefulWidget {
   final String roleId;
   const RolePermissionScreen({Key? key, required this.roleId})
@@ -19,31 +21,40 @@ class RolePermissionScreen extends StatefulWidget {
 }
 
 class _RolePermissionScreenState extends State<RolePermissionScreen> {
+  static const _commonActions = {
+    'read',
+    'create',
+    'update',
+    'cancel',
+    'delete',
+  };
   late final TextEditingController _searchController;
-  String _moduleFilter = 'All modules';
-  bool _saving = false;
+  String _category = 'All categories';
+  _ActionGroup _group = _ActionGroup.common;
+  String? _roleId;
+  Set<String> _selected = {};
+  Set<String> _initial = {};
+  Set<String> _expandedModules = {};
   bool _initialized = false;
   bool _roleNotFound = false;
-  String? _selectedRoleId;
-  Set<String> _selectedPermissions = {};
-  Set<String> _initialPermissions = {};
+  bool _saving = false;
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
-    _selectedRoleId = widget.roleId.trim().isEmpty ? null : widget.roleId;
+    _roleId = widget.roleId.trim().isEmpty ? null : widget.roleId;
   }
 
   @override
   void didUpdateWidget(covariant RolePermissionScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.roleId != widget.roleId && widget.roleId.trim().isNotEmpty) {
-      _selectedRoleId = widget.roleId;
+      _roleId = widget.roleId;
       _initialized = false;
       _roleNotFound = false;
-      _selectedPermissions.clear();
-      _initialPermissions.clear();
+      _selected.clear();
+      _initial.clear();
     }
   }
 
@@ -53,137 +64,157 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
     super.dispose();
   }
 
-  Future<void> _loadPermissions(RoleService roleSvc, String roleId) async {
-    final permissions = await roleSvc.getRolePermissions(roleId);
-    final assigned = permissions
+  Future<void> _loadRole(RoleService service, String id) async {
+    final role = await service.getRole(id);
+    if (!mounted) return;
+    if (role == null) {
+      setState(() {
+        _initialized = true;
+        _roleNotFound = true;
+        _selected = {};
+        _initial = {};
+      });
+      return;
+    }
+    final assigned = await service.getRolePermissions(id);
+    final keys = assigned
         .map(
-          (entry) =>
-              (entry['permissionKey'] ?? entry['permission_key'])?.toString() ??
-              '',
+          (e) => (e['permissionKey'] ?? e['permission_key'])?.toString() ?? '',
         )
-        .where((key) => key.isNotEmpty)
+        .where((e) => e.isNotEmpty)
         .toSet();
-
     if (!mounted) return;
     setState(() {
-      _initialPermissions = assigned;
-      _selectedPermissions = Set<String>.from(assigned);
+      _selected = keys;
+      _initial = Set<String>.from(keys);
       _initialized = true;
       _roleNotFound = false;
     });
   }
 
-  Future<void> _loadRoleContext(RoleService roleSvc, String roleId) async {
-    final role = await roleSvc.getRole(roleId);
-    if (!mounted) return;
+  bool _isCommon(PermissionDescriptor p) =>
+      _commonActions.contains(p.action.toLowerCase());
 
-    if (role == null) {
-      setState(() {
-        _initialized = true;
-        _roleNotFound = true;
-        _selectedPermissions = {};
-        _initialPermissions = {};
-      });
-      return;
+  String _actionLabel(String action) {
+    switch (action.toLowerCase()) {
+      case 'read':
+        return 'View';
+      case 'create':
+        return 'Create';
+      case 'update':
+        return 'Update';
+      case 'cancel':
+        return 'Cancel';
+      case 'delete':
+        return 'Delete';
+      default:
+        return PermissionDescriptor.actionDisplayName(action);
     }
-
-    await _loadPermissions(roleSvc, roleId);
   }
 
-  void _togglePermission(String key, bool value) {
-    setState(() {
-      if (value) {
-        _selectedPermissions.add(key);
-      } else {
-        _selectedPermissions.remove(key);
-      }
+  List<String> _actions(List<PermissionDescriptor> permissions) {
+    final values = permissions.map((p) => p.action).toSet().toList();
+    const order = ['read', 'create', 'update', 'cancel', 'delete'];
+    values.sort((a, b) {
+      final ai = order.indexOf(a.toLowerCase());
+      final bi = order.indexOf(b.toLowerCase());
+      if (ai >= 0 && bi >= 0) return ai.compareTo(bi);
+      if (ai >= 0) return -1;
+      if (bi >= 0) return 1;
+      return _actionLabel(a).compareTo(_actionLabel(b));
     });
+    return values;
   }
 
-  void _toggleModule(List<PermissionDescriptor> permissions, bool value) {
+  void _set(Iterable<PermissionDescriptor> permissions, bool value) {
     setState(() {
-      for (final permission in permissions) {
+      for (final p in permissions) {
         if (value) {
-          _selectedPermissions.add(permission.permissionKey);
+          _selected.add(p.permissionKey);
         } else {
-          _selectedPermissions.remove(permission.permissionKey);
+          _selected.remove(p.permissionKey);
         }
       }
     });
   }
 
-  void _toggleResource(PermissionMatrixResource resource, bool value) {
-    setState(() {
-      for (final action in resource.actions) {
-        final permission = resource.permissionFor(action)!;
-        if (value) {
-          _selectedPermissions.add(permission.permissionKey);
-        } else {
-          _selectedPermissions.remove(permission.permissionKey);
-        }
-      }
-    });
-  }
-
-  Future<void> _save(RoleService roleSvc) async {
-    final roleId = _selectedRoleId ?? widget.roleId;
-    if (roleId.trim().isEmpty) {
+  Future<void> _save(RoleService service) async {
+    final id = _roleId ?? widget.roleId;
+    if (id.trim().isEmpty) return;
+    final desired = _selected.toList()..sort();
+    final initial = _initial.toList()..sort();
+    final changed =
+        desired.length != initial.length ||
+        desired.asMap().entries.any((e) => e.value != initial[e.key]);
+    if (!changed) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select a role before saving.')),
+        const SnackBar(content: Text('No permission changes to save.')),
       );
       return;
     }
-
-    final desiredPermissions = _selectedPermissions.toList()..sort();
-    final initialPermissions = _initialPermissions.toList()..sort();
-    final hasChanges =
-        desiredPermissions.length != initialPermissions.length ||
-        desiredPermissions.asMap().entries.any(
-          (entry) => entry.value != initialPermissions[entry.key],
-        );
-    if (!hasChanges) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No permission changes to save.')),
-        );
-      }
-      return;
-    }
-
     setState(() => _saving = true);
-
-    await roleSvc.replacePermissionsForRole(roleId, desiredPermissions);
-
+    await service.replacePermissionsForRole(id, desired);
     if (!mounted) return;
-
-    final hasError = roleSvc.error != null;
+    final error = service.error;
     setState(() {
       _saving = false;
-      if (!hasError) {
-        _initialPermissions = Set<String>.from(desiredPermissions);
-      }
+      if (error == null) _initial = Set<String>.from(desired);
     });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          error == null
+              ? 'Permission assignment saved.'
+              : 'Failed to save permission changes: $error',
+        ),
+      ),
+    );
+  }
 
-    if (hasError) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to save permission changes: ${roleSvc.error}'),
+  Widget _check({
+    required String key,
+    required bool? value,
+    required ValueChanged<bool?>? onChanged,
+  }) {
+    return Checkbox(
+      key: ValueKey('permission:$key'),
+      value: value,
+      tristate: value == null,
+      onChanged: onChanged,
+      visualDensity: VisualDensity.compact,
+    );
+  }
+
+  DataCell _cell(PermissionDescriptor? permission, bool canManage) {
+    if (permission == null) {
+      return const DataCell(
+        Center(
+          child: Text('—', style: TextStyle(color: Colors.grey)),
         ),
       );
-      return;
     }
-
-    await _loadPermissions(roleSvc, roleId);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Permission assignment saved.')),
+    return DataCell(
+      Center(
+        child: _check(
+          key: permission.permissionKey,
+          value: _selected.contains(permission.permissionKey),
+          onChanged: canManage
+              ? (value) => setState(() {
+                  if (value ?? false) {
+                    _selected.add(permission.permissionKey);
+                  } else {
+                    _selected.remove(permission.permissionKey);
+                  }
+                })
+              : null,
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final auth = GetIt.instance.get<AuthService>();
-
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
@@ -196,126 +227,100 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
         ),
       ],
       child: Consumer2<PermissionService, RoleService>(
-        builder: (context, permSvc, roleSvc, _) {
+        builder: (context, permissions, roles, _) {
           final canManage = auth.hasPermission('role.manage');
-
-          if (!permSvc.isLoading &&
-              !permSvc.fetchedOnce &&
-              permSvc.error == null) {
+          if (!permissions.isLoading &&
+              !permissions.fetchedOnce &&
+              permissions.error == null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) permSvc.fetchPermissions();
+              if (mounted) permissions.fetchPermissions();
             });
           }
-
-          if (!roleSvc.isLoading &&
-              !roleSvc.fetchedOnce &&
-              roleSvc.error == null) {
+          if (!roles.isLoading && !roles.fetchedOnce && roles.error == null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) roleSvc.fetchRoles();
+              if (mounted) roles.fetchRoles();
             });
           }
-
-          if ((_selectedRoleId == null || _selectedRoleId!.isEmpty) &&
-              roleSvc.roles.isNotEmpty &&
+          if ((_roleId == null || _roleId!.isEmpty) &&
+              roles.roles.isNotEmpty &&
               !_initialized) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
-              final firstRoleId = roleSvc.roles.first['id']?.toString() ?? '';
-              if (firstRoleId.isNotEmpty && _selectedRoleId != firstRoleId) {
-                setState(() {
-                  _selectedRoleId = firstRoleId;
-                  _initialized = false;
-                });
-              }
+              final id = roles.roles.first['id']?.toString() ?? '';
+              if (id.isNotEmpty) setState(() => _roleId = id);
             });
           }
-
-          if (_selectedRoleId != null &&
-              _selectedRoleId!.isNotEmpty &&
+          if (_roleId != null &&
+              _roleId!.isNotEmpty &&
               !_initialized &&
-              !roleSvc.isLoading &&
-              roleSvc.error == null) {
+              !roles.isLoading &&
+              roles.error == null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) _loadRoleContext(roleSvc, _selectedRoleId!);
+              if (mounted) _loadRole(roles, _roleId!);
             });
           }
 
-          final allPermissions = permSvc.permissionDetails.isNotEmpty
-              ? permSvc.permissionDetails
-              : permSvc.permissions
+          final all = permissions.permissionDetails.isNotEmpty
+              ? permissions.permissionDetails
+              : permissions.permissions
                     .map(PermissionDescriptor.fromJson)
                     .toList(growable: false);
-
-          final allMatrix = PermissionDescriptor.buildMatrix(allPermissions);
-          final moduleNames = [
-            'All modules',
-            ...allMatrix.map((module) => module.displayName),
+          final categories = [
+            'All categories',
+            ...PermissionDescriptor.buildMatrix(all).map((m) => m.displayName),
           ];
-
-          final visiblePermissions = allPermissions
-              .where((permission) {
-                final moduleMatches =
-                    _moduleFilter == 'All modules' ||
-                    permission.moduleName == _moduleFilter;
+          final visible = all
+              .where((p) {
+                final groupMatch = _group == _ActionGroup.common
+                    ? _isCommon(p)
+                    : !_isCommon(p);
+                final categoryMatch =
+                    _category == 'All categories' || p.moduleName == _category;
                 final query = _searchController.text.trim().toLowerCase();
-                final textMatches =
+                final searchMatch =
                     query.isEmpty ||
-                    '${permission.displayName} ${permission.moduleName} ${permission.resource} ${permission.action} ${permission.permissionKey}'
+                    '${p.moduleName} ${p.resource} ${p.displayName} ${p.action}'
                         .toLowerCase()
                         .contains(query);
-                return moduleMatches && textMatches;
+                return groupMatch && categoryMatch && searchMatch;
               })
               .toList(growable: false);
+          final matrix = PermissionDescriptor.buildMatrix(visible);
+          final actions = _actions(visible);
 
-          final visibleMatrix = PermissionDescriptor.buildMatrix(
-            visiblePermissions,
-          );
-
-          if (permSvc.isLoading ||
-              roleSvc.isLoading ||
-              (_selectedRoleId != null &&
-                  _selectedRoleId!.isNotEmpty &&
-                  !_initialized)) {
+          if (permissions.isLoading ||
+              roles.isLoading ||
+              (_roleId != null && _roleId!.isNotEmpty && !_initialized)) {
             return const Scaffold(
-              appBar: PreferredSize(
-                preferredSize: Size.fromHeight(kToolbarHeight),
-                child: SafeArea(child: SizedBox.shrink()),
-              ),
               body: Center(child: CircularProgressIndicator()),
             );
           }
-
-          if (permSvc.error != null) {
+          if (permissions.error != null) {
             return Scaffold(
               appBar: AppBar(
                 leading: SettingsBackButton(parentRoute: '/settings/roles'),
                 title: const Text('Role permissions'),
               ),
               body: Center(
-                child: Text('Error loading permissions: ${permSvc.error}'),
+                child: Text('Error loading permissions: ${permissions.error}'),
               ),
             );
           }
-
           if (_roleNotFound) {
             return Scaffold(
               appBar: AppBar(
                 leading: SettingsBackButton(parentRoute: '/settings/roles'),
                 title: const Text('Role permissions'),
               ),
-              body: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text(
-                    'Role not found. Please return to the roles list and choose a valid role.',
-                    textAlign: TextAlign.center,
-                  ),
+              body: const Center(
+                child: Text(
+                  'Role not found. Please return to the roles list and choose a valid role.',
                 ),
               ),
             );
           }
 
-          final roleOptions = roleSvc.roles
+          final roleItems = roles.roles
               .map(
                 (role) => DropdownMenuItem<String>(
                   value: role['id']?.toString() ?? '',
@@ -328,6 +333,145 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
               )
               .toList(growable: false);
 
+          final rows = <DataRow>[];
+          for (final module in matrix) {
+            final modulePermissions = module.resources
+                .expand((r) => r.actions.map((a) => r.permissionFor(a)!))
+                .toList(growable: false);
+            final selectedCount = modulePermissions
+                .where((p) => _selected.contains(p.permissionKey))
+                .length;
+            final allSelected =
+                modulePermissions.isNotEmpty &&
+                selectedCount == modulePermissions.length;
+            final someSelected = selectedCount > 0 && !allSelected;
+            final expanded = _expandedModules.contains(module.moduleCode);
+
+            rows.add(
+              DataRow(
+                cells: [
+                  DataCell(
+                    SizedBox(
+                      width: 320,
+                      child: Row(
+                        children: [
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints.tightFor(
+                              width: 28,
+                              height: 28,
+                            ),
+                            icon: Icon(
+                              expanded
+                                  ? Icons.keyboard_arrow_down
+                                  : Icons.keyboard_arrow_right,
+                            ),
+                            onPressed: () => setState(() {
+                              if (!(_expandedModules.remove(module.moduleCode)))
+                                _expandedModules.add(module.moduleCode);
+                            }),
+                          ),
+                          Expanded(
+                            child: Text(
+                              module.displayName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          if (canManage)
+                            _check(
+                              key: 'module:${module.moduleCode}',
+                              value: allSelected
+                                  ? true
+                                  : (someSelected ? null : false),
+                              onChanged: (v) =>
+                                  _set(modulePermissions, v ?? true),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  ...actions.map((action) {
+                    final actionPermissions = module.resources
+                        .map((r) => r.permissionFor(action))
+                        .whereType<PermissionDescriptor>()
+                        .toList(growable: false);
+                    final count = actionPermissions
+                        .where((p) => _selected.contains(p.permissionKey))
+                        .length;
+                    final allAction =
+                        actionPermissions.isNotEmpty &&
+                        count == actionPermissions.length;
+                    final someAction = count > 0 && !allAction;
+                    return DataCell(
+                      Center(
+                        child: canManage
+                            ? _check(
+                                key: 'module:${module.moduleCode}:$action',
+                                value: allAction
+                                    ? true
+                                    : (someAction ? null : false),
+                                onChanged: (v) =>
+                                    _set(actionPermissions, v ?? true),
+                              )
+                            : (allAction
+                                  ? const Icon(Icons.check, size: 18)
+                                  : const SizedBox.shrink()),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            );
+
+            if (!expanded) continue;
+            for (final resource in module.resources) {
+              final resourcePermissions = resource.actions
+                  .map((a) => resource.permissionFor(a)!)
+                  .toList(growable: false);
+              final count = resourcePermissions
+                  .where((p) => _selected.contains(p.permissionKey))
+                  .length;
+              final allResource =
+                  resourcePermissions.isNotEmpty &&
+                  count == resourcePermissions.length;
+              final someResource = count > 0 && !allResource;
+              rows.add(
+                DataRow(
+                  cells: [
+                    DataCell(
+                      SizedBox(
+                        width: 320,
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 40),
+                            Expanded(child: Text(resource.displayName)),
+                            if (canManage)
+                              _check(
+                                key:
+                                    'resource:${module.moduleCode}:${resource.resourceCode}',
+                                value: allResource
+                                    ? true
+                                    : (someResource ? null : false),
+                                onChanged: (v) =>
+                                    _set(resourcePermissions, v ?? true),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    ...actions.map(
+                      (action) =>
+                          _cell(resource.permissionFor(action), canManage),
+                    ),
+                  ],
+                ),
+              );
+            }
+          }
+
           return Scaffold(
             appBar: AppBar(
               leading: SettingsBackButton(parentRoute: '/settings/roles'),
@@ -337,350 +481,147 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> {
               child: Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                    child: Row(
                       children: [
-                        Text(
-                          'Role permissions',
-                          style: Theme.of(context).textTheme.titleLarge,
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            key: const ValueKey('role-selector'),
+                            isExpanded: true,
+                            initialValue:
+                                roleItems.any((i) => i.value == _roleId)
+                                ? _roleId
+                                : null,
+                            hint: const Text('Select role'),
+                            decoration: const InputDecoration(
+                              labelText: 'Role',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: roleItems,
+                            onChanged: canManage
+                                ? (v) {
+                                    if (v == null || v.isEmpty) return;
+                                    setState(() {
+                                      _roleId = v;
+                                      _initialized = false;
+                                      _selected.clear();
+                                      _initial.clear();
+                                    });
+                                  }
+                                : null,
+                          ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Select a role, filter by module, and update the permissions for that role.',
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            key: const ValueKey('category-selector'),
+                            isExpanded: true,
+                            initialValue: categories.contains(_category)
+                                ? _category
+                                : 'All categories',
+                            decoration: const InputDecoration(
+                              labelText: 'Category',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: categories
+                                .map(
+                                  (c) => DropdownMenuItem(
+                                    value: c,
+                                    child: Text(c),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (v) => setState(
+                              () => _category = v ?? 'All categories',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonFormField<_ActionGroup>(
+                            key: const ValueKey('action-type-selector'),
+                            isExpanded: true,
+                            initialValue: _group,
+                            decoration: const InputDecoration(
+                              labelText: 'Action type',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: _ActionGroup.common,
+                                child: Text('Common Actions'),
+                              ),
+                              DropdownMenuItem(
+                                value: _ActionGroup.business,
+                                child: Text('Business Actions'),
+                              ),
+                            ],
+                            onChanged: (v) => setState(
+                              () => _group = v ?? _ActionGroup.common,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        FilledButton.icon(
+                          onPressed: canManage && !_saving
+                              ? () => _save(roles)
+                              : null,
+                          icon: const Icon(Icons.save_outlined),
+                          label: Text(_saving ? 'Saving...' : 'Save'),
                         ),
                       ],
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            initialValue:
-                                roleOptions.any(
-                                  (item) => item.value == _selectedRoleId,
-                                )
-                                ? _selectedRoleId
-                                : null,
-                            hint: const Text('Select a role'),
-                            decoration: const InputDecoration(
-                              labelText: 'Role',
-                              border: OutlineInputBorder(),
-                            ),
-                            items: roleOptions,
-                            onChanged: canManage && roleOptions.isNotEmpty
-                                ? (value) {
-                                    if (value == null || value.isEmpty) return;
-                                    setState(() {
-                                      _selectedRoleId = value;
-                                      _initialized = false;
-                                      _selectedPermissions.clear();
-                                      _initialPermissions.clear();
-                                    });
-                                  }
-                                : null,
-                          ),
-                        ),
-                        if (canManage &&
-                            _selectedRoleId != null &&
-                            _selectedRoleId!.isNotEmpty) ...[
-                          const SizedBox(width: 12),
-                          SizedBox(
-                            width: 148,
-                            child: FilledButton.icon(
-                              onPressed: _saving ? null : () => _save(roleSvc),
-                              icon: const Icon(Icons.save_outlined),
-                              label: Text(_saving ? 'Saving...' : 'Save'),
-                            ),
-                          ),
-                        ],
-                      ],
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: const InputDecoration(
+                        hintText: 'Search permissions',
+                        prefixIcon: Icon(Icons.search_outlined),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (_) => setState(() {}),
                     ),
                   ),
-                  if (_selectedRoleId == null || _selectedRoleId!.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: Text(
-                        'No role selected. Choose a role to begin managing permissions.',
-                      ),
-                    )
-                  else ...[
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                      child: DropdownButtonFormField<String>(
-                        initialValue: moduleNames.contains(_moduleFilter)
-                            ? _moduleFilter
-                            : 'All modules',
-                        decoration: const InputDecoration(
-                          labelText: 'Module filter',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: moduleNames
-                            .map(
-                              (module) => DropdownMenuItem(
-                                value: module,
-                                child: Text(module),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) => setState(
-                          () => _moduleFilter = value ?? 'All modules',
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: const InputDecoration(
-                          hintText: 'Search permissions',
-                          prefixIcon: Icon(Icons.search_outlined),
-                          border: OutlineInputBorder(),
-                        ),
-                        onChanged: (_) => setState(() {}),
-                      ),
-                    ),
-                    if (canManage)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                        child: Row(
-                          children: [
-                            OutlinedButton(
-                              onPressed: () => setState(() {
-                                for (final permission in visiblePermissions) {
-                                  _selectedPermissions.add(
-                                    permission.permissionKey,
-                                  );
-                                }
-                              }),
-                              child: const Text('Select visible'),
+                  Expanded(
+                    child: matrix.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'No permissions match the selected action type and filters.',
                             ),
-                            const SizedBox(width: 8),
-                            OutlinedButton(
-                              onPressed: () => setState(() {
-                                for (final permission in visiblePermissions) {
-                                  _selectedPermissions.remove(
-                                    permission.permissionKey,
-                                  );
-                                }
-                              }),
-                              child: const Text('Clear visible'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    Expanded(
-                      child: visibleMatrix.isEmpty
-                          ? const Center(
-                              child: Text(
-                                'No permissions match the current filter.',
-                              ),
-                            )
-                          : ListView(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                              children: visibleMatrix.map((module) {
-                                final modulePermissions = module.resources
-                                    .expand(
-                                      (resource) => resource.actions.map(
-                                        (action) =>
-                                            resource.permissionFor(action)!,
-                                      ),
-                                    )
-                                    .toList(growable: false);
-                                final selectedCount = modulePermissions
-                                    .where(
-                                      (permission) => _selectedPermissions
-                                          .contains(permission.permissionKey),
-                                    )
-                                    .length;
-                                final allSelected =
-                                    selectedCount == modulePermissions.length &&
-                                    modulePermissions.isNotEmpty;
-                                final someSelected =
-                                    selectedCount > 0 && !allSelected;
-                                final actions =
-                                    module.resources
-                                        .expand((resource) => resource.actions)
-                                        .toSet()
-                                        .toList()
-                                      ..sort();
-                                return Card(
-                                  margin: const EdgeInsets.only(bottom: 14),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.fromLTRB(
-                                          16,
-                                          16,
-                                          16,
-                                          8,
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            child: Card(
+                              clipBehavior: Clip.antiAlias,
+                              child: Scrollbar(
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: SingleChildScrollView(
+                                    child: DataTable(
+                                      columnSpacing: 28,
+                                      headingRowHeight: 44,
+                                      dataRowMinHeight: 44,
+                                      dataRowMaxHeight: 56,
+                                      columns: [
+                                        DataColumn(
+                                          label: const Text('Permissions'),
                                         ),
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                module.displayName,
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .titleSmall
-                                                    ?.copyWith(
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                    ),
-                                              ),
-                                            ),
-                                            if (canManage)
-                                              Checkbox(
-                                                value: allSelected
-                                                    ? true
-                                                    : (someSelected
-                                                          ? null
-                                                          : false),
-                                                tristate: true,
-                                                onChanged: (value) {
-                                                  final nextValue =
-                                                      value ?? true;
-                                                  _toggleModule(
-                                                    modulePermissions,
-                                                    nextValue,
-                                                  );
-                                                },
-                                              ),
-                                          ],
+                                        ...actions.map(
+                                          (a) => DataColumn(
+                                            label: Text(_actionLabel(a)),
+                                          ),
                                         ),
-                                      ),
-                                      SingleChildScrollView(
-                                        scrollDirection: Axis.horizontal,
-                                        child: DataTable(
-                                          columns: [
-                                            const DataColumn(
-                                              label: Text('Resource'),
-                                            ),
-                                            ...actions.map(
-                                              (action) => DataColumn(
-                                                label: Text(
-                                                  PermissionDescriptor.actionDisplayName(
-                                                    action,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                          rows: module.resources.map((
-                                            resource,
-                                          ) {
-                                            final resourcePermissions = resource
-                                                .actions
-                                                .map(
-                                                  (action) => resource
-                                                      .permissionFor(action)!,
-                                                )
-                                                .toList(growable: false);
-                                            final selectedResourceCount =
-                                                resourcePermissions
-                                                    .where(
-                                                      (
-                                                        permission,
-                                                      ) => _selectedPermissions
-                                                          .contains(
-                                                            permission
-                                                                .permissionKey,
-                                                          ),
-                                                    )
-                                                    .length;
-                                            final allResourceSelected =
-                                                selectedResourceCount ==
-                                                    resourcePermissions
-                                                        .length &&
-                                                resourcePermissions.isNotEmpty;
-                                            final someResourceSelected =
-                                                selectedResourceCount > 0 &&
-                                                !allResourceSelected;
-                                            return DataRow(
-                                              cells: [
-                                                DataCell(
-                                                  Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      Text(
-                                                        resource.displayName,
-                                                      ),
-                                                      if (canManage)
-                                                        Checkbox(
-                                                          key: ValueKey(
-                                                            'resource:${module.moduleCode}:${resource.resourceCode}',
-                                                          ),
-                                                          value:
-                                                              allResourceSelected
-                                                              ? true
-                                                              : (someResourceSelected
-                                                                    ? null
-                                                                    : false),
-                                                          tristate: true,
-                                                          onChanged: (value) =>
-                                                              _toggleResource(
-                                                                resource,
-                                                                value ?? true,
-                                                              ),
-                                                        ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                ...actions.map((action) {
-                                                  final permission = resource
-                                                      .permissionFor(action);
-                                                  if (permission == null) {
-                                                    return const DataCell(
-                                                      Center(
-                                                        child: Text(
-                                                          '—',
-                                                          semanticsLabel:
-                                                              'Not available',
-                                                        ),
-                                                      ),
-                                                    );
-                                                  }
-                                                  return DataCell(
-                                                    Checkbox(
-                                                      key: ValueKey(
-                                                        'permission:${permission.permissionKey}',
-                                                      ),
-                                                      value: _selectedPermissions
-                                                          .contains(
-                                                            permission
-                                                                .permissionKey,
-                                                          ),
-                                                      onChanged: canManage
-                                                          ? (
-                                                              value,
-                                                            ) => _togglePermission(
-                                                              permission
-                                                                  .permissionKey,
-                                                              value ?? false,
-                                                            )
-                                                          : null,
-                                                      semanticLabel: permission
-                                                          .displayName,
-                                                    ),
-                                                  );
-                                                }),
-                                              ],
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ),
-                                    ],
+                                      ],
+                                      rows: rows,
+                                    ),
                                   ),
-                                );
-                              }).toList(),
+                                ),
+                              ),
                             ),
-                    ),
-                  ],
+                          ),
+                  ),
                 ],
               ),
             ),
