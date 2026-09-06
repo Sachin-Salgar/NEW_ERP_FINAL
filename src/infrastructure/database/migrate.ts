@@ -11,13 +11,15 @@ import { createDatabaseClientOptions, type DatabaseSslMode } from './connection.
 const MIGRATION_TABLE = '__drizzle_migrations';
 
 const migrationChecks: Record<string, (client: Client) => Promise<boolean>> = {
-  '0000_initial-platform-baseline': async (client) =>
+  '0000_core_platform': async (client) =>
     (await tableExists(client, 'identities')) &&
     (await tableExists(client, 'tenant_memberships')) &&
     (await tableExists(client, 'platform_memberships')) &&
     (await tableExists(client, 'audit_events')) &&
     (await functionExists(client, 'platform_update_tenant_status(uuid,text)')) &&
     (await policyExists(client, 'audit_events', 'audit_events_context_visibility_policy')),
+  '0001_customer': (client) => tableExists(client, 'customers'),
+  '0002_sales': (client) => tableExists(client, 'sales_quotations'),
 };
 
 async function tableExists(client: Client, tableName: string): Promise<boolean> {
@@ -118,11 +120,11 @@ export async function runMigrations(databaseUrl?: string, sslMode?: DatabaseSslM
 
       const migrationDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
       const journalEntries = await readMigrationJournal();
-      const baselineEntry = journalEntries[0];
-      if (!baselineEntry || baselineEntry.tag !== '0000_initial-platform-baseline') {
-        throw new Error('Migration journal must begin with 0000_initial-platform-baseline.');
+      const firstEntry = journalEntries[0];
+      if (!firstEntry) {
+        throw new Error('Migration journal must contain at least one migration.');
       }
-      const baselinePath = path.join(migrationDir, `${baselineEntry.tag}.sql`);
+      const baselinePath = path.join(migrationDir, `${firstEntry.tag}.sql`);
       const baselineHash = createHash('sha256').update(readFileSync(baselinePath)).digest('hex');
       if (!(await migrationAlreadyTracked(client, baselineHash)) && (await hasMigrationHistory(client))) {
         throw new Error(
@@ -156,8 +158,15 @@ export async function runMigrations(databaseUrl?: string, sslMode?: DatabaseSslM
         }
 
         console.log(`Applying migration: ${fileName}`);
-        await applyMigrationFile(client, filePath);
-        await markMigrationApplied(client, migrationHash);
+        await client.query('BEGIN');
+        try {
+          await applyMigrationFile(client, filePath);
+          await markMigrationApplied(client, migrationHash);
+          await client.query('COMMIT');
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        }
         console.log(`Applied migration: ${fileName}`);
       }
 

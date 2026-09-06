@@ -13,7 +13,7 @@ The ERP uses one identity with independent tenant and platform memberships. A te
 
 This ADR supersedes the scoped identity, session, authorization, RLS, and audit decisions in ADR-0006 and ADR-0014 where they describe a tenant-only model. Existing tenant behavior remains valid until the additive implementation sequence below replaces it.
 
-The repository has no production-data migration requirement. The implementation uses additive migrations followed by a clean development reset and deterministic reseed. Existing migration files are not rewritten.
+The repository has no production-data migration requirement. The implementation uses a clean development reset and deterministic reseed. The active development baseline is intentionally replaced by dependency-ordered Core, Customer, and Sales migrations; the historical migration chain remains recoverable from Git history and is not treated as the active chain.
 
 ## 1. Current repository evidence
 
@@ -424,7 +424,13 @@ Application startup never creates roles, databases, users, or credentials.
 
 ## 10. Migration sequence
 
-Existing migration history is not rewritten.
+The active development migration history is a clean baseline, not a production-data upgrade chain. Historical migrations 0000–0057 remain available in Git history for reconstruction and comparison. The active baseline is dependency ordered:
+
+1. **0000_core_platform**: shared platform, identity, memberships, authorization, audit, tenant context, security functions, and RLS infrastructure.
+2. **0001_customer**: the implemented Customer-domain persistence and its tenant/organization security.
+3. **0002_sales**: implemented Sales persistence and its transaction-supporting dependencies, after Core and Customer.
+
+Each migration is applied transactionally from an empty development database. No later-domain object may be required by an earlier migration. Production-data compatibility is not required for this development-only replacement; production recovery remains restore/forward-compensation governed by ADR-0007.
 
 1. **Identity base**: create enums, `identities`, and `identity_credentials`.
 2. **Memberships**: create `tenant_memberships` and `platform_memberships`, then add `users.identity_id`.

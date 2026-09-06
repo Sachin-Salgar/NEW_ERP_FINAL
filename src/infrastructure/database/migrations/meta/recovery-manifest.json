@@ -1,10 +1,20 @@
 {
   "version": 1,
   "migrations": {
-    "0000_initial-platform-baseline": {
+    "0000_core_platform": {
       "strategy": "restore-backup",
       "destructiveDownAllowed": false,
-      "note": "Current-state development baseline containing the final effective schema, constraints, triggers, procedures, grants, RLS, FORCE RLS, and security functions. Rebuild development databases from zero; production data recovery remains restore/forward-compensation only."
+      "note": "Clean development baseline for shared platform, identity, authorization, audit, tenant context, RLS, and security infrastructure. Rebuild development databases from zero; production recovery remains restore/forward-compensation only."
+    },
+    "0001_customer": {
+      "strategy": "restore-backup",
+      "destructiveDownAllowed": false,
+      "note": "Customer-domain baseline. Rebuild development databases from zero; production recovery remains restore/forward-compensation only."
+    },
+    "0002_sales": {
+      "strategy": "restore-backup",
+      "destructiveDownAllowed": false,
+      "note": "Sales-domain baseline, including its implemented transaction-supporting persistence. Rebuild development databases from zero; production recovery remains restore/forward-compensation only."
     }
   }
 }
