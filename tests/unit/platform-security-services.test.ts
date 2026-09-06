@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { AuthenticationService } from '../../src/application/services/authentication-service.js';
 import { AuthorizationService } from '../../src/application/services/authorization-service.js';
+import { DEFAULT_PLATFORM_SEED } from '../../src/application/services/platform-bootstrap-service.js';
 import { TenantBootstrapService } from '../../src/application/services/tenant-bootstrap-service.js';
 import { BcryptPasswordHasher } from '../../src/infrastructure/security/bcrypt-password-hasher.js';
 
@@ -219,6 +220,31 @@ describe('Phase 2 platform security services', () => {
     expect(result.tenantId).toBeTruthy();
     expect(repository.received.administrator.password).not.toBe('Password123!');
     expect(repository.received.administrator.password.startsWith('$2')).toBe(true);
+    expect(repository.received.permissions).toEqual(
+      expect.arrayContaining([
+        'user.read',
+        'user.create',
+        'user.update',
+        'user.activate',
+        'user.deactivate',
+      ]),
+    );
+    expect(repository.received.permissions).not.toContain('user.manage');
+  });
+
+  it('publishes only granular User permissions in the platform catalog', () => {
+    const userPermissions = DEFAULT_PLATFORM_SEED.permissions
+      .filter((permission) => permission.resource === 'user')
+      .map((permission) => permission.permissionKey);
+
+    expect(userPermissions).toEqual([
+      'user.read',
+      'user.create',
+      'user.update',
+      'user.activate',
+      'user.deactivate',
+    ]);
+    expect(userPermissions).not.toContain('user.manage');
   });
 
   it('evaluates role and direct permissions for a user', async () => {

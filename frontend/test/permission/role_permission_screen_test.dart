@@ -56,6 +56,30 @@ void main() {
     expect(find.text('User Management'), findsOneWidget);
     expect(find.text('Purchase'), findsAtLeastNWidgets(1));
     expect(find.byKey(const ValueKey('permission:user.read')), findsNothing);
+    expect(find.text('Manage'), findsNothing);
+  });
+
+  testWidgets('derives granular User business actions from the catalog', (
+    tester,
+  ) async {
+    await _setup(_mock());
+    await tester.pumpWidget(
+      MaterialApp(home: RolePermissionScreen(roleId: 'role-1')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('category-selector')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('User Management').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('action-type-selector')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Business Actions').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Activate'), findsOneWidget);
+    expect(find.text('Deactivate'), findsOneWidget);
+    expect(find.text('Manage'), findsNothing);
   });
 
   testWidgets('business action selector swaps columns without changing tree', (
@@ -117,6 +141,27 @@ MockClient _mock() {
       'resource': 'user',
       'action': 'create',
       'displayName': 'Create Users',
+    },
+    {
+      'permissionKey': 'user.update',
+      'moduleCode': 'user-management',
+      'resource': 'user',
+      'action': 'update',
+      'displayName': 'Update Users',
+    },
+    {
+      'permissionKey': 'user.activate',
+      'moduleCode': 'user-management',
+      'resource': 'user',
+      'action': 'activate',
+      'displayName': 'Activate Users',
+    },
+    {
+      'permissionKey': 'user.deactivate',
+      'moduleCode': 'user-management',
+      'resource': 'user',
+      'action': 'deactivate',
+      'displayName': 'Deactivate Users',
     },
     {
       'permissionKey': 'role.manage',

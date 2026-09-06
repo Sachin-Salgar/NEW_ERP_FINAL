@@ -48,6 +48,7 @@
     { "idx": 43, "version": "7", "when": 1788627000000, "tag": "0043-purchase-integrity-correction", "breakpoints": true },
     { "idx": 44, "version": "7", "when": 1788627600000, "tag": "0044-purchase-permissions", "breakpoints": true },
     { "idx": 45, "version": "7", "when": 1788628200000, "tag": "0045-correct-organization-module-rls-context", "breakpoints": true },
-    { "idx": 46, "version": "7", "when": 1788628800000, "tag": "0046-harden-organization-module-rls-null-context", "breakpoints": true }
+    { "idx": 46, "version": "7", "when": 1788628800000, "tag": "0046-harden-organization-module-rls-null-context", "breakpoints": true },
+    { "idx": 47, "version": "7", "when": 1788629400000, "tag": "0047-granular-user-permissions", "breakpoints": true }
   ]
 }
