@@ -164,11 +164,37 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Administrator'), findsOneWidget);
-      expect(find.text('View Users'), findsOneWidget);
-      expect(find.text('Manage Roles'), findsOneWidget);
-      expect(find.text('Create Users'), findsOneWidget);
+      expect(find.byType(DataTable), findsWidgets);
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -500));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<Checkbox>(
+              find.byKey(const ValueKey('permission:user.read')),
+            )
+            .value,
+        isTrue,
+      );
+      expect(
+        tester
+            .widget<Checkbox>(
+              find.byKey(const ValueKey('permission:user.create')),
+            )
+            .value,
+        isFalse,
+      );
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, 5000));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<Checkbox>(
+              find.byKey(const ValueKey('permission:role.manage')),
+            )
+            .value,
+        isFalse,
+      );
 
-      await tester.tap(find.widgetWithText(CheckboxListTile, 'Manage Roles'));
+      await tester.tap(find.byKey(const ValueKey('permission:role.manage')));
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
       expect(assigned, contains('role.manage'));
@@ -177,10 +203,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('User Management').last);
       await tester.pumpAndSettle();
-      expect(find.text('View Users'), findsOneWidget);
-      expect(find.text('Create Users'), findsOneWidget);
+      expect(find.byType(DataTable), findsOneWidget);
+      expect(find.text('Create'), findsWidgets);
 
-      expect(find.byType(CheckboxListTile), findsWidgets);
+      expect(find.byType(DataTable), findsWidgets);
     },
   );
 
@@ -298,24 +324,22 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Role One'), findsOneWidget);
-      expect(find.text('View Users'), findsOneWidget);
-      expect(find.text('Create Users'), findsOneWidget);
+      expect(find.byType(DataTable), findsWidgets);
 
       await tester.pumpWidget(
         MaterialApp(home: RolePermissionScreen(roleId: 'role-two')),
       );
       await tester.pumpAndSettle();
 
-      final tilesAfter = tester.widgetList<CheckboxListTile>(
-        find.byType(CheckboxListTile),
+      final manageRolesTileAfter = tester.widget<Checkbox>(
+        find.byKey(const ValueKey('permission:role.manage')),
       );
-      final viewUsersTileAfter = tilesAfter.firstWhere(
-        (tile) => (tile.title as Text).data == 'View Users',
-      );
-      final manageRolesTileAfter = tilesAfter.firstWhere(
-        (tile) => (tile.title as Text).data == 'Manage Roles',
-      );
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -500));
+      await tester.pumpAndSettle();
 
+      final viewUsersTileAfter = tester.widget<Checkbox>(
+        find.byKey(const ValueKey('permission:user.read')),
+      );
       expect(find.text('Role Two'), findsOneWidget);
       expect(manageRolesTileAfter.value, isTrue);
       expect(viewUsersTileAfter.value, isFalse);

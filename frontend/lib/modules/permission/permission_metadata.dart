@@ -25,22 +25,8 @@ class PermissionDescriptor {
   }
 
   static String _humanizeAction(String action) {
-    switch (action.trim().toLowerCase()) {
-      case 'read':
-        return 'View';
-      case 'create':
-        return 'Create';
-      case 'update':
-        return 'Edit';
-      case 'delete':
-        return 'Delete';
-      case 'manage':
-        return 'Manage';
-      case 'list':
-        return 'List';
-      default:
-        return action.trim().isEmpty ? 'Permission' : action.split('-').map(_capitalise).join(' ');
-    }
+    final value = action.trim();
+    return value.isEmpty ? 'Permission' : _humanizeWords(value);
   }
 
   static String _humanizeResource(String value) {
@@ -57,41 +43,34 @@ class PermissionDescriptor {
 
     if (words.isEmpty) return 'Permission';
 
-    final normalized = words.map((word) {
-      if (word == 'user') return 'Users';
-      if (word == 'role') return 'Roles';
-      if (word == 'permission') return 'Permissions';
-      if (word == 'branch') return 'Branches';
-      if (word == 'organization') return 'Organizations';
-      if (word == 'organizations') return 'Organizations';
-      if (word == 'tenant') return 'Tenant';
-      if (word == 'session') return 'Sessions';
-      return _capitalise(word);
-    }).join(' ');
-
-    return normalized;
+    return words.map(_capitalise).join(' ');
   }
 
   static String humanizeModuleCode(String moduleCode) {
     final value = moduleCode.trim();
     if (value.isEmpty) return 'General';
-    final map = <String, String>{
-      'organization': 'Organizations',
-      'branch': 'Branches',
-      'user-management': 'User Management',
-      'security': 'Security',
-      'tenant-configuration': 'Tenant Configuration',
-      'core': 'Core',
-      'permission': 'Permissions',
-      'role': 'Roles',
-    };
-    return map[value] ?? value
+    return _humanizeWords(value);
+  }
+
+  static String _humanizeWords(String value) {
+    return value
         .replaceAll('_', ' ')
         .replaceAll('-', ' ')
+        .trim()
         .split(RegExp(r'\s+'))
-        .map((word) => _capitalise(word))
+        .where((word) => word.isNotEmpty)
+        .map(_capitalise)
         .join(' ');
   }
+
+  static String resourceDisplayName(String resource) {
+    final label = _humanizeWords(resource);
+    if (label.isEmpty) return 'Resource';
+    if (label.endsWith('s')) return label;
+    return '$label${label.endsWith('y') ? 'ies' : 's'}';
+  }
+
+  static String actionDisplayName(String action) => _humanizeAction(action);
 
   static String displayNameFromKey({
     String? permissionKey,
@@ -118,26 +97,16 @@ class PermissionDescriptor {
     final key = permissionKey.trim();
     if (key.isEmpty) return 'general';
     final parts = key.split('.');
-    if (parts.length < 2) return 'general';
-    final resource = parts.first.trim().toLowerCase();
-    final map = <String, String>{
-      'organization': 'organization',
-      'branch': 'branch',
-      'user': 'user-management',
-      'role': 'security',
-      'permission': 'security',
-      'session': 'security',
-      'tenant': 'tenant-configuration',
-    };
-    return map[resource] ?? resource;
+    return parts.length > 2 ? parts.first.trim().toLowerCase() : 'general';
   }
 
   static PermissionDescriptor fromJson(dynamic value) {
     if (value is String) {
       final key = value.trim();
-      final resource = key.contains('.') ? key.split('.').first : key;
-      final action = key.contains('.') ? key.split('.').last : 'read';
-      final moduleCode = moduleCodeFromPermissionKey(key);
+      final parts = key.split('.');
+      final moduleCode = parts.length > 2 ? parts.first : moduleCodeFromPermissionKey(key);
+      final resource = parts.length > 2 ? parts[1] : (parts.length > 1 ? parts.first : key);
+      final action = parts.length > 2 ? parts.sublist(2).join('.') : (parts.length > 1 ? parts.last : 'read');
       return PermissionDescriptor(
         permissionKey: key,
         displayName: displayNameFromKey(permissionKey: key, resource: resource, action: action),
@@ -180,17 +149,93 @@ class PermissionDescriptor {
     return rawPermissions.map((entry) => PermissionDescriptor.fromJson(entry)).toList(growable: false);
   }
 
+  static List<PermissionMatrixModule> buildMatrix(List<PermissionDescriptor> permissions) {
+    final modules = <String, PermissionMatrixModule>{};
+    for (final permission in permissions) {
+      final module = modules.putIfAbsent(
+        permission.moduleCode,
+        () => PermissionMatrixModule(
+          moduleCode: permission.moduleCode,
+          displayName: permission.moduleName,
+        ),
+      );
+      module.add(permission);
+    }
+    final result = modules.values.toList()
+      ..sort((a, b) => a.displayName.compareTo(b.displayName));
+    for (final module in result) {
+      module.sort();
+    }
+    return result;
+  }
+
   static Map<String, List<PermissionDescriptor>> groupByModule(List<PermissionDescriptor> permissions) {
     final grouped = <String, List<PermissionDescriptor>>{};
     for (final permission in permissions) {
       grouped.putIfAbsent(permission.moduleName, () => <PermissionDescriptor>[]).add(permission);
     }
-    final sortedKeys = grouped.keys.toList()..sort();
-    final result = <String, List<PermissionDescriptor>>{};
-    for (final key in sortedKeys) {
-      final items = grouped[key]!..sort((a, b) => a.displayName.compareTo(b.displayName));
-      result[key] = items;
+    for (final items in grouped.values) {
+      items.sort((a, b) => a.displayName.compareTo(b.displayName));
     }
-    return result;
+    return Map.fromEntries(
+      grouped.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
+    );
+  }
+}
+
+class PermissionMatrixModule {
+  final String moduleCode;
+  final String displayName;
+  final Map<String, PermissionMatrixResource> _resources = {};
+
+  PermissionMatrixModule({required this.moduleCode, required this.displayName});
+
+  List<PermissionMatrixResource> get resources => _resources.values.toList(growable: false);
+
+  void add(PermissionDescriptor permission) {
+    _resources
+        .putIfAbsent(
+          permission.resource,
+          () => PermissionMatrixResource(
+            resourceCode: permission.resource,
+            displayName: PermissionDescriptor.resourceDisplayName(permission.resource),
+          ),
+        )
+        .add(permission);
+  }
+
+  void sort() {
+    for (final resource in _resources.values) {
+      resource.sort();
+    }
+    final sorted = _resources.entries.toList()
+      ..sort((a, b) => a.value.displayName.compareTo(b.value.displayName));
+    _resources
+      ..clear()
+      ..addEntries(sorted);
+  }
+}
+
+class PermissionMatrixResource {
+  final String resourceCode;
+  final String displayName;
+  final Map<String, PermissionDescriptor> _actions = {};
+
+  PermissionMatrixResource({required this.resourceCode, required this.displayName});
+
+  List<String> get actions => _actions.keys.toList(growable: false);
+
+  PermissionDescriptor? permissionFor(String action) => _actions[action];
+
+  void add(PermissionDescriptor permission) {
+    _actions.putIfAbsent(permission.action, () => permission);
+  }
+
+  void sort() {
+    final sorted = _actions.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    _actions
+      ..clear()
+      ..addEntries(sorted);
   }
 }
