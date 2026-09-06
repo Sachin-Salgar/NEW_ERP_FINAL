@@ -94,6 +94,26 @@ describe('Purchase HTTP API', () => {
     const supplier = created.json().supplier;
     expect(supplier.name).toBe('Acme Supplier');
 
+    const read = await app.inject({
+      method: 'GET',
+      url: `/api/v1/purchase/suppliers/${supplier.id}`,
+      headers,
+    });
+    expect(read.statusCode).toBe(200);
+    expect(read.json().supplier.id).toBe(supplier.id);
+    const updated = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/purchase/suppliers/${supplier.id}`,
+      headers,
+      payload: {
+        name: 'Updated Supplier',
+        email: 'updated@example.com',
+        expectedVersion: supplier.version ?? 1,
+      },
+    });
+    expect(updated.statusCode).toBe(200);
+    expect(updated.json().supplier.name).toBe('Updated Supplier');
+
     const stale = await app.inject({
       method: 'PATCH',
       url: `/api/v1/purchase/suppliers/${supplier.id}`,
@@ -106,7 +126,7 @@ describe('Purchase HTTP API', () => {
       method: 'DELETE',
       url: `/api/v1/purchase/suppliers/${supplier.id}`,
       headers,
-      payload: { expectedVersion: supplier.version ?? 1 },
+      payload: { expectedVersion: updated.json().supplier.version ?? 2 },
     });
     expect(deleted.statusCode).toBe(200);
     const listed = await app.inject({ method: 'GET', url: '/api/v1/purchase/suppliers', headers });

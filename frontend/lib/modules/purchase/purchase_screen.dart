@@ -209,24 +209,29 @@ class _PurchaseScreenState extends State<PurchaseScreen>
     String type,
     Map<String, dynamic> item,
   ) {
+    final status = '${item['status'] ?? 'DRAFT'}'.toUpperCase();
     if (type == 'receipts')
       return [
-        if (auth.hasPermission('purchase.receipt.complete'))
+        if (status == 'DRAFT' &&
+            auth.hasPermission('purchase.receipt.complete'))
           const PopupMenuItem(value: 'complete', child: Text('Complete')),
-        if (auth.hasPermission('purchase.receipt.cancel'))
+        if (status == 'DRAFT' && auth.hasPermission('purchase.receipt.cancel'))
           const PopupMenuItem(value: 'cancel', child: Text('Cancel')),
       ];
     final singular = type == 'purchaseOrders'
         ? 'order'
         : type.substring(0, type.length - 1);
     return [
-      if (auth.hasPermission('purchase.$singular.submit'))
+      if (status == 'DRAFT' && auth.hasPermission('purchase.$singular.submit'))
         const PopupMenuItem(value: 'submit', child: Text('Submit')),
-      if (auth.hasPermission('purchase.$singular.approve'))
+      if (status == 'SUBMITTED' &&
+          auth.hasPermission('purchase.$singular.approve'))
         const PopupMenuItem(value: 'approve', child: Text('Approve')),
-      if (auth.hasPermission('purchase.$singular.reject'))
+      if (status == 'SUBMITTED' &&
+          auth.hasPermission('purchase.$singular.reject'))
         const PopupMenuItem(value: 'reject', child: Text('Reject')),
-      if (auth.hasPermission('purchase.$singular.cancel'))
+      if ((status == 'DRAFT' || status == 'SUBMITTED') &&
+          auth.hasPermission('purchase.$singular.cancel'))
         const PopupMenuItem(value: 'cancel', child: Text('Cancel')),
     ];
   }
@@ -259,14 +264,14 @@ class _PurchaseScreenState extends State<PurchaseScreen>
     }
     if (!await _confirm('Apply the $action action to this document?')) return;
     final status = action == 'complete'
-        ? 'completed'
+        ? 'COMPLETED'
         : action == 'cancel'
-        ? 'cancelled'
+        ? 'CANCELLED'
         : action == 'approve'
-        ? 'approved'
+        ? 'APPROVED'
         : action == 'reject'
-        ? 'rejected'
-        : 'submitted';
+        ? 'REJECTED'
+        : 'SUBMITTED';
     await service.workflow(
       type,
       '${item['id']}',
@@ -320,42 +325,103 @@ class _PurchaseScreenState extends State<PurchaseScreen>
     String type, [
     Map<String, dynamic>? initial,
   ]) async {
-    final a = TextEditingController(
-      text: '${initial?['name'] ?? initial?['supplierId'] ?? ''}',
-    );
-    final b = TextEditingController(
+    final name = TextEditingController(text: '${initial?['name'] ?? ''}');
+    final code = TextEditingController(text: '${initial?['code'] ?? ''}');
+    final email = TextEditingController(text: '${initial?['email'] ?? ''}');
+    final date = TextEditingController(
       text:
-          '${initial?['code'] ?? initial?['requiredDate'] ?? initial?['orderDate'] ?? initial?['receiptDate'] ?? ''}',
+          '${initial?['requiredDate'] ?? initial?['orderDate'] ?? initial?['receiptDate'] ?? ''}',
     );
-    final c = TextEditingController(
-      text: '${initial?['email'] ?? initial?['justification'] ?? ''}',
+    final justification = TextEditingController(
+      text: '${initial?['justification'] ?? ''}',
     );
+    final supplierId = TextEditingController(
+      text: '${initial?['supplierId'] ?? ''}',
+    );
+    final requisitionId = TextEditingController(
+      text: '${initial?['requisitionId'] ?? ''}',
+    );
+    final purchaseOrderId = TextEditingController(
+      text: '${initial?['purchaseOrderId'] ?? ''}',
+    );
+    final warehouseId = TextEditingController(
+      text: '${initial?['warehouseId'] ?? ''}',
+    );
+    final itemId = TextEditingController(text: '${initial?['itemId'] ?? ''}');
+    final description = TextEditingController(
+      text: '${initial?['description'] ?? ''}',
+    );
+    final quantity = TextEditingController(
+      text: '${initial?['quantity'] ?? 1}',
+    );
+    final unitPrice = TextEditingController(
+      text: '${initial?['unitPrice'] ?? 0}',
+    );
+    final uom = TextEditingController(
+      text: '${initial?['unitOfMeasure'] ?? 'EA'}',
+    );
+    final formKey = GlobalKey<FormState>();
+    final isSupplier = type == 'suppliers';
+    final isRequisition = type == 'requisitions';
+    final isOrder = type == 'purchaseOrders';
+    final isReceipt = type == 'receipts';
+    final canEditLines = initial == null || isReceipt;
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (_) => AlertDialog(
         title: Text(
           '${initial == null ? 'Create' : 'Edit'} ${titles[names.indexOf(type)]}',
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: a,
-              decoration: const InputDecoration(
-                labelText: 'Name / Supplier / Item ID',
-              ),
+        content: Form(
+          key: formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isSupplier) ...[
+                  _field(name, 'Supplier name', required: true),
+                  if (initial == null) _field(code, 'Supplier code'),
+                  _field(email, 'Email'),
+                ],
+                if (isRequisition) ...[
+                  _field(date, 'Required date', required: true),
+                  _field(justification, 'Justification'),
+                ],
+                if (isOrder) ...[
+                  _field(supplierId, 'Supplier ID', required: true),
+                  _field(requisitionId, 'Requisition ID'),
+                  _field(date, 'Order date', required: true),
+                ],
+                if (isReceipt) ...[
+                  _field(
+                    purchaseOrderId,
+                    'Approved purchase order ID',
+                    required: true,
+                  ),
+                  _field(warehouseId, 'Warehouse ID', required: true),
+                  _field(date, 'Receipt date', required: true),
+                ],
+                if (canEditLines && !isSupplier) ...[
+                  const SizedBox(height: 12),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Receipt / document line',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  _field(itemId, 'Item ID', required: true),
+                  if (!isReceipt)
+                    _field(description, 'Description', required: true),
+                  _field(quantity, 'Quantity', required: true, numeric: true),
+                  if (!isReceipt)
+                    _field(unitPrice, 'Unit price', numeric: true),
+                  if (!isReceipt)
+                    _field(uom, 'Unit of measure', required: true),
+                ],
+              ],
             ),
-            TextField(
-              controller: b,
-              decoration: const InputDecoration(labelText: 'Code / Date'),
-            ),
-            TextField(
-              controller: c,
-              decoration: const InputDecoration(
-                labelText: 'Email / Justification / Warehouse ID',
-              ),
-            ),
-          ],
+          ),
         ),
         actions: [
           TextButton(
@@ -364,35 +430,46 @@ class _PurchaseScreenState extends State<PurchaseScreen>
           ),
           FilledButton(
             onPressed: () {
+              if (!formKey.currentState!.validate()) return;
               final line = {
-                'itemId': a.text,
-                'description': a.text,
-                'quantity': 1,
-                'unitPrice': 0,
-                'unitOfMeasure': 'EA',
+                'itemId': itemId.text.trim(),
+                'description': description.text.trim(),
+                'quantity': num.parse(quantity.text.trim()),
+                'unitPrice': num.parse(unitPrice.text.trim()),
+                'unitOfMeasure': uom.text.trim(),
               };
-              final d = type == 'suppliers'
-                  ? {'name': a.text, 'code': b.text, 'email': c.text}
-                  : type == 'requisitions'
+              final d = isSupplier
                   ? {
-                      'requiredDate': b.text,
-                      'justification': c.text,
+                      'name': name.text.trim(),
+                      'code': code.text.trim(),
+                      'email': email.text.trim(),
+                    }
+                  : isRequisition
+                  ? {
+                      'requiredDate': date.text.trim(),
+                      'justification': justification.text.trim(),
                       'lines': [line],
                     }
-                  : type == 'purchaseOrders'
+                  : isOrder
                   ? {
-                      'supplierId': a.text,
-                      'orderDate': b.text,
+                      'supplierId': supplierId.text.trim(),
+                      if (requisitionId.text.trim().isNotEmpty)
+                        'requisitionId': requisitionId.text.trim(),
+                      'orderDate': date.text.trim(),
                       'lines': [line],
                     }
                   : {
-                      'purchaseOrderId': a.text,
-                      'warehouseId': c.text,
-                      'receiptDate': b.text,
-                      'operationKey': DateTime.now().microsecondsSinceEpoch
-                          .toString(),
+                      'purchaseOrderId': purchaseOrderId.text.trim(),
+                      'warehouseId': warehouseId.text.trim(),
+                      'receiptDate': date.text.trim(),
+                      if (initial == null)
+                        'operationKey': DateTime.now().microsecondsSinceEpoch
+                            .toString(),
                       'lines': [
-                        {'itemId': a.text, 'quantity': 1},
+                        {
+                          'itemId': itemId.text.trim(),
+                          'quantity': num.parse(quantity.text.trim()),
+                        },
                       ],
                     };
               Navigator.pop(context, d);
@@ -402,9 +479,52 @@ class _PurchaseScreenState extends State<PurchaseScreen>
         ],
       ),
     );
-    a.dispose();
-    b.dispose();
-    c.dispose();
+    for (final controller in [
+      name,
+      code,
+      email,
+      date,
+      justification,
+      supplierId,
+      requisitionId,
+      purchaseOrderId,
+      warehouseId,
+      itemId,
+      description,
+      quantity,
+      unitPrice,
+      uom,
+    ]) {
+      controller.dispose();
+    }
     return result;
   }
+
+  Widget _field(
+    TextEditingController controller,
+    String label, {
+    bool required = false,
+    bool numeric = false,
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: TextFormField(
+      controller: controller,
+      keyboardType: numeric
+          ? const TextInputType.numberWithOptions(decimal: true)
+          : TextInputType.text,
+      decoration: InputDecoration(labelText: label),
+      validator: (value) {
+        if (required && (value == null || value.trim().isEmpty)) {
+          return '$label is required';
+        }
+        if (numeric &&
+            value != null &&
+            value.trim().isNotEmpty &&
+            num.tryParse(value.trim()) == null) {
+          return '$label must be numeric';
+        }
+        return null;
+      },
+    ),
+  );
 }

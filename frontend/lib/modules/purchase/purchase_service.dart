@@ -73,6 +73,11 @@ class PurchaseService extends ChangeNotifier {
       'purchaseOrders': '/api/v1/purchase/purchase-orders',
       'receipts': '/api/v1/purchase/receipts',
     };
+    if (auth.currentOrganizationId == null) {
+      errors[key] = 'Organization context is missing.';
+      notifyListeners();
+      return;
+    }
     loading[key] = true;
     errors[key] = null;
     notifyListeners();

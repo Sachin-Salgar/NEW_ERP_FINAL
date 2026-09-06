@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { Pool } from 'pg';
+import { v7 as uuidV7 } from 'uuid';
 
 import { resolveDatabaseUrl } from '../../src/config/schema.js';
 import { withTenantContext } from '../../src/infrastructure/database/tenant-context.js';
@@ -61,5 +62,67 @@ describe('Purchase PostgreSQL isolation', () => {
       return client.query(`SELECT organization_id FROM organization_modules WHERE tenant_id=$1`, [tenantId]);
     });
     expect(resetContext.rows.length).toBe(scoped.rows.length);
+
+    const tenants = await pool.query(`SELECT id FROM tenants ORDER BY id LIMIT 2`);
+    if (tenants.rows.length < 2) return;
+    const tenantA = String(tenants.rows[0].id);
+    const tenantB = String(tenants.rows[1].id);
+    const orgA = await withTenantContext(pool, 'app.current_tenant_id', tenantA, (client) =>
+      client.query(`SELECT id FROM organizations WHERE tenant_id=$1 ORDER BY id LIMIT 1`, [tenantA]),
+    );
+    const orgB = await withTenantContext(pool, 'app.current_tenant_id', tenantB, (client) =>
+      client.query(`SELECT id FROM organizations WHERE tenant_id=$1 ORDER BY id LIMIT 1`, [tenantB]),
+    );
+    if (!orgA.rows[0] || !orgB.rows[0]) return;
+    const supplierA = uuidV7();
+    const supplierB = uuidV7();
+    await withTenantContext(
+      pool,
+      'app.current_tenant_id',
+      tenantA,
+      (client) =>
+        client.query(
+          `INSERT INTO procurement_suppliers(id,tenant_id,organization_id,code,name)
+         VALUES($1,$2,$3,$4,'RLS Tenant A')`,
+          [supplierA, tenantA, orgA.rows[0].id, `RLS-A-${supplierA}`],
+        ),
+      { organizationId: String(orgA.rows[0].id) },
+    );
+    await withTenantContext(
+      pool,
+      'app.current_tenant_id',
+      tenantB,
+      (client) =>
+        client.query(
+          `INSERT INTO procurement_suppliers(id,tenant_id,organization_id,code,name)
+         VALUES($1,$2,$3,$4,'RLS Tenant B')`,
+          [supplierB, tenantB, orgB.rows[0].id, `RLS-B-${supplierB}`],
+        ),
+      { organizationId: String(orgB.rows[0].id) },
+    );
+    const tenantAView = await withTenantContext(
+      pool,
+      'app.current_tenant_id',
+      tenantA,
+      (client) =>
+        client.query(`SELECT id FROM procurement_suppliers WHERE id IN ($1,$2) ORDER BY id`, [supplierA, supplierB]),
+      { organizationId: String(orgA.rows[0].id) },
+    );
+    const tenantBView = await withTenantContext(
+      pool,
+      'app.current_tenant_id',
+      tenantB,
+      (client) =>
+        client.query(`SELECT id FROM procurement_suppliers WHERE id IN ($1,$2) ORDER BY id`, [supplierA, supplierB]),
+      { organizationId: String(orgB.rows[0].id) },
+    );
+    expect(
+      tenantAView.rows.map((row) => row.id),
+      JSON.stringify(tenantAView.rows),
+    ).toEqual([supplierA]);
+    expect(
+      tenantBView.rows.map((row) => row.id),
+      JSON.stringify(tenantBView.rows),
+    ).toEqual([supplierB]);
   });
 });

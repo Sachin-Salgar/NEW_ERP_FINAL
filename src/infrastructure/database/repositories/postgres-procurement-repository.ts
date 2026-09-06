@@ -39,7 +39,7 @@ export class PostgresProcurementRepository implements ProcurementRepository {
       ).rows.map((row) => ({ itemId: String(row.itemId), quantity: Number(row.quantity) }));
       if (current.status === 'COMPLETED' || current.status === 'POSTED')
         return { receipt: current, lines, alreadyCompleted: true };
-      if (current.status !== 'DRAFT') throw new Error(`Receipt cannot be completed from ${current.status}.`);
+      if (current.status !== 'DRAFT') throw new ValidationError(`Receipt cannot be completed from ${current.status}.`);
       const receipt = (
         await db.query(
           `UPDATE procurement_receipts SET status='COMPLETED',updated_at=now(),updated_by=$5,version=version+1
@@ -290,12 +290,13 @@ export class PostgresProcurementRepository implements ProcurementRepository {
       if (current.status !== 'DRAFT') throw new ValidationError('Only draft receipts can be updated.');
       if (Number(current.version) !== c.expectedVersion)
         throw new ValidationError('Receipt was modified concurrently.');
-      await db.query(
+      const approvedOrder = await db.query(
         `SELECT id FROM procurement_purchase_orders
          WHERE id=$1 AND tenant_id=$2 AND organization_id=$3 AND status='APPROVED' AND is_deleted=false
          FOR UPDATE`,
         [current.purchase_order_id, c.tenantId, c.organizationId],
       );
+      if (!approvedOrder.rows[0]) throw new ValidationError('An approved purchase order is required.');
       const purchaseOrderLines = (
         await db.query(
           `SELECT pol.item_id AS "itemId", pol.quantity,
