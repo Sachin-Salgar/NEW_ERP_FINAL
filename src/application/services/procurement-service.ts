@@ -374,11 +374,30 @@ export class ProcurementService {
       throw new ValidationError('Expected version is required.');
     const allowed: Record<string, string[]> = {
       requisition: ['SUBMITTED', 'APPROVED', 'REJECTED', 'CANCELLED'],
-      order: ['SUBMITTED', 'APPROVED', 'REJECTED', 'CONFIRMED', 'CANCELLED', 'CLOSED'],
-      receipt: ['COMPLETED', 'POSTED', 'CANCELLED'],
+      order: ['SUBMITTED', 'APPROVED', 'REJECTED', 'CANCELLED'],
+      receipt: ['CANCELLED'],
     };
     if (!allowed[type]?.includes(input.status)) throw new ValidationError(`Invalid ${type} lifecycle transition.`);
     await this.authorize(c, permission);
+    const actionPermission =
+      type === 'requisition'
+        ? input.status === 'SUBMITTED'
+          ? PROCUREMENT_PERMISSIONS.requisitionSubmit
+          : input.status === 'APPROVED'
+            ? PROCUREMENT_PERMISSIONS.requisitionApprove
+            : input.status === 'REJECTED'
+              ? PROCUREMENT_PERMISSIONS.requisitionReject
+              : PROCUREMENT_PERMISSIONS.requisitionCancel
+        : type === 'order'
+          ? input.status === 'SUBMITTED'
+            ? PROCUREMENT_PERMISSIONS.purchaseOrderSubmit
+            : input.status === 'APPROVED'
+              ? PROCUREMENT_PERMISSIONS.purchaseOrderApprove
+              : input.status === 'REJECTED'
+                ? PROCUREMENT_PERMISSIONS.purchaseOrderReject
+                : PROCUREMENT_PERMISSIONS.purchaseOrderCancel
+          : PROCUREMENT_PERMISSIONS.receiptCancel;
+    if (actionPermission !== permission) await this.authorize(c, actionPermission);
     return this.tx.runInTransaction(async () => {
       const current =
         type === 'requisition'
@@ -393,14 +412,15 @@ export class ProcurementService {
         order: {
           DRAFT: ['SUBMITTED', 'CANCELLED'],
           SUBMITTED: ['APPROVED', 'REJECTED', 'CANCELLED'],
-          APPROVED: ['CONFIRMED', 'CANCELLED'],
-          CONFIRMED: ['CLOSED', 'CANCELLED'],
         },
-        receipt: { DRAFT: ['COMPLETED', 'POSTED', 'CANCELLED'] },
+        receipt: { DRAFT: ['CANCELLED'] },
       };
       if (!transitions[type]?.[currentStatus]?.includes(input.status))
         throw new ValidationError(`Invalid ${type} lifecycle transition from ${currentStatus || 'missing'}.`);
-      return fn(input);
+      const result = await fn(input);
+      if (result === null || result === undefined)
+        throw new ValidationError(`${type} was modified concurrently or is no longer available.`);
+      return result;
     });
   }
   private async authorize(c: ProcurementContext, p: ProcurementPermission) {

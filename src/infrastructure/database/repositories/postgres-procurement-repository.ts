@@ -131,10 +131,15 @@ export class PostgresProcurementRepository implements ProcurementRepository {
   async updateRequisition(
     c: ProcurementContext & { id: string; requiredDate: string; justification?: string; expectedVersion: number },
   ) {
-    return this.update(c, 'procurement_requisitions', c.id, c.expectedVersion, 'required_date=$5,justification=$6', [
-      c.requiredDate,
-      c.justification ?? null,
-    ]);
+    return this.update(
+      c,
+      'procurement_requisitions',
+      c.id,
+      c.expectedVersion,
+      'required_date=$5,justification=$6',
+      [c.requiredDate, c.justification ?? null],
+      'DRAFT',
+    );
   }
   async transitionRequisition(c: ProcurementContext & { id: string; status: string; expectedVersion: number }) {
     return this.transition(c, 'procurement_requisitions', c.id, c.status, c.expectedVersion);
@@ -178,7 +183,15 @@ export class PostgresProcurementRepository implements ProcurementRepository {
     return this.get(c, 'procurement_purchase_orders', id);
   }
   async updatePurchaseOrder(c: ProcurementContext & { id: string; orderDate: string; expectedVersion: number }) {
-    return this.update(c, 'procurement_purchase_orders', c.id, c.expectedVersion, 'order_date=$5', [c.orderDate]);
+    return this.update(
+      c,
+      'procurement_purchase_orders',
+      c.id,
+      c.expectedVersion,
+      'order_date=$5',
+      [c.orderDate],
+      'DRAFT',
+    );
   }
   async transitionPurchaseOrder(c: ProcurementContext & { id: string; status: string; expectedVersion: number }) {
     return this.transition(c, 'procurement_purchase_orders', c.id, c.status, c.expectedVersion);
@@ -219,7 +232,7 @@ export class PostgresProcurementRepository implements ProcurementRepository {
         await db.query(
           `SELECT pol.item_id AS "itemId", pol.quantity,
            COALESCE((SELECT SUM(prl.quantity) FROM procurement_receipt_lines prl JOIN procurement_receipts pr ON pr.id=prl.receipt_id
-             WHERE pr.purchase_order_id=pol.purchase_order_id AND prl.item_id=pol.item_id AND pr.tenant_id=$1 AND pr.organization_id=$2 AND pr.status <> 'CANCELLED'),0) AS received
+             WHERE pr.purchase_order_id=pol.purchase_order_id AND prl.item_id=pol.item_id AND pr.tenant_id=$1 AND pr.organization_id=$2 AND pr.status='COMPLETED'),0) AS received
          FROM procurement_purchase_order_lines pol WHERE pol.purchase_order_id=$3 AND pol.tenant_id=$1 AND pol.organization_id=$2`,
           [c.tenantId, c.organizationId, c.purchaseOrderId],
         )
@@ -277,6 +290,39 @@ export class PostgresProcurementRepository implements ProcurementRepository {
       if (current.status !== 'DRAFT') throw new ValidationError('Only draft receipts can be updated.');
       if (Number(current.version) !== c.expectedVersion)
         throw new ValidationError('Receipt was modified concurrently.');
+      await db.query(
+        `SELECT id FROM procurement_purchase_orders
+         WHERE id=$1 AND tenant_id=$2 AND organization_id=$3 AND status='APPROVED' AND is_deleted=false
+         FOR UPDATE`,
+        [current.purchase_order_id, c.tenantId, c.organizationId],
+      );
+      const purchaseOrderLines = (
+        await db.query(
+          `SELECT pol.item_id AS "itemId", pol.quantity,
+             COALESCE((SELECT SUM(prl.quantity) FROM procurement_receipt_lines prl
+               JOIN procurement_receipts pr ON pr.id=prl.receipt_id
+              WHERE pr.purchase_order_id=pol.purchase_order_id AND prl.item_id=pol.item_id
+                AND pr.tenant_id=$1 AND pr.organization_id=$2 AND pr.status='COMPLETED'
+                AND pr.id <> $3),0) AS received
+             FROM procurement_purchase_order_lines pol
+            WHERE pol.purchase_order_id=$4 AND pol.tenant_id=$1 AND pol.organization_id=$2`,
+          [c.tenantId, c.organizationId, c.id, current.purchase_order_id],
+        )
+      ).rows;
+      for (const line of c.lines) {
+        const allowed = purchaseOrderLines.find((row) => row.itemId === line.itemId);
+        if (!allowed || line.quantity > Number(allowed.quantity) - Number(allowed.received))
+          throw new ValidationError(
+            `Receipt quantity exceeds outstanding purchase order quantity for item ${line.itemId}.`,
+          );
+      }
+      if (new Set(c.lines.map((line) => line.itemId)).size !== c.lines.length)
+        throw new ValidationError('Receipt contains duplicate items.');
+      if (
+        c.lines.length !==
+        purchaseOrderLines.filter((line) => c.lines.some((item) => item.itemId === line.itemId)).length
+      )
+        throw new ValidationError('Receipt contains an item not on the purchase order.');
       const updated = (
         await db.query(
           `UPDATE procurement_receipts SET warehouse_id=$5,receipt_date=$6,updated_at=now(),updated_by=$7,version=version+1
@@ -359,13 +405,14 @@ export class PostgresProcurementRepository implements ProcurementRepository {
     version: number,
     set: string,
     values: unknown[],
+    status?: string,
   ) {
     return this.run(
       c,
       async (db) =>
         (
           await db.query(
-            `UPDATE ${table} SET ${set},updated_at=now(),updated_by=$${5 + values.length},version=version+1 WHERE id=$1 AND tenant_id=$2 AND organization_id=$3 AND version=$4 AND is_deleted=false RETURNING *`,
+            `UPDATE ${table} SET ${set},updated_at=now(),updated_by=$${5 + values.length},version=version+1 WHERE id=$1 AND tenant_id=$2 AND organization_id=$3 AND version=$4 AND is_deleted=false${status ? ` AND status='${status}'` : ''} RETURNING *`,
             [id, c.tenantId, c.organizationId, version, ...values, c.userId],
           )
         ).rows[0] ?? null,

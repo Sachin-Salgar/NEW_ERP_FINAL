@@ -10,6 +10,7 @@ The Procurement Module manages the organization's purchasing lifecycle from inte
 ## 1. Procurement Overview
 
 The module covers:
+
 - Vendor management.
 - Purchase requisitions.
 - Requests for quotation (RFQ).
@@ -117,6 +118,7 @@ Financial consequences are processed through Finance according to the applicable
 ## 10. Procurement Analytics
 
 Procurement analytics may provide:
+
 - Procurement spend.
 - Purchase cost analysis.
 - Vendor delivery performance.
@@ -132,6 +134,7 @@ KPI definitions and authoritative calculations shall follow the reporting/analyt
 ## 11. Cross-Module Integration
 
 Procurement may integrate with:
+
 - Inventory and Warehouse Management.
 - Finance.
 - Tax.
@@ -145,6 +148,7 @@ Integration must use published module contracts or approved business/application
 ## 12. AI Implementation Rules
 
 When implementing Procurement features, AI must:
+
 1. identify the owning Procurement capability;
 2. read the relevant Procurement and dependent-module contracts;
 3. preserve modular-monolith boundaries;
@@ -181,7 +185,24 @@ and permission-gated lifecycle controls. The public permission namespace is
 `purchase.*`, including resource-specific create/update and workflow actions.
 Receipts require an approved active order, reject quantities beyond the
 outstanding order balance, support partial/multiple receipts, and complete
-idempotently through the Inventory boundary.
+idempotently through the Inventory boundary. Receipt drafts are preparation
+only: they do not consume outstanding purchase-order quantity. Outstanding
+quantity is reduced only by completed, non-cancelled receipts; draft receipt
+edits are revalidated while the purchase order is locked.
+
+The bounded v1 lifecycle is:
+
+```text
+Supplier: ACTIVE -> inactive (soft delete)
+Requisition: DRAFT -> SUBMITTED -> APPROVED
+ SUBMITTED -> REJECTED or CANCELLED
+Purchase Order: DRAFT -> SUBMITTED -> APPROVED
+ SUBMITTED -> REJECTED or CANCELLED
+Receipt: DRAFT -> COMPLETED, or DRAFT -> CANCELLED
+```
+
+Completed and cancelled receipts are immutable. Workflow mutations use
+optimistic version checks, and only the completion operation posts inventory.
 
 Purchase returns, RFQ/quotation management, vendor invoices, and payment
 processing remain outside this bounded implementation; vendor returns require

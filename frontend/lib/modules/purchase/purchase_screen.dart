@@ -108,15 +108,15 @@ class _PurchaseScreenState extends State<PurchaseScreen>
                     ),
                   ),
                 ),
-                if (svc.isLoading && svc.records[type]!.isEmpty)
+                if ((svc.loading[type] ?? false) && svc.records[type]!.isEmpty)
                   const SliverFillRemaining(
                     hasScrollBody: false,
                     child: Center(child: CircularProgressIndicator()),
                   )
-                else if (svc.error != null)
+                else if (svc.errors[type] != null)
                   SliverFillRemaining(
                     hasScrollBody: false,
-                    child: Center(child: Text(svc.error!)),
+                    child: Center(child: Text(svc.errors[type]!)),
                   )
                 else
                   _list(type, svc),
@@ -186,15 +186,15 @@ class _PurchaseScreenState extends State<PurchaseScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               IconButton(
-                onPressed: svc.page > 1
-                    ? () => svc.load(page: svc.page - 1)
+                onPressed: svc.pages[type]! > 1
+                    ? () => svc.load(type: type, page: svc.pages[type]! - 1)
                     : null,
                 icon: const Icon(Icons.chevron_left),
               ),
-              Text('Page ${svc.page} of ${svc.totalPages(type)}'),
+              Text('Page ${svc.pages[type]} of ${svc.totalPages(type)}'),
               IconButton(
-                onPressed: svc.page < svc.totalPages(type)
-                    ? () => svc.load(page: svc.page + 1)
+                onPressed: svc.pages[type]! < svc.totalPages(type)
+                    ? () => svc.load(type: type, page: svc.pages[type]! + 1)
                     : null,
                 icon: const Icon(Icons.chevron_right),
               ),

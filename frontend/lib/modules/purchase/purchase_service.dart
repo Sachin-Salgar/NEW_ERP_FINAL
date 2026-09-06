@@ -14,6 +14,14 @@ class PurchaseService extends ChangeNotifier {
   String? error;
   int pageSize = 20;
   int page = 1;
+  final Map<String, int> pages = {
+    'suppliers': 1,
+    'requisitions': 1,
+    'purchaseOrders': 1,
+    'receipts': 1,
+  };
+  final Map<String, bool> loading = {};
+  final Map<String, String?> errors = {};
   final Map<String, List<Map<String, dynamic>>> records = {
     'suppliers': [],
     'requisitions': [],
@@ -28,7 +36,12 @@ class PurchaseService extends ChangeNotifier {
   List<Map<String, dynamic>> get orders => records['purchaseOrders']!;
   List<Map<String, dynamic>> get receipts => records['receipts']!;
 
-  Future<void> load({int? page}) async {
+  Future<void> load({String? type, int? page}) async {
+    if (type != null) {
+      if (page != null) pages[type] = page;
+      await _loadOne(type);
+      return;
+    }
     if (page != null) this.page = page;
     if (auth.currentOrganizationId == null) {
       error = 'Organization context is missing.';
@@ -49,6 +62,27 @@ class PurchaseService extends ChangeNotifier {
       error = e.toString().replaceFirst('Exception: ', '');
     } finally {
       isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _loadOne(String key) async {
+    const paths = {
+      'suppliers': '/api/v1/purchase/suppliers',
+      'requisitions': '/api/v1/purchase/requisitions',
+      'purchaseOrders': '/api/v1/purchase/purchase-orders',
+      'receipts': '/api/v1/purchase/receipts',
+    };
+    loading[key] = true;
+    errors[key] = null;
+    notifyListeners();
+    try {
+      await _list(key, paths[key]!, pages[key]!);
+    } catch (e) {
+      errors[key] = e.toString().replaceFirst('Exception: ', '');
+      rethrow;
+    } finally {
+      loading[key] = false;
       notifyListeners();
     }
   }
@@ -143,7 +177,7 @@ class PurchaseService extends ChangeNotifier {
               body: body ?? {},
             );
       if (r.statusCode < 200 || r.statusCode >= 300) return _message(r);
-      await load();
+      await load(type: type);
       return null;
     } catch (e) {
       return e.toString().replaceFirst('Exception: ', '');

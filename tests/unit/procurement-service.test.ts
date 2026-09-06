@@ -57,4 +57,31 @@ describe('ProcurementService receipt completion', () => {
     await service.completeReceipt(context, { id: receiptId, expectedVersion: 2 });
     expect(inventoryCalls).toBe(1);
   });
+
+  it('rejects lifecycle states outside the bounded v1 order workflow', async () => {
+    const repository = {
+      getPurchaseOrder: async () => ({ id: 'order', status: 'APPROVED' }),
+      transitionPurchaseOrder: async () => ({ id: 'order', status: 'CONFIRMED' }),
+    } as unknown as ProcurementRepository;
+    const service = new ProcurementService(
+      repository,
+      { hasPermission: async () => true },
+      { isModuleEnabled: async () => true },
+      { record: async () => undefined },
+      { runInTransaction: async <T>(fn: () => Promise<T>) => fn() },
+      {} as never,
+    );
+
+    await expect(
+      service.transitionPurchaseOrder(context, {
+        id: receiptId(),
+        status: 'CONFIRMED',
+        expectedVersion: 1,
+      }),
+    ).rejects.toThrow('Invalid order lifecycle transition.');
+  });
 });
+
+function receiptId() {
+  return randomUUID();
+}
