@@ -231,7 +231,7 @@ describe('Purchase to Inventory integration', () => {
     expect(results.filter((result) => result.statusCode === 200)).toHaveLength(1);
     expect(results.filter((result) => result.statusCode >= 400)).toHaveLength(1);
 
-    const failed = await create(1, `rollback-${uuidV7()}`, uuidV7());
+    const failed = await create(1, `rollback-after-receipt-update-${uuidV7()}`, uuidV7());
     const failedReceipt = await app.inject({
       method: 'GET',
       url: `/api/v1/purchase/receipts/${failed.receiptId}`,
@@ -244,12 +244,14 @@ describe('Purchase to Inventory integration', () => {
       payload: { expectedVersion: failedReceipt.json().receipt.version },
     });
     expect(failedCompletion.statusCode).toBe(400);
+    expect(failedCompletion.json().error.code).toBe('VALIDATION_ERROR');
     const rolledBackReceipt = await app.inject({
       method: 'GET',
       url: `/api/v1/purchase/receipts/${failed.receiptId}`,
       headers,
     });
     expect(rolledBackReceipt.json().receipt.status).toBe('DRAFT');
+    expect(rolledBackReceipt.json().receipt.version).toBe(1);
     const rollbackMovements = await withTenantContext(
       pool,
       'app.current_tenant_id',
