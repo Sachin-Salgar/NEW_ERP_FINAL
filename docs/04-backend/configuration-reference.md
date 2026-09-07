@@ -13,7 +13,7 @@
 | `API_PREFIX` | string | No | `/api/v1` | Base prefix for REST API routes. |
 | `LOG_LEVEL` | `fatal` \| `error` \| `warn` \| `info` \| `debug` \| `trace` | No | `info` | Minimum application log level. |
 | `DATABASE_URL` | string | Yes | — | Primary PostgreSQL connection URL. Required. |
-| `PLATFORM_DATABASE_URL` | string | No | — | Dedicated PostgreSQL connection URL for platform procedure execution. Required in production and must use the `erp_platform_executor` credential. |
+| `PLATFORM_DATABASE_URL` | string | No | empty string | Dedicated PostgreSQL connection URL for platform procedure execution. Required in production and must use the `erp_platform_executor` credential. |
 | `DATABASE_SSL_MODE` | `disable` \| `require` | No | `require` | PostgreSQL TLS mode used by the application connection pool. |
 | `DATABASE_POOL_MIN` | number | No | `1` | Minimum desired PostgreSQL pool size. |
 | `DATABASE_POOL_MAX` | number | No | `25` | Maximum PostgreSQL pool size. |
