@@ -55,9 +55,11 @@ describe('platform tenant delete lifecycle procedure', () => {
         [tenantId],
       );
 
+      await client.query('SAVEPOINT tenant_delete_guard');
       await expect(client.query('SELECT platform_delete_tenant($1::uuid)', [tenantId])).rejects.toThrow(
         'Tenant deletion is blocked while tenant data or audit history exists.',
       );
+      await client.query('ROLLBACK TO SAVEPOINT tenant_delete_guard');
 
       const result = await client.query(
         `SELECT status, is_deleted AS "isDeleted", deleted_at AS "deletedAt"
