@@ -26,6 +26,7 @@ export const appConfigSchema = z.object({
   API_PREFIX: z.string().trim().default('/api/v1'),
   LOG_LEVEL: z.enum(logLevels).default('info'),
   DATABASE_URL: z.string().trim().min(1),
+  PLATFORM_DATABASE_URL: z.string().trim().min(1).optional(),
   DATABASE_SSL_MODE: z.enum(databaseSslModes).default('require'),
   DATABASE_POOL_MIN: z.coerce.number().int().min(0).default(1),
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).default(25),
@@ -149,6 +150,12 @@ export function parseAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig 
 
   if (isProduction && config.MFA_ENCRYPTION_KEY === 'development-mfa-encryption-key-change-me-32') {
     throw new Error('MFA_ENCRYPTION_KEY must be configured for production MFA secret encryption.');
+  }
+
+  if (isProduction && !config.PLATFORM_DATABASE_URL) {
+    throw new Error(
+      'PLATFORM_DATABASE_URL must be configured for production platform procedure execution. The platform executor must use a separate database credential.',
+    );
   }
 
   if (config.JWT_SIGNING_ALGORITHM === 'RS256') {
