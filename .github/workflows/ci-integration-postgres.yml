@@ -188,7 +188,7 @@ jobs:
           CHROME_EXECUTABLE: /usr/bin/google-chrome
         run: |
           set -o pipefail
-          flutter drive --driver=test_driver/integration_test.dart --target=integration_test/navigation_matrix_e2e_test.dart -d web-server --browser-name=chrome --driver-port=4444 --web-port=8082 --dart-define=API_BASE_URL=http://localhost:3000 2>&1 | tee navigation-matrix-e2e-test.log
+          flutter drive --driver=test_driver/integration_test.dart --target=integration_test/navigation_matrix_e2e_test.dart -d chrome --browser-name=chrome --driver-port=4444 --web-port=8082 --dart-define=API_BASE_URL=http://localhost:3000 2>&1 | tee navigation-matrix-e2e-test.log
 
       - name: Upload E2E logs
         if: always()
