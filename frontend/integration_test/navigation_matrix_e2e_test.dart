@@ -134,9 +134,7 @@ Future<void> _flushFocusLifecycle(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 100));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 100));
-  await tester.runAsync(
-    () => Future<void>.delayed(const Duration(milliseconds: 100)),
-  );
+  await tester.runAsync(() => Future<void>.delayed(const Duration(seconds: 2)));
   await tester.pump();
 }
 
@@ -161,17 +159,6 @@ Future<void> _browserForward(WidgetTester tester, String expectedRoute) async {
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  final previousErrorHandler = FlutterError.onError;
-  FlutterError.onError = (details) {
-    if (details.exception is AssertionError &&
-        details.exception.toString().contains(
-          'A FocusManager was used after being disposed.',
-        )) {
-      return;
-    }
-    previousErrorHandler?.call(details);
-  };
-
   testWidgets(
     'admin browser navigation matrix validates shell, settings, detail routes, history and protected routing',
     (tester) async {
