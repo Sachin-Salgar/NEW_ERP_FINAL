@@ -18,5 +18,7 @@ export async function createTestApp(pool: Pool) {
     MFA_ENCRYPTION_KEY: process.env.MFA_ENCRYPTION_KEY ?? 'test-only-mfa-encryption-key-change-me-123456',
   });
 
-  return createApplication(config, pool);
+  const app = await createApplication(config, pool);
+  app.decorate('platformDbPool', pool);
+  return app;
 }
