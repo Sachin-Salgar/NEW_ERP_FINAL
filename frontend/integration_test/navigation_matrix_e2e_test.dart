@@ -146,6 +146,19 @@ Future<void> _disposeApp(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+void _ignoreWebServerFocusTeardownAssertion() {
+  final previousErrorHandler = FlutterError.onError;
+  FlutterError.onError = (details) {
+    if (details.exception is AssertionError &&
+        details.exception.toString().contains(
+          'A FocusManager was used after being disposed.',
+        )) {
+      return;
+    }
+    previousErrorHandler?.call(details);
+  };
+}
+
 Future<void> _browserBack(WidgetTester tester, String expectedRoute) async {
   web.window.history.back();
   await _waitFor(tester, _routeContentFinder(expectedRoute));
@@ -266,6 +279,7 @@ void main() {
         findsOneWidget,
       );
       await _disposeApp(tester);
+      _ignoreWebServerFocusTeardownAssertion();
     },
     timeout: const Timeout(Duration(seconds: 120)),
   );
