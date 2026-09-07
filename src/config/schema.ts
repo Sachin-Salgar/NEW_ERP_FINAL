@@ -26,7 +26,7 @@ export const appConfigSchema = z.object({
   API_PREFIX: z.string().trim().default('/api/v1'),
   LOG_LEVEL: z.enum(logLevels).default('info'),
   DATABASE_URL: z.string().trim().min(1),
-  PLATFORM_DATABASE_URL: z.string().trim().min(1).optional(),
+  PLATFORM_DATABASE_URL: z.string().trim().min(1).default(''),
   DATABASE_SSL_MODE: z.enum(databaseSslModes).default('require'),
   DATABASE_POOL_MIN: z.coerce.number().int().min(0).default(1),
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).default(25),
