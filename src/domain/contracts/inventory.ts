@@ -54,7 +54,14 @@ export interface InventoryReservationResult {
 export interface InventoryDependencyPort {
   receiveStock?(
     context: InventoryContext,
-    request: { warehouseId: string; itemId: string; quantity: number; sourceType: string; sourceId: string; operationKey: string },
+    request: {
+      warehouseId: string;
+      itemId: string;
+      quantity: number;
+      sourceType: string;
+      sourceId: string;
+      operationKey: string;
+    },
   ): Promise<unknown>;
   listReservationsBySource(
     context: InventoryContext,
@@ -67,12 +74,17 @@ export interface InventoryDependencyPort {
     sourceId: string,
     operationKey: string,
   ): Promise<InventoryReservationResult[]>;
-  reserveStock(
+  reserveStock(context: InventoryContext, request: InventoryReservationRequest): Promise<InventoryReservationResult>;
+  releaseReservation(
     context: InventoryContext,
-    request: InventoryReservationRequest,
+    reservationId: string,
+    idempotencyKey: string,
   ): Promise<InventoryReservationResult>;
-  releaseReservation(context: InventoryContext, reservationId: string, idempotencyKey: string): Promise<InventoryReservationResult>;
-  fulfillReservation(context: InventoryContext, reservationId: string, idempotencyKey: string): Promise<InventoryReservationResult>;
+  fulfillReservation(
+    context: InventoryContext,
+    reservationId: string,
+    idempotencyKey: string,
+  ): Promise<InventoryReservationResult>;
   returnStock(
     context: InventoryContext,
     request: Omit<InventoryReservationRequest, 'idempotencyKey'> & { idempotencyKey: string },

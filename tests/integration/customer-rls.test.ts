@@ -33,7 +33,16 @@ describe('Customer PostgreSQL tenant isolation', () => {
     await pool.query(
       `INSERT INTO tenants (id, name, subdomain, slug)
        VALUES ($1, $2, $3, $4), ($5, $6, $7, $8)`,
-      [tenantA, 'Customer Test A', `customer-a-${tenantA}`, `customer-a-${tenantA}`, tenantB, 'Customer Test B', `customer-b-${tenantB}`, `customer-b-${tenantB}`],
+      [
+        tenantA,
+        'Customer Test A',
+        `customer-a-${tenantA}`,
+        `customer-a-${tenantA}`,
+        tenantB,
+        'Customer Test B',
+        `customer-b-${tenantB}`,
+        `customer-b-${tenantB}`,
+      ],
     );
     await withTenantContext(pool, 'app.current_tenant_id', tenantA, (client) =>
       client.query(`INSERT INTO organizations (id, tenant_id, code, name) VALUES ($1, $2, 'ORGA', 'Organization A')`, [
@@ -88,7 +97,9 @@ describe('Customer PostgreSQL tenant isolation', () => {
       }),
     ).resolves.toMatchObject({ isDeleted: true });
     await expect(repository.getById(tenantA, organizationA, customer.id)).resolves.toBeNull();
-    await expect(repository.list(tenantA, { organizationId: organizationA, page: 1, pageSize: 20 })).resolves.toMatchObject({
+    await expect(
+      repository.list(tenantA, { organizationId: organizationA, page: 1, pageSize: 20 }),
+    ).resolves.toMatchObject({
       total: 0,
     });
 

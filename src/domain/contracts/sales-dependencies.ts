@@ -22,16 +22,43 @@ export interface InventoryReturnPort {
 }
 
 export interface FinancePostingPort {
-  submitSalesDocument(context: SalesDependencyContext, documentType: 'INVOICE' | 'CREDIT_NOTE', documentId: string, amount?: number): Promise<{ status: 'NOT_CONNECTED' | 'POSTED'; reference?: string }>;
+  submitSalesDocument(
+    context: SalesDependencyContext,
+    documentType: 'INVOICE' | 'CREDIT_NOTE',
+    documentId: string,
+    amount?: number,
+  ): Promise<{ status: 'NOT_CONNECTED' | 'POSTED'; reference?: string }>;
 }
 
 export interface TaxCalculationPort {
-  calculate(context: SalesDependencyContext, documentType: 'INVOICE' | 'CREDIT_NOTE', documentId: string, taxableAmount?: number): Promise<{ status: 'NOT_CONNECTED' | 'CALCULATED'; reference?: string; rate?: number; taxableAmount?: number; taxAmount?: number }>;
+  calculate(
+    context: SalesDependencyContext,
+    documentType: 'INVOICE' | 'CREDIT_NOTE',
+    documentId: string,
+    taxableAmount?: number,
+  ): Promise<{
+    status: 'NOT_CONNECTED' | 'CALCULATED';
+    reference?: string;
+    rate?: number;
+    taxableAmount?: number;
+    taxAmount?: number;
+  }>;
 }
 
 export interface WorkflowDecisionPort {
-  start(context: SalesDependencyContext, documentType: string, documentId: string, versionNumber: number): Promise<{ status: 'NOT_CONNECTED' }>;
-  applyDecision(context: SalesDependencyContext, documentType: string, documentId: string, versionNumber: number, decision: string): Promise<{ status: 'NOT_CONNECTED' }>;
+  start(
+    context: SalesDependencyContext,
+    documentType: string,
+    documentId: string,
+    versionNumber: number,
+  ): Promise<{ status: 'NOT_CONNECTED' }>;
+  applyDecision(
+    context: SalesDependencyContext,
+    documentType: string,
+    documentId: string,
+    versionNumber: number,
+    decision: string,
+  ): Promise<{ status: 'NOT_CONNECTED' }>;
 }
 
 export interface SalesNotificationPort {
@@ -39,6 +66,10 @@ export interface SalesNotificationPort {
 }
 
 export interface SalesDocumentPort {
-  requestDocument(context: SalesDependencyContext, documentType: string, documentId: string): Promise<{ status: 'NOT_CONNECTED' }>;
+  requestDocument(
+    context: SalesDependencyContext,
+    documentType: string,
+    documentId: string,
+  ): Promise<{ status: 'NOT_CONNECTED' }>;
 }
 import type { InventoryDependencyPort } from './inventory.js';

@@ -763,10 +763,17 @@ export class PostgresPlatformRepository
 
   async deleteRole(tenantId: string, roleId: string): Promise<boolean> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
-      const role = await client.query(`SELECT is_system FROM roles WHERE tenant_id = $1 AND id = $2 AND is_deleted = false`, [tenantId, roleId]);
+      const role = await client.query(
+        `SELECT is_system FROM roles WHERE tenant_id = $1 AND id = $2 AND is_deleted = false`,
+        [tenantId, roleId],
+      );
       if (role.rows[0]?.is_system) throw new ValidationError('System roles cannot be deleted.');
-      const users = await client.query(`SELECT COUNT(*) AS count FROM user_roles WHERE tenant_id = $1 AND role_id = $2`, [tenantId, roleId]);
-      if (Number(users.rows[0]?.count ?? 0) > 0) throw new ValidationError('Role cannot be deleted while assigned to users.');
+      const users = await client.query(
+        `SELECT COUNT(*) AS count FROM user_roles WHERE tenant_id = $1 AND role_id = $2`,
+        [tenantId, roleId],
+      );
+      if (Number(users.rows[0]?.count ?? 0) > 0)
+        throw new ValidationError('Role cannot be deleted while assigned to users.');
       return client.query(
         `UPDATE roles SET is_deleted = true, deleted_at = NOW(), updated_at = NOW()
          WHERE tenant_id = $1 AND id = $2 AND is_deleted = false RETURNING id`,
@@ -3144,14 +3151,21 @@ export class PostgresPlatformRepository
 
   async revokeUserOrganizationAccess(tenantId: string, userId: string, organizationId: string): Promise<boolean> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, (client) =>
-      client.query(`DELETE FROM user_organization_access WHERE tenant_id = $1 AND user_id = $2 AND organization_id = $3`, [tenantId, userId, organizationId]),
+      client.query(
+        `DELETE FROM user_organization_access WHERE tenant_id = $1 AND user_id = $2 AND organization_id = $3`,
+        [tenantId, userId, organizationId],
+      ),
     );
     return (result.rowCount ?? 0) > 0;
   }
 
   async revokeUserBranchAccess(tenantId: string, userId: string, branchId: string): Promise<boolean> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, (client) =>
-      client.query(`DELETE FROM user_branch_access WHERE tenant_id = $1 AND user_id = $2 AND branch_id = $3`, [tenantId, userId, branchId]),
+      client.query(`DELETE FROM user_branch_access WHERE tenant_id = $1 AND user_id = $2 AND branch_id = $3`, [
+        tenantId,
+        userId,
+        branchId,
+      ]),
     );
     return (result.rowCount ?? 0) > 0;
   }

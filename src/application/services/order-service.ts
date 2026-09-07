@@ -41,7 +41,12 @@ export class OrderService {
     this.id(input.quotationId, 'Quotation ID');
     if (input.warehouseId) this.id(input.warehouseId, 'Warehouse ID');
     return this.tx.runInTransaction(async () => {
-      const order = await this.repository.create({ ...c, quotationId: input.quotationId, warehouseId: input.warehouseId, actorUserId: c.userId });
+      const order = await this.repository.create({
+        ...c,
+        quotationId: input.quotationId,
+        warehouseId: input.warehouseId,
+        actorUserId: c.userId,
+      });
       await this.audit.record(
         {
           tenantId: c.tenantId,
@@ -108,18 +113,34 @@ export class OrderService {
       let transitionVersion = expectedVersion;
       if (status === 'CANCELLED' && current.reservationStatus === 'RESERVED') {
         if (!this.inventory) throw new ValidationError('Inventory reservation provider is not configured.');
-        if (!this.repository.updateReservationStatus) throw new ValidationError('Order reservation state updates are not configured.');
+        if (!this.repository.updateReservationStatus)
+          throw new ValidationError('Order reservation state updates are not configured.');
         const reservations = await this.inventory.listReservationsBySource(c, 'SALES_ORDER', current.id);
         for (const reservation of reservations) {
           if (reservation.status === 'RESERVED') {
-            await this.inventory.releaseReservation(c, reservation.id, `sales-order-cancel:${current.id}:${reservation.id}`);
+            await this.inventory.releaseReservation(
+              c,
+              reservation.id,
+              `sales-order-cancel:${current.id}:${reservation.id}`,
+            );
           }
         }
-        const released = await this.repository.updateReservationStatus({ ...c, orderId: current.id, reservationStatus: 'NOT_RESERVED', actorUserId: c.userId });
+        const released = await this.repository.updateReservationStatus({
+          ...c,
+          orderId: current.id,
+          reservationStatus: 'NOT_RESERVED',
+          actorUserId: c.userId,
+        });
         if (!released) throw new ValidationError('Order reservation state could not be released.');
         transitionVersion += 1;
       }
-      const x = await this.repository.transition({ ...c, orderId: id, status, expectedVersion: transitionVersion, actorUserId: c.userId });
+      const x = await this.repository.transition({
+        ...c,
+        orderId: id,
+        status,
+        expectedVersion: transitionVersion,
+        actorUserId: c.userId,
+      });
       if (!x) throw new ValidationError('Order not found or version conflict.');
       await this.audit.record(
         {
@@ -158,11 +179,23 @@ export class OrderService {
         });
       }
       const updated = this.repository.updateReservationStatus
-        ? await this.repository.updateReservationStatus({ ...c, orderId: order.id, reservationStatus: 'RESERVED', actorUserId: c.userId })
+        ? await this.repository.updateReservationStatus({
+            ...c,
+            orderId: order.id,
+            reservationStatus: 'RESERVED',
+            actorUserId: c.userId,
+          })
         : order;
       if (!updated) throw new ValidationError('Order reservation state could not be updated.');
       await this.audit.record(
-        { tenantId: c.tenantId, actorUserId: c.userId, action: 'order.reserved', resourceType: 'sales_order', resourceId: order.id, outcome: 'success' },
+        {
+          tenantId: c.tenantId,
+          actorUserId: c.userId,
+          action: 'order.reserved',
+          resourceType: 'sales_order',
+          resourceId: order.id,
+          outcome: 'success',
+        },
         { requireTransaction: true },
       );
       return updated;

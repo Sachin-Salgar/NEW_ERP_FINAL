@@ -40,21 +40,15 @@ describe('ModuleAccessService', () => {
   });
 
   it('returns enabled=true when enabling an organization module', async () => {
-    const { service } = createService([
-      { rows: [moduleRow] },
-      { rows: [{ enabled: true }] },
-    ]);
+    const { service } = createService([{ rows: [moduleRow] }, { rows: [{ enabled: true }] }]);
 
-    await expect(
-      service.setOrganizationModule('tenant-1', 'organization-1', 'sales', true, 'user-1'),
-    ).resolves.toEqual({ ...moduleRow, enabled: true });
+    await expect(service.setOrganizationModule('tenant-1', 'organization-1', 'sales', true, 'user-1')).resolves.toEqual(
+      { ...moduleRow, enabled: true },
+    );
   });
 
   it('returns null when disabling an organization module', async () => {
-    const { service } = createService([
-      { rows: [moduleRow] },
-      { rows: [{ enabled: false }] },
-    ]);
+    const { service } = createService([{ rows: [moduleRow] }, { rows: [{ enabled: false }] }]);
 
     await expect(
       service.setOrganizationModule('tenant-1', 'organization-1', 'sales', false, 'user-1'),

@@ -112,7 +112,9 @@ describe('Sales quotation PostgreSQL tenant and organization isolation', () => {
       ).rejects.toThrow('requires explicit authorization');
     });
 
-    await expect(repository.getById(tenantA, organizationA, branchA, financialYearA, quotation.id)).resolves.toMatchObject({
+    await expect(
+      repository.getById(tenantA, organizationA, branchA, financialYearA, quotation.id),
+    ).resolves.toMatchObject({
       tenantId: tenantA,
       organizationId: organizationA,
       quotationNumber: 'Q-000001',

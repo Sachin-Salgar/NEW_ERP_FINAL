@@ -306,7 +306,9 @@ export const inventoryItems = pgTable(
   'inventory_items',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     organizationId: uuid('organization_id').notNull(),
     code: varchar('code', { length: 100 }).notNull(),
     name: varchar('name', { length: 255 }).notNull(),

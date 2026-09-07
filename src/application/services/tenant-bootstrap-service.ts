@@ -20,7 +20,14 @@ const normalizeBootstrapPermissions = (permissions: string[]): string[] => {
         'organization.location.deactivate',
       ],
       'branch.manage': ['branch.read', 'branch.create', 'branch.update', 'branch.deactivate'],
-      'role.manage': ['role.read', 'role.create', 'role.update', 'role_permission.read', 'role_permission.grant', 'role_permission.revoke'],
+      'role.manage': [
+        'role.read',
+        'role.create',
+        'role.update',
+        'role_permission.read',
+        'role_permission.grant',
+        'role_permission.revoke',
+      ],
       'permission.manage': ['permission.read'],
     };
     for (const replacement of replacements[permission] ?? [permission]) normalized.add(replacement);
@@ -29,14 +36,20 @@ const normalizeBootstrapPermissions = (permissions: string[]): string[] => {
 };
 
 export class TenantBootstrapService implements TenantBootstrapServicePort {
-  constructor(private readonly tenantBootstrapRepository: TenantBootstrapRepository, private readonly passwordHasher?: PasswordHasher, private readonly transactionRunner?: TransactionRunner) {}
+  constructor(
+    private readonly tenantBootstrapRepository: TenantBootstrapRepository,
+    private readonly passwordHasher?: PasswordHasher,
+    private readonly transactionRunner?: TransactionRunner,
+  ) {}
   async bootstrapTenant(input: TenantBootstrapInput): Promise<TenantBootstrapResult> {
     const tenantId = input.tenant.id ?? uuidV7();
     const organizationId = input.organization.id ?? uuidV7();
     const branchId = input.branch.id ?? uuidV7();
     const adminId = input.administrator.id ?? uuidV7();
     const roleId = input.role.id ?? uuidV7();
-    const passwordHash = this.passwordHasher ? await this.passwordHasher.hash(input.administrator.password) : input.administrator.password;
+    const passwordHash = this.passwordHasher
+      ? await this.passwordHasher.hash(input.administrator.password)
+      : input.administrator.password;
     const normalizedInput: TenantBootstrapInput = {
       ...input,
       permissions: normalizeBootstrapPermissions(input.permissions),

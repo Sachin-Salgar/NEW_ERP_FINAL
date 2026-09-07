@@ -25,8 +25,9 @@ describe('SalesReportingService', () => {
       { hasPermission: async () => false },
       { isModuleEnabled: async () => true },
     );
-    await expect(service.listDocumentSummary(context, { page: 1, pageSize: 20, order: 'desc' }))
-      .rejects.toBeInstanceOf(ForbiddenError);
+    await expect(service.listDocumentSummary(context, { page: 1, pageSize: 20, order: 'desc' })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
   });
 
   it('returns the bounded document summary query result', async () => {
@@ -35,7 +36,9 @@ describe('SalesReportingService', () => {
       { hasPermission: async () => true },
       { isModuleEnabled: async () => true },
     );
-    await expect(service.listDocumentSummary(context, { page: 1, pageSize: 20, order: 'desc' }))
-      .resolves.toEqual({ items: [], total: 0 });
+    await expect(service.listDocumentSummary(context, { page: 1, pageSize: 20, order: 'desc' })).resolves.toEqual({
+      items: [],
+      total: 0,
+    });
   });
 });

@@ -10,13 +10,7 @@ export interface SalesReportContext {
   userId: string;
 }
 
-export type SalesReportDocumentType =
-  | 'QUOTATION'
-  | 'ORDER'
-  | 'DELIVERY'
-  | 'INVOICE'
-  | 'RETURN'
-  | 'CREDIT_NOTE';
+export type SalesReportDocumentType = 'QUOTATION' | 'ORDER' | 'DELIVERY' | 'INVOICE' | 'RETURN' | 'CREDIT_NOTE';
 
 export interface SalesDocumentSummary {
   documentType: SalesReportDocumentType;

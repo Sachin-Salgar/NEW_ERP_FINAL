@@ -21,14 +21,20 @@ const securityAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
         tags: ['Security'],
         summary: 'List active tenant sessions',
         security: [{ bearerAuth: [] }],
-        response: { 200: toJsonSchema(z.object({ success: z.literal(true), sessions: z.array(z.unknown()) })), 401: toJsonSchema(errorResponseSchema) },
+        response: {
+          200: toJsonSchema(z.object({ success: z.literal(true), sessions: z.array(z.unknown()) })),
+          401: toJsonSchema(errorResponseSchema),
+        },
       },
       preHandler: [requireAuth, requirePermission('security.session.read')],
     },
     async (request) => {
       if (!request.tenantId) throw new ValidationError('Tenant context is required.');
       const query = listQuery.parse(request.query);
-      const sessions = await request.server.securityAdministrationService.listActiveSessions(request.tenantId, query.userId);
+      const sessions = await request.server.securityAdministrationService.listActiveSessions(
+        request.tenantId,
+        query.userId,
+      );
       return { success: true as const, sessions };
     },
   );
@@ -41,14 +47,19 @@ const securityAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
         summary: 'Revoke one tenant session',
         security: [{ bearerAuth: [] }],
         params: toJsonSchema(sessionParams),
-        response: { 200: toJsonSchema(z.object({ success: z.literal(true), revoked: z.literal(true) })), 401: toJsonSchema(errorResponseSchema), 404: toJsonSchema(errorResponseSchema) },
+        response: {
+          200: toJsonSchema(z.object({ success: z.literal(true), revoked: z.literal(true) })),
+          401: toJsonSchema(errorResponseSchema),
+          404: toJsonSchema(errorResponseSchema),
+        },
       },
       preHandler: [requireAuth, requirePermission('security.session.revoke')],
     },
     async (request) => {
       if (!request.tenantId) throw new ValidationError('Tenant context is required.');
       const { sessionId } = sessionParams.parse(request.params);
-      if (sessionId === request.sessionId) throw new ForbiddenError('The current session must be ended through logout.');
+      if (sessionId === request.sessionId)
+        throw new ForbiddenError('The current session must be ended through logout.');
       const session = await request.server.authService.getSession(sessionId, request.tenantId);
       if (!session) throw new NotFoundError('Session not found.');
       await request.server.securityAdministrationService.revokeSession(sessionId, request.tenantId);
@@ -73,7 +84,10 @@ const securityAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
         summary: 'Revoke all sessions for a tenant user',
         security: [{ bearerAuth: [] }],
         params: toJsonSchema(userParams),
-        response: { 200: toJsonSchema(z.object({ success: z.literal(true), revoked: z.number().int().nonnegative() })), 401: toJsonSchema(errorResponseSchema) },
+        response: {
+          200: toJsonSchema(z.object({ success: z.literal(true), revoked: z.number().int().nonnegative() })),
+          401: toJsonSchema(errorResponseSchema),
+        },
       },
       preHandler: [requireAuth, requirePermission('security.session.revoke_all')],
     },
@@ -105,7 +119,10 @@ const securityAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
         tags: ['Security'],
         summary: 'Read tenant audit logs',
         security: [{ bearerAuth: [] }],
-        response: { 200: toJsonSchema(z.object({ success: z.literal(true), logs: z.array(z.unknown()) })), 401: toJsonSchema(errorResponseSchema) },
+        response: {
+          200: toJsonSchema(z.object({ success: z.literal(true), logs: z.array(z.unknown()) })),
+          401: toJsonSchema(errorResponseSchema),
+        },
       },
       preHandler: [requireAuth, requirePermission('security.audit_log.read')],
     },
@@ -117,26 +134,55 @@ const securityAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  fastify.get('/security/audit-logs/export', { preHandler: [requireAuth, requirePermission('security.audit_log.export')] }, async (request, reply) => {
-    if (!request.tenantId) throw new ValidationError('Tenant context is required.');
-    const query = listQuery.parse(request.query);
-    const csv = await request.server.securityAdministrationService.exportAuditLogs(request.tenantId, query.limit);
-    reply.type('text/csv; charset=utf-8');
-    return csv;
-  });
+  fastify.get(
+    '/security/audit-logs/export',
+    { preHandler: [requireAuth, requirePermission('security.audit_log.export')] },
+    async (request, reply) => {
+      if (!request.tenantId) throw new ValidationError('Tenant context is required.');
+      const query = listQuery.parse(request.query);
+      const csv = await request.server.securityAdministrationService.exportAuditLogs(request.tenantId, query.limit);
+      reply.type('text/csv; charset=utf-8');
+      return csv;
+    },
+  );
 
-  fastify.get('/security/policy', { preHandler: [requireAuth, requirePermission('security.policy.read')] }, async (request) => {
-    if (!request.tenantId) throw new ValidationError('Tenant context is required.');
-    return { success: true, policy: await request.server.securityAdministrationService.getSecurityPolicy(request.tenantId) };
-  });
+  fastify.get(
+    '/security/policy',
+    { preHandler: [requireAuth, requirePermission('security.policy.read')] },
+    async (request) => {
+      if (!request.tenantId) throw new ValidationError('Tenant context is required.');
+      return {
+        success: true,
+        policy: await request.server.securityAdministrationService.getSecurityPolicy(request.tenantId),
+      };
+    },
+  );
 
-  fastify.patch<{ Body: { mfaRequired?: boolean; sessionLifetimeMinutes?: number; maxFailedLoginAttempts?: number; lockoutMinutes?: number } }>(
+  fastify.patch<{
+    Body: {
+      mfaRequired?: boolean;
+      sessionLifetimeMinutes?: number;
+      maxFailedLoginAttempts?: number;
+      lockoutMinutes?: number;
+    };
+  }>(
     '/security/policy',
     { preHandler: [requireAuth, requirePermission('security.policy.update')] },
     async (request) => {
       if (!request.tenantId) throw new ValidationError('Tenant context is required.');
-      const policy = await request.server.securityAdministrationService.updateSecurityPolicy(request.tenantId, request.body);
-      await recordSecurityEvent(request, { tenantId: request.tenantId, actorUserId: request.user?.id, action: 'security.policy.update', resourceType: 'security_policy', resourceId: request.tenantId, outcome: 'success', metadata: { ...policy } });
+      const policy = await request.server.securityAdministrationService.updateSecurityPolicy(
+        request.tenantId,
+        request.body,
+      );
+      await recordSecurityEvent(request, {
+        tenantId: request.tenantId,
+        actorUserId: request.user?.id,
+        action: 'security.policy.update',
+        resourceType: 'security_policy',
+        resourceId: request.tenantId,
+        outcome: 'success',
+        metadata: { ...policy },
+      });
       return { success: true, policy };
     },
   );

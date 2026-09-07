@@ -132,12 +132,7 @@ export class JwtTokenService implements TokenService {
       throw new UnauthorizedError('Invalid or expired authentication token.');
     }
 
-    if (
-      typeof decodedPayload === 'string' ||
-      !decodedPayload ||
-      !decodedPayload.sub ||
-      !decodedPayload.sessionId
-    ) {
+    if (typeof decodedPayload === 'string' || !decodedPayload || !decodedPayload.sub || !decodedPayload.sessionId) {
       throw new UnauthorizedError('Malformed authentication token.');
     }
 

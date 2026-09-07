@@ -239,11 +239,7 @@ export interface ItemRepository {
   }): Promise<ItemRecord | null>;
 }
 
-import type {
-  MovementType,
-  ReservationStatus,
-  WarehouseStatus,
-} from './inventory.js';
+import type { MovementType, ReservationStatus, WarehouseStatus } from './inventory.js';
 
 export interface WarehouseRecord {
   id: string;
@@ -310,46 +306,117 @@ export interface InventoryMovementRecord {
 
 export interface InventoryRepository {
   createWarehouse(input: {
-    tenantId: string; organizationId: string; code: string; name: string; actorUserId: string;
+    tenantId: string;
+    organizationId: string;
+    code: string;
+    name: string;
+    actorUserId: string;
   }): Promise<WarehouseRecord>;
-  listWarehouses(tenantId: string, organizationId: string, page: number, pageSize: number, search?: string):
-    Promise<{ items: WarehouseRecord[]; total: number }>;
+  listWarehouses(
+    tenantId: string,
+    organizationId: string,
+    page: number,
+    pageSize: number,
+    search?: string,
+  ): Promise<{ items: WarehouseRecord[]; total: number }>;
   updateWarehouse(input: {
-    tenantId: string; organizationId: string; warehouseId: string; name: string; status: WarehouseStatus;
-    expectedVersion: number; actorUserId: string;
+    tenantId: string;
+    organizationId: string;
+    warehouseId: string;
+    name: string;
+    status: WarehouseStatus;
+    expectedVersion: number;
+    actorUserId: string;
   }): Promise<WarehouseRecord | null>;
-  listStock(tenantId: string, organizationId: string, page: number, pageSize: number, warehouseId?: string, itemId?: string):
-    Promise<{ items: InventoryStockRecord[]; total: number }>;
+  listStock(
+    tenantId: string,
+    organizationId: string,
+    page: number,
+    pageSize: number,
+    warehouseId?: string,
+    itemId?: string,
+  ): Promise<{ items: InventoryStockRecord[]; total: number }>;
   receiveStock(input: {
-    tenantId: string; organizationId: string; branchId: string; financialYearId: string; warehouseId: string;
-    itemId: string; quantity: number; sourceType: string; sourceId: string; operationKey: string; actorUserId: string;
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    warehouseId: string;
+    itemId: string;
+    quantity: number;
+    sourceType: string;
+    sourceId: string;
+    operationKey: string;
+    actorUserId: string;
   }): Promise<InventoryStockRecord>;
   reserveStock(input: {
-    tenantId: string; organizationId: string; branchId: string; financialYearId: string; warehouseId: string;
-    itemId: string; quantity: number; sourceType: string; sourceId: string; idempotencyKey: string; actorUserId: string;
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    warehouseId: string;
+    itemId: string;
+    quantity: number;
+    sourceType: string;
+    sourceId: string;
+    idempotencyKey: string;
+    actorUserId: string;
   }): Promise<InventoryReservationRecord>;
   listReservations(input: {
-    tenantId: string; organizationId: string; page: number; pageSize: number; status?: ReservationStatus;
+    tenantId: string;
+    organizationId: string;
+    page: number;
+    pageSize: number;
+    status?: ReservationStatus;
   }): Promise<{ items: InventoryReservationRecord[]; total: number }>;
   listReservationsBySource(input: {
-    tenantId: string; organizationId: string; branchId: string; financialYearId: string;
-    sourceType: string; sourceId: string;
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    sourceType: string;
+    sourceId: string;
   }): Promise<InventoryReservationRecord[]>;
   fulfillReservationsBySource(input: {
-    tenantId: string; organizationId: string; branchId: string; financialYearId: string;
-    sourceType: string; sourceId: string; operationKey: string; actorUserId: string;
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    sourceType: string;
+    sourceId: string;
+    operationKey: string;
+    actorUserId: string;
   }): Promise<InventoryReservationRecord[]>;
   releaseReservation(input: {
-    tenantId: string; organizationId: string; branchId: string; financialYearId: string; reservationId: string;
-    operationKey: string; actorUserId: string;
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    reservationId: string;
+    operationKey: string;
+    actorUserId: string;
   }): Promise<InventoryReservationRecord>;
   fulfillReservation(input: {
-    tenantId: string; organizationId: string; branchId: string; financialYearId: string; reservationId: string;
-    operationKey: string; actorUserId: string;
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    reservationId: string;
+    operationKey: string;
+    actorUserId: string;
   }): Promise<InventoryReservationRecord>;
   returnStock(input: {
-    tenantId: string; organizationId: string; branchId: string; financialYearId: string; warehouseId: string;
-    itemId: string; quantity: number; sourceType: string; sourceId: string; operationKey: string; actorUserId: string;
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    warehouseId: string;
+    itemId: string;
+    quantity: number;
+    sourceType: string;
+    sourceId: string;
+    operationKey: string;
+    actorUserId: string;
   }): Promise<InventoryMovementRecord>;
 }
 
@@ -597,8 +664,13 @@ export interface DeliveryRecord {
 }
 export interface DeliveryRepository {
   attachReservationReferences?(input: {
-    tenantId: string; organizationId: string; branchId: string; financialYearId: string;
-    deliveryId: string; references: Array<{ orderItemId: string; reservationId: string }>; actorUserId: string;
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    deliveryId: string;
+    references: Array<{ orderItemId: string; reservationId: string }>;
+    actorUserId: string;
   }): Promise<DeliveryRecord | null>;
   create(input: {
     tenantId: string;
@@ -611,19 +683,44 @@ export interface DeliveryRepository {
     actorUserId: string;
     allowReplay?: boolean;
   }): Promise<DeliveryRecord>;
-  getById(tenantId: string, organizationId: string, branchId: string, financialYearId: string, id: string): Promise<DeliveryRecord | null>;
-  list(tenantId: string, q: {
-    organizationId: string; branchId: string; financialYearId: string;
-    page: number; pageSize: number; order: 'asc' | 'desc'; search?: string;
-  }): Promise<{ items: DeliveryRecord[]; total: number }>;
+  getById(
+    tenantId: string,
+    organizationId: string,
+    branchId: string,
+    financialYearId: string,
+    id: string,
+  ): Promise<DeliveryRecord | null>;
+  list(
+    tenantId: string,
+    q: {
+      organizationId: string;
+      branchId: string;
+      financialYearId: string;
+      page: number;
+      pageSize: number;
+      order: 'asc' | 'desc';
+      search?: string;
+    },
+  ): Promise<{ items: DeliveryRecord[]; total: number }>;
   update(input: {
-    tenantId: string; organizationId: string; branchId: string; financialYearId: string;
-    deliveryId: string; notes: string | null; expectedVersion: number; actorUserId: string;
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    deliveryId: string;
+    notes: string | null;
+    expectedVersion: number;
+    actorUserId: string;
   }): Promise<DeliveryRecord | null>;
   transition(input: {
-    tenantId: string; organizationId: string; branchId: string; financialYearId: string;
-    deliveryId: string; status: import('./delivery.js').DeliveryStatus;
-    expectedVersion: number; actorUserId: string;
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    deliveryId: string;
+    status: import('./delivery.js').DeliveryStatus;
+    expectedVersion: number;
+    actorUserId: string;
   }): Promise<DeliveryRecord | null>;
 }
 
@@ -674,70 +771,268 @@ export interface InvoiceRecord {
 }
 export interface InvoiceRepository {
   create(input: {
-    tenantId: string; organizationId: string; branchId: string; financialYearId: string;
-    deliveryId: string; idempotencyKey: string; notes: string | null; actorUserId: string; allowReplay?: boolean;
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    deliveryId: string;
+    idempotencyKey: string;
+    notes: string | null;
+    actorUserId: string;
+    allowReplay?: boolean;
   }): Promise<InvoiceRecord>;
-  getById(tenantId: string, organizationId: string, branchId: string, financialYearId: string, id: string): Promise<InvoiceRecord | null>;
-  list(tenantId: string, q: {
-    organizationId: string; branchId: string; financialYearId: string;
-    page: number; pageSize: number; order: 'asc' | 'desc'; search?: string;
-  }): Promise<{ items: InvoiceRecord[]; total: number }>;
+  getById(
+    tenantId: string,
+    organizationId: string,
+    branchId: string,
+    financialYearId: string,
+    id: string,
+  ): Promise<InvoiceRecord | null>;
+  list(
+    tenantId: string,
+    q: {
+      organizationId: string;
+      branchId: string;
+      financialYearId: string;
+      page: number;
+      pageSize: number;
+      order: 'asc' | 'desc';
+      search?: string;
+    },
+  ): Promise<{ items: InvoiceRecord[]; total: number }>;
   update(input: {
-    tenantId: string; organizationId: string; branchId: string; financialYearId: string;
-    invoiceId: string; notes: string | null; expectedVersion: number;     actorUserId: string;
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    invoiceId: string;
+    notes: string | null;
+    expectedVersion: number;
+    actorUserId: string;
   }): Promise<InvoiceRecord | null>;
   transition(input: {
-    tenantId: string; organizationId: string; branchId: string; financialYearId: string;
-    invoiceId: string; status: import('./invoice.js').InvoiceStatus;
-    expectedVersion: number; actorUserId: string;
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    invoiceId: string;
+    status: import('./invoice.js').InvoiceStatus;
+    expectedVersion: number;
+    actorUserId: string;
   }): Promise<InvoiceRecord | null>;
   updateTaxSnapshot?(input: {
-    tenantId: string; organizationId: string; branchId: string; financialYearId: string;
-    invoiceId: string; taxReference: string; taxRate: number; taxableAmount: number; taxAmount: number; actorUserId: string;
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    invoiceId: string;
+    taxReference: string;
+    taxRate: number;
+    taxableAmount: number;
+    taxAmount: number;
+    actorUserId: string;
   }): Promise<InvoiceRecord | null>;
-  updateFinanceStatus?(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; invoiceId: string; financeReference: string; actorUserId: string }): Promise<InvoiceRecord | null>;
+  updateFinanceStatus?(input: {
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    invoiceId: string;
+    financeReference: string;
+    actorUserId: string;
+  }): Promise<InvoiceRecord | null>;
 }
 
 export interface SalesReturnItemRecord {
-  id: string; lineNumber: number; invoiceItemId: string; description: string;
-  quantity: number; unitOfMeasure: string; unitPrice: number; itemId?: string | null; warehouseId?: string | null;
+  id: string;
+  lineNumber: number;
+  invoiceItemId: string;
+  description: string;
+  quantity: number;
+  unitOfMeasure: string;
+  unitPrice: number;
+  itemId?: string | null;
+  warehouseId?: string | null;
 }
 export interface SalesReturnRecord {
-  id: string; tenantId: string; organizationId: string; branchId: string; financialYearId: string;
-  returnNumber: string; invoiceId: string; deliveryId: string; customerId: string;
-  status: import('./sales-return.js').SalesReturnStatus; idempotencyKey: string;
-  warehouseId?: string | null; inventoryStatus: 'NOT_CONNECTED' | 'COMPLETED'; financeStatus: 'NOT_CONNECTED'; notes: string | null;
-  items: SalesReturnItemRecord[]; createdAt: Date; createdBy: string | null;
-  updatedAt: Date | null; updatedBy: string | null; versionNumber: number;
+  id: string;
+  tenantId: string;
+  organizationId: string;
+  branchId: string;
+  financialYearId: string;
+  returnNumber: string;
+  invoiceId: string;
+  deliveryId: string;
+  customerId: string;
+  status: import('./sales-return.js').SalesReturnStatus;
+  idempotencyKey: string;
+  warehouseId?: string | null;
+  inventoryStatus: 'NOT_CONNECTED' | 'COMPLETED';
+  financeStatus: 'NOT_CONNECTED';
+  notes: string | null;
+  items: SalesReturnItemRecord[];
+  createdAt: Date;
+  createdBy: string | null;
+  updatedAt: Date | null;
+  updatedBy: string | null;
+  versionNumber: number;
 }
 export interface SalesReturnRepository {
-  create(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; invoiceId: string; idempotencyKey: string; notes: string | null; items?: Array<{ invoiceItemId: string; quantity: number }>; actorUserId: string; allowReplay?: boolean }): Promise<SalesReturnRecord>;
-  getById(tenantId: string, organizationId: string, branchId: string, financialYearId: string, id: string): Promise<SalesReturnRecord | null>;
-  list(tenantId: string, q: { organizationId: string; branchId: string; financialYearId: string; page: number; pageSize: number; order: 'asc' | 'desc'; search?: string }): Promise<{ items: SalesReturnRecord[]; total: number }>;
-  update(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; returnId: string; notes: string | null; expectedVersion: number; actorUserId: string }): Promise<SalesReturnRecord | null>;
-  transition(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; returnId: string; status: import('./sales-return.js').SalesReturnStatus; expectedVersion: number; actorUserId: string }): Promise<SalesReturnRecord | null>;
-  process(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; returnId: string; expectedVersion: number; actorUserId: string }): Promise<SalesReturnRecord | null>;
+  create(input: {
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    invoiceId: string;
+    idempotencyKey: string;
+    notes: string | null;
+    items?: Array<{ invoiceItemId: string; quantity: number }>;
+    actorUserId: string;
+    allowReplay?: boolean;
+  }): Promise<SalesReturnRecord>;
+  getById(
+    tenantId: string,
+    organizationId: string,
+    branchId: string,
+    financialYearId: string,
+    id: string,
+  ): Promise<SalesReturnRecord | null>;
+  list(
+    tenantId: string,
+    q: {
+      organizationId: string;
+      branchId: string;
+      financialYearId: string;
+      page: number;
+      pageSize: number;
+      order: 'asc' | 'desc';
+      search?: string;
+    },
+  ): Promise<{ items: SalesReturnRecord[]; total: number }>;
+  update(input: {
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    returnId: string;
+    notes: string | null;
+    expectedVersion: number;
+    actorUserId: string;
+  }): Promise<SalesReturnRecord | null>;
+  transition(input: {
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    returnId: string;
+    status: import('./sales-return.js').SalesReturnStatus;
+    expectedVersion: number;
+    actorUserId: string;
+  }): Promise<SalesReturnRecord | null>;
+  process(input: {
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    returnId: string;
+    expectedVersion: number;
+    actorUserId: string;
+  }): Promise<SalesReturnRecord | null>;
 }
 
 export interface CreditNoteItemRecord {
-  id: string; lineNumber: number; returnItemId: string; description: string;
-  quantity: number; unitPrice: number; unitOfMeasure: string; lineTotal: number;
+  id: string;
+  lineNumber: number;
+  returnItemId: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  unitOfMeasure: string;
+  lineTotal: number;
 }
 export interface CreditNoteRecord {
-  id: string; tenantId: string; organizationId: string; branchId: string; financialYearId: string;
-  creditNoteNumber: string; returnId: string; invoiceId: string; customerId: string;
-  status: import('./credit-note.js').CreditNoteStatus; idempotencyKey: string;
-  financeStatus: 'NOT_CONNECTED' | 'POSTED'; taxStatus: 'NOT_CONNECTED'; financeReference?: string | null; notes: string | null;
-  items: CreditNoteItemRecord[]; createdAt: Date; createdBy: string | null;
-  updatedAt: Date | null; updatedBy: string | null; versionNumber: number;
+  id: string;
+  tenantId: string;
+  organizationId: string;
+  branchId: string;
+  financialYearId: string;
+  creditNoteNumber: string;
+  returnId: string;
+  invoiceId: string;
+  customerId: string;
+  status: import('./credit-note.js').CreditNoteStatus;
+  idempotencyKey: string;
+  financeStatus: 'NOT_CONNECTED' | 'POSTED';
+  taxStatus: 'NOT_CONNECTED';
+  financeReference?: string | null;
+  notes: string | null;
+  items: CreditNoteItemRecord[];
+  createdAt: Date;
+  createdBy: string | null;
+  updatedAt: Date | null;
+  updatedBy: string | null;
+  versionNumber: number;
 }
 export interface CreditNoteRepository {
-  create(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; returnId: string; idempotencyKey: string; notes: string | null; actorUserId: string; allowReplay?: boolean }): Promise<CreditNoteRecord>;
-  getById(tenantId: string, organizationId: string, branchId: string, financialYearId: string, id: string): Promise<CreditNoteRecord | null>;
-  list(tenantId: string, q: { organizationId: string; branchId: string; financialYearId: string; page: number; pageSize: number; order: 'asc' | 'desc'; search?: string }): Promise<{ items: CreditNoteRecord[]; total: number }>;
-  update(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; creditNoteId: string; notes: string | null; expectedVersion: number; actorUserId: string }): Promise<CreditNoteRecord | null>;
-  transition(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; creditNoteId: string; status: import('./credit-note.js').CreditNoteStatus; expectedVersion: number; actorUserId: string }): Promise<CreditNoteRecord | null>;
-  updateFinanceStatus?(input: { tenantId: string; organizationId: string; branchId: string; financialYearId: string; creditNoteId: string; financeReference: string; actorUserId: string }): Promise<CreditNoteRecord | null>;
+  create(input: {
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    returnId: string;
+    idempotencyKey: string;
+    notes: string | null;
+    actorUserId: string;
+    allowReplay?: boolean;
+  }): Promise<CreditNoteRecord>;
+  getById(
+    tenantId: string,
+    organizationId: string,
+    branchId: string,
+    financialYearId: string,
+    id: string,
+  ): Promise<CreditNoteRecord | null>;
+  list(
+    tenantId: string,
+    q: {
+      organizationId: string;
+      branchId: string;
+      financialYearId: string;
+      page: number;
+      pageSize: number;
+      order: 'asc' | 'desc';
+      search?: string;
+    },
+  ): Promise<{ items: CreditNoteRecord[]; total: number }>;
+  update(input: {
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    creditNoteId: string;
+    notes: string | null;
+    expectedVersion: number;
+    actorUserId: string;
+  }): Promise<CreditNoteRecord | null>;
+  transition(input: {
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    creditNoteId: string;
+    status: import('./credit-note.js').CreditNoteStatus;
+    expectedVersion: number;
+    actorUserId: string;
+  }): Promise<CreditNoteRecord | null>;
+  updateFinanceStatus?(input: {
+    tenantId: string;
+    organizationId: string;
+    branchId: string;
+    financialYearId: string;
+    creditNoteId: string;
+    financeReference: string;
+    actorUserId: string;
+  }): Promise<CreditNoteRecord | null>;
 }
 
 export interface OrganizationRecord {

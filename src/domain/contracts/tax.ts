@@ -38,9 +38,15 @@ export interface TaxResolution {
 }
 
 export interface TaxRepository {
-  create(input: Omit<TaxRuleRecord, 'id' | 'tenantId' | 'versionNumber' | 'createdAt' | 'updatedAt' | 'status'> & TaxContext): Promise<TaxRuleRecord>;
+  create(
+    input: Omit<TaxRuleRecord, 'id' | 'tenantId' | 'versionNumber' | 'createdAt' | 'updatedAt' | 'status'> & TaxContext,
+  ): Promise<TaxRuleRecord>;
   list(tenantId: string, organizationId: string): Promise<TaxRuleRecord[]>;
-  update(input: TaxContext & { id: string; name: string; rate: number; effectiveTo: string | null; expectedVersion: number }): Promise<TaxRuleRecord | null>;
-  setStatus(input: TaxContext & { id: string; status: TaxStatus; expectedVersion: number }): Promise<TaxRuleRecord | null>;
+  update(
+    input: TaxContext & { id: string; name: string; rate: number; effectiveTo: string | null; expectedVersion: number },
+  ): Promise<TaxRuleRecord | null>;
+  setStatus(
+    input: TaxContext & { id: string; status: TaxStatus; expectedVersion: number },
+  ): Promise<TaxRuleRecord | null>;
   resolve(input: TaxContext & { asOf: string }): Promise<TaxRuleRecord | null>;
 }

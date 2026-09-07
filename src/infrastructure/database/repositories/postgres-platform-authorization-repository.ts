@@ -1,5 +1,9 @@
 import type { Pool } from 'pg';
-import type { PlatformAuthorizationRepository, PlatformContext, PlatformTenantRecord } from '../../../domain/contracts/platform-authorization.js';
+import type {
+  PlatformAuthorizationRepository,
+  PlatformContext,
+  PlatformTenantRecord,
+} from '../../../domain/contracts/platform-authorization.js';
 
 export class PostgresPlatformAuthorizationRepository implements PlatformAuthorizationRepository {
   constructor(private readonly pool: Pool) {}

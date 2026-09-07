@@ -196,7 +196,9 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     ],
   });
   const repository = new IdentityAwarePostgresPlatformRepository(pool);
-  const platformAuthorizationService = new PlatformAuthorizationService(new PostgresPlatformAuthorizationRepository(pool));
+  const platformAuthorizationService = new PlatformAuthorizationService(
+    new PostgresPlatformAuthorizationRepository(pool),
+  );
   const passwordHasher = new BcryptPasswordHasher();
   const jwtTokenService = new JwtTokenService(config);
   const authService = new AuthenticationService(repository, passwordHasher, jwtTokenService, {
@@ -257,11 +259,15 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     transactionRunner,
     {
       receiveStock: (context, request) => inventoryService.receive(context, request),
-      listReservationsBySource: (context, sourceType, sourceId) => inventoryService.listReservationsBySource(context, sourceType, sourceId),
-      fulfillReservationsBySource: (context, sourceType, sourceId, operationKey) => inventoryService.fulfillReservationsBySource(context, sourceType, sourceId, operationKey),
+      listReservationsBySource: (context, sourceType, sourceId) =>
+        inventoryService.listReservationsBySource(context, sourceType, sourceId),
+      fulfillReservationsBySource: (context, sourceType, sourceId, operationKey) =>
+        inventoryService.fulfillReservationsBySource(context, sourceType, sourceId, operationKey),
       reserveStock: (context, request) => inventoryService.reserve(context, request),
-      releaseReservation: (context, reservationId, idempotencyKey) => inventoryService.release(context, reservationId, idempotencyKey),
-      fulfillReservation: (context, reservationId, idempotencyKey) => inventoryService.fulfill(context, reservationId, idempotencyKey),
+      releaseReservation: (context, reservationId, idempotencyKey) =>
+        inventoryService.release(context, reservationId, idempotencyKey),
+      fulfillReservation: (context, reservationId, idempotencyKey) =>
+        inventoryService.fulfill(context, reservationId, idempotencyKey),
       returnStock: (context, request) => inventoryService.returnStock(context, request),
     },
   );
@@ -273,10 +279,13 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     transactionRunner,
     {
       reserveStock: (context, request) => inventoryService.reserve(context, request),
-      releaseReservation: (context, reservationId, idempotencyKey) => inventoryService.release(context, reservationId, idempotencyKey),
-      fulfillReservation: (context, reservationId, idempotencyKey) => inventoryService.fulfill(context, reservationId, idempotencyKey),
+      releaseReservation: (context, reservationId, idempotencyKey) =>
+        inventoryService.release(context, reservationId, idempotencyKey),
+      fulfillReservation: (context, reservationId, idempotencyKey) =>
+        inventoryService.fulfill(context, reservationId, idempotencyKey),
       returnStock: (context, request) => inventoryService.returnStock(context, request),
-      listReservationsBySource: (context, sourceType, sourceId) => inventoryService.listReservationsBySource(context, sourceType, sourceId),
+      listReservationsBySource: (context, sourceType, sourceId) =>
+        inventoryService.listReservationsBySource(context, sourceType, sourceId),
       fulfillReservationsBySource: (context, sourceType, sourceId, operationKey) =>
         inventoryService.fulfillReservationsBySource(context, sourceType, sourceId, operationKey),
     },
@@ -288,12 +297,15 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     auditLogger,
     transactionRunner,
     {
-      listReservationsBySource: (context, sourceType, sourceId) => inventoryService.listReservationsBySource(context, sourceType, sourceId),
+      listReservationsBySource: (context, sourceType, sourceId) =>
+        inventoryService.listReservationsBySource(context, sourceType, sourceId),
       fulfillReservationsBySource: (context, sourceType, sourceId, operationKey) =>
         inventoryService.fulfillReservationsBySource(context, sourceType, sourceId, operationKey),
       reserveStock: (context, request) => inventoryService.reserve(context, request),
-      releaseReservation: (context, reservationId, idempotencyKey) => inventoryService.release(context, reservationId, idempotencyKey),
-      fulfillReservation: (context, reservationId, idempotencyKey) => inventoryService.fulfill(context, reservationId, idempotencyKey),
+      releaseReservation: (context, reservationId, idempotencyKey) =>
+        inventoryService.release(context, reservationId, idempotencyKey),
+      fulfillReservation: (context, reservationId, idempotencyKey) =>
+        inventoryService.fulfill(context, reservationId, idempotencyKey),
       returnStock: (context, request) => inventoryService.returnStock(context, request),
     },
   );
@@ -316,13 +328,25 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
           { tenantId: context.tenantId, organizationId: context.organizationId, userId: context.actorUserId },
           { amount: taxableAmount, asOf: new Date().toISOString().slice(0, 10) },
         );
-        return { status: 'CALCULATED', reference: result.ruleId, rate: result.rate, taxableAmount, taxAmount: result.taxAmount };
+        return {
+          status: 'CALCULATED',
+          reference: result.ruleId,
+          rate: result.rate,
+          taxableAmount,
+          taxAmount: result.taxAmount,
+        };
       },
     },
     {
       submitSalesDocument: async (context, documentType, documentId, amount = 0) =>
         financePosting.postSalesDocument(
-          { tenantId: context.tenantId, organizationId: context.organizationId, branchId: context.branchId, financialYearId: context.financialYearId, userId: context.actorUserId },
+          {
+            tenantId: context.tenantId,
+            organizationId: context.organizationId,
+            branchId: context.branchId,
+            financialYearId: context.financialYearId,
+            userId: context.actorUserId,
+          },
           documentType,
           documentId,
           amount,
@@ -338,10 +362,13 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     transactionRunner,
     {
       reserveStock: (context, request) => inventoryService.reserve(context, request),
-      releaseReservation: (context, reservationId, idempotencyKey) => inventoryService.release(context, reservationId, idempotencyKey),
-      fulfillReservation: (context, reservationId, idempotencyKey) => inventoryService.fulfill(context, reservationId, idempotencyKey),
+      releaseReservation: (context, reservationId, idempotencyKey) =>
+        inventoryService.release(context, reservationId, idempotencyKey),
+      fulfillReservation: (context, reservationId, idempotencyKey) =>
+        inventoryService.fulfill(context, reservationId, idempotencyKey),
       returnStock: (context, request) => inventoryService.returnStock(context, request),
-      listReservationsBySource: (context, sourceType, sourceId) => inventoryService.listReservationsBySource(context, sourceType, sourceId),
+      listReservationsBySource: (context, sourceType, sourceId) =>
+        inventoryService.listReservationsBySource(context, sourceType, sourceId),
       fulfillReservationsBySource: (context, sourceType, sourceId, operationKey) =>
         inventoryService.fulfillReservationsBySource(context, sourceType, sourceId, operationKey),
     },
@@ -355,7 +382,13 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     {
       submitSalesDocument: async (context, documentType, documentId, amount = 0) =>
         financePosting.postSalesDocument(
-          { tenantId: context.tenantId, organizationId: context.organizationId, branchId: context.branchId, financialYearId: context.financialYearId, userId: context.actorUserId },
+          {
+            tenantId: context.tenantId,
+            organizationId: context.organizationId,
+            branchId: context.branchId,
+            financialYearId: context.financialYearId,
+            userId: context.actorUserId,
+          },
           documentType,
           documentId,
           amount,

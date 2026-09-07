@@ -77,9 +77,15 @@ describe('Inventory foundation PostgreSQL boundaries', () => {
     );
     expect(otherOrg.rows).toHaveLength(0);
     const balance = await withTenantContext(pool, 'app.current_tenant_id', tenantA, (client) =>
-      client.query('SELECT on_hand_quantity,reserved_quantity,on_hand_quantity-reserved_quantity AS available FROM inventory_stock'),
+      client.query(
+        'SELECT on_hand_quantity,reserved_quantity,on_hand_quantity-reserved_quantity AS available FROM inventory_stock',
+      ),
     );
-    expect(balance.rows[0]).toMatchObject({ on_hand_quantity: '10.0000', reserved_quantity: '3.0000', available: '7.0000' });
+    expect(balance.rows[0]).toMatchObject({
+      on_hand_quantity: '10.0000',
+      reserved_quantity: '3.0000',
+      available: '7.0000',
+    });
     const rls = await pool.query(
       `SELECT relname,relrowsecurity,relforcerowsecurity FROM pg_class
        WHERE relname IN ('inventory_warehouses','inventory_stock','inventory_reservations','inventory_movements')
@@ -115,7 +121,10 @@ describe('Inventory foundation PostgreSQL boundaries', () => {
     const outcomes = await Promise.allSettled(requests);
     expect(outcomes.filter((outcome) => outcome.status === 'fulfilled')).toHaveLength(1);
     const reserved = await withTenantContext(pool, 'app.current_tenant_id', tenantA, (client) =>
-      client.query('SELECT reserved_quantity FROM inventory_stock WHERE warehouse_id=$1 AND item_id=$2', [warehouse, item]),
+      client.query('SELECT reserved_quantity FROM inventory_stock WHERE warehouse_id=$1 AND item_id=$2', [
+        warehouse,
+        item,
+      ]),
     );
     expect(Number(reserved.rows[0].reserved_quantity)).toBe(9);
   });

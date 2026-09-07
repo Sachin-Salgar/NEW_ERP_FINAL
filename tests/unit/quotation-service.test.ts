@@ -43,7 +43,10 @@ class FakeRepository implements QuotationRepository {
   lastStatus?: string;
   deleted = false;
   async create(input: { items: QuotationItemInput[] }) {
-    this.value = { ...this.value, items: input.items.map((x, index) => ({ ...x, id: randomUUID(), lineNumber: index + 1 })) };
+    this.value = {
+      ...this.value,
+      items: input.items.map((x, index) => ({ ...x, id: randomUUID(), lineNumber: index + 1 })),
+    };
     return this.value;
   }
   async getById() {
@@ -114,9 +117,11 @@ describe('QuotationService', () => {
     await expect(service.update(context, repository.value.id, { ...input, expectedVersion: 2 })).rejects.toMatchObject({
       message: 'Draft quotation not found.',
     });
-    await expect(service.update(context, repository.value.id, { ...input, expectedVersion: 1 })).resolves.toMatchObject({
-      versionNumber: 2,
-    });
+    await expect(service.update(context, repository.value.id, { ...input, expectedVersion: 1 })).resolves.toMatchObject(
+      {
+        versionNumber: 2,
+      },
+    );
   });
   it('snapshots resolved pricing and discount values at creation time', async () => {
     const repository = new FakeRepository();
@@ -176,7 +181,9 @@ describe('QuotationService', () => {
     async (status) => {
       const { service: sut, repository } = createService();
       repository.value = record(status);
-      await expect(sut.transition(context, repository.value.id, 'CANCELLED', 1)).rejects.toBeInstanceOf(ValidationError);
+      await expect(sut.transition(context, repository.value.id, 'CANCELLED', 1)).rejects.toBeInstanceOf(
+        ValidationError,
+      );
     },
   );
   it('enforces module and permission gates', async () => {

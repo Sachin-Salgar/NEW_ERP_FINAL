@@ -174,7 +174,7 @@ async function main() {
                 ? 'organization'
                 : resource === 'customer'
                   ? 'crm'
-                : 'security';
+                  : 'security';
       await client.query(
         `INSERT INTO permissions (id, module_code, resource, action, scope, permission_key, display_name, description, is_system)
          VALUES ($1, $2, $3, $4, 'tenant', $5, $5, $6, false)

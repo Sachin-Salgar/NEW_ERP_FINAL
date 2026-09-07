@@ -229,13 +229,7 @@ describe('Phase 2 platform security services', () => {
     expect(repository.received.administrator.password).not.toBe('Password123!');
     expect(repository.received.administrator.password.startsWith('$2')).toBe(true);
     expect(repository.received.permissions).toEqual(
-      expect.arrayContaining([
-        'user.read',
-        'user.create',
-        'user.update',
-        'user.activate',
-        'user.deactivate',
-      ]),
+      expect.arrayContaining(['user.read', 'user.create', 'user.update', 'user.activate', 'user.deactivate']),
     );
     expect(repository.received.permissions).not.toContain('user.manage');
   });
@@ -245,13 +239,7 @@ describe('Phase 2 platform security services', () => {
       .filter((permission) => permission.resource === 'user')
       .map((permission) => permission.permissionKey);
 
-    expect(userPermissions).toEqual([
-      'user.read',
-      'user.create',
-      'user.update',
-      'user.activate',
-      'user.deactivate',
-    ]);
+    expect(userPermissions).toEqual(['user.read', 'user.create', 'user.update', 'user.activate', 'user.deactivate']);
     expect(userPermissions).not.toContain('user.manage');
   });
 
@@ -281,7 +269,13 @@ describe('Phase 2 platform security services', () => {
     ]) {
       expect(keys.has(key)).toBe(true);
     }
-    for (const legacyKey of ['organization.manage', 'branch.manage', 'role.manage', 'permission.manage', 'session.manage']) {
+    for (const legacyKey of [
+      'organization.manage',
+      'branch.manage',
+      'role.manage',
+      'permission.manage',
+      'session.manage',
+    ]) {
       expect(keys.has(legacyKey)).toBe(false);
     }
   });

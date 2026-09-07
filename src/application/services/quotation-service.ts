@@ -3,7 +3,11 @@ import type { AuditLogger } from '../contracts/audit.js';
 import type { AuthorizationService } from './authorization-service.js';
 import type { ModuleAccessService } from './module-access-service.js';
 import type { QuotationRepository, QuotationRecord, QuotationItemInput } from '../../domain/contracts/repositories.js';
-import { resolveCommercialLines, type TransactionDiscountResolver, type TransactionPriceResolver } from './commercial-transaction-service.js';
+import {
+  resolveCommercialLines,
+  type TransactionDiscountResolver,
+  type TransactionPriceResolver,
+} from './commercial-transaction-service.js';
 import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../../domain/errors.js';
 import {
   QUOTATION_PERMISSIONS,
@@ -55,7 +59,13 @@ export class QuotationService {
     await this.authorize(c, QUOTATION_PERMISSIONS.create);
     this.validateInput(c, input);
     return this.tx.runInTransaction(async () => {
-      const commercial = await resolveCommercialLines(c, input.items, input.quotationDate, this.pricing, this.discounts);
+      const commercial = await resolveCommercialLines(
+        c,
+        input.items,
+        input.quotationDate,
+        this.pricing,
+        this.discounts,
+      );
       const items = input.items.map((item, index) => ({ ...item, ...commercial.lines[index] }));
       const q = await this.repository.create({ ...input, items, ...commercial.totals, ...c, actorUserId: c.userId });
       await this.audit.record(
@@ -106,9 +116,22 @@ export class QuotationService {
     this.version(input.expectedVersion);
     this.validateInput(c, input);
     return this.tx.runInTransaction(async () => {
-      const commercial = await resolveCommercialLines(c, input.items, input.quotationDate, this.pricing, this.discounts);
+      const commercial = await resolveCommercialLines(
+        c,
+        input.items,
+        input.quotationDate,
+        this.pricing,
+        this.discounts,
+      );
       const items = input.items.map((item, index) => ({ ...item, ...commercial.lines[index] }));
-      const q = await this.repository.update({ ...input, items, ...commercial.totals, ...c, quotationId: id, actorUserId: c.userId });
+      const q = await this.repository.update({
+        ...input,
+        items,
+        ...commercial.totals,
+        ...c,
+        quotationId: id,
+        actorUserId: c.userId,
+      });
       if (!q) throw new NotFoundError('Draft quotation not found.');
       await this.audit.record(
         {
@@ -147,9 +170,13 @@ export class QuotationService {
       return q;
     });
   }
-  async transition(c: QuotationContext, id: string, status: QuotationStatus, expectedVersion: number): Promise<QuotationRecord> {
-    const permissionKey =
-      status === 'SENT' ? 'send' : status === 'CANCELLED' ? 'cancel' : status.toLowerCase();
+  async transition(
+    c: QuotationContext,
+    id: string,
+    status: QuotationStatus,
+    expectedVersion: number,
+  ): Promise<QuotationRecord> {
+    const permissionKey = status === 'SENT' ? 'send' : status === 'CANCELLED' ? 'cancel' : status.toLowerCase();
     const permission = (QUOTATION_PERMISSIONS as Record<string, string>)[permissionKey];
     await this.authorize(c, permission as QuotationPermission);
     this.id(id, 'Quotation ID');
@@ -200,7 +227,8 @@ export class QuotationService {
       throw new ForbiddenError('Insufficient quotation permission.');
   }
   private version(value: number) {
-    if (!Number.isInteger(value) || value < 1) throw new ValidationError('Expected version must be a positive integer.');
+    if (!Number.isInteger(value) || value < 1)
+      throw new ValidationError('Expected version must be a positive integer.');
   }
   private validateInput(
     c: QuotationContext,
@@ -220,7 +248,8 @@ export class QuotationService {
     const lines = new Set<number>();
     i.items.forEach((x, n) => {
       if (!x.description?.trim()) throw new ValidationError(`Item ${n + 1} description is required.`);
-      if (x.itemId && !isUuid(x.itemId)) throw new ValidationError(`Item ${n + 1} Item Master ID must be a valid UUID.`);
+      if (x.itemId && !isUuid(x.itemId))
+        throw new ValidationError(`Item ${n + 1} Item Master ID must be a valid UUID.`);
       if (x.quantity <= 0 || x.unitPrice < 0 || !x.unitOfMeasure?.trim())
         throw new ValidationError('Item description, unit of measure, quantity and unit price are required.');
       if (lines.has(n + 1)) throw new ValidationError('Quotation item line numbers must be unique.');

@@ -1,4 +1,8 @@
-import type { PlatformAuthorizationRepository, PlatformContext, PlatformTenantRecord } from '../../domain/contracts/platform-authorization.js';
+import type {
+  PlatformAuthorizationRepository,
+  PlatformContext,
+  PlatformTenantRecord,
+} from '../../domain/contracts/platform-authorization.js';
 
 export class PlatformAuthorizationService {
   constructor(private readonly repository: PlatformAuthorizationRepository) {}

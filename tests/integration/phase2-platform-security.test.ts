@@ -122,11 +122,23 @@ describe('Phase 2 platform and identity foundation', () => {
     expect(scoped.orgAccess.rows[0].count).toBe(1);
     expect(scoped.branchAccess.rows[0].count).toBe(1);
 
-    await expect(tenantAdministrationService.transition(result.tenantId, 'suspend')).resolves.toMatchObject({ status: 'suspended' });
-    await expect(tenantAdministrationService.transition(result.tenantId, 'suspend')).rejects.toThrow('Invalid tenant lifecycle transition');
-    await expect(tenantAdministrationService.transition(result.tenantId, 'reactivate')).resolves.toMatchObject({ status: 'active' });
-    await expect(tenantAdministrationService.transition(result.tenantId, 'deactivate')).resolves.toMatchObject({ status: 'cancelled', isDeleted: true });
-    await expect(tenantAdministrationService.transition(result.tenantId, 'activate')).resolves.toMatchObject({ status: 'active', isDeleted: false });
+    await expect(tenantAdministrationService.transition(result.tenantId, 'suspend')).resolves.toMatchObject({
+      status: 'suspended',
+    });
+    await expect(tenantAdministrationService.transition(result.tenantId, 'suspend')).rejects.toThrow(
+      'Invalid tenant lifecycle transition',
+    );
+    await expect(tenantAdministrationService.transition(result.tenantId, 'reactivate')).resolves.toMatchObject({
+      status: 'active',
+    });
+    await expect(tenantAdministrationService.transition(result.tenantId, 'deactivate')).resolves.toMatchObject({
+      status: 'cancelled',
+      isDeleted: true,
+    });
+    await expect(tenantAdministrationService.transition(result.tenantId, 'activate')).resolves.toMatchObject({
+      status: 'active',
+      isDeleted: false,
+    });
     await expect(tenantAdministrationService.delete(result.tenantId)).rejects.toThrow('Tenant deletion is blocked');
 
     await expect(authorizationService.hasPermission(result.tenantId, result.userId, 'role.create')).resolves.toBe(true);

@@ -119,7 +119,16 @@ export class PostgresQuotationRepository implements QuotationRepository {
     return this.mutate(
       i,
       `UPDATE sales_quotations SET status=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND organization_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND is_deleted=false AND version_number=$8 RETURNING ${C}`,
-      [i.status, i.actorUserId, i.tenantId, i.organizationId, i.branchId, i.financialYearId, i.quotationId, i.expectedVersion],
+      [
+        i.status,
+        i.actorUserId,
+        i.tenantId,
+        i.organizationId,
+        i.branchId,
+        i.financialYearId,
+        i.quotationId,
+        i.expectedVersion,
+      ],
     );
   }
   async softDelete(i: any) {

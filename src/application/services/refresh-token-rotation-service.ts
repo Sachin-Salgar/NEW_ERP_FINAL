@@ -26,7 +26,8 @@ export class RefreshTokenRotationService {
 
   async rotate(refreshToken: string): Promise<RefreshRotationResult> {
     const claims = this.tokenService.verifyRefreshToken(refreshToken);
-    if (!claims.tenantId || claims.contextType === 'platform') throw new UnauthorizedError('Refresh token is invalid or expired.');
+    if (!claims.tenantId || claims.contextType === 'platform')
+      throw new UnauthorizedError('Refresh token is invalid or expired.');
     const oldHash = this.tokenService.hashTokenValue(refreshToken);
 
     const outcome: RotationOutcome = await withTenantContext(

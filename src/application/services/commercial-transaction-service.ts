@@ -1,4 +1,8 @@
-import { calculateCommercialLine, calculateCommercialTotals, type CommercialTotals } from '../../domain/commercial-calculation.js';
+import {
+  calculateCommercialLine,
+  calculateCommercialTotals,
+  type CommercialTotals,
+} from '../../domain/commercial-calculation.js';
 import { ValidationError } from '../../domain/errors.js';
 
 export interface TransactionCommercialContext {
@@ -16,10 +20,7 @@ export interface TransactionPriceResolver {
 }
 
 export interface TransactionDiscountResolver {
-  resolve(
-    context: TransactionCommercialContext,
-    asOf: string,
-  ): Promise<{ id: string; percentage: number } | null>;
+  resolve(context: TransactionCommercialContext, asOf: string): Promise<{ id: string; percentage: number } | null>;
 }
 
 export interface ResolvedCommercialLine {
@@ -41,10 +42,12 @@ export async function resolveCommercialLines(
   const discount = discounts ? await discounts.resolve(context, asOf) : null;
   const lines: ResolvedCommercialLine[] = [];
   for (const item of items) {
-    const price = item.itemCode && pricing
-      ? await pricing.resolvePrice(context, { itemCode: item.itemCode, unitOfMeasure: item.unitOfMeasure, asOf })
-      : null;
-    if (item.itemCode && pricing && !price) throw new ValidationError(`No applicable published price exists for item ${item.itemCode}.`);
+    const price =
+      item.itemCode && pricing
+        ? await pricing.resolvePrice(context, { itemCode: item.itemCode, unitOfMeasure: item.unitOfMeasure, asOf })
+        : null;
+    if (item.itemCode && pricing && !price)
+      throw new ValidationError(`No applicable published price exists for item ${item.itemCode}.`);
     const calculated = calculateCommercialLine({
       quantity: item.quantity,
       unitPrice: price?.price ?? item.unitPrice,
@@ -61,9 +64,11 @@ export async function resolveCommercialLines(
   }
   return {
     lines,
-    totals: calculateCommercialTotals(lines.map((line, index) => ({
-      ...line,
-      grossTotal: items[index].quantity * line.unitPrice,
-    }))),
+    totals: calculateCommercialTotals(
+      lines.map((line, index) => ({
+        ...line,
+        grossTotal: items[index].quantity * line.unitPrice,
+      })),
+    ),
   };
 }

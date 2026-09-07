@@ -4,12 +4,22 @@ import { resolveDatabaseUrl } from '../src/config/schema.js';
 
 const operation = process.argv[2];
 const email = process.argv[3];
-const password = operation === 'recover' ? process.env.PLATFORM_ADMIN_RECOVERY_PASSWORD : process.env.PLATFORM_ADMIN_BOOTSTRAP_PASSWORD;
-const secret = operation === 'recover' ? process.env.PLATFORM_ADMIN_RECOVERY_SECRET : process.env.PLATFORM_ADMIN_BOOTSTRAP_SECRET;
-if (!['bootstrap', 'recover'].includes(operation ?? '')) throw new Error('Usage: platform-admin.ts bootstrap|recover <email>');
+const password =
+  operation === 'recover'
+    ? process.env.PLATFORM_ADMIN_RECOVERY_PASSWORD
+    : process.env.PLATFORM_ADMIN_BOOTSTRAP_PASSWORD;
+const secret =
+  operation === 'recover' ? process.env.PLATFORM_ADMIN_RECOVERY_SECRET : process.env.PLATFORM_ADMIN_BOOTSTRAP_SECRET;
+if (!['bootstrap', 'recover'].includes(operation ?? ''))
+  throw new Error('Usage: platform-admin.ts bootstrap|recover <email>');
 if (!secret || secret.length < 32) throw new Error('Required operator secret is missing or too short.');
 if (!email || !email.includes('@')) throw new Error('A target administrator email is required.');
-if (!password) throw new Error(operation === 'recover' ? 'PLATFORM_ADMIN_RECOVERY_PASSWORD is required.' : 'PLATFORM_ADMIN_BOOTSTRAP_PASSWORD is required.');
+if (!password)
+  throw new Error(
+    operation === 'recover'
+      ? 'PLATFORM_ADMIN_RECOVERY_PASSWORD is required.'
+      : 'PLATFORM_ADMIN_BOOTSTRAP_PASSWORD is required.',
+  );
 
 const pool = new Pool({ connectionString: resolveDatabaseUrl(process.env, { forTest: false }), ssl: undefined });
 const lockKey = 'platform-admin-bootstrap-v1';
@@ -20,7 +30,8 @@ try {
     `SELECT used_at FROM security_bootstrap_state WHERE key = $1 FOR UPDATE`,
     [operation],
   );
-  if (configured.rowCount === 1 && configured.rows[0].used_at) throw new Error('Operator operation has already been used.');
+  if (configured.rowCount === 1 && configured.rows[0].used_at)
+    throw new Error('Operator operation has already been used.');
   if (operation === 'bootstrap') {
     const existing = await pool.query(`SELECT 1 FROM platform_memberships WHERE status = 'active' LIMIT 1`);
     if (existing.rowCount) throw new Error('Platform administration is already initialized.');
@@ -35,7 +46,10 @@ try {
     );
     if (existing.rowCount !== 1) throw new Error('Recovery requires an existing identity identifier.');
     identityId = existing.rows[0].identityId;
-    await pool.query(`UPDATE identities SET status = 'active', security_version = security_version + 1, updated_at = now() WHERE id = $1`, [identityId]);
+    await pool.query(
+      `UPDATE identities SET status = 'active', security_version = security_version + 1, updated_at = now() WHERE id = $1`,
+      [identityId],
+    );
   } else {
     const identity = await pool.query<{ id: string }>(`INSERT INTO identities (status) VALUES ('active') RETURNING id`);
     identityId = identity.rows[0].id;
@@ -59,14 +73,23 @@ try {
      ON CONFLICT DO NOTHING RETURNING id`,
     [identityId],
   );
-  const membershipId = membership.rows[0]?.id ?? (await pool.query<{ id: string }>(
-    `SELECT id FROM platform_memberships WHERE identity_id = $1 AND status = 'active' LIMIT 1`,
-    [identityId],
-  )).rows[0]?.id;
+  const membershipId =
+    membership.rows[0]?.id ??
+    (
+      await pool.query<{ id: string }>(
+        `SELECT id FROM platform_memberships WHERE identity_id = $1 AND status = 'active' LIMIT 1`,
+        [identityId],
+      )
+    ).rows[0]?.id;
   if (!membershipId) throw new Error('Unable to establish platform membership.');
-  const role = await pool.query<{ id: string }>(`SELECT id FROM platform_roles WHERE code = 'platform_owner' AND is_system = true`);
+  const role = await pool.query<{ id: string }>(
+    `SELECT id FROM platform_roles WHERE code = 'platform_owner' AND is_system = true`,
+  );
   if (role.rowCount !== 1) throw new Error('Protected platform owner role is missing.');
-  await pool.query(`INSERT INTO platform_membership_roles (platform_membership_id, platform_role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [membershipId, role.rows[0].id]);
+  await pool.query(
+    `INSERT INTO platform_membership_roles (platform_membership_id, platform_role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+    [membershipId, role.rows[0].id],
+  );
   await pool.query(
     `INSERT INTO audit_events
       (tenant_id, actor_identity_id, actor_platform_membership_id, context_type, action, resource_type, resource_id, outcome, metadata)

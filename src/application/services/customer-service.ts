@@ -3,7 +3,11 @@ import { validate as isUuid } from 'uuid';
 import type { AuditLogger } from '../contracts/audit.js';
 import type { ModuleAccessService } from './module-access-service.js';
 import type { AuthorizationService } from './authorization-service.js';
-import { CUSTOMER_MODULE_CODE, CUSTOMER_PERMISSIONS, type CustomerPermission } from '../../domain/contracts/customer.js';
+import {
+  CUSTOMER_MODULE_CODE,
+  CUSTOMER_PERMISSIONS,
+  type CustomerPermission,
+} from '../../domain/contracts/customer.js';
 import type { CustomerListQuery, CustomerRecord, CustomerRepository } from '../../domain/contracts/repositories.js';
 import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../../domain/errors.js';
 

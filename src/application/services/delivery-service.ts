@@ -14,7 +14,9 @@ export interface DeliveryContext {
   financialYearId: string;
   userId: string;
 }
-export interface DeliveryTransactionRunner { runInTransaction<T>(callback: () => Promise<T>): Promise<T>; }
+export interface DeliveryTransactionRunner {
+  runInTransaction<T>(callback: () => Promise<T>): Promise<T>;
+}
 const transitions: Record<DeliveryStatus, DeliveryStatus[]> = {
   DRAFT: ['DISPATCHED', 'CANCELLED'],
   DISPATCHED: ['DELIVERED', 'CANCELLED'],
@@ -33,11 +35,15 @@ export class DeliveryService {
     private readonly inventory?: InventoryDependencyPort,
   ) {}
 
-  async create(context: DeliveryContext, input: { salesOrderId: string; idempotencyKey: string; notes?: string | null }): Promise<DeliveryRecord> {
+  async create(
+    context: DeliveryContext,
+    input: { salesOrderId: string; idempotencyKey: string; notes?: string | null },
+  ): Promise<DeliveryRecord> {
     await this.authorize(context, DELIVERY_PERMISSIONS.create);
     this.id(input.salesOrderId, 'Sales Order ID');
     const key = input.idempotencyKey?.trim();
-    if (!key || key.length > 128) throw new ValidationError('Idempotency key is required and must be at most 128 characters.');
+    if (!key || key.length > 128)
+      throw new ValidationError('Idempotency key is required and must be at most 128 characters.');
     const allowReplay = await this.auth.hasPermission(context.tenantId, context.userId, DELIVERY_PERMISSIONS.read);
     return this.tx.runInTransaction(async () => {
       const delivery = await this.repository.create({
@@ -58,16 +64,39 @@ export class DeliveryService {
           if (!reservation) throw new ValidationError('A delivery line has no matching Inventory reservation.');
           return { orderItemId: item.orderItemId, reservationId: reservation.id };
         });
-        if (!this.repository.attachReservationReferences) throw new ValidationError('Delivery reservation reference persistence is not configured.');
-        const linked = await this.repository.attachReservationReferences({ ...context, deliveryId: delivery.id, references, actorUserId: context.userId });
+        if (!this.repository.attachReservationReferences)
+          throw new ValidationError('Delivery reservation reference persistence is not configured.');
+        const linked = await this.repository.attachReservationReferences({
+          ...context,
+          deliveryId: delivery.id,
+          references,
+          actorUserId: context.userId,
+        });
         if (!linked) throw new ValidationError('Delivery reservation references could not be persisted.');
-        await this.audit.record({ tenantId: context.tenantId, actorUserId: context.userId, action: 'delivery.created', resourceType: 'sales_delivery', resourceId: linked.id, outcome: 'success' }, { requireTransaction: true });
+        await this.audit.record(
+          {
+            tenantId: context.tenantId,
+            actorUserId: context.userId,
+            action: 'delivery.created',
+            resourceType: 'sales_delivery',
+            resourceId: linked.id,
+            outcome: 'success',
+          },
+          { requireTransaction: true },
+        );
         return linked;
       }
-      await this.audit.record({
-        tenantId: context.tenantId, actorUserId: context.userId, action: 'delivery.created',
-        resourceType: 'sales_delivery', resourceId: delivery.id, outcome: 'success',
-      }, { requireTransaction: true });
+      await this.audit.record(
+        {
+          tenantId: context.tenantId,
+          actorUserId: context.userId,
+          action: 'delivery.created',
+          resourceType: 'sales_delivery',
+          resourceId: delivery.id,
+          outcome: 'success',
+        },
+        { requireTransaction: true },
+      );
       return delivery;
     });
   }
@@ -75,55 +104,114 @@ export class DeliveryService {
   async get(context: DeliveryContext, id: string) {
     await this.authorize(context, DELIVERY_PERMISSIONS.read);
     this.id(id, 'Delivery ID');
-    const delivery = await this.repository.getById(context.tenantId, context.organizationId, context.branchId, context.financialYearId, id);
+    const delivery = await this.repository.getById(
+      context.tenantId,
+      context.organizationId,
+      context.branchId,
+      context.financialYearId,
+      id,
+    );
     if (!delivery) throw new NotFoundError('Delivery not found.');
     return delivery;
   }
 
-  async list(context: DeliveryContext, input: { page: number; pageSize: number; order: 'asc' | 'desc'; search?: string }) {
+  async list(
+    context: DeliveryContext,
+    input: { page: number; pageSize: number; order: 'asc' | 'desc'; search?: string },
+  ) {
     await this.authorize(context, DELIVERY_PERMISSIONS.read);
-    return this.repository.list(context.tenantId, { ...input, organizationId: context.organizationId, branchId: context.branchId, financialYearId: context.financialYearId });
+    return this.repository.list(context.tenantId, {
+      ...input,
+      organizationId: context.organizationId,
+      branchId: context.branchId,
+      financialYearId: context.financialYearId,
+    });
   }
 
   async update(context: DeliveryContext, id: string, input: { notes?: string | null; expectedVersion: number }) {
     await this.authorize(context, DELIVERY_PERMISSIONS.update);
     this.id(id, 'Delivery ID');
-    if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) throw new ValidationError('Expected version must be a positive integer.');
-    const delivery = await this.repository.update({ ...context, deliveryId: id, notes: input.notes ?? null, expectedVersion: input.expectedVersion, actorUserId: context.userId });
+    if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1)
+      throw new ValidationError('Expected version must be a positive integer.');
+    const delivery = await this.repository.update({
+      ...context,
+      deliveryId: id,
+      notes: input.notes ?? null,
+      expectedVersion: input.expectedVersion,
+      actorUserId: context.userId,
+    });
     if (!delivery) throw new ValidationError('Draft delivery not found or version conflict.');
     return delivery;
   }
 
   async transition(context: DeliveryContext, id: string, status: DeliveryStatus, expectedVersion: number) {
-    const permissionKey = status === 'DISPATCHED' ? 'dispatch' : status === 'DELIVERED' ? 'deliver' : status === 'COMPLETED' ? 'complete' : 'cancel';
+    const permissionKey =
+      status === 'DISPATCHED'
+        ? 'dispatch'
+        : status === 'DELIVERED'
+          ? 'deliver'
+          : status === 'COMPLETED'
+            ? 'complete'
+            : 'cancel';
     await this.authorize(context, DELIVERY_PERMISSIONS[permissionKey]);
     this.id(id, 'Delivery ID');
-    if (!Number.isInteger(expectedVersion) || expectedVersion < 1) throw new ValidationError('Expected version must be a positive integer.');
+    if (!Number.isInteger(expectedVersion) || expectedVersion < 1)
+      throw new ValidationError('Expected version must be a positive integer.');
     return this.tx.runInTransaction(async () => {
       const current = await this.get(context, id);
-      if (!transitions[current.status].includes(status)) throw new ValidationError(`Delivery cannot transition from ${current.status} to ${status}.`);
+      if (!transitions[current.status].includes(status))
+        throw new ValidationError(`Delivery cannot transition from ${current.status} to ${status}.`);
       if (status === 'COMPLETED') {
         if (!this.inventory) throw new ValidationError('Inventory fulfillment provider is not configured.');
         if (!current.items.length || current.items.some((item) => !item.reservationId)) {
           throw new ValidationError('Delivery reservation references are required before completion.');
         }
-        await this.inventory.fulfillReservationsBySource(context, 'SALES_ORDER', current.salesOrderId, `sales-delivery:${current.id}`);
+        await this.inventory.fulfillReservationsBySource(
+          context,
+          'SALES_ORDER',
+          current.salesOrderId,
+          `sales-delivery:${current.id}`,
+        );
       }
-      const delivery = await this.repository.transition({ ...context, deliveryId: id, status, expectedVersion, actorUserId: context.userId });
+      const delivery = await this.repository.transition({
+        ...context,
+        deliveryId: id,
+        status,
+        expectedVersion,
+        actorUserId: context.userId,
+      });
       if (!delivery) throw new ValidationError('Delivery not found or version conflict.');
-      await this.audit.record({
-        tenantId: context.tenantId, actorUserId: context.userId, action: `delivery.${status.toLowerCase()}`,
-        resourceType: 'sales_delivery', resourceId: id, outcome: 'success',
-      }, { requireTransaction: true });
+      await this.audit.record(
+        {
+          tenantId: context.tenantId,
+          actorUserId: context.userId,
+          action: `delivery.${status.toLowerCase()}`,
+          resourceType: 'sales_delivery',
+          resourceId: id,
+          outcome: 'success',
+        },
+        { requireTransaction: true },
+      );
       return delivery;
     });
   }
 
   private async authorize(context: DeliveryContext, permission: DeliveryPermission) {
     if (!context.userId?.trim()) throw new UnauthorizedError();
-    for (const [value, label] of [[context.tenantId, 'Tenant ID'], [context.organizationId, 'Organization ID'], [context.branchId, 'Branch ID'], [context.financialYearId, 'Financial Year ID'], [context.userId, 'User ID']] as const) this.id(value, label);
-    if (!(await this.modules.isModuleEnabled(context.tenantId, context.organizationId, 'sales'))) throw new ForbiddenError('Sales module is not enabled.');
-    if (!(await this.auth.hasPermission(context.tenantId, context.userId, permission))) throw new ForbiddenError('Insufficient delivery permission.');
+    for (const [value, label] of [
+      [context.tenantId, 'Tenant ID'],
+      [context.organizationId, 'Organization ID'],
+      [context.branchId, 'Branch ID'],
+      [context.financialYearId, 'Financial Year ID'],
+      [context.userId, 'User ID'],
+    ] as const)
+      this.id(value, label);
+    if (!(await this.modules.isModuleEnabled(context.tenantId, context.organizationId, 'sales')))
+      throw new ForbiddenError('Sales module is not enabled.');
+    if (!(await this.auth.hasPermission(context.tenantId, context.userId, permission)))
+      throw new ForbiddenError('Insufficient delivery permission.');
   }
-  private id(value: string, label: string) { if (!value || !isUuid(value)) throw new ValidationError(`${label} must be a valid UUID.`); }
+  private id(value: string, label: string) {
+    if (!value || !isUuid(value)) throw new ValidationError(`${label} must be a valid UUID.`);
+  }
 }

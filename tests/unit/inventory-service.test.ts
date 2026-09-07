@@ -22,14 +22,16 @@ function service(repository: Record<string, unknown>) {
 describe('InventoryService', () => {
   it('rejects non-positive quantities before reaching the repository', async () => {
     const repository = { reserveStock: vi.fn() };
-    await expect(service(repository).reserve(context, {
-      warehouseId: context.organizationId,
-      itemId: context.branchId,
-      quantity: 0,
-      sourceType: 'SALES_ORDER',
-      sourceId: context.financialYearId,
-      idempotencyKey: 'reserve-1',
-    })).rejects.toThrow('Quantity must be greater than zero.');
+    await expect(
+      service(repository).reserve(context, {
+        warehouseId: context.organizationId,
+        itemId: context.branchId,
+        quantity: 0,
+        sourceType: 'SALES_ORDER',
+        sourceId: context.financialYearId,
+        idempotencyKey: 'reserve-1',
+      }),
+    ).rejects.toThrow('Quantity must be greater than zero.');
     expect(repository.reserveStock).not.toHaveBeenCalled();
   });
 
@@ -45,14 +47,18 @@ describe('InventoryService', () => {
       idempotencyKey: 'reserve-2',
     });
     expect(result).toBe(reservation);
-    expect(repository.reserveStock).toHaveBeenCalledWith(expect.objectContaining({
-      tenantId: context.tenantId,
-      sourceType: 'SALES_ORDER',
-      actorUserId: context.userId,
-    }));
+    expect(repository.reserveStock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: context.tenantId,
+        sourceType: 'SALES_ORDER',
+        actorUserId: context.userId,
+      }),
+    );
   });
 
   it('rejects an invalid lifecycle identifier for fulfillment', async () => {
-    await expect(service({}).fulfill(context, 'not-a-uuid', 'fulfill-1')).rejects.toThrow('Reservation ID must be a valid UUID.');
+    await expect(service({}).fulfill(context, 'not-a-uuid', 'fulfill-1')).rejects.toThrow(
+      'Reservation ID must be a valid UUID.',
+    );
   });
 });

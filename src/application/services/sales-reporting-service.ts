@@ -21,7 +21,13 @@ export class SalesReportingService {
     input: { page: number; pageSize: number; order: 'asc' | 'desc'; search?: string },
   ): Promise<{ items: SalesDocumentSummary[]; total: number }> {
     await this.authorize(context);
-    if (!Number.isInteger(input.page) || input.page < 1 || !Number.isInteger(input.pageSize) || input.pageSize < 1 || input.pageSize > 100) {
+    if (
+      !Number.isInteger(input.page) ||
+      input.page < 1 ||
+      !Number.isInteger(input.pageSize) ||
+      input.pageSize < 1 ||
+      input.pageSize > 100
+    ) {
       throw new ValidationError('Page must be positive and page size must be between 1 and 100.');
     }
     return this.repository.listDocumentSummary(context, input);
