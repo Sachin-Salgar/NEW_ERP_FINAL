@@ -1,4 +1,5 @@
 import { loadConfig } from './config/index.js';
+import { resolvePlatformDatabaseUrl } from './config/schema.js';
 import {
   createDatabasePool,
   createDatabasePoolFromUrl,
@@ -9,8 +10,12 @@ import { createApplication } from './presentation/http/app.js';
 
 async function bootstrap(): Promise<void> {
   const config = loadConfig();
+  const platformDatabaseUrl = resolvePlatformDatabaseUrl(process.env, { required: config.isProduction });
   const pool = createDatabasePool(config);
-  const platformPool = createDatabasePoolFromUrl(config.PLATFORM_DATABASE_URL!, {
+  if (!platformDatabaseUrl) {
+    throw new Error('PLATFORM_DATABASE_URL is required to start the platform administration runtime.');
+  }
+  const platformPool = createDatabasePoolFromUrl(platformDatabaseUrl, {
     min: config.DATABASE_POOL_MIN,
     max: config.DATABASE_POOL_MAX,
     applicationName: `${config.APP_NAME}-platform-executor`,
