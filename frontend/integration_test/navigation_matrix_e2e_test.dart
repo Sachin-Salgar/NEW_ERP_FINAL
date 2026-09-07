@@ -142,7 +142,9 @@ Future<void> _flushFocusLifecycle(WidgetTester tester) async {
 
 Future<void> _disposeApp(WidgetTester tester) async {
   await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pumpAndSettle();
   await _flushFocusLifecycle(tester);
+  await tester.pumpAndSettle();
 }
 
 Future<void> _browserBack(WidgetTester tester, String expectedRoute) async {
