@@ -16,6 +16,8 @@ const ADMIN_ROLE_ID = '33333333-3333-4333-8333-333333333333';
 const LIMITED_ROLE_ID = '44444444-4444-4444-8444-444444444444';
 const ADMIN_USER_ID = '55555555-5555-4555-8555-555555555555';
 const LIMITED_USER_ID = '66666666-6666-4666-8666-666666666666';
+const ADMIN_IDENTITY_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab';
+const LIMITED_IDENTITY_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
 const ADMIN_EMAIL = 'e2e@example.com';
 const LIMITED_EMAIL = 'e2e-limited@example.com';
@@ -111,19 +113,36 @@ async function main() {
     );
 
     await client.query(
-      `INSERT INTO users (id, tenant_id, organization_id, username, email, password_hash, status, created_at)
-       VALUES ($1, $2, $3, 'e2e@example.com', $4, $5, 'active', NOW()),
-              ($6, $2, $3, 'e2e-limited', $7, $5, 'active', NOW())
+      `INSERT INTO identities (id, status, created_at)
+       VALUES ($1, 'active', NOW()), ($2, 'active', NOW())
        ON CONFLICT (id) DO NOTHING`,
-      [ADMIN_USER_ID, TENANT_ID, ORGANIZATION_ID, ADMIN_EMAIL, passwordHash, LIMITED_USER_ID, LIMITED_EMAIL],
+      [ADMIN_IDENTITY_ID, LIMITED_IDENTITY_ID],
     );
 
     await client.query(
-      `INSERT INTO auth_login_identifiers (identifier_type, identifier, tenant_id, user_id)
-       VALUES ('email', $1, $2, $3), ('username', 'e2e@example.com', $2, $3),
-              ('email', $4, $2, $5), ('username', 'e2e-limited', $2, $5)
+      `INSERT INTO users (id, tenant_id, organization_id, username, email, password_hash, status, identity_id, created_at)
+       VALUES ($1, $2, $3, 'e2e@example.com', $4, $5, 'active', $6, NOW()),
+              ($7, $2, $3, 'e2e-limited', $8, $5, 'active', $9, NOW())
+       ON CONFLICT (id) DO NOTHING`,
+      [
+        ADMIN_USER_ID,
+        TENANT_ID,
+        ORGANIZATION_ID,
+        ADMIN_EMAIL,
+        passwordHash,
+        ADMIN_IDENTITY_ID,
+        LIMITED_USER_ID,
+        LIMITED_EMAIL,
+        LIMITED_IDENTITY_ID,
+      ],
+    );
+
+    await client.query(
+      `INSERT INTO auth_login_identifiers (identifier_type, identifier, tenant_id, user_id, identity_id)
+       VALUES ('email', $1, $2, $3, $6), ('username', 'e2e@example.com', $2, $3, $6),
+              ('email', $4, $2, $5, $7), ('username', 'e2e-limited', $2, $5, $7)
        ON CONFLICT (identifier_type, identifier) DO UPDATE SET user_id = EXCLUDED.user_id, tenant_id = EXCLUDED.tenant_id, is_active = true`,
-      [ADMIN_EMAIL, TENANT_ID, ADMIN_USER_ID, LIMITED_EMAIL, LIMITED_USER_ID],
+      [ADMIN_EMAIL, TENANT_ID, ADMIN_USER_ID, LIMITED_EMAIL, LIMITED_USER_ID, ADMIN_IDENTITY_ID, LIMITED_IDENTITY_ID],
     );
 
     const adminPermissions = [
