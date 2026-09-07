@@ -123,6 +123,7 @@ Future<void> _logout(WidgetTester tester) async {
 }
 
 Future<void> _flushFocusLifecycle(WidgetTester tester) async {
+  tester.testTextInput.hide();
   FocusManager.instance.primaryFocus?.unfocus(
     disposition: UnfocusDisposition.scope,
   );
