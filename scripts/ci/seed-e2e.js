@@ -44,7 +44,8 @@ async function main() {
       await client.query(
         `INSERT INTO modules (id, code, name, module_group, is_core, sort_order)
          VALUES ($1, $2, $3, $4, $5, $6)
-         ON CONFLICT DO NOTHING`,
+         ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, module_group = EXCLUDED.module_group,
+           is_core = EXCLUDED.is_core, sort_order = EXCLUDED.sort_order`,
         [randomUUID(), code, name, moduleGroup, isCore, sortOrder],
       );
     }
@@ -121,43 +122,18 @@ async function main() {
       `INSERT INTO auth_login_identifiers (identifier_type, identifier, tenant_id, user_id)
        VALUES ('email', $1, $2, $3), ('username', 'e2e@example.com', $2, $3),
               ('email', $4, $2, $5), ('username', 'e2e-limited', $2, $5)
-       ON CONFLICT (identifier_type, identifier) DO UPDATE SET tenant_id = EXCLUDED.tenant_id, user_id = EXCLUDED.user_id, is_active = true`,
+       ON CONFLICT (identifier_type, identifier, tenant_id) DO UPDATE SET user_id = EXCLUDED.user_id, is_active = true`,
       [ADMIN_EMAIL, TENANT_ID, ADMIN_USER_ID, LIMITED_EMAIL, LIMITED_USER_ID],
     );
 
     const adminPermissions = [
-      'tenant.read',
-      'organization.read',
-      'organization.create',
-      'organization.update',
-      'organization.activate',
-      'organization.deactivate',
-      'branch.read',
-      'branch.create',
-      'branch.update',
-      'branch.activate',
-      'branch.deactivate',
-      'user.read',
-      'user.create',
-      'user.update',
-      'user.activate',
-      'user.deactivate',
-      'role.read',
-      'role.create',
-      'role.update',
-      'role.activate',
-      'role.deactivate',
-      'role_permission.read',
-      'role_permission.grant',
-      'role_permission.revoke',
-      'permission.read',
-      'security.session.read',
-      'security.session.revoke',
-      'security.session.revoke_all',
-      'customer.read',
-      'customer.create',
-      'customer.update',
-      'customer.delete',
+      'tenant.read', 'organization.read', 'organization.create', 'organization.update', 'organization.activate',
+      'organization.deactivate', 'branch.read', 'branch.create', 'branch.update', 'branch.activate',
+      'branch.deactivate', 'user.read', 'user.create', 'user.update', 'user.activate', 'user.deactivate',
+      'role.read', 'role.create', 'role.update', 'role.activate', 'role.deactivate', 'role_permission.read',
+      'role_permission.grant', 'role_permission.revoke', 'permission.read', 'security.session.read',
+      'security.session.revoke', 'security.session.revoke_all', 'customer.read', 'customer.create',
+      'customer.update', 'customer.delete',
     ];
     const limitedPermissions = ['organization.read', 'user.read'];
     for (const permissionKey of [...new Set([...adminPermissions, ...limitedPermissions])]) {
@@ -182,10 +158,7 @@ async function main() {
       );
     }
 
-    for (const [roleId, permissions] of [
-      [ADMIN_ROLE_ID, adminPermissions],
-      [LIMITED_ROLE_ID, limitedPermissions],
-    ]) {
+    for (const [roleId, permissions] of [[ADMIN_ROLE_ID, adminPermissions], [LIMITED_ROLE_ID, limitedPermissions]]) {
       await client.query(
         `INSERT INTO role_permissions (tenant_id, role_id, permission_id)
          SELECT $1, $2, p.id FROM permissions p WHERE p.permission_key = ANY($3)
