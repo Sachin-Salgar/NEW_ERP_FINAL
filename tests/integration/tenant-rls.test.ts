@@ -2,17 +2,17 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { Pool } from 'pg';
 import { v7 } from 'uuid';
 
-import { resolveDatabaseUrl } from '../../src/config/schema.js';
 import { applyTenantTableRls } from '../../src/infrastructure/database/rls.js';
 import { withTenantContext } from '../../src/infrastructure/database/tenant-context.js';
+import { createIntegrationAdminPool, createIntegrationApplicationPool } from './database.js';
 
-const databaseUrl = resolveDatabaseUrl(process.env, { forTest: true });
 const runIfDatabase = it;
 
 const tenantContextKey = 'app.current_tenant_id';
 
 describe('PostgreSQL tenant isolation', () => {
   let pool: Pool | undefined;
+  let adminPool: Pool | undefined;
 
   afterAll(async () => {
     if (!pool) {
@@ -20,26 +20,29 @@ describe('PostgreSQL tenant isolation', () => {
     }
 
     try {
-      await pool.query('DROP TABLE IF EXISTS tenant_rls_demo');
+      await adminPool?.query('DROP TABLE IF EXISTS tenant_rls_demo');
     } finally {
       await pool.end();
+      await adminPool?.end();
     }
   });
 
   runIfDatabase('enforces transaction-local tenant context using PostgreSQL RLS', async () => {
-    pool = new Pool({ connectionString: databaseUrl! });
+    adminPool = createIntegrationAdminPool();
+    pool = createIntegrationApplicationPool();
 
     try {
-      await pool.query('CREATE EXTENSION IF NOT EXISTS pgcrypto;');
-      await pool.query('DROP TABLE IF EXISTS tenant_rls_demo;');
-      await pool.query(`
+      await adminPool.query('CREATE EXTENSION IF NOT EXISTS pgcrypto;');
+      await adminPool.query('DROP TABLE IF EXISTS tenant_rls_demo;');
+      await adminPool.query(`
         CREATE TABLE tenant_rls_demo (
           id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
           tenant_id uuid NOT NULL,
           value text NOT NULL
         );
       `);
-      await applyTenantTableRls(pool, {
+      await adminPool.query('GRANT SELECT, INSERT, UPDATE, DELETE ON tenant_rls_demo TO erp_app');
+      await applyTenantTableRls(adminPool, {
         tableName: 'tenant_rls_demo',
         tenantColumn: 'tenant_id',
         tenantContextKey,
@@ -135,7 +138,7 @@ describe('PostgreSQL tenant isolation', () => {
       }
     } finally {
       if (pool) {
-        await pool.query('DROP TABLE IF EXISTS tenant_rls_demo');
+        await adminPool.query('DROP TABLE IF EXISTS tenant_rls_demo');
       }
     }
   });

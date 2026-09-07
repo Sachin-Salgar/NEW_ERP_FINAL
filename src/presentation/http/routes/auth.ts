@@ -6,6 +6,7 @@ import { ValidationError, UnauthorizedError, ForbiddenError } from '../../../dom
 import { requireAuth, requirePermission } from '../middleware/auth.js';
 import { authSchemas, errorResponseSchema, toJsonSchema } from '../swagger.js';
 import { recordSecurityEvent } from '../security-audit.js';
+import { withTenantContext } from '../../../infrastructure/database/tenant-context.js';
 interface ModuleCodeParams {
   code: string;
 }
@@ -130,16 +131,27 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         contextType: 'platform',
         membershipId: candidate.rows[0].membershipId,
       });
-      await request.server.dbPool.query(
-        `INSERT INTO user_sessions (id, context_type, tenant_id, user_id, identity_id, tenant_membership_id, platform_membership_id, refresh_token_hash, is_active, expires_at, login_at, last_activity_at, updated_at, version, security_version)
-       VALUES ($1, 'platform', NULL, NULL, $2, NULL, $3, $4, true, NOW() + INTERVAL '14 days', NOW(), NOW(), NOW(), 1, 1)`,
-        [
-          sessionId,
-          candidate.rows[0].identityId,
-          candidate.rows[0].membershipId,
-          request.server.jwtTokenService.hashTokenValue(refreshToken),
-        ],
-      );
+      const sessionClient = await request.server.dbPool.connect();
+      try {
+        await sessionClient.query('BEGIN');
+        await sessionClient.query(`SELECT set_config('app.platform_session_enabled', 'true', true)`);
+        await sessionClient.query(
+          `INSERT INTO user_sessions (id, context_type, tenant_id, user_id, identity_id, tenant_membership_id, platform_membership_id, refresh_token_hash, is_active, expires_at, login_at, last_activity_at, updated_at, version, security_version)
+         VALUES ($1, 'platform', NULL, NULL, $2, NULL, $3, $4, true, NOW() + INTERVAL '14 days', NOW(), NOW(), NOW(), 1, 1)`,
+          [
+            sessionId,
+            candidate.rows[0].identityId,
+            candidate.rows[0].membershipId,
+            request.server.jwtTokenService.hashTokenValue(refreshToken),
+          ],
+        );
+        await sessionClient.query('COMMIT');
+      } catch (error) {
+        await sessionClient.query('ROLLBACK');
+        throw error;
+      } finally {
+        sessionClient.release();
+      }
       const accessToken = request.server.jwtTokenService.createAccessToken({
         userId: candidate.rows[0].identityId,
         identityId: candidate.rows[0].identityId,
@@ -394,13 +406,19 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       }
       if (request.body.contextType !== 'tenant' || !request.body.tenantId)
         throw new ValidationError('A tenant context is required.');
-      const account = await request.server.dbPool.query<{ userId: string }>(
-        `SELECT u.id as "userId"
-       FROM users u
-       JOIN tenant_memberships m ON m.identity_id = u.identity_id AND m.tenant_id = u.tenant_id
-       WHERE u.identity_id = $1 AND u.tenant_id = $2 AND m.status = 'active' AND u.status = 'active' AND u.is_deleted = false
-       LIMIT 1`,
-        [token.sub, request.body.tenantId],
+      const account = await withTenantContext(
+        request.server.dbPool,
+        'app.current_tenant_id',
+        request.body.tenantId,
+        (client) =>
+          client.query<{ userId: string }>(
+            `SELECT u.id as "userId"
+           FROM users u
+           JOIN tenant_memberships m ON m.identity_id = u.identity_id AND m.tenant_id = u.tenant_id
+           WHERE u.identity_id = $1 AND u.tenant_id = $2 AND m.status = 'active' AND u.status = 'active' AND u.is_deleted = false
+           LIMIT 1`,
+            [token.sub, request.body.tenantId],
+          ),
       );
       if (account.rowCount !== 1) throw new ForbiddenError('Tenant membership is inactive or unavailable.');
       const result = await request.server.authService.createSessionForUser(

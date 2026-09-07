@@ -6,18 +6,17 @@ import { PostgresAuditLogger } from '../../src/infrastructure/audit/postgres-aud
 import { UnitOfWork } from '../../src/infrastructure/database/unit-of-work.js';
 import { resolveDatabaseUrl } from '../../src/config/schema.js';
 import { v7 as uuidV7 } from 'uuid';
+import { createIntegrationApplicationPool } from './database.js';
 
 dotenv.config({ path: '.env.local' });
 
 describe('security mutation audit atomicity', () => {
-  const pool = new Pool({
-    connectionString: resolveDatabaseUrl(process.env, { forTest: true }),
-    ssl: false,
-  });
+  let pool: Pool;
   let tenantId: string;
   let originalName: string;
 
   beforeAll(async () => {
+    pool = createIntegrationApplicationPool();
     const fixtureTenantId = uuidV7();
     await pool.query(
       `INSERT INTO tenants (id, name, subdomain, slug, status)

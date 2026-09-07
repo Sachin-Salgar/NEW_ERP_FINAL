@@ -10,6 +10,7 @@ import { BcryptPasswordHasher } from '../../src/infrastructure/security/bcrypt-p
 import { PostgresPlatformRepository } from '../../src/infrastructure/database/repositories/postgres-platform-repository.js';
 import { withTenantContext } from '../../src/infrastructure/database/tenant-context.js';
 import { createApplication } from '../../src/presentation/http/app.js';
+import { createIntegrationApplicationPool } from './database.js';
 
 const databaseUrl = resolveDatabaseUrl(process.env, { forTest: true });
 const runIfDatabase = it;
@@ -28,7 +29,7 @@ describe('CORE-01 organization and branch administration', () => {
   });
 
   runIfDatabase('supports tenant-scoped organization branch user administration with RBAC enforcement', async () => {
-    pool = new Pool({ connectionString: databaseUrl! });
+    pool = createIntegrationApplicationPool();
     const repository = new PostgresPlatformRepository(pool);
     const passwordHasher = new BcryptPasswordHasher();
     const platformBootstrapService = new PlatformBootstrapService(repository);
@@ -496,7 +497,7 @@ describe('CORE-01 organization and branch administration', () => {
   });
 
   runIfDatabase('generates unique organization and branch codes under concurrent creation', async () => {
-    pool = new Pool({ connectionString: databaseUrl! });
+    pool = createIntegrationApplicationPool();
     const repository = new PostgresPlatformRepository(pool);
     const coreEnterpriseService = new CoreEnterpriseService(repository);
     const passwordHasher = new BcryptPasswordHasher();

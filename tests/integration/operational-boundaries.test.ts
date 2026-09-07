@@ -17,22 +17,26 @@ import { UnitOfWork } from '../../src/infrastructure/database/unit-of-work.js';
 import { withTenantContext } from '../../src/infrastructure/database/tenant-context.js';
 import { BcryptPasswordHasher } from '../../src/infrastructure/security/bcrypt-password-hasher.js';
 import { resolveDatabaseUrl } from '../../src/config/schema.js';
+import { createIntegrationAdminPool, createIntegrationApplicationPool } from './database.js';
 
 const databaseUrl = resolveDatabaseUrl(process.env, { forTest: true });
 const tenantContextKey = 'app.current_tenant_id';
 
 describe('operational worker and outbox database boundaries', () => {
   let pool: Pool | undefined;
+  let adminPool: Pool | undefined;
 
   afterAll(async () => {
     await pool?.end();
+    await adminPool?.end();
   });
 
   it('enforces application-role worker isolation and proves transactional outbox behavior', async () => {
     if (!databaseUrl) return;
-    pool = new Pool({ connectionString: databaseUrl });
+    pool = createIntegrationApplicationPool();
+    adminPool = createIntegrationAdminPool();
 
-    const platform = new PostgresPlatformRepository(pool);
+    const platform = new PostgresPlatformRepository(adminPool);
     const tenants = new TenantBootstrapService(platform, new BcryptPasswordHasher());
     const suffix = `${Date.now()}`;
     const seed = (name: string) => ({

@@ -11,7 +11,11 @@ export function resolveTestDatabaseUrl(): string {
 }
 
 export function createIntegrationPool(): Pool {
-  return new Pool({ connectionString: resolveTestDatabaseUrl() });
+  const applicationUrl = process.env.INTEGRATION_APPLICATION_DATABASE_URL;
+  if (!applicationUrl) {
+    throw new Error('Integration application database URL was not initialized by tests/integration/setup.ts.');
+  }
+  return new Pool({ connectionString: applicationUrl, ssl: false });
 }
 
 export async function withIntegrationClient<T>(pool: Pool, operation: (client: PoolClient) => Promise<T>): Promise<T> {

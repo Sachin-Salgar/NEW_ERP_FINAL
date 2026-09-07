@@ -97,6 +97,19 @@ Database infrastructure is developer-owned. AI agents must never create, modify,
 
 A database connection failure is NOT permission to create another database, create another user, change credentials, or switch to Docker PostgreSQL.
 
+## PostgreSQL role / RLS testing trust boundary
+
+Database administrative/setup connections and application/RLS connections are separate trust levels:
+
+- `postgres` (or another configured administrative role) is for database creation/reset, schema and migration administration, role configuration, genuinely privileged fixture setup, and privileged cleanup only.
+- `erp_app` is the non-privileged application/RLS role. Protected application queries and integration-test operations that prove tenant isolation, RLS/FORCE RLS, tenant-context enforcement, cross-tenant prevention, NULL-context fail-closed behavior, or authorization interacting with RLS MUST execute through `erp_app`.
+- `erp_platform_executor` is the platform/security execution role for its explicitly granted procedures.
+- `erp_procedure_owner` is the procedure ownership/security-definer boundary where applicable.
+
+`erp_app` MUST remain `rolsuper = false` and `rolbypassrls = false`. A test connected as a PostgreSQL superuser is not evidence that RLS works. Tests must not make RLS tests pass by using an administrative role for application queries, disabling RLS or FORCE RLS, weakening policies or security predicates, granting `BYPASSRLS`, or bypassing tenant context. Administrative fixture creation and application/RLS verification must remain explicitly separated.
+
+Tenant context must be established on the same PostgreSQL session/connection that executes the protected operation. Connection pooling must not leak tenant context between tenants or tests. When an RLS test fails, first verify that the protected operation is running as `erp_app` with the expected tenant context. Do not classify a failure as pre-existing without a controlled baseline/current comparison. Future agents modifying integration tests MUST preserve this role separation.
+
 ## AI evidence requirements
 
 For every non-trivial implementation task, the AI should be able to state:

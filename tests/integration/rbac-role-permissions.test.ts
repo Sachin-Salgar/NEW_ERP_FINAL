@@ -8,6 +8,7 @@ import { TenantBootstrapService } from '../../src/application/services/tenant-bo
 import { BcryptPasswordHasher } from '../../src/infrastructure/security/bcrypt-password-hasher.js';
 import { PostgresPlatformRepository } from '../../src/infrastructure/database/repositories/postgres-platform-repository.js';
 import { createApplication } from '../../src/presentation/http/app.js';
+import { createIntegrationApplicationPool } from './database.js';
 
 const databaseUrl = resolveDatabaseUrl(process.env, { forTest: true });
 const runIfDatabase = it;
@@ -22,7 +23,7 @@ describe('GET /rbac/roles/:roleId/permissions', () => {
   });
 
   runIfDatabase('returns assigned permissions for a role for authorized user and tenant', async () => {
-    pool = new Pool({ connectionString: databaseUrl! });
+    pool = createIntegrationApplicationPool();
     const repository = new PostgresPlatformRepository(pool);
     const passwordHasher = new BcryptPasswordHasher();
     const platformBootstrapService = new PlatformBootstrapService(repository);
@@ -112,7 +113,7 @@ describe('GET /rbac/roles/:roleId/permissions', () => {
   });
 
   runIfDatabase('rejects unauthenticated requests with 401', async () => {
-    pool = new Pool({ connectionString: databaseUrl! });
+    pool = createIntegrationApplicationPool();
     const repository = new PostgresPlatformRepository(pool);
     const passwordHasher = new BcryptPasswordHasher();
     const platformBootstrapService = new PlatformBootstrapService(repository);
@@ -189,7 +190,7 @@ describe('GET /rbac/roles/:roleId/permissions', () => {
   });
 
   runIfDatabase('returns 403 for authenticated user without role.manage', async () => {
-    pool = new Pool({ connectionString: databaseUrl! });
+    pool = createIntegrationApplicationPool();
     const repository = new PostgresPlatformRepository(pool);
     const passwordHasher = new BcryptPasswordHasher();
     const platformBootstrapService = new PlatformBootstrapService(repository);
@@ -298,7 +299,7 @@ describe('GET /rbac/roles/:roleId/permissions', () => {
   });
 
   runIfDatabase('enforces tenant isolation: does not leak other tenant permissions', async () => {
-    pool = new Pool({ connectionString: databaseUrl! });
+    pool = createIntegrationApplicationPool();
     const repository = new PostgresPlatformRepository(pool);
     const passwordHasher = new BcryptPasswordHasher();
     const platformBootstrapService = new PlatformBootstrapService(repository);
@@ -443,7 +444,7 @@ describe('GET /rbac/roles/:roleId/permissions', () => {
   });
 
   runIfDatabase('returns empty list for unknown/nonexistent role', async () => {
-    pool = new Pool({ connectionString: databaseUrl! });
+    pool = createIntegrationApplicationPool();
     const repository = new PostgresPlatformRepository(pool);
     const passwordHasher = new BcryptPasswordHasher();
     const platformBootstrapService = new PlatformBootstrapService(repository);
