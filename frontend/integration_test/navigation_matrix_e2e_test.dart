@@ -20,13 +20,19 @@ const _adminPassword = 'Password123!';
 const _limitedEmail = 'e2e-limited@example.com';
 const _limitedPassword = 'Password123!';
 
-Future<void> _waitFor(WidgetTester tester, Finder finder, {Duration timeout = const Duration(seconds: 30)}) async {
+Future<void> _waitFor(
+  WidgetTester tester,
+  Finder finder, {
+  Duration timeout = const Duration(seconds: 30),
+}) async {
   final deadline = DateTime.now().add(timeout);
   while (DateTime.now().isBefore(deadline)) {
     await tester.pump(const Duration(milliseconds: 100));
     if (finder.evaluate().isNotEmpty) return;
   }
-  final auth = GetIt.instance.isRegistered<AuthService>() ? GetIt.instance.get<AuthService>() : null;
+  final auth = GetIt.instance.isRegistered<AuthService>()
+      ? GetIt.instance.get<AuthService>()
+      : null;
   final diagnostics = <String>[
     'currentRoute=${AppRouteState.currentRoute.value}',
     'authenticated=${auth?.isAuthenticated}',
@@ -55,16 +61,24 @@ Future<void> _resetBrowserTestState() async {
 
 Future<void> _login(WidgetTester tester, String email, String password) async {
   await _waitFor(tester, find.byKey(const ValueKey('login_identifier_field')));
-  await tester.enterText(find.byKey(const ValueKey('login_identifier_field')), email);
-  await tester.enterText(find.byKey(const ValueKey('login_password_field')), password);
+  await tester.enterText(
+    find.byKey(const ValueKey('login_identifier_field')),
+    email,
+  );
+  await tester.enterText(
+    find.byKey(const ValueKey('login_password_field')),
+    password,
+  );
   await tester.tap(find.byKey(const ValueKey('login_submit_button')));
   await _settle(tester);
 }
 
 Future<AppRouterDelegate> _routerDelegate(WidgetTester tester) async {
   Finder contextFinder = find.byType(DashboardScreen);
-  if (contextFinder.evaluate().isEmpty) contextFinder = find.byType(SettingsSidebar);
-  if (contextFinder.evaluate().isEmpty) contextFinder = find.byType(LoginScreen);
+  if (contextFinder.evaluate().isEmpty)
+    contextFinder = find.byType(SettingsSidebar);
+  if (contextFinder.evaluate().isEmpty)
+    contextFinder = find.byType(LoginScreen);
   await _waitFor(tester, contextFinder);
   final context = tester.element(contextFinder.first);
   final delegate = Router.of(context).routerDelegate;
@@ -83,10 +97,13 @@ Future<void> _openRoute(WidgetTester tester, String route) async {
 }
 
 Finder _routeContentFinder(String route) {
-  if (route.contains('/organizations/details/')) return find.text('Organization information');
-  if (route.contains('/branches/details/')) return find.text('Branch information');
+  if (route.contains('/organizations/details/'))
+    return find.text('Organization information');
+  if (route.contains('/branches/details/'))
+    return find.text('Branch information');
   if (route == '/settings/users') return find.text('Users');
-  if (route == '/settings/roles' || route == '/settings/permissions') return find.text('Access denied');
+  if (route == '/settings/roles' || route == '/settings/permissions')
+    return find.text('Access denied');
   if (route == '/settings/branches') return find.text('Branches');
   return find.text('Organizations');
 }
@@ -106,7 +123,9 @@ Future<void> _logout(WidgetTester tester) async {
 }
 
 Future<void> _flushFocusLifecycle(WidgetTester tester) async {
-  FocusManager.instance.primaryFocus?.unfocus(disposition: UnfocusDisposition.scope);
+  FocusManager.instance.primaryFocus?.unfocus(
+    disposition: UnfocusDisposition.scope,
+  );
   // Focus changes are applied by a scheduled microtask. Flush both the focus
   // notification and any post-frame work before the integration test returns;
   // otherwise web-server teardown can dispose FocusManager while that callback
@@ -115,6 +134,11 @@ Future<void> _flushFocusLifecycle(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 100));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 100));
+}
+
+Future<void> _disposeApp(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox.shrink());
+  await _flushFocusLifecycle(tester);
 }
 
 Future<void> _browserBack(WidgetTester tester, String expectedRoute) async {
@@ -132,93 +156,119 @@ Future<void> _browserForward(WidgetTester tester, String expectedRoute) async {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('admin browser navigation matrix validates shell, settings, detail routes, history and protected routing', (tester) async {
-    await _resetBrowserTestState();
-    await GetIt.instance.reset();
-    await App.init();
-    await tester.pumpWidget(const App());
-    await _login(tester, _adminEmail, _adminPassword);
-    await _waitFor(tester, find.byType(DashboardScreen));
-    expect(AppRouteState.currentRoute.value, equals('/dashboard'));
-    expect(find.text('Dashboard'), findsNWidgets(2));
+  testWidgets(
+    'admin browser navigation matrix validates shell, settings, detail routes, history and protected routing',
+    (tester) async {
+      await _resetBrowserTestState();
+      await GetIt.instance.reset();
+      await App.init();
+      await tester.pumpWidget(const App());
+      await _login(tester, _adminEmail, _adminPassword);
+      await _waitFor(tester, find.byType(DashboardScreen));
+      expect(AppRouteState.currentRoute.value, equals('/dashboard'));
+      expect(find.text('Dashboard'), findsNWidgets(2));
 
-    final auth = GetIt.instance.get<AuthService>();
-    expect(auth.isAuthenticated, isTrue);
-    expect(auth.currentTenantId, equals(_tenantId));
-    expect(auth.currentOrganizationId, equals(_organizationId));
-    expect(auth.requiresOrganizationSelection, isFalse);
-    expect(auth.requiresLocationSelection, isFalse);
+      final auth = GetIt.instance.get<AuthService>();
+      expect(auth.isAuthenticated, isTrue);
+      expect(auth.currentTenantId, equals(_tenantId));
+      expect(auth.currentOrganizationId, equals(_organizationId));
+      expect(auth.requiresOrganizationSelection, isFalse);
+      expect(auth.requiresLocationSelection, isFalse);
 
-    await _openRoute(tester, '/settings');
-    await _waitFor(tester, find.text('Organizations'));
-    expect(find.text('Organizations'), findsWidgets);
-    await _openRoute(tester, '/settings/organizations');
-    await _waitFor(tester, find.text('Organizations'));
-    expect(find.text('Organizations'), findsWidgets);
+      await _openRoute(tester, '/settings');
+      await _waitFor(tester, find.text('Organizations'));
+      expect(find.text('Organizations'), findsWidgets);
+      await _openRoute(tester, '/settings/organizations');
+      await _waitFor(tester, find.text('Organizations'));
+      expect(find.text('Organizations'), findsWidgets);
 
-    await _openRoute(tester, '/settings/organizations/details/$_organizationId');
-    await _waitFor(tester, find.text('Organization information'));
-    expect(find.text('E2E Organization'), findsWidgets);
-    expect(find.byType(SettingsSidebar), findsOneWidget);
-    final branchesSidebarTarget = find.descendant(
-      of: find.byType(SettingsSidebar),
-      matching: find.widgetWithText(InkWell, 'Branches'),
-    );
-    expect(branchesSidebarTarget, findsOneWidget);
-    await tester.tap(branchesSidebarTarget);
-    await _settle(tester);
-    await _waitFor(tester, find.text('Branches'));
-    expect(AppRouteState.currentRoute.value, equals('/settings/branches'));
-    expect(find.text('Branches'), findsWidgets);
+      await _openRoute(
+        tester,
+        '/settings/organizations/details/$_organizationId',
+      );
+      await _waitFor(tester, find.text('Organization information'));
+      expect(find.text('E2E Organization'), findsWidgets);
+      expect(find.byType(SettingsSidebar), findsOneWidget);
+      final branchesSidebarTarget = find.descendant(
+        of: find.byType(SettingsSidebar),
+        matching: find.widgetWithText(InkWell, 'Branches'),
+      );
+      expect(branchesSidebarTarget, findsOneWidget);
+      await tester.tap(branchesSidebarTarget);
+      await _settle(tester);
+      await _waitFor(tester, find.text('Branches'));
+      expect(AppRouteState.currentRoute.value, equals('/settings/branches'));
+      expect(find.text('Branches'), findsWidgets);
 
-    await _openRoute(tester, '/settings/branches/details/$_branchId');
-    await _waitFor(tester, find.text('Branch information'));
-    expect(find.text('E2E Main Branch'), findsWidgets);
+      await _openRoute(tester, '/settings/branches/details/$_branchId');
+      await _waitFor(tester, find.text('Branch information'));
+      expect(find.text('E2E Main Branch'), findsWidgets);
 
-    await _navigateRoute(tester, '/settings/organizations/details/$_organizationId');
-    await _browserBack(tester, '/settings/branches/details/$_branchId');
-    expect(find.text('E2E Main Branch'), findsWidgets);
-    await _browserForward(tester, '/settings/organizations/details/$_organizationId');
-    expect(find.text('E2E Organization'), findsWidgets);
+      await _navigateRoute(
+        tester,
+        '/settings/organizations/details/$_organizationId',
+      );
+      await _browserBack(tester, '/settings/branches/details/$_branchId');
+      expect(find.text('E2E Main Branch'), findsWidgets);
+      await _browserForward(
+        tester,
+        '/settings/organizations/details/$_organizationId',
+      );
+      expect(find.text('E2E Organization'), findsWidgets);
 
-    await _logout(tester);
-    await _waitFor(tester, find.byKey(const ValueKey('login_identifier_field')));
-    final loginDelegate = await _routerDelegate(tester);
-    await loginDelegate.setNewRoutePath('/settings/organizations');
-    await _settle(tester);
-    await _waitFor(tester, find.byKey(const ValueKey('login_identifier_field')));
-    expect(AppRouteState.currentRoute.value, equals('/login'));
-    expect(find.text('Dashboard'), findsNothing);
-    await _flushFocusLifecycle(tester);
-  }, timeout: const Timeout(Duration(seconds: 120)));
+      await _logout(tester);
+      await _waitFor(
+        tester,
+        find.byKey(const ValueKey('login_identifier_field')),
+      );
+      final loginDelegate = await _routerDelegate(tester);
+      await loginDelegate.setNewRoutePath('/settings/organizations');
+      await _settle(tester);
+      await _waitFor(
+        tester,
+        find.byKey(const ValueKey('login_identifier_field')),
+      );
+      expect(AppRouteState.currentRoute.value, equals('/login'));
+      expect(find.text('Dashboard'), findsNothing);
+      await _disposeApp(tester);
+    },
+    timeout: const Timeout(Duration(seconds: 120)),
+  );
 
-  testWidgets('limited-user browser navigation matrix validates permitted and restricted routes', (tester) async {
-    await _resetBrowserTestState();
-    await GetIt.instance.reset();
-    await App.init();
-    await tester.pumpWidget(const App());
-    await _login(tester, _limitedEmail, _limitedPassword);
-    await _waitFor(tester, find.byType(DashboardScreen));
-    expect(AppRouteState.currentRoute.value, equals('/dashboard'));
+  testWidgets(
+    'limited-user browser navigation matrix validates permitted and restricted routes',
+    (tester) async {
+      await _resetBrowserTestState();
+      await GetIt.instance.reset();
+      await App.init();
+      await tester.pumpWidget(const App());
+      await _login(tester, _limitedEmail, _limitedPassword);
+      await _waitFor(tester, find.byType(DashboardScreen));
+      expect(AppRouteState.currentRoute.value, equals('/dashboard'));
 
-    final auth = GetIt.instance.get<AuthService>();
-    expect(auth.isAuthenticated, isTrue);
-    expect(auth.currentTenantId, equals(_tenantId));
-    expect(auth.currentOrganizationId, equals(_organizationId));
-    expect(auth.availableLocations.length, equals(1));
+      final auth = GetIt.instance.get<AuthService>();
+      expect(auth.isAuthenticated, isTrue);
+      expect(auth.currentTenantId, equals(_tenantId));
+      expect(auth.currentOrganizationId, equals(_organizationId));
+      expect(auth.availableLocations.length, equals(1));
 
-    await _openRoute(tester, '/settings/organizations');
-    await _waitFor(tester, find.text('Organizations'));
-    expect(find.text('Organizations'), findsWidgets);
-    await _openRoute(tester, '/settings/users');
-    await _waitFor(tester, find.text('Users'));
-    expect(find.text('Users'), findsWidgets);
-    await _openRoute(tester, '/settings/roles');
-    await _waitFor(tester, find.text('Access denied'));
-    expect(find.text('Required permission: role.read.'), findsOneWidget);
-    await _openRoute(tester, '/settings/permissions');
-    await _waitFor(tester, find.text('Access denied'));
-    expect(find.text('Required permission: permission.read.'), findsOneWidget);
-    await _flushFocusLifecycle(tester);
-  }, timeout: const Timeout(Duration(seconds: 120)));
+      await _openRoute(tester, '/settings/organizations');
+      await _waitFor(tester, find.text('Organizations'));
+      expect(find.text('Organizations'), findsWidgets);
+      await _openRoute(tester, '/settings/users');
+      await _waitFor(tester, find.text('Users'));
+      expect(find.text('Users'), findsWidgets);
+      await _openRoute(tester, '/settings/roles');
+      await _waitFor(tester, find.text('Access denied'));
+      expect(find.text('Required permission: role.read.'), findsOneWidget);
+      await _openRoute(tester, '/settings/permissions');
+      await _waitFor(tester, find.text('Access denied'));
+      expect(
+        find.text('Required permission: permission.read.'),
+        findsOneWidget,
+      );
+      await _disposeApp(tester);
+    },
+    timeout: const Timeout(Duration(seconds: 120)),
+  );
 }
