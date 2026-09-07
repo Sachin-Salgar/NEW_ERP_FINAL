@@ -1,4 +1,4 @@
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { NotFoundError, ValidationError } from '../../../domain/errors.js';
 import { DEFAULT_PLATFORM_SEED } from '../../../application/services/platform-bootstrap-service.js';
 import { requirePlatformContext } from '../middleware/auth.js';
@@ -18,7 +18,7 @@ const tenantPermissions = DEFAULT_PLATFORM_SEED.permissions
   )
   .map((permission) => permission.permissionKey);
 
-function platformExecutor(request: Parameters<FastifyPluginAsync>[0]['addHook'] extends never ? never : any) {
+function platformExecutor(request: FastifyRequest) {
   return request.server.platformDbPool;
 }
 
