@@ -122,17 +122,6 @@ Future<void> _logout(WidgetTester tester) async {
   await _settle(tester);
 }
 
-Future<void> _disposeAppAfterFocusSettles(WidgetTester tester) async {
-  tester.testTextInput.hide();
-  FocusManager.instance.primaryFocus?.unfocus(
-    disposition: UnfocusDisposition.scope,
-  );
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 100));
-  await tester.pumpWidget(const SizedBox.shrink());
-  await tester.pumpAndSettle();
-}
-
 Future<void> _browserBack(WidgetTester tester, String expectedRoute) async {
   web.window.history.back();
   await _waitFor(tester, _routeContentFinder(expectedRoute));
@@ -256,7 +245,6 @@ void main() {
         find.text('Required permission: permission.read.'),
         findsOneWidget,
       );
-      await _disposeAppAfterFocusSettles(tester);
     },
     timeout: const Timeout(Duration(seconds: 120)),
   );
