@@ -146,7 +146,7 @@ async function main() {
     );
 
     const adminPermissions = [
-      'tenant.read', 'organization.read', 'organization.create', 'organization.update', 'organization.activate',
+      'tenant.read', 'organization.read', 'organization.location.read', 'organization.create', 'organization.update', 'organization.activate',
       'organization.deactivate', 'branch.read', 'branch.create', 'branch.update', 'branch.activate',
       'branch.deactivate', 'user.read', 'user.create', 'user.update', 'user.activate', 'user.deactivate',
       'role.read', 'role.create', 'role.update', 'role.activate', 'role.deactivate', 'role_permission.read',
