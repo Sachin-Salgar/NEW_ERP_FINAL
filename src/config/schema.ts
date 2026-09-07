@@ -26,7 +26,6 @@ export const appConfigSchema = z.object({
   API_PREFIX: z.string().trim().default('/api/v1'),
   LOG_LEVEL: z.enum(logLevels).default('info'),
   DATABASE_URL: z.string().trim().min(1),
-  PLATFORM_DATABASE_URL: z.string().trim().min(1).default(''),
   DATABASE_SSL_MODE: z.enum(databaseSslModes).default('require'),
   DATABASE_POOL_MIN: z.coerce.number().int().min(0).default(1),
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).default(25),
@@ -117,6 +116,22 @@ export function resolveDatabaseUrl(env: NodeJS.ProcessEnv = process.env, options
   return value;
 }
 
+export function resolvePlatformDatabaseUrl(
+  env: NodeJS.ProcessEnv = process.env,
+  options: { required?: boolean } = {},
+): string | undefined {
+  const value = env.PLATFORM_DATABASE_URL?.trim();
+  const required = options.required ?? env.NODE_ENV === 'production';
+
+  if (!value && required) {
+    throw new Error(
+      'PLATFORM_DATABASE_URL must be configured for production platform procedure execution. The platform executor must use a separate database credential.',
+    );
+  }
+
+  return value || undefined;
+}
+
 export function resolveDatabaseSslMode(env: NodeJS.ProcessEnv = process.env): (typeof databaseSslModes)[number] {
   const value = env.DATABASE_SSL_MODE?.trim() || 'require';
   if (!databaseSslModes.includes(value as (typeof databaseSslModes)[number])) {
@@ -152,11 +167,7 @@ export function parseAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig 
     throw new Error('MFA_ENCRYPTION_KEY must be configured for production MFA secret encryption.');
   }
 
-  if (isProduction && !config.PLATFORM_DATABASE_URL) {
-    throw new Error(
-      'PLATFORM_DATABASE_URL must be configured for production platform procedure execution. The platform executor must use a separate database credential.',
-    );
-  }
+  resolvePlatformDatabaseUrl(env, { required: isProduction });
 
   if (config.JWT_SIGNING_ALGORITHM === 'RS256') {
     try {
