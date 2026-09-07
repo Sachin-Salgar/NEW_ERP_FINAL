@@ -13,7 +13,6 @@
 | `API_PREFIX` | string | No | `/api/v1` | Base prefix for REST API routes. |
 | `LOG_LEVEL` | `fatal` \| `error` \| `warn` \| `info` \| `debug` \| `trace` | No | `info` | Minimum application log level. |
 | `DATABASE_URL` | string | Yes | — | Primary PostgreSQL connection URL. Required. |
-| `PLATFORM_DATABASE_URL` | string | No | empty string | Dedicated PostgreSQL connection URL for platform procedure execution. Required in production and must use the `erp_platform_executor` credential. |
 | `DATABASE_SSL_MODE` | `disable` \| `require` | No | `require` | PostgreSQL TLS mode used by the application connection pool. |
 | `DATABASE_POOL_MIN` | number | No | `1` | Minimum desired PostgreSQL pool size. |
 | `DATABASE_POOL_MAX` | number | No | `25` | Maximum PostgreSQL pool size. |
@@ -43,6 +42,7 @@ These variables are used by development, testing, or PostgreSQL tooling but are 
 
 | Variable | Purpose |
 |---|---|
+| `PLATFORM_DATABASE_URL` | Dedicated PostgreSQL connection URL for platform procedure execution. Required in production and must use the separately provisioned `erp_platform_executor` credential. |
 | `TEST_DATABASE_URL` | Explicit PostgreSQL connection URL used by integration tests. Tests fail rather than silently creating/selecting another database when it is absent. |
 | `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` | Optional standard PostgreSQL client/tooling variables used by local scripts or administrative tooling. They are not authoritative application database configuration; the backend uses `DATABASE_URL`. |
 
