@@ -139,26 +139,6 @@ Future<void> _flushFocusLifecycle(WidgetTester tester) async {
   await tester.pump();
 }
 
-Future<void> _disposeApp(WidgetTester tester) async {
-  await tester.pumpWidget(const SizedBox.shrink());
-  await tester.pumpAndSettle();
-  await _flushFocusLifecycle(tester);
-  await tester.pumpAndSettle();
-}
-
-void _ignoreWebServerFocusTeardownAssertion() {
-  final previousErrorHandler = FlutterError.onError;
-  FlutterError.onError = (details) {
-    if (details.exception is AssertionError &&
-        details.exception.toString().contains(
-          'A FocusManager was used after being disposed.',
-        )) {
-      return;
-    }
-    previousErrorHandler?.call(details);
-  };
-}
-
 Future<void> _browserBack(WidgetTester tester, String expectedRoute) async {
   web.window.history.back();
   await _waitFor(tester, _routeContentFinder(expectedRoute));
@@ -248,11 +228,6 @@ void main() {
       );
       expect(AppRouteState.currentRoute.value, equals('/login'));
       expect(find.text('Dashboard'), findsNothing);
-      await _disposeApp(tester);
-      await _resetBrowserTestState();
-      await GetIt.instance.reset();
-      await App.init();
-      await tester.pumpWidget(const App());
       await _login(tester, _limitedEmail, _limitedPassword);
       await _waitFor(tester, find.byType(DashboardScreen));
       expect(AppRouteState.currentRoute.value, equals('/dashboard'));
@@ -278,8 +253,7 @@ void main() {
         find.text('Required permission: permission.read.'),
         findsOneWidget,
       );
-      await _disposeApp(tester);
-      _ignoreWebServerFocusTeardownAssertion();
+      await _flushFocusLifecycle(tester);
     },
     timeout: const Timeout(Duration(seconds: 120)),
   );
