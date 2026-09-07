@@ -1,14 +1,29 @@
 import { loadConfig } from './config/index.js';
-import { createDatabasePool, closeDatabasePool, pingDatabase } from './infrastructure/database/connection.js';
+import { resolvePlatformDatabaseUrl } from './config/schema.js';
+import {
+  createDatabasePool,
+  createDatabasePoolFromUrl,
+  closeDatabasePool,
+  pingDatabase,
+} from './infrastructure/database/connection.js';
 import { createApplication } from './presentation/http/app.js';
 
 async function bootstrap(): Promise<void> {
   const config = loadConfig();
+  const platformDatabaseUrl = resolvePlatformDatabaseUrl(process.env, { required: config.isProduction }) ?? config.DATABASE_URL;
   const pool = createDatabasePool(config);
+  const platformPool = createDatabasePoolFromUrl(platformDatabaseUrl, {
+    min: config.DATABASE_POOL_MIN,
+    max: config.DATABASE_POOL_MAX,
+    applicationName: `${config.APP_NAME}-platform-executor`,
+    sslMode: config.DATABASE_SSL_MODE,
+  });
 
   try {
     await pingDatabase(pool);
+    await pingDatabase(platformPool);
   } catch (error) {
+    await platformPool.end().catch(() => undefined);
     const configuredDbName = new URL(config.DATABASE_URL).pathname.replace(/^\//, '') || '<unknown>';
     const configuredUser = new URL(config.DATABASE_URL).username || '<unknown>';
 
@@ -19,10 +34,12 @@ async function bootstrap(): Promise<void> {
   }
 
   const app = await createApplication(config);
+  app.decorate('platformDbPool', platformPool);
 
   const shutdown = async () => {
     await app.close();
     await closeDatabasePool(pool);
+    await closeDatabasePool(platformPool);
     process.exit(0);
   };
 

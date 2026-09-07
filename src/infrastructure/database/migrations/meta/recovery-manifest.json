@@ -35,6 +35,11 @@
       "strategy": "restore-backup",
       "destructiveDownAllowed": false,
       "note": "Tax-domain baseline. Rebuild development databases from zero; production recovery remains restore/forward-compensation only."
+    },
+    "0007_platform_tenant_delete_lifecycle": {
+      "strategy": "forward-only-security",
+      "destructiveDownAllowed": false,
+      "note": "Corrects the platform tenant guarded soft-delete procedure to use the canonical cancelled lifecycle state, maintain soft-delete timestamps, and block deletion while protected tenant data or audit history remains. Recovery is forward-only or restore from backup."
     }
   }
 }

@@ -1,4 +1,4 @@
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { NotFoundError, ValidationError } from '../../../domain/errors.js';
 import { DEFAULT_PLATFORM_SEED } from '../../../application/services/platform-bootstrap-service.js';
 import { requirePlatformContext } from '../middleware/auth.js';
@@ -17,6 +17,12 @@ const tenantPermissions = DEFAULT_PLATFORM_SEED.permissions
       ].includes(permission.permissionKey),
   )
   .map((permission) => permission.permissionKey);
+
+function platformExecutor(request: FastifyRequest) {
+  if (request.server.platformDbPool) return request.server.platformDbPool;
+  if (request.server.appConfig.isTest) return request.server.dbPool;
+  return undefined;
+}
 
 const platformTenantRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/platform/tenants', { preHandler: requirePlatformContext('platform.tenant.read') }, async (request) => ({
@@ -86,8 +92,10 @@ const platformTenantRoutes: FastifyPluginAsync = async (fastify) => {
       `/platform/tenants/:tenantId/${action}`,
       { preHandler: requirePlatformContext(permission) },
       async (request) => {
+        const platformPool = platformExecutor(request);
+        if (!platformPool) throw new Error('Platform database executor is not configured.');
         const status = action === 'deactivate' ? 'cancelled' : action === 'suspend' ? 'suspended' : 'active';
-        await request.server.dbPool.query('SELECT platform_update_tenant_status($1::uuid, $2::text)', [
+        await platformPool.query('SELECT platform_update_tenant_status($1::uuid, $2::text)', [
           request.params.tenantId,
           status,
         ]);
@@ -105,7 +113,9 @@ const platformTenantRoutes: FastifyPluginAsync = async (fastify) => {
     { preHandler: requirePlatformContext('platform.tenant.delete') },
     async (request) => {
       if (!request.params.tenantId) throw new ValidationError('Tenant identifier is required.');
-      await request.server.dbPool.query('SELECT platform_delete_tenant($1::uuid)', [request.params.tenantId]);
+      const platformPool = platformExecutor(request);
+      if (!platformPool) throw new Error('Platform database executor is not configured.');
+      await platformPool.query('SELECT platform_delete_tenant($1::uuid)', [request.params.tenantId]);
       return { success: true, deleted: true };
     },
   );

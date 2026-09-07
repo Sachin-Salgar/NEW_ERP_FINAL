@@ -127,38 +127,13 @@ async function main() {
     );
 
     const adminPermissions = [
-      'tenant.read',
-      'organization.read',
-      'organization.create',
-      'organization.update',
-      'organization.activate',
-      'organization.deactivate',
-      'branch.read',
-      'branch.create',
-      'branch.update',
-      'branch.activate',
-      'branch.deactivate',
-      'user.read',
-      'user.create',
-      'user.update',
-      'user.activate',
-      'user.deactivate',
-      'role.read',
-      'role.create',
-      'role.update',
-      'role.activate',
-      'role.deactivate',
-      'role_permission.read',
-      'role_permission.grant',
-      'role_permission.revoke',
-      'permission.read',
-      'security.session.read',
-      'security.session.revoke',
-      'security.session.revoke_all',
-      'customer.read',
-      'customer.create',
-      'customer.update',
-      'customer.delete',
+      'tenant.read', 'organization.read', 'organization.create', 'organization.update', 'organization.activate',
+      'organization.deactivate', 'branch.read', 'branch.create', 'branch.update', 'branch.activate',
+      'branch.deactivate', 'user.read', 'user.create', 'user.update', 'user.activate', 'user.deactivate',
+      'role.read', 'role.create', 'role.update', 'role.activate', 'role.deactivate', 'role_permission.read',
+      'role_permission.grant', 'role_permission.revoke', 'permission.read', 'security.session.read',
+      'security.session.revoke', 'security.session.revoke_all', 'customer.read', 'customer.create',
+      'customer.update', 'customer.delete',
     ];
     const limitedPermissions = ['organization.read', 'user.read'];
     for (const permissionKey of [...new Set([...adminPermissions, ...limitedPermissions])]) {
@@ -183,10 +158,7 @@ async function main() {
       );
     }
 
-    for (const [roleId, permissions] of [
-      [ADMIN_ROLE_ID, adminPermissions],
-      [LIMITED_ROLE_ID, limitedPermissions],
-    ]) {
+    for (const [roleId, permissions] of [[ADMIN_ROLE_ID, adminPermissions], [LIMITED_ROLE_ID, limitedPermissions]]) {
       await client.query(
         `INSERT INTO role_permissions (tenant_id, role_id, permission_id)
          SELECT $1, $2, p.id FROM permissions p WHERE p.permission_key = ANY($3)
