@@ -122,7 +122,7 @@ async function main() {
       `INSERT INTO auth_login_identifiers (identifier_type, identifier, tenant_id, user_id)
        VALUES ('email', $1, $2, $3), ('username', 'e2e@example.com', $2, $3),
               ('email', $4, $2, $5), ('username', 'e2e-limited', $2, $5)
-       ON CONFLICT (identifier_type, identifier, tenant_id) DO UPDATE SET user_id = EXCLUDED.user_id, is_active = true`,
+       ON CONFLICT (identifier_type, identifier) DO UPDATE SET tenant_id = EXCLUDED.tenant_id, user_id = EXCLUDED.user_id, is_active = true`,
       [ADMIN_EMAIL, TENANT_ID, ADMIN_USER_ID, LIMITED_EMAIL, LIMITED_USER_ID],
     );
 
