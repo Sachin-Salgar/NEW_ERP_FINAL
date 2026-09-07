@@ -122,23 +122,6 @@ Future<void> _logout(WidgetTester tester) async {
   await _settle(tester);
 }
 
-Future<void> _flushFocusLifecycle(WidgetTester tester) async {
-  tester.testTextInput.hide();
-  FocusManager.instance.primaryFocus?.unfocus(
-    disposition: UnfocusDisposition.scope,
-  );
-  // Focus changes are applied by a scheduled microtask. Flush both the focus
-  // notification and any post-frame work before the integration test returns;
-  // otherwise web-server teardown can dispose FocusManager while that callback
-  // is still queued, producing a false failure after the test body completes.
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 100));
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 100));
-  await tester.runAsync(() => Future<void>.delayed(const Duration(seconds: 2)));
-  await tester.pump();
-}
-
 Future<void> _browserBack(WidgetTester tester, String expectedRoute) async {
   web.window.history.back();
   await _waitFor(tester, _routeContentFinder(expectedRoute));
@@ -214,7 +197,6 @@ void main() {
       expect(find.text('E2E Organization'), findsWidgets);
 
       await _logout(tester);
-      await _flushFocusLifecycle(tester);
       await _waitFor(
         tester,
         find.byKey(const ValueKey('login_identifier_field')),
@@ -253,7 +235,6 @@ void main() {
         find.text('Required permission: permission.read.'),
         findsOneWidget,
       );
-      await _flushFocusLifecycle(tester);
     },
     timeout: const Timeout(Duration(seconds: 120)),
   );
