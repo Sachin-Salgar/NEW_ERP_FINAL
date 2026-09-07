@@ -1,5 +1,10 @@
 -- Prevent platform session lookups from casting unset tenant context settings.
+DROP POLICY IF EXISTS tenant_isolation_policy ON public.user_sessions;
 DROP POLICY IF EXISTS user_sessions_active_location_policy ON public.user_sessions;
+
+CREATE POLICY tenant_isolation_policy ON public.user_sessions
+USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid)
+WITH CHECK (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
 
 CREATE POLICY user_sessions_active_location_policy ON public.user_sessions
 USING (
