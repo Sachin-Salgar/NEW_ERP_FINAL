@@ -36,6 +36,7 @@ declare module 'fastify' {
   interface FastifyInstance {
     appConfig: AppConfig;
     dbPool: import('pg').Pool;
+    platformDbPool?: import('pg').Pool;
     authService: AuthenticationService;
     authorizationService: AuthorizationService;
     branchService: import('../../../application/services/branch-service.js').BranchService;
@@ -164,18 +165,6 @@ export function requirePermission(permissionKey: string) {
       permissionKey,
     );
     if (!allowed) throw new ForbiddenError('Permission denied.');
-  };
-}
-export function requirePlatformPermission(permissionKey: string) {
-  return async function requirePlatformPermissionHandler(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
-    if (!request.user || !request.tenantId)
-      throw new UnauthorizedError('Authentication is required to perform this action.');
-    const allowed = await request.server.authorizationService.hasPermission(
-      request.tenantId,
-      request.user.id,
-      permissionKey,
-    );
-    if (!allowed) throw new ForbiddenError('Platform permission denied.');
   };
 }
 export function requirePermissionOrSelf(
