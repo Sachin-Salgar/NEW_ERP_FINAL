@@ -128,7 +128,7 @@ function escapeCell(value: string): string {
 function buildDocument(): string {
   const rows = Object.entries(appConfigSchema.shape).map(([name, schema]) => {
     const defaultValue = getDefaultValue(schema);
-    const required = defaultValue === undefined ? 'Yes' : 'No';
+    const required = schema instanceof z.ZodOptional ? 'No' : defaultValue === undefined ? 'Yes' : 'No';
 
     return `| \`${name}\` | ${escapeCell(typeName(schema))} | ${required} | ${escapeCell(formatDefault(defaultValue))} | ${escapeCell(descriptions[name] ?? '')} |`;
   });
