@@ -1987,6 +1987,20 @@ CREATE INDEX idx_audit_events_platform_context_created_at ON public.audit_events
 
 
 --
+-- Name: idx_audit_events_actor_identity_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audit_events_actor_identity_created_at ON public.audit_events USING btree (actor_identity_id, created_at DESC);
+
+
+--
+-- Name: idx_audit_events_context_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_audit_events_context_created_at ON public.audit_events USING btree (context_type, created_at DESC);
+
+
+--
 
 
 -- Name: idx_audit_events_tenant_actor_created_at; Type: INDEX; Schema: public; Owner: -
@@ -2687,6 +2701,30 @@ CREATE TRIGGER trg_sync_auth_login_identifiers AFTER INSERT OR UPDATE OF usernam
 
 ALTER TABLE ONLY public.audit_events
     ADD CONSTRAINT audit_events_actor_platform_membership_fk FOREIGN KEY (actor_platform_membership_id) REFERENCES public.platform_memberships(id) ON DELETE SET NULL;
+
+
+--
+-- Name: audit_events audit_events_actor_identity_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audit_events
+    ADD CONSTRAINT audit_events_actor_identity_fk FOREIGN KEY (actor_identity_id) REFERENCES public.identities(id) ON DELETE SET NULL;
+
+
+--
+-- Name: audit_events audit_events_actor_membership_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audit_events
+    ADD CONSTRAINT audit_events_actor_membership_fk FOREIGN KEY (actor_membership_id) REFERENCES public.tenant_memberships(id) ON DELETE SET NULL;
+
+
+--
+-- Name: audit_events audit_events_target_tenant_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audit_events
+    ADD CONSTRAINT audit_events_target_tenant_fk FOREIGN KEY (target_tenant_id) REFERENCES public.tenants(id) ON DELETE SET NULL;
 
 
 --
