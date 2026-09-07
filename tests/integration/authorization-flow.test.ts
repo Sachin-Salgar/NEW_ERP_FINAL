@@ -8,6 +8,7 @@ import { TenantBootstrapService } from '../../src/application/services/tenant-bo
 import { BcryptPasswordHasher } from '../../src/infrastructure/security/bcrypt-password-hasher.js';
 import { PostgresPlatformRepository } from '../../src/infrastructure/database/repositories/postgres-platform-repository.js';
 import { createApplication } from '../../src/presentation/http/app.js';
+import { createIntegrationApplicationPool } from './database.js';
 
 const databaseUrl = resolveDatabaseUrl(process.env, { forTest: true });
 const runIfDatabase = it;
@@ -26,7 +27,7 @@ describe('Authorization RBAC vertical slice', () => {
   });
 
   runIfDatabase('enforces tenant-scoped role-based access control', async () => {
-    pool = new Pool({ connectionString: databaseUrl! });
+    pool = createIntegrationApplicationPool();
     const repository = new PostgresPlatformRepository(pool);
     const passwordHasher = new BcryptPasswordHasher();
     const platformBootstrapService = new PlatformBootstrapService(repository);

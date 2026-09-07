@@ -6,12 +6,14 @@ import { resolveDatabaseUrl } from '../../src/config/schema.js';
 import { PostgresCustomerRepository } from '../../src/infrastructure/database/repositories/postgres-customer-repository.js';
 import { withTenantContext } from '../../src/infrastructure/database/tenant-context.js';
 import { UnitOfWork } from '../../src/infrastructure/database/unit-of-work.js';
+import { createIntegrationAdminPool, createIntegrationApplicationPool } from './database.js';
 
 const databaseUrl = resolveDatabaseUrl(process.env, { forTest: true });
 const runIfDatabase = databaseUrl ? it : it.skip;
 
 describe('Customer PostgreSQL tenant isolation', () => {
   let pool: Pool | undefined;
+  let adminPool: Pool | undefined;
   const tenantA = uuidV7();
   const tenantB = uuidV7();
   const organizationA = uuidV7();
@@ -26,11 +28,13 @@ describe('Customer PostgreSQL tenant isolation', () => {
       );
     }
     await pool.end();
+    await adminPool?.end();
   });
 
   runIfDatabase('isolates Customer records with FORCE RLS and tenant-local repository queries', async () => {
-    pool = new Pool({ connectionString: databaseUrl! });
-    await pool.query(
+    pool = createIntegrationApplicationPool();
+    adminPool = createIntegrationAdminPool();
+    await adminPool.query(
       `INSERT INTO tenants (id, name, subdomain, slug)
        VALUES ($1, $2, $3, $4), ($5, $6, $7, $8)`,
       [

@@ -6,12 +6,14 @@ import { resolveDatabaseUrl } from '../../src/config/schema.js';
 import { PostgresQuotationRepository } from '../../src/infrastructure/database/repositories/postgres-quotation-repository.js';
 import { UnitOfWork } from '../../src/infrastructure/database/unit-of-work.js';
 import { withTenantContext } from '../../src/infrastructure/database/tenant-context.js';
+import { createIntegrationAdminPool, createIntegrationApplicationPool } from './database.js';
 
 const databaseUrl = resolveDatabaseUrl(process.env, { forTest: true });
 const runIfDatabase = databaseUrl ? it : it.skip;
 
 describe('Sales quotation PostgreSQL tenant and organization isolation', () => {
   let pool: Pool | undefined;
+  let adminPool: Pool | undefined;
   const tenantA = uuidV7();
   const tenantB = uuidV7();
   const organizationA = uuidV7();
@@ -30,13 +32,15 @@ describe('Sales quotation PostgreSQL tenant and organization isolation', () => {
       );
     }
     await pool.end();
+    await adminPool?.end();
   });
 
   runIfDatabase('enforces FORCE RLS, organization scoping, soft delete, and rollback', async () => {
-    pool = new Pool({ connectionString: databaseUrl! });
+    pool = createIntegrationApplicationPool();
+    adminPool = createIntegrationAdminPool();
     const suffix = uuidV7();
 
-    await pool.query(
+    await adminPool.query(
       `INSERT INTO tenants (id, name, subdomain, slug)
        VALUES ($1, $2, $3, $4), ($5, $6, $7, $8)`,
       [

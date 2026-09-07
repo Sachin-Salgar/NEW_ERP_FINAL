@@ -6,6 +6,7 @@ import { Pool } from 'pg';
 import { resolveDatabaseUrl } from '../../src/config/schema.js';
 import { PostgresPlatformRepository } from '../../src/infrastructure/database/repositories/postgres-platform-repository.js';
 import { PlatformBootstrapService } from '../../src/application/services/platform-bootstrap-service.js';
+import { createIntegrationApplicationPool } from './database.js';
 
 async function sourceText(directory: string): Promise<string> {
   const files = await readdir(directory, { withFileTypes: true });
@@ -19,10 +20,11 @@ async function sourceText(directory: string): Promise<string> {
 }
 
 describe('machine-derived permission inventory', () => {
-  const pool = new Pool({ connectionString: resolveDatabaseUrl(process.env, { forTest: true }), ssl: false });
+  let pool: Pool;
   let source = '';
 
   beforeAll(async () => {
+    pool = createIntegrationApplicationPool();
     await new PlatformBootstrapService(new PostgresPlatformRepository(pool)).seedReferenceData();
     source = await sourceText(join(process.cwd(), 'src'));
   });

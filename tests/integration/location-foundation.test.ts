@@ -7,6 +7,7 @@ import { PlatformBootstrapService } from '../../src/application/services/platfor
 import { TenantBootstrapService } from '../../src/application/services/tenant-bootstrap-service.js';
 import { BcryptPasswordHasher } from '../../src/infrastructure/security/bcrypt-password-hasher.js';
 import { PostgresPlatformRepository } from '../../src/infrastructure/database/repositories/postgres-platform-repository.js';
+import { createIntegrationAdminPool, createIntegrationApplicationPool } from './database.js';
 import { withTenantContext } from '../../src/infrastructure/database/tenant-context.js';
 
 const databaseUrl = resolveDatabaseUrl(process.env, { forTest: true });
@@ -74,11 +75,13 @@ async function seedTenant(pool: Pool, suffix: string) {
 
 describe('Location foundation', () => {
   let pool: Pool | undefined;
+  let adminPool: Pool | undefined;
 
   afterAll(async () => {
     if (pool) {
       await pool.end();
     }
+    await adminPool?.end();
   });
 
   it('creates and lists locations inside the correct tenant and organization scope', async () => {
@@ -86,9 +89,11 @@ describe('Location foundation', () => {
       return;
     }
 
-    pool = new Pool({ connectionString: databaseUrl });
+    pool = createIntegrationApplicationPool();
+    adminPool = createIntegrationAdminPool();
     const suffix = `${Date.now()}-${uuidV7()}`;
-    const { repository, bootstrapResult } = await seedTenant(pool, suffix);
+    const { bootstrapResult } = await seedTenant(adminPool!, suffix);
+    const repository = new PostgresPlatformRepository(pool);
 
     const location = await repository.createLocation(bootstrapResult.tenantId, bootstrapResult.organizationId, {
       code: `PL-${suffix}`.slice(0, 15),
@@ -123,12 +128,14 @@ describe('Location foundation', () => {
       return;
     }
 
-    pool = new Pool({ connectionString: databaseUrl });
+    pool = createIntegrationApplicationPool();
+    adminPool = createIntegrationAdminPool();
     const suffix = `${Date.now()}-${uuidV7()}`;
-    const firstTenant = await seedTenant(pool, `user-location-${suffix}`);
-    const secondTenant = await seedTenant(pool, `user-location-other-${suffix}`);
+    const firstTenant = await seedTenant(adminPool!, `user-location-${suffix}`);
+    const secondTenant = await seedTenant(adminPool!, `user-location-other-${suffix}`);
     const passwordHasher = new BcryptPasswordHasher();
-    const location = await firstTenant.repository.createLocation(
+    const repository = new PostgresPlatformRepository(pool);
+    const location = await repository.createLocation(
       firstTenant.bootstrapResult.tenantId,
       firstTenant.bootstrapResult.organizationId,
       {
@@ -138,7 +145,7 @@ describe('Location foundation', () => {
       },
     );
     const userId = uuidV7();
-    const user = await firstTenant.repository.createUser({
+    const user = await repository.createUser({
       id: userId,
       tenantId: firstTenant.bootstrapResult.tenantId,
       organizationId: firstTenant.bootstrapResult.organizationId,
@@ -191,20 +198,18 @@ describe('Location foundation', () => {
       return;
     }
 
-    pool = new Pool({ connectionString: databaseUrl });
+    pool = createIntegrationApplicationPool();
+    adminPool = createIntegrationAdminPool();
     const suffix = `${Date.now()}-${uuidV7()}`;
-    const firstTenant = await seedTenant(pool, `first-${suffix}`);
-    const secondTenant = await seedTenant(pool, `second-${suffix}`);
+    const firstTenant = await seedTenant(adminPool!, `first-${suffix}`);
+    const secondTenant = await seedTenant(adminPool!, `second-${suffix}`);
+    const repository = new PostgresPlatformRepository(pool);
 
     await expect(
-      firstTenant.repository.createLocation(
-        firstTenant.bootstrapResult.tenantId,
-        secondTenant.bootstrapResult.organizationId,
-        {
-          code: `BAD-${suffix}`.slice(0, 15),
-          name: 'Invalid location',
-        },
-      ),
+      repository.createLocation(firstTenant.bootstrapResult.tenantId, secondTenant.bootstrapResult.organizationId, {
+        code: `BAD-${suffix}`.slice(0, 15),
+        name: 'Invalid location',
+      }),
     ).rejects.toThrow();
   });
 
@@ -213,9 +218,11 @@ describe('Location foundation', () => {
       return;
     }
 
-    pool = new Pool({ connectionString: databaseUrl });
+    pool = createIntegrationApplicationPool();
+    adminPool = createIntegrationAdminPool();
     const suffix = `${Date.now()}-${uuidV7()}`;
-    const { repository, bootstrapResult } = await seedTenant(pool, suffix);
+    const { bootstrapResult } = await seedTenant(adminPool!, suffix);
+    const repository = new PostgresPlatformRepository(pool);
 
     const location = await repository.createLocation(bootstrapResult.tenantId, bootstrapResult.organizationId, {
       code: `PL2-${suffix}`.slice(0, 15),

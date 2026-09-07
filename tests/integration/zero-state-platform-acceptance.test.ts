@@ -52,6 +52,12 @@ describe('fresh zero-state platform acceptance', () => {
     await adminPool.query(`SELECT 1`);
     setupPool = new Pool({ connectionString: databaseUrl });
     await setupPool.query(securitySql);
+    const rolePassword = process.env.ADR0040_SECURITY_ROLE_PASSWORD ?? 'integration-role-password-2026!';
+    for (const role of ['erp_app', 'erp_platform_executor', 'erp_procedure_owner']) {
+      await setupPool.query(`ALTER ROLE "${role}" LOGIN PASSWORD '${rolePassword.replaceAll("'", "''")}'`);
+    }
+    await setupPool.query('GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO erp_app');
+    await setupPool.query('GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO erp_app');
     await new PlatformBootstrapService(new PostgresPlatformRepository(setupPool)).seedReferenceData();
     const retiredPermissions = await setupPool.query(
       `SELECT permission_key
@@ -99,11 +105,12 @@ describe('fresh zero-state platform acceptance', () => {
     );
     expect(plaintext.rows[0].count).toBeGreaterThan(0);
 
-    appPool = new Pool({ connectionString: databaseUrl });
-    app = await createApplication(
-      parseAppConfig({ ...process.env, DATABASE_URL: databaseUrl, NODE_ENV: 'test' }),
-      appPool,
-    );
+    const applicationUrl = new URL(databaseUrl);
+    applicationUrl.username = 'erp_app';
+    applicationUrl.password = rolePassword;
+    appPool = new Pool({ connectionString: applicationUrl.toString(), ssl: false });
+    const platformConfig = parseAppConfig({ ...process.env, DATABASE_URL: databaseUrl, NODE_ENV: 'test' });
+    app = await createApplication(platformConfig, setupPool);
     await app.ready();
     const request = async (
       method: 'GET' | 'POST' | 'PATCH',
@@ -137,6 +144,12 @@ describe('fresh zero-state platform acceptance', () => {
     expect(tenantBResponse.statusCode).toBe(201);
     const tenantA = tenantAResponse.json().tenantId as string;
     const tenantB = tenantBResponse.json().tenantId as string;
+
+    await app.close();
+    app = await createApplication(
+      parseAppConfig({ ...process.env, DATABASE_URL: applicationUrl.toString(), NODE_ENV: 'test' }),
+      appPool,
+    );
 
     const tenantLogin = await request('POST', '/api/v1/auth/login', undefined, {
       identifier: `tenant-a-${suffix}`,

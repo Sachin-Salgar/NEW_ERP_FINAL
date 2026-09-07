@@ -10,6 +10,7 @@ import { BcryptPasswordHasher } from '../../src/infrastructure/security/bcrypt-p
 import { PostgresPlatformRepository } from '../../src/infrastructure/database/repositories/postgres-platform-repository.js';
 import { createApplication } from '../../src/presentation/http/app.js';
 import { withTenantContext } from '../../src/infrastructure/database/tenant-context.js';
+import { createIntegrationApplicationPool } from './database.js';
 
 const databaseUrl = resolveDatabaseUrl(process.env, { forTest: true });
 const runIfDatabase = it;
@@ -28,7 +29,7 @@ describe('Authentication vertical slice', () => {
   });
 
   runIfDatabase('implements register-login-me-refresh-logout protected access flow', async () => {
-    pool = new Pool({ connectionString: databaseUrl! });
+    pool = createIntegrationApplicationPool();
 
     const repository = new PostgresPlatformRepository(pool);
     const passwordHasher = new BcryptPasswordHasher();
@@ -418,7 +419,7 @@ describe('Authentication vertical slice', () => {
 
   runIfDatabase('rejects authentication for inactive users', async () => {
     if (!pool) {
-      pool = new Pool({ connectionString: databaseUrl! });
+      pool = createIntegrationApplicationPool();
     }
 
     const repository = new PostgresPlatformRepository(pool);
@@ -538,7 +539,7 @@ describe('Authentication vertical slice', () => {
 
   runIfDatabase('rejects authentication for deleted users', async () => {
     if (!pool) {
-      pool = new Pool({ connectionString: databaseUrl! });
+      pool = createIntegrationApplicationPool();
     }
 
     const repository = new PostgresPlatformRepository(pool);

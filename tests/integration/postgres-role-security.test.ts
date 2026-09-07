@@ -10,7 +10,7 @@ dotenv.config({ path: '.env.local' });
 
 const adminUrl = resolveDatabaseUrl(process.env);
 const testUrl = resolveDatabaseUrl(process.env, { forTest: true });
-const rolePassword = process.env.ADR0040_SECURITY_ROLE_PASSWORD ?? `Adr0040-${Date.now()}!`;
+const rolePassword = process.env.ADR0040_SECURITY_ROLE_PASSWORD ?? 'integration-role-password-2026!';
 const roleNames = ['erp_app', 'erp_platform_executor', 'erp_procedure_owner'] as const;
 
 function roleUrl(role: string): string {
@@ -37,9 +37,6 @@ describe('PostgreSQL platform security boundary', () => {
     const client = await admin.connect();
     try {
       await client.query(fs.readFileSync('scripts/platform-security.sql', 'utf8'));
-      for (const role of roleNames) {
-        await client.query(`ALTER ROLE ${role} LOGIN PASSWORD '${rolePassword.replaceAll("'", "''")}'`);
-      }
 
       const fixtureTenantIds = [uuidV7(), uuidV7()];
       await client.query(
@@ -72,9 +69,6 @@ describe('PostgreSQL platform security boundary', () => {
   });
 
   afterAll(async () => {
-    for (const role of roleNames) {
-      await admin.query(`ALTER ROLE ${role} NOLOGIN PASSWORD NULL`);
-    }
     await admin.end();
   });
 

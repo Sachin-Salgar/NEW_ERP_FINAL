@@ -4,6 +4,7 @@ import { v7 as uuidV7 } from 'uuid';
 
 import { resolveDatabaseUrl } from '../../src/config/schema.js';
 import { withTenantContext } from '../../src/infrastructure/database/tenant-context.js';
+import { createIntegrationApplicationPool } from './database.js';
 
 const databaseUrl = resolveDatabaseUrl(process.env, { forTest: true });
 const runIfDatabase = databaseUrl ? it : it.skip;
@@ -16,7 +17,7 @@ describe('Purchase PostgreSQL isolation', () => {
   });
 
   runIfDatabase('enforces FORCE RLS and organization context on Purchase tables', async () => {
-    pool = new Pool({ connectionString: databaseUrl! });
+    pool = createIntegrationApplicationPool();
     const tables = [
       'procurement_suppliers',
       'procurement_requisitions',

@@ -10,6 +10,7 @@ import { TenantAdministrationService } from '../../src/application/services/tena
 import { BcryptPasswordHasher } from '../../src/infrastructure/security/bcrypt-password-hasher.js';
 import { PostgresPlatformRepository } from '../../src/infrastructure/database/repositories/postgres-platform-repository.js';
 import { resolveDatabaseUrl } from '../../src/config/schema.js';
+import { createIntegrationApplicationPool } from './database.js';
 
 const databaseUrl = resolveDatabaseUrl(process.env, { forTest: true });
 const runIfDatabase = it;
@@ -24,7 +25,7 @@ describe('Phase 2 platform and identity foundation', () => {
   });
 
   runIfDatabase('bootstraps a tenant and secures its identity boundaries', async () => {
-    pool = new Pool({ connectionString: databaseUrl! });
+    pool = createIntegrationApplicationPool();
     const repository = new PostgresPlatformRepository(pool);
     const passwordHasher = new BcryptPasswordHasher();
     const bootstrapService = new PlatformBootstrapService(repository);
@@ -171,7 +172,7 @@ describe('Phase 2 platform and identity foundation', () => {
 
   runIfDatabase('rolls back a tenant bootstrap when a unique validation fails', async () => {
     if (!pool) {
-      pool = new Pool({ connectionString: databaseUrl! });
+      pool = createIntegrationApplicationPool();
     }
 
     const repository = new PostgresPlatformRepository(pool);
