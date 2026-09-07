@@ -134,6 +134,10 @@ Future<void> _flushFocusLifecycle(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 100));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 100));
+  await tester.runAsync(
+    () => Future<void>.delayed(const Duration(milliseconds: 100)),
+  );
+  await tester.pump();
 }
 
 Future<void> _disposeApp(WidgetTester tester) async {
