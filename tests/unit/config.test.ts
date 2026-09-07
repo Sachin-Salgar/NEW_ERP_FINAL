@@ -72,6 +72,7 @@ describe('parseAppConfig', () => {
       HOST: '0.0.0.0',
       PORT: '3000',
       DATABASE_URL: 'postgresql://postgres:password@localhost:5432/newerp',
+      PLATFORM_DATABASE_URL: 'postgresql://erp_platform_executor:password@localhost:5432/newerp',
       JWT_SECRET: 'a'.repeat(32),
       MFA_ENCRYPTION_KEY: 'b'.repeat(32),
       CORS_ALLOWED_ORIGINS: 'https://erp.example.com,https://admin.example.com',
@@ -82,6 +83,20 @@ describe('parseAppConfig', () => {
     expect(isCorsOriginAllowed(config, 'https://evil.example')).toBe(false);
   });
 
+  it('rejects production configuration without a dedicated platform database URL', () => {
+    expect(() =>
+      parseAppConfig({
+        NODE_ENV: 'production',
+        APP_NAME: 'new-erp-final',
+        HOST: '0.0.0.0',
+        PORT: '3000',
+        DATABASE_URL: 'postgresql://postgres:password@localhost:5432/newerp',
+        JWT_SECRET: 'a'.repeat(32),
+        MFA_ENCRYPTION_KEY: 'b'.repeat(32),
+      }),
+    ).toThrow('PLATFORM_DATABASE_URL must be configured for production platform procedure execution.');
+  });
+
   it('rejects production configuration when JWT secret is not configured', () => {
     expect(() =>
       parseAppConfig({
@@ -90,6 +105,7 @@ describe('parseAppConfig', () => {
         HOST: '0.0.0.0',
         PORT: '3000',
         DATABASE_URL: 'postgresql://postgres:password@localhost:5432/newerp',
+        PLATFORM_DATABASE_URL: 'postgresql://erp_platform_executor:password@localhost:5432/newerp',
         JWT_SECRET: 'development-jwt-secret-change-me',
       }),
     ).toThrow('JWT_SECRET must be configured for production HS256 compatibility deployments.');
