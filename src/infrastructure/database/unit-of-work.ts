@@ -1,6 +1,6 @@
 import type { Pool, PoolClient } from 'pg';
 
-import { runInTransactionContext } from './transaction-context.js';
+import { getTransactionContext, runInTransactionContext } from './transaction-context.js';
 
 /**
  * Explicit PostgreSQL transaction boundary for application/service orchestration.
@@ -33,6 +33,11 @@ export class UnitOfWork {
   }
 
   getClient(): PoolClient {
+    const transaction = getTransactionContext();
+    if (transaction) {
+      return transaction.client;
+    }
+
     if (!this.client || this.completed) {
       throw new Error('UnitOfWork has no active transaction.');
     }
@@ -76,20 +81,23 @@ export class UnitOfWork {
   }
 
   async runInTransaction<T>(callback: () => Promise<T>): Promise<T> {
-    if (this.client && !this.completed) {
+    if (getTransactionContext()) {
       return callback();
     }
-    const client = await this.begin();
 
+    const client = await this.pool.connect();
     try {
+      await client.query('BEGIN');
       return await runInTransactionContext(client, async () => {
         const result = await callback();
-        await this.commit();
+        await client.query('COMMIT');
         return result;
       });
     } catch (error) {
-      await this.rollback();
+      await Promise.resolve(client.query('ROLLBACK')).catch(() => undefined);
       throw error;
+    } finally {
+      client.release();
     }
   }
 }
