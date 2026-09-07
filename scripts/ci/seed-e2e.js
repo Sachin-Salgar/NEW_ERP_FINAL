@@ -44,8 +44,7 @@ async function main() {
       await client.query(
         `INSERT INTO modules (id, code, name, module_group, is_core, sort_order)
          VALUES ($1, $2, $3, $4, $5, $6)
-         ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, module_group = EXCLUDED.module_group,
-           is_core = EXCLUDED.is_core, sort_order = EXCLUDED.sort_order`,
+         ON CONFLICT DO NOTHING`,
         [randomUUID(), code, name, moduleGroup, isCore, sortOrder],
       );
     }
