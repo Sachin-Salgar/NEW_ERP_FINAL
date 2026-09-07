@@ -19,7 +19,9 @@ const tenantPermissions = DEFAULT_PLATFORM_SEED.permissions
   .map((permission) => permission.permissionKey);
 
 function platformExecutor(request: FastifyRequest) {
-  return request.server.platformDbPool;
+  if (request.server.platformDbPool) return request.server.platformDbPool;
+  if (request.server.appConfig.isTest) return request.server.dbPool;
+  return undefined;
 }
 
 const platformTenantRoutes: FastifyPluginAsync = async (fastify) => {
