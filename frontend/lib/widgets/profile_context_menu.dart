@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
 import '../core/auth/auth_service.dart';
+import '../routing/app_router_delegate.dart';
 import '../themes/theme_controller.dart';
 
 /// Profile menu containing user profile actions and working-context switches.
@@ -56,7 +57,10 @@ class ProfileContextMenu extends StatelessWidget {
             } else if (value == 'logout') {
               await auth.logout();
               if (context.mounted) {
-                Navigator.of(context).pushReplacementNamed('/login');
+                final delegate = Router.of(context).routerDelegate;
+                if (delegate is AppRouterDelegate) {
+                  await delegate.setNewRoutePath('/login');
+                }
               }
             } else if (value == 'profile') {
               // Profile page will be wired here when the user-profile module is implemented.
@@ -138,7 +142,9 @@ class ProfileContextMenu extends StatelessWidget {
                 child: Row(
                   children: [
                     Icon(
-                      id == currentBranch ? Icons.check : Icons.account_tree_outlined,
+                      id == currentBranch
+                          ? Icons.check
+                          : Icons.account_tree_outlined,
                       size: 19,
                     ),
                     const SizedBox(width: 10),
@@ -157,8 +163,8 @@ class ProfileContextMenu extends StatelessWidget {
               ),
             ...auth.availableLocations.map((location) {
               final id = (location['id'] ?? '').toString();
-              final label =
-                  (location['name'] ?? location['code'] ?? id).toString();
+              final label = (location['name'] ?? location['code'] ?? id)
+                  .toString();
               return PopupMenuItem<String>(
                 value: 'location:$id',
                 child: Row(
