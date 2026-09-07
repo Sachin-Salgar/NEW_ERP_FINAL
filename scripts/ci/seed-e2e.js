@@ -154,7 +154,7 @@ async function main() {
       'security.session.revoke', 'security.session.revoke_all', 'customer.read', 'customer.create',
       'customer.update', 'customer.delete',
     ];
-    const limitedPermissions = ['organization.read', 'user.read'];
+    const limitedPermissions = ['organization.read', 'organization.location.read', 'user.read'];
     for (const permissionKey of [...new Set([...adminPermissions, ...limitedPermissions])]) {
       const [resource, action] = permissionKey.split('.');
       const moduleCode =
