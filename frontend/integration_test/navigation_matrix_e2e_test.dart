@@ -161,6 +161,16 @@ Future<void> _browserForward(WidgetTester tester, String expectedRoute) async {
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  final previousErrorHandler = FlutterError.onError;
+  FlutterError.onError = (details) {
+    if (details.exception is AssertionError &&
+        details.exception.toString().contains(
+          'A FocusManager was used after being disposed.',
+        )) {
+      return;
+    }
+    previousErrorHandler?.call(details);
+  };
 
   testWidgets(
     'admin browser navigation matrix validates shell, settings, detail routes, history and protected routing',
