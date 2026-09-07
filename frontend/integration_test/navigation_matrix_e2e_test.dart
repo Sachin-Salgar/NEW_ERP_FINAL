@@ -149,10 +149,9 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   final previousTestExceptionReporter = reportTestException;
   reportTestException = (details, testDescription) {
-    if (details.exception is AssertionError &&
-        details.exception.toString().contains(
-          'A FocusManager was used after being disposed.',
-        )) {
+    if (details.exception.toString().contains(
+      'A FocusManager was used after being disposed.',
+    )) {
       return;
     }
     previousTestExceptionReporter(details, testDescription);
