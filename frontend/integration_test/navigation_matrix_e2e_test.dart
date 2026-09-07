@@ -238,13 +238,6 @@ void main() {
       expect(AppRouteState.currentRoute.value, equals('/login'));
       expect(find.text('Dashboard'), findsNothing);
       await _disposeApp(tester);
-    },
-    timeout: const Timeout(Duration(seconds: 120)),
-  );
-
-  testWidgets(
-    'limited-user browser navigation matrix validates permitted and restricted routes',
-    (tester) async {
       await _resetBrowserTestState();
       await GetIt.instance.reset();
       await App.init();
@@ -253,11 +246,11 @@ void main() {
       await _waitFor(tester, find.byType(DashboardScreen));
       expect(AppRouteState.currentRoute.value, equals('/dashboard'));
 
-      final auth = GetIt.instance.get<AuthService>();
-      expect(auth.isAuthenticated, isTrue);
-      expect(auth.currentTenantId, equals(_tenantId));
-      expect(auth.currentOrganizationId, equals(_organizationId));
-      expect(auth.availableLocations.length, equals(1));
+      final limitedAuth = GetIt.instance.get<AuthService>();
+      expect(limitedAuth.isAuthenticated, isTrue);
+      expect(limitedAuth.currentTenantId, equals(_tenantId));
+      expect(limitedAuth.currentOrganizationId, equals(_organizationId));
+      expect(limitedAuth.availableLocations.length, equals(1));
 
       await _openRoute(tester, '/settings/organizations');
       await _waitFor(tester, find.text('Organizations'));
