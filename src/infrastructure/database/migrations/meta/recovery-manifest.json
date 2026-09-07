@@ -40,6 +40,11 @@
       "strategy": "forward-only-security",
       "destructiveDownAllowed": false,
       "note": "Corrects the platform tenant guarded soft-delete procedure to use the canonical cancelled lifecycle state, maintain soft-delete timestamps, and block deletion while protected tenant data or audit history remains. Recovery is forward-only or restore from backup."
+    },
+    "0008_platform_session_rls_empty_context": {
+      "strategy": "forward-only-security",
+      "destructiveDownAllowed": false,
+      "note": "Makes the user-session RLS context fail closed when tenant, organization, or location settings are unset instead of raising UUID cast errors during platform session validation. Recovery is forward-only or restore from backup."
     }
   }
 }
