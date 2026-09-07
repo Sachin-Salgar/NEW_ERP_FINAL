@@ -223,6 +223,7 @@ void main() {
       expect(find.text('E2E Organization'), findsWidgets);
 
       await _logout(tester);
+      await _flushFocusLifecycle(tester);
       await _waitFor(
         tester,
         find.byKey(const ValueKey('login_identifier_field')),
