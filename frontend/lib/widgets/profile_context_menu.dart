@@ -26,33 +26,11 @@ class ProfileContextMenu extends StatelessWidget {
                     'User')
                 .toString();
         final email = (user['email'] ?? '').toString();
-        final currentOrg = auth.currentOrganizationId;
-        final currentBranch = auth.currentBranchId;
-        final currentLocation = auth.currentLocationId;
-        final orgLabel = auth.availableOrganizations
-            .where((o) => (o['id'] ?? '').toString() == currentOrg)
-            .map((o) => (o['name'] ?? o['code'] ?? currentOrg).toString())
-            .firstOrNull;
-        final branchLabel = auth.availableBranches
-            .where((b) => (b['id'] ?? '').toString() == currentBranch)
-            .map((b) => (b['name'] ?? b['code'] ?? currentBranch).toString())
-            .firstOrNull;
-        final locationLabel = auth.availableLocations
-            .where((l) => (l['id'] ?? '').toString() == currentLocation)
-            .map((l) => (l['name'] ?? l['code'] ?? currentLocation).toString())
-            .firstOrNull;
-
         return PopupMenuButton<String>(
           tooltip: 'Profile and working context',
           offset: const Offset(0, 48),
           onSelected: (value) async {
-            if (value.startsWith('org:')) {
-              await auth.selectOrganization(value.substring(4));
-            } else if (value.startsWith('branch:')) {
-              await auth.selectBranch(value.substring(6));
-            } else if (value.startsWith('location:')) {
-              await auth.selectLocation(value.substring(9));
-            } else if (value == 'theme') {
+            if (value == 'theme') {
               await themeController.toggle();
             } else if (value == 'logout') {
               await auth.logout();
@@ -96,93 +74,6 @@ class ProfileContextMenu extends StatelessWidget {
                 ],
               ),
             ),
-            const PopupMenuDivider(),
-            const PopupMenuItem<String>(
-              enabled: false,
-              child: Text(
-                'WORKING CONTEXT',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
-              ),
-            ),
-            if (auth.availableOrganizations.isNotEmpty)
-              PopupMenuItem<String>(
-                enabled: false,
-                child: Text('Organization: ${orgLabel ?? 'Not selected'}'),
-              ),
-            ...auth.availableOrganizations.map((org) {
-              final id = (org['id'] ?? '').toString();
-              final label = (org['name'] ?? org['code'] ?? id).toString();
-              return PopupMenuItem<String>(
-                value: 'org:$id',
-                child: Row(
-                  children: [
-                    Icon(
-                      id == currentOrg ? Icons.check : Icons.business_outlined,
-                      size: 19,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(label, overflow: TextOverflow.ellipsis),
-                    ),
-                  ],
-                ),
-              );
-            }),
-            const PopupMenuDivider(),
-            if (auth.availableBranches.isNotEmpty)
-              PopupMenuItem<String>(
-                enabled: false,
-                child: Text('Branch: ${branchLabel ?? 'Not selected'}'),
-              ),
-            ...auth.availableBranches.map((branch) {
-              final id = (branch['id'] ?? '').toString();
-              final label = (branch['name'] ?? branch['code'] ?? id).toString();
-              return PopupMenuItem<String>(
-                value: 'branch:$id',
-                child: Row(
-                  children: [
-                    Icon(
-                      id == currentBranch
-                          ? Icons.check
-                          : Icons.account_tree_outlined,
-                      size: 19,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(label, overflow: TextOverflow.ellipsis),
-                    ),
-                  ],
-                ),
-              );
-            }),
-            const PopupMenuDivider(),
-            if (auth.availableLocations.isNotEmpty)
-              PopupMenuItem<String>(
-                enabled: false,
-                child: Text('Location: ${locationLabel ?? 'Not selected'}'),
-              ),
-            ...auth.availableLocations.map((location) {
-              final id = (location['id'] ?? '').toString();
-              final label = (location['name'] ?? location['code'] ?? id)
-                  .toString();
-              return PopupMenuItem<String>(
-                value: 'location:$id',
-                child: Row(
-                  children: [
-                    Icon(
-                      id == currentLocation
-                          ? Icons.check
-                          : Icons.location_on_outlined,
-                      size: 19,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(label, overflow: TextOverflow.ellipsis),
-                    ),
-                  ],
-                ),
-              );
-            }),
             const PopupMenuDivider(),
             const PopupMenuItem<String>(
               value: 'profile',

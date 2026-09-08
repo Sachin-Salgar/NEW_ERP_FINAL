@@ -1,541 +1,228 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import 'package:new_erp_final_frontend/core/auth/auth_service.dart';
 import 'package:new_erp_final_frontend/core/network/api_client.dart';
-import 'package:new_erp_final_frontend/routing/router.dart';
 
 class _MemorySecureStorage implements SecureStorageLike {
-  final Map<String, String> _values = {};
+  final Map<String, String> values = {};
 
   @override
-  Future<String?> read({required String key}) async => _values[key];
+  Future<String?> read({required String key}) async => values[key];
 
   @override
   Future<void> write({required String key, required String value}) async {
-    _values[key] = value;
+    values[key] = value;
   }
 
   @override
   Future<void> delete({required String key}) async {
-    _values.remove(key);
+    values.remove(key);
   }
 }
 
+Map<String, dynamic> _loginResponse({
+  String accessToken = 'access-token',
+  String refreshToken = 'refresh-token',
+  String tenantId = 'tenant-1',
+}) => {
+  'success': true,
+  'accessToken': accessToken,
+  'refreshToken': refreshToken,
+  'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
+  'contextType': 'tenant',
+  'user': {'id': 'user-1', 'tenantId': tenantId},
+  'session': {'tenantId': tenantId},
+  'tenant': {'id': tenantId},
+};
+
 void main() {
-  setUp(() {
-    GetIt.instance.reset();
+  test('normal login stores the backend-established tenant session', () async {
+    final storage = _MemorySecureStorage();
+    final paths = <String>[];
+    final client = MockClient((request) async {
+      paths.add(request.url.path);
+      if (request.url.path == '/api/v1/auth/login') {
+        return http.Response(jsonEncode(_loginResponse()), 200);
+      }
+      if (request.url.path == '/api/v1/auth/modules') {
+        return http.Response(jsonEncode({'modules': []}), 200);
+      }
+      if (request.url.path.contains('/effective-permissions')) {
+        return http.Response(jsonEncode({'permissions': []}), 200);
+      }
+      return http.Response('ok', 200);
+    });
+    late final AuthService auth;
+    auth = AuthService(
+      secureStorage: storage,
+      apiClientFactory: (baseUrl) =>
+          ApiClient(baseUrl: baseUrl, httpClient: client, authOverride: auth),
+    );
+
+    expect(
+      await auth.login('http://example.com', 'user@example.com', 'Password123'),
+      isTrue,
+    );
+    expect(auth.isAuthenticated, isTrue);
+    expect(auth.currentTenantId, 'tenant-1');
+    expect(auth.nextPostAuthRoute, '/dashboard');
+    expect(paths, isNot(contains('/api/v1/auth/organizations')));
+    expect(storage.values, isNot(contains('discovery_token')));
   });
 
-  tearDown(() {
-    GetIt.instance.reset();
+  test('multiple-tenant rejection fails closed without a chooser', () async {
+    final client = MockClient((request) async {
+      if (request.url.path == '/api/v1/auth/login') {
+        return http.Response(
+          jsonEncode({'message': 'Invalid credentials.'}),
+          401,
+        );
+      }
+      return http.Response('ok', 200);
+    });
+    late final AuthService auth;
+    auth = AuthService(
+      apiClientFactory: (baseUrl) =>
+          ApiClient(baseUrl: baseUrl, httpClient: client),
+    );
+
+    expect(
+      await auth.login('http://example.com', 'user@example.com', 'Password123'),
+      isFalse,
+    );
+    expect(auth.isAuthenticated, isFalse);
+    expect(auth.lastLoginError, 'Incorrect username or password.');
   });
 
-  group('Slice 3 frontend auth behavior', () {
-    test('ApiClient sends the bearer access token and tenant header', () async {
-      final storage = _MemorySecureStorage();
-      final requests = <String, String>{};
-
-      final client = MockClient((request) {
-        requests['authorization'] = request.headers['Authorization'] ?? '';
-        requests['tenant'] = request.headers['x-tenant-id'] ?? '';
-
-        if (request.url.path == '/api/v1/bootstrap') {
-          return Future.value(
-            http.Response(
-              jsonEncode({'deployment': {'tenantId': 'tenant-1'}}),
-              200,
-            ),
-          );
-        }
-        if (request.url.path == '/api/v1/auth/login') {
-          return Future.value(
-            http.Response(
-              jsonEncode({
-                'accessToken': 'test-access-token',
-                'refreshToken': 'refresh-token',
-                'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
-                'user': {'id': 'user-1', 'tenantId': 'tenant-1'},
-                'session': {'tenantId': 'tenant-1'},
-              }),
-              200,
-            ),
-          );
-        }
-        if (request.url.path == '/api/v1/auth/organizations') {
-          return Future.value(
-            http.Response(
-              jsonEncode({
-                'organizations': [
-                  {'id': 'org-1', 'name': 'Org 1', 'code': 'ORG1'},
-                ],
-                'activeOrganizationId': 'org-1',
-                'requiresOrganizationSelection': false,
-              }),
-              200,
-            ),
-          );
-        }
-        if (request.url.path == '/api/v1/auth/me') {
-          return Future.value(
-            http.Response(
-              jsonEncode({'user': {'id': 'user-1', 'tenantId': 'tenant-1'}}),
-              200,
-            ),
-          );
-        }
-        return Future.value(http.Response('ok', 200));
+  test('valid stored tenant session restores through /auth/me', () async {
+    final storage = _MemorySecureStorage()
+      ..values.addAll({
+        'access_token': 'stored-access',
+        'refresh_token': 'stored-refresh',
+        'expires_at': DateTime.now()
+            .add(const Duration(hours: 1))
+            .toIso8601String(),
+        'tenant_id': 'tenant-1',
+        'context_type': 'tenant',
       });
+    final client = MockClient((request) async {
+      if (request.url.path == '/api/v1/auth/me') {
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'user': {'id': 'user-1', 'tenantId': 'tenant-1'},
+          }),
+          200,
+        );
+      }
+      if (request.url.path == '/api/v1/auth/modules') {
+        return http.Response(jsonEncode({'modules': []}), 200);
+      }
+      if (request.url.path.contains('/effective-permissions')) {
+        return http.Response(jsonEncode({'permissions': []}), 200);
+      }
+      return http.Response('ok', 200);
+    });
+    late final AuthService auth;
+    auth = AuthService(
+      secureStorage: storage,
+      apiClientFactory: (baseUrl) =>
+          ApiClient(baseUrl: baseUrl, httpClient: client, authOverride: auth),
+    );
+    await auth.init();
 
+    expect(await auth.restoreSession('http://example.com'), isTrue);
+    expect(auth.currentTenantId, 'tenant-1');
+    expect(auth.nextPostAuthRoute, '/dashboard');
+  });
+
+  test(
+    'expired stored session clears credentials and returns to login',
+    () async {
+      final storage = _MemorySecureStorage()
+        ..values.addAll({
+          'access_token': 'expired-access',
+          'refresh_token': 'expired-refresh',
+          'expires_at': DateTime.now()
+              .subtract(const Duration(minutes: 1))
+              .toIso8601String(),
+          'tenant_id': 'tenant-1',
+          'context_type': 'tenant',
+        });
+      final client = MockClient((request) async {
+        if (request.url.path == '/api/v1/auth/refresh') {
+          return http.Response(
+            jsonEncode({'message': 'Session is invalid or expired.'}),
+            401,
+          );
+        }
+        return http.Response('ok', 200);
+      });
       late final AuthService auth;
       auth = AuthService(
         secureStorage: storage,
-        apiClientFactory: (baseUrl) => ApiClient(baseUrl: baseUrl, httpClient: client, authOverride: auth),
+        apiClientFactory: (baseUrl) =>
+            ApiClient(baseUrl: baseUrl, httpClient: client, authOverride: auth),
       );
+      await auth.init();
 
-      final loginOk = await auth.login('http://example.com', 'user@example.com', 'Password123');
-      expect(loginOk, isTrue);
-      expect(auth.accessToken, 'test-access-token');
-      expect(auth.currentTenantId, 'tenant-1');
+      expect(await auth.restoreSession('http://example.com'), isFalse);
+      expect(auth.isAuthenticated, isFalse);
+      expect(auth.nextPostAuthRoute, '/login');
+      expect(storage.values, isEmpty);
+    },
+  );
 
-      final response = await ApiClient(baseUrl: 'http://example.com', httpClient: client, authOverride: auth)
-          .get('/api/v1/auth/me');
-
-      expect(response.statusCode, 200);
-      expect(requests['authorization'], 'Bearer test-access-token');
-      expect(requests['tenant'], 'tenant-1');
-    });
-
-    test('ApiClient retries the request with the refreshed token after a 401', () async {
+  test(
+    'refresh preserves the authenticated tenant and logout clears it',
+    () async {
       final storage = _MemorySecureStorage();
-      final authorizationHistory = <String>[];
-      String? refreshHeader;
-
-      final client = MockClient((request) {
-        authorizationHistory.add(request.headers['Authorization'] ?? '');
-
-        if (request.url.path == '/api/v1/bootstrap') {
-          return Future.value(
-            http.Response(
-              jsonEncode({'deployment': {'tenantId': 'tenant-1'}}),
-              200,
-            ),
-          );
-        }
+      final client = MockClient((request) async {
         if (request.url.path == '/api/v1/auth/login') {
-          return Future.value(
-            http.Response(
-              jsonEncode({
-                'accessToken': 'old-token',
-                'refreshToken': 'refresh-token',
-                'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
-                'user': {'id': 'user-1', 'tenantId': 'tenant-1'},
-                'session': {'tenantId': 'tenant-1'},
-              }),
-              200,
-            ),
-          );
-        }
-        if (request.url.path == '/api/v1/auth/organizations') {
-          return Future.value(
-            http.Response(
-              jsonEncode({
-                'organizations': [
-                  {'id': 'org-1', 'name': 'Org 1', 'code': 'ORG1'},
-                ],
-                'activeOrganizationId': 'org-1',
-                'requiresOrganizationSelection': false,
-              }),
-              200,
-            ),
-          );
+          return http.Response(jsonEncode(_loginResponse()), 200);
         }
         if (request.url.path == '/api/v1/auth/refresh') {
-          refreshHeader = request.headers['Authorization'];
-          return Future.value(
-            http.Response(
-              jsonEncode({
-                'accessToken': 'new-token',
-                'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
-              }),
-              200,
-            ),
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'accessToken': 'refreshed-access',
+              'expiresAt': DateTime.now()
+                  .add(const Duration(hours: 1))
+                  .toIso8601String(),
+              'tokenType': 'bearer',
+            }),
+            200,
           );
-        }
-        if (request.url.path == '/api/v1/protected') {
-          final authHeader = request.headers['Authorization'] ?? '';
-          if (authHeader == 'Bearer old-token') {
-            return Future.value(http.Response('unauthorized', 401));
-          }
-          if (authHeader == 'Bearer new-token') {
-            return Future.value(http.Response('ok', 200));
-          }
-        }
-        return Future.value(http.Response('ok', 200));
-      });
-
-      late final AuthService auth;
-      auth = AuthService(
-        secureStorage: storage,
-        apiClientFactory: (baseUrl) => ApiClient(baseUrl: baseUrl, httpClient: client, authOverride: auth),
-      );
-
-      final loginOk = await auth.login('http://example.com', 'user@example.com', 'Password123');
-      expect(loginOk, isTrue);
-
-      final response = await ApiClient(baseUrl: 'http://example.com', httpClient: client, authOverride: auth)
-          .get('/api/v1/protected');
-
-      expect(response.statusCode, 200);
-      expect(refreshHeader, 'Bearer old-token');
-      expect(auth.accessToken, 'new-token');
-      expect(
-        authorizationHistory.where((header) => header == 'Bearer new-token').isNotEmpty,
-        isTrue,
-      );
-    });
-
-    test('AuthService does not block login on missing organization defaults', () async {
-      final storage = _MemorySecureStorage();
-      final client = MockClient((request) {
-        if (request.url.path == '/api/v1/bootstrap') {
-          return Future.value(
-            http.Response(
-              jsonEncode({'deployment': {'tenantId': 'tenant-1'}}),
-              200,
-            ),
-          );
-        }
-        if (request.url.path == '/api/v1/auth/login') {
-          return Future.value(
-            http.Response(
-              jsonEncode({
-                'accessToken': 'test-access-token',
-                'refreshToken': 'refresh-token',
-                'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
-                'user': {'id': 'user-1', 'tenantId': 'tenant-1'},
-                'session': {'tenantId': 'tenant-1'},
-              }),
-              200,
-            ),
-          );
-        }
-        if (request.url.path == '/api/v1/auth/organizations') {
-          return Future.value(
-            http.Response(
-              jsonEncode({
-                'organizations': [
-                  {'id': 'org-1', 'name': 'Org 1', 'code': 'ORG1'},
-                ],
-                'activeOrganizationId': '',
-                'requiresOrganizationSelection': true,
-              }),
-              200,
-            ),
-          );
-        }
-        return Future.value(http.Response('ok', 200));
-      });
-
-      late final AuthService auth;
-      auth = AuthService(
-        secureStorage: storage,
-        apiClientFactory: (baseUrl) => ApiClient(baseUrl: baseUrl, httpClient: client, authOverride: auth),
-      );
-
-      final loginOk = await auth.login('http://example.com', 'user@example.com', 'Password123');
-      expect(loginOk, isTrue);
-      expect(auth.requiresOrganizationSelection, isFalse);
-      expect(auth.currentOrganizationId, 'org-1');
-      expect(auth.selectedOrganizationId, 'org-1');
-    });
-
-    test('logout clears tokens, session state, and organization context', () async {
-      final storage = _MemorySecureStorage();
-      var selectionCommitted = false;
-
-      final client = MockClient((request) {
-        if (request.url.path == '/api/v1/bootstrap') {
-          return Future.value(
-            http.Response(
-              jsonEncode({'deployment': {'tenantId': 'tenant-1'}}),
-              200,
-            ),
-          );
-        }
-        if (request.url.path == '/api/v1/auth/login') {
-          return Future.value(
-            http.Response(
-              jsonEncode({
-                'accessToken': 'test-access-token',
-                'refreshToken': 'refresh-token',
-                'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
-                'user': {'id': 'user-1', 'tenantId': 'tenant-1'},
-                'session': {'tenantId': 'tenant-1'},
-              }),
-              200,
-            ),
-          );
-        }
-                if (request.url.path == '/api/v1/auth/organizations') {
-          return Future.value(
-            http.Response(
-              jsonEncode({
-                'organizations': [
-                  {'id': 'org-1', 'name': 'Org 1', 'code': 'ORG1'},
-                  {'id': 'org-2', 'name': 'Org 2', 'code': 'ORG2'},
-                ],
-                'activeOrganizationId': selectionCommitted ? 'org-2' : '',
-                'requiresOrganizationSelection': selectionCommitted ? false : true,
-              }),
-              200,
-            ),
-          );
-        }
-        if (request.url.path == '/api/v1/auth/organizations/select') {
-          selectionCommitted = true;
-          return Future.value(
-            http.Response(
-              jsonEncode({
-                'accessToken': 'selected-token',
-                'refreshToken': 'selected-refresh',
-                'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
-                'user': {'id': 'user-1', 'tenantId': 'tenant-1'},
-                'session': {'tenantId': 'tenant-1', 'organizationId': 'org-2'},
-              }),
-              200,
-            ),
-          );
-        }
-        if (request.url.path == '/api/v1/branches') {
-          return Future.value(
-            http.Response(
-              jsonEncode({
-                'branches': [
-                  {'id': 'branch-1', 'name': 'Branch 1', 'code': 'BR1'},
-                  {'id': 'branch-2', 'name': 'Branch 2', 'code': 'BR2'},
-                ],
-              }),
-              200,
-            ),
-          );
-        }
-        if (request.url.path == '/api/v1/locations') {
-          return Future.value(
-            http.Response(
-              jsonEncode({
-                'locations': [
-                  {'id': 'loc-1', 'name': 'Location 1', 'code': 'L1'},
-                  {'id': 'loc-2', 'name': 'Location 2', 'code': 'L2'},
-                ],
-              }),
-              200,
-            ),
-          );
-        }
-        if (request.url.path == '/api/v1/auth/context/select') {
-          return Future.value(
-            http.Response(
-              jsonEncode({
-                'accessToken': 'selected-token',
-                'refreshToken': 'selected-refresh',
-                'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
-                'user': {'id': 'user-1', 'tenantId': 'tenant-1', 'organizationId': 'org-2', 'defaultBranchId': 'branch-1', 'defaultLocationId': 'loc-1'},
-                'session': {'tenantId': 'tenant-1', 'organizationId': 'org-2', 'branchId': 'branch-1', 'locationId': 'loc-1'},
-              }),
-              200,
-            ),
-          );
-        }
-        if (request.url.path == '/api/v1/auth/modules') {
-          return Future.value(http.Response(jsonEncode({'modules': []}), 200));
         }
         if (request.url.path == '/api/v1/auth/logout') {
-          return Future.value(http.Response('ok', 200));
-        }
-        return Future.value(http.Response('ok', 200));
-      });
-
-
-      late final AuthService auth;
-      auth = AuthService(
-        secureStorage: storage,
-        apiClientFactory: (baseUrl) => ApiClient(baseUrl: baseUrl, httpClient: client, authOverride: auth),
-      );
-
-      final loginOk = await auth.login('http://example.com', 'user@example.com', 'Password123');
-      expect(loginOk, isTrue);
-
-      final selectionOk = await auth.selectOrganization('org-2');
-      expect(selectionOk, isTrue);
-      expect(auth.currentOrganizationId, 'org-2');
-
-      await auth.logout();
-      expect(auth.accessToken, isNull);
-      expect(auth.currentTenantId, isNull);
-      expect(auth.currentOrganizationId, isNull);
-      expect(auth.selectedOrganizationId, isNull);
-      expect(auth.availableOrganizations, isEmpty);
-      expect(auth.requiresOrganizationSelection, isFalse);
-    });
-
-    test('AuthService validates a consistent organization branch location context before updating session state', () async {
-      final storage = _MemorySecureStorage();
-      final client = MockClient((request) {
-        if (request.url.path == '/api/v1/auth/login') {
-          return Future.value(
-            http.Response(
-              jsonEncode({
-                'accessToken': 'test-access-token',
-                'refreshToken': 'refresh-token',
-                'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
-                'user': {'id': 'user-1', 'tenantId': 'tenant-1'},
-                'session': {'tenantId': 'tenant-1', 'organizationId': 'org-1', 'branchId': 'branch-1', 'locationId': 'loc-1'},
-              }),
-              200,
-            ),
-          );
-        }
-        if (request.url.path == '/api/v1/auth/organizations') {
-          return Future.value(
-            http.Response(
-              jsonEncode({
-                'organizations': [
-                  {'id': 'org-1', 'name': 'Org 1', 'code': 'ORG1'},
-                ],
-                'activeOrganizationId': 'org-1',
-                'requiresOrganizationSelection': false,
-              }),
-              200,
-            ),
-          );
-        }
-        if (request.url.path == '/api/v1/auth/context/select') {
-          final body = jsonDecode(request.body);
-          expect(body['organizationId'], 'org-1');
-          expect(['branch-1', 'branch-2'].contains(body['branchId']), isTrue);
-          expect(['loc-1', 'loc-2'].contains(body['locationId']), isTrue);
-          return Future.value(
-            http.Response(
-              jsonEncode({
-                'success': true,
-                'user': {'id': 'user-1', 'tenantId': 'tenant-1', 'organizationId': body['organizationId'], 'defaultBranchId': body['branchId'], 'defaultLocationId': body['locationId']},
-                'session': {'tenantId': 'tenant-1', 'organizationId': body['organizationId'], 'branchId': body['branchId'], 'locationId': body['locationId']},
-                'accessToken': 'context-token',
-                'refreshToken': 'context-refresh',
-                'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
-              }),
-              200,
-            ),
-          );
+          return http.Response('ok', 200);
         }
         if (request.url.path == '/api/v1/auth/modules') {
-          return Future.value(http.Response(jsonEncode({'modules': []}), 200));
+          return http.Response(jsonEncode({'modules': []}), 200);
         }
-        return Future.value(http.Response('ok', 200));
+        if (request.url.path.contains('/effective-permissions')) {
+          return http.Response(jsonEncode({'permissions': []}), 200);
+        }
+        return http.Response('ok', 200);
       });
-
       late final AuthService auth;
       auth = AuthService(
         secureStorage: storage,
-        apiClientFactory: (baseUrl) => ApiClient(baseUrl: baseUrl, httpClient: client, authOverride: auth),
+        apiClientFactory: (baseUrl) =>
+            ApiClient(baseUrl: baseUrl, httpClient: client, authOverride: auth),
       );
+      await auth.login('http://example.com', 'user@example.com', 'Password123');
 
-      final loginOk = await auth.login('http://example.com', 'user@example.com', 'Password123');
-      expect(loginOk, isTrue);
-
-      auth.availableBranches = [
-        {'id': 'branch-1', 'name': 'Branch 1', 'code': 'BR1'},
-        {'id': 'branch-2', 'name': 'Branch 2', 'code': 'BR2'},
-      ];
-      auth.availableLocations = [
-        {'id': 'loc-1', 'name': 'Location 1', 'code': 'L1'},
-        {'id': 'loc-2', 'name': 'Location 2', 'code': 'L2'},
-      ];
-      auth.currentBranchId = 'branch-1';
-      auth.selectedBranchId = 'branch-1';
-      auth.currentLocationId = 'loc-1';
-      auth.selectedLocationId = 'loc-1';
-
-      final branchOk = await auth.selectBranch('branch-2');
-      expect(branchOk, isTrue);
-      expect(auth.currentBranchId, 'branch-2');
-
-      final locationOk = await auth.selectLocation('loc-2');
-      expect(locationOk, isTrue);
-      expect(auth.currentLocationId, 'loc-2');
-      expect(auth.currentOrganizationId, 'org-1');
-    });
-
-    testWidgets('AppRouter does not redirect authenticated users to organization selection', (tester) async {
-      final storage = _MemorySecureStorage();
-      final client = MockClient((request) {
-        if (request.url.path == '/api/v1/bootstrap') {
-          return Future.value(
-            http.Response(
-              jsonEncode({'deployment': {'tenantId': 'tenant-1'}}),
-              200,
-            ),
-          );
-        }
-        if (request.url.path == '/api/v1/auth/login') {
-          return Future.value(
-            http.Response(
-              jsonEncode({
-                'accessToken': 'test-access-token',
-                'refreshToken': 'refresh-token',
-                'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
-                'user': {'id': 'user-1', 'tenantId': 'tenant-1'},
-                'session': {'tenantId': 'tenant-1'},
-              }),
-              200,
-            ),
-          );
-        }
-        if (request.url.path == '/api/v1/auth/organizations') {
-          return Future.value(
-            http.Response(
-              jsonEncode({
-                'organizations': [
-                  {'id': 'org-1', 'name': 'Org 1', 'code': 'ORG1'},
-                ],
-                'activeOrganizationId': '',
-                'requiresOrganizationSelection': true,
-              }),
-              200,
-            ),
-          );
-        }
-        return Future.value(http.Response('ok', 200));
-      });
-
-      late final AuthService auth;
-      auth = AuthService(
-        secureStorage: storage,
-        apiClientFactory: (baseUrl) => ApiClient(baseUrl: baseUrl, httpClient: client, authOverride: auth),
-      );
-
-      final loginOk = await auth.login('http://example.com', 'user@example.com', 'Password123');
-      expect(loginOk, isTrue);
-      expect(auth.requiresOrganizationSelection, isFalse);
-
-      GetIt.instance.registerSingleton<AuthService>(auth);
-
-      await tester.pumpWidget(
-        MaterialApp(
-          onGenerateRoute: AppRouter.generateRoute,
-          initialRoute: '/dashboard',
-        ),
-      );
-
-      await tester.pumpAndSettle();
-
-      expect(find.text('Select organization'), findsNothing);
-    });
-  });
+      expect(await auth.tryRefresh(), isTrue);
+      expect(auth.currentTenantId, 'tenant-1');
+      await auth.logout();
+      expect(auth.isAuthenticated, isFalse);
+      expect(auth.currentTenantId, isNull);
+      expect(storage.values, isEmpty);
+    },
+  );
 }

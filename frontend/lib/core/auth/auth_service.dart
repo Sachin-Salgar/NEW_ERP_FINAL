@@ -45,23 +45,21 @@ class AuthService extends ChangeNotifier {
       currentOrganizationId,
       currentBranchId,
       currentLocationId;
-  String? selectedOrganizationId, selectedBranchId, selectedLocationId;
   Map<String, dynamic>? currentUser, deploymentInfo;
-  List<Map<String, dynamic>> availableOrganizations = const [],
-      availableBranches = const [],
-      availableLocations = const [],
-      availableModules = const [];
+  String? contextType;
+  List<Map<String, dynamic>> availableModules = const [];
   bool _accessibleModulesLoaded = false;
-  bool requiresOrganizationSelection = false,
-      requiresBranchSelection = false,
-      requiresLocationSelection = false;
   String? lastLoginError;
   bool get isAuthenticated =>
       _accessToken != null &&
       _expiresAt != null &&
       DateTime.now().isBefore(_expiresAt!);
   String? get accessToken => _accessToken;
-  String get nextPostAuthRoute => isAuthenticated ? '/dashboard' : '/login';
+  String get nextPostAuthRoute => !isAuthenticated
+      ? '/login'
+      : contextType == 'platform'
+      ? '/platform'
+      : '/dashboard';
   Future<void> ensureEffectivePermissionsLoaded({String? baseUrl}) async {
     if (!isAuthenticated || currentUser == null || currentUser!['id'] == null)
       return;
@@ -86,12 +84,10 @@ class AuthService extends ChangeNotifier {
     final exp = await _secureStorage.read(key: 'expires_at');
     if (exp != null) _expiresAt = DateTime.tryParse(exp);
     currentTenantId = await _secureStorage.read(key: 'tenant_id');
+    contextType = await _secureStorage.read(key: 'context_type');
     currentOrganizationId = await _secureStorage.read(key: 'organization_id');
     currentBranchId = await _secureStorage.read(key: 'branch_id');
     currentLocationId = await _secureStorage.read(key: 'location_id');
-    selectedOrganizationId = currentOrganizationId;
-    selectedBranchId = currentBranchId;
-    selectedLocationId = currentLocationId;
     if (_accessToken != null) notifyListeners();
   }
 
@@ -126,14 +122,8 @@ class AuthService extends ChangeNotifier {
         return false;
       }
       await _storeSession(jsonDecode(r.body) as Map<String, dynamic>);
-      // Context is initialized from the user's configured defaults when available. Missing defaults do not block login.
-      await loadAuthorizedOrganizations(baseUrl);
-      if (currentOrganizationId != null) {
-        await loadAuthorizedBranches(baseUrl);
-        await loadAuthorizedLocations(baseUrl);
-        await loadAccessibleModules(baseUrl);
-        await _loadPermissionsIfContextReady(baseUrl);
-      }
+      await loadAccessibleModules(baseUrl);
+      await fetchEffectivePermissions(baseUrl);
       notifyListeners();
       return true;
     } on TimeoutException {
@@ -165,6 +155,7 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> _storeSession(Map<String, dynamic> body) async {
+    contextType = body['contextType']?.toString() ?? 'tenant';
     _accessToken = body['accessToken'] as String?;
     _refreshToken = body['refreshToken'] as String?;
     _expiresAt = DateTime.tryParse(body['expiresAt']?.toString() ?? '');
@@ -190,13 +181,12 @@ class AuthService extends ChangeNotifier {
             .toString()
             .trim();
     currentLocationId = loc.isEmpty ? null : loc;
-    selectedOrganizationId = currentOrganizationId;
-    selectedBranchId = currentBranchId;
-    selectedLocationId = currentLocationId;
     if (_accessToken != null)
       await _secureStorage.write(key: 'access_token', value: _accessToken!);
     if (_refreshToken != null)
       await _secureStorage.write(key: 'refresh_token', value: _refreshToken!);
+    else
+      await _secureStorage.delete(key: 'refresh_token');
     if (_expiresAt != null)
       await _secureStorage.write(
         key: 'expires_at',
@@ -204,6 +194,10 @@ class AuthService extends ChangeNotifier {
       );
     if (currentTenantId != null)
       await _secureStorage.write(key: 'tenant_id', value: currentTenantId!);
+    else
+      await _secureStorage.delete(key: 'tenant_id');
+    if (contextType != null)
+      await _secureStorage.write(key: 'context_type', value: contextType!);
     if (currentOrganizationId != null)
       await _secureStorage.write(
         key: 'organization_id',
@@ -234,9 +228,6 @@ class AuthService extends ChangeNotifier {
                   currentUser?['defaultLocationId'] ??
                   currentLocationId)
               ?.toString();
-      selectedOrganizationId = currentOrganizationId;
-      selectedBranchId = currentBranchId;
-      selectedLocationId = currentLocationId;
       notifyListeners();
       return true;
     } catch (_) {
@@ -296,296 +287,13 @@ class AuthService extends ChangeNotifier {
         return false;
       }
     }
-    await loadAuthorizedOrganizations(baseUrl);
-    if (currentOrganizationId != null) {
-      await loadAuthorizedBranches(baseUrl);
-      await loadAuthorizedLocations(baseUrl);
-      await loadAccessibleModules(baseUrl);
-      await _loadPermissionsIfContextReady(baseUrl);
-    }
+    await loadAccessibleModules(baseUrl);
+    await fetchEffectivePermissions(baseUrl);
     return true;
   }
 
-  Future<bool> loadAuthorizedOrganizations(String baseUrl) async {
-    if (_accessToken == null) return false;
-    _currentBaseUrl = baseUrl;
-    _ensureApiClient(baseUrl);
-    try {
-      final r = await _apiClient.get('/api/v1/auth/organizations');
-      if (r.statusCode != 200) return false;
-      final b = jsonDecode(r.body) as Map<String, dynamic>;
-      final organizations = (b['organizations'] as List<dynamic>?) ?? const [];
-      availableOrganizations = organizations
-          .map((item) => Map<String, dynamic>.from(item as Map))
-          .toList();
-      // Login never blocks on organization selection. Working context changes
-      // remain post-login actions from the profile menu.
-      requiresOrganizationSelection = false;
-      final active =
-          (b['activeOrganizationId'] ?? currentOrganizationId ?? '')
-              .toString()
-              .trim();
-      if (active.isNotEmpty &&
-          availableOrganizations.any(
-            (org) => (org['id'] ?? '').toString() == active,
-          )) {
-        currentOrganizationId = active;
-        selectedOrganizationId = active;
-        await _secureStorage.write(key: 'organization_id', value: active);
-      } else if (availableOrganizations.length == 1) {
-        final fallback = (availableOrganizations.first['id'] ?? '').toString();
-        if (fallback.isNotEmpty) {
-          currentOrganizationId = fallback;
-          selectedOrganizationId = fallback;
-          await _secureStorage.write(key: 'organization_id', value: fallback);
-        }
-      }
-      notifyListeners();
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<bool> loadAuthorizedBranches(String baseUrl) async {
-    if (_accessToken == null || currentOrganizationId == null) return false;
-    _currentBaseUrl = baseUrl;
-    _ensureApiClient(baseUrl);
-    try {
-      final r = await _apiClient.get('/api/v1/branches');
-      if (r.statusCode != 200) return false;
-      final b = jsonDecode(r.body) as Map<String, dynamic>;
-      final branches = (b['branches'] as List<dynamic>?) ?? const [];
-      availableBranches = branches
-          .map((item) => Map<String, dynamic>.from(item as Map))
-          .toList();
-      final active = (currentBranchId ?? selectedBranchId ?? '')
-          .toString()
-          .trim();
-      requiresBranchSelection = false;
-      if (active.isNotEmpty &&
-          availableBranches.any(
-            (branch) => (branch['id'] ?? '').toString() == active,
-          )) {
-        currentBranchId = active;
-        selectedBranchId = active;
-        await _secureStorage.write(key: 'branch_id', value: active);
-      } else if (availableBranches.isNotEmpty) {
-        final fallback = (availableBranches.first['id'] ?? '').toString();
-        if (fallback.isNotEmpty) {
-          currentBranchId = fallback;
-          selectedBranchId = fallback;
-          await _secureStorage.write(key: 'branch_id', value: fallback);
-        }
-      } else {
-        currentBranchId = null;
-        selectedBranchId = null;
-        await _secureStorage.delete(key: 'branch_id');
-      }
-      notifyListeners();
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<bool> selectOrganization(String organizationId) async {
-    final id = organizationId.trim();
-    if (id.isEmpty ||
-        !availableOrganizations.any(
-          (org) => (org['id'] ?? '').toString() == id,
-        ))
-      return false;
-    final previousOrg = currentOrganizationId;
-    final previousBranch = currentBranchId;
-    final previousLocation = currentLocationId;
-    try {
-      final base = _currentBaseUrl;
-      _ensureApiClient(base);
-      currentOrganizationId = id;
-      selectedOrganizationId = id;
-      await loadAuthorizedBranches(base);
-      await loadAuthorizedLocations(base);
-      final resolvedBranchId =
-          (availableBranches.any(
-            (branch) =>
-                (branch['id'] ?? '').toString() ==
-                (selectedBranchId ?? currentBranchId ?? ''),
-          )
-          ? (selectedBranchId ?? currentBranchId)
-          : (availableBranches.isNotEmpty
-                ? (availableBranches.first['id'] ?? '').toString()
-                : null));
-      final resolvedLocationId =
-          (availableLocations.any(
-            (location) =>
-                (location['id'] ?? '').toString() ==
-                (selectedLocationId ?? currentLocationId ?? ''),
-          )
-          ? (selectedLocationId ?? currentLocationId)
-          : (availableLocations.isNotEmpty
-                ? (availableLocations.first['id'] ?? '').toString()
-                : null));
-      if (resolvedBranchId == null || resolvedLocationId == null) {
-        currentOrganizationId = previousOrg;
-        selectedOrganizationId = previousOrg;
-        currentBranchId = previousBranch;
-        selectedBranchId = previousBranch;
-        currentLocationId = previousLocation;
-        selectedLocationId = previousLocation;
-        return false;
-      }
-      final ok = await applyWorkingContext(
-        organizationId: id,
-        branchId: resolvedBranchId,
-        locationId: resolvedLocationId,
-      );
-      if (!ok) {
-        currentOrganizationId = previousOrg;
-        selectedOrganizationId = previousOrg;
-        currentBranchId = previousBranch;
-        selectedBranchId = previousBranch;
-        currentLocationId = previousLocation;
-        selectedLocationId = previousLocation;
-      }
-      return ok;
-    } catch (_) {
-      currentOrganizationId = previousOrg;
-      selectedOrganizationId = previousOrg;
-      currentBranchId = previousBranch;
-      selectedBranchId = previousBranch;
-      currentLocationId = previousLocation;
-      selectedLocationId = previousLocation;
-      return false;
-    }
-  }
-
-  Future<bool> applyWorkingContext({
-    required String organizationId,
-    required String branchId,
-    required String locationId,
-  }) async {
-    final base = _currentBaseUrl;
-    _ensureApiClient(base);
-    try {
-      final r = await _apiClient.post(
-        '/api/v1/auth/context/select',
-        body: {
-          'organizationId': organizationId,
-          'branchId': branchId,
-          'locationId': locationId,
-        },
-      );
-      if (r.statusCode != 200) return false;
-      await _storeSession(jsonDecode(r.body) as Map<String, dynamic>);
-      currentOrganizationId = organizationId;
-      selectedOrganizationId = organizationId;
-      currentBranchId = branchId;
-      selectedBranchId = branchId;
-      currentLocationId = locationId;
-      selectedLocationId = locationId;
-      requiresOrganizationSelection = false;
-      requiresBranchSelection = false;
-      requiresLocationSelection = false;
-      await loadAccessibleModules(base);
-      await _loadPermissionsIfContextReady(base);
-      notifyListeners();
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<bool> loadAuthorizedLocations(String baseUrl) async {
-    if (_accessToken == null || currentOrganizationId == null) return false;
-    _currentBaseUrl = baseUrl;
-    _ensureApiClient(baseUrl);
-    try {
-      final r = await _apiClient.get('/api/v1/locations');
-      if (r.statusCode != 200) return false;
-      final b = jsonDecode(r.body) as Map<String, dynamic>;
-      final l = (b['locations'] as List<dynamic>?) ?? const [];
-      availableLocations = l
-          .map((x) => Map<String, dynamic>.from(x as Map))
-          .toList();
-      final active = (currentLocationId ?? selectedLocationId ?? '')
-          .toString()
-          .trim();
-      requiresLocationSelection = false;
-      if (active.isNotEmpty &&
-          availableLocations.any((x) => (x['id'] ?? '').toString() == active)) {
-        currentLocationId = active;
-        selectedLocationId = active;
-        await _secureStorage.write(key: 'location_id', value: active);
-      } else if (availableLocations.isNotEmpty) {
-        final fallback = (availableLocations.first['id'] ?? '').toString();
-        if (fallback.isNotEmpty) {
-          currentLocationId = fallback;
-          selectedLocationId = fallback;
-          await _secureStorage.write(key: 'location_id', value: fallback);
-        }
-      } else {
-        currentLocationId = null;
-        selectedLocationId = null;
-        await _secureStorage.delete(key: 'location_id');
-      }
-      notifyListeners();
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<bool> selectBranch(String branchId) async {
-    final id = branchId.trim();
-    if (id.isEmpty ||
-        !availableBranches.any((o) => (o['id'] ?? '').toString() == id))
-      return false;
-    final orgId = currentOrganizationId ?? selectedOrganizationId;
-    final preferredLocationId =
-        (availableLocations.any(
-          (l) =>
-              (l['id'] ?? '').toString() ==
-              (selectedLocationId ?? currentLocationId ?? ''),
-        )
-        ? (selectedLocationId ?? currentLocationId)
-        : (availableLocations.isNotEmpty
-              ? (availableLocations.first['id'] ?? '').toString()
-              : null));
-    if (orgId == null || preferredLocationId == null) return false;
-    return applyWorkingContext(
-      organizationId: orgId,
-      branchId: id,
-      locationId: preferredLocationId,
-    );
-  }
-
-  Future<bool> selectLocation(String locationId) async {
-    final id = locationId.trim();
-    if (id.isEmpty ||
-        !availableLocations.any((o) => (o['id'] ?? '').toString() == id))
-      return false;
-    final orgId = currentOrganizationId ?? selectedOrganizationId;
-    final preferredBranchId =
-        (availableBranches.any(
-          (b) =>
-              (b['id'] ?? '').toString() ==
-              (selectedBranchId ?? currentBranchId ?? ''),
-        )
-        ? (selectedBranchId ?? currentBranchId)
-        : (availableBranches.isNotEmpty
-              ? (availableBranches.first['id'] ?? '').toString()
-              : null));
-    if (orgId == null || preferredBranchId == null) return false;
-    return applyWorkingContext(
-      organizationId: orgId,
-      branchId: preferredBranchId,
-      locationId: id,
-    );
-  }
-
   Future<bool> loadAccessibleModules(String baseUrl) async {
-    if (_accessToken == null || currentOrganizationId == null) return false;
+    if (_accessToken == null) return false;
     _currentBaseUrl = baseUrl;
     _ensureApiClient(baseUrl);
     try {
@@ -612,14 +320,6 @@ class AuthService extends ChangeNotifier {
     return authzService.loadPermissions(_apiClient, id);
   }
 
-  Future<void> _loadPermissionsIfContextReady(String baseUrl) async {
-    if (_accessToken == null ||
-        currentUser == null ||
-        currentOrganizationId == null)
-      return;
-    await fetchEffectivePermissions(baseUrl);
-  }
-
   bool hasPermission(String key) => authzService.hasPermission(key);
   bool hasModule(String code) =>
       code.trim().isEmpty ||
@@ -642,24 +342,17 @@ class AuthService extends ChangeNotifier {
     currentOrganizationId = null;
     currentBranchId = null;
     currentLocationId = null;
-    selectedOrganizationId = null;
-    selectedBranchId = null;
-    selectedLocationId = null;
     currentUser = null;
-    availableOrganizations = const [];
-    availableBranches = const [];
-    availableLocations = const [];
     availableModules = const [];
     _accessibleModulesLoaded = false;
-    requiresOrganizationSelection = false;
-    requiresBranchSelection = false;
-    requiresLocationSelection = false;
+    contextType = null;
     authzService.clear();
     for (final k in [
       'access_token',
       'refresh_token',
       'expires_at',
       'tenant_id',
+      'context_type',
       'organization_id',
       'branch_id',
       'location_id',

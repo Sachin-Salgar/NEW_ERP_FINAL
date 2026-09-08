@@ -427,7 +427,7 @@ class AppRouter {
                   : null)
               as String? ??
           auth.currentOrganizationId ??
-          auth.selectedOrganizationId ??
+          auth.currentOrganizationId ??
           '';
       final branchId = _extractDetailId(path, settings.arguments) ?? '';
       return MaterialPageRoute(
@@ -450,7 +450,7 @@ class AppRouter {
                   : null)
               as String? ??
           auth.currentOrganizationId ??
-          auth.selectedOrganizationId ??
+          auth.currentOrganizationId ??
           '';
       final branchId = _extractDetailId(path, settings.arguments) ?? '';
       return MaterialPageRoute(
@@ -627,11 +627,6 @@ class AppRouter {
           settings: settings,
           builder: (_) => const LoginScreen(),
         );
-      case '/organization-selection':
-        return MaterialPageRoute(
-          settings: settings,
-          builder: (_) => const _OrganizationSelectionScreen(),
-        );
       case '/settings':
         return MaterialPageRoute(
           settings: settings,
@@ -688,7 +683,7 @@ class AppRouter {
                   ? settings.arguments as String?
                   : null) ??
               auth.currentOrganizationId ??
-              auth.selectedOrganizationId ??
+              auth.currentOrganizationId ??
               '';
           return MaterialPageRoute(
             settings: settings,
@@ -706,7 +701,7 @@ class AppRouter {
                   ? settings.arguments as String?
                   : null) ??
               auth.currentOrganizationId ??
-              auth.selectedOrganizationId ??
+              auth.currentOrganizationId ??
               '';
           return MaterialPageRoute(
             settings: settings,
@@ -723,7 +718,7 @@ class AppRouter {
           final organizationId =
               (args['organizationId'] as String?) ??
               auth.currentOrganizationId ??
-              auth.selectedOrganizationId ??
+              auth.currentOrganizationId ??
               '';
           return MaterialPageRoute(
             settings: settings,
@@ -743,7 +738,7 @@ class AppRouter {
           final organizationId =
               (args['organizationId'] as String?) ??
               auth.currentOrganizationId ??
-              auth.selectedOrganizationId ??
+              auth.currentOrganizationId ??
               '';
           return MaterialPageRoute(
             settings: settings,
@@ -832,11 +827,32 @@ class AppRouter {
           ),
         );
       case '/settings/security':
-        return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/settings/security', child: const SecurityAdministrationScreen()));
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/settings/security',
+            child: const SecurityAdministrationScreen(),
+          ),
+        );
       case '/settings/tenant':
-        return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/settings/tenant', child: const TenantAdministrationScreen()));
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/settings/tenant',
+            child: const TenantAdministrationScreen(),
+          ),
+        );
       case '/platform':
-        return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/platform', child: const PlatformAdministrationScreen()));
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/platform',
+            child: const PlatformAdministrationScreen(),
+          ),
+        );
       case '/settings/permissions/details':
         return MaterialPageRoute(
           settings: settings,
@@ -895,7 +911,7 @@ class AppRouter {
                   ? settings.arguments as String?
                   : null) ??
               auth.currentOrganizationId ??
-              auth.selectedOrganizationId ??
+              auth.currentOrganizationId ??
               '';
           return MaterialPageRoute(
             settings: settings,
@@ -913,7 +929,7 @@ class AppRouter {
                   ? settings.arguments as String?
                   : null) ??
               auth.currentOrganizationId ??
-              auth.selectedOrganizationId ??
+              auth.currentOrganizationId ??
               '';
           return MaterialPageRoute(
             settings: settings,
@@ -930,7 +946,7 @@ class AppRouter {
           final organizationId =
               (args['organizationId'] as String?) ??
               auth.currentOrganizationId ??
-              auth.selectedOrganizationId ??
+              auth.currentOrganizationId ??
               '';
           return MaterialPageRoute(
             settings: settings,
@@ -950,7 +966,7 @@ class AppRouter {
           final organizationId =
               (args['organizationId'] as String?) ??
               auth.currentOrganizationId ??
-              auth.selectedOrganizationId ??
+              auth.currentOrganizationId ??
               '';
           return MaterialPageRoute(
             settings: settings,
@@ -1046,51 +1062,6 @@ class AppRouter {
   }
 }
 
-class _OrganizationSelectionScreen extends StatelessWidget {
-  const _OrganizationSelectionScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    final auth = GetIt.instance.get<AuthService>();
-    return Scaffold(
-      appBar: AppBar(title: const Text('Select organization')),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: auth.availableOrganizations.isEmpty
-              ? const Center(child: Text('Select organization'))
-              : ListView.separated(
-                  itemCount: auth.availableOrganizations.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final org = auth.availableOrganizations[index];
-                    final id = (org['id'] ?? '').toString();
-                    final name = (org['name'] ?? id).toString();
-                    return Card(
-                      child: ListTile(
-                        title: Text(name),
-                        trailing: FilledButton(
-                          onPressed: () async {
-                            final ok = await auth.selectOrganization(id);
-                            if (ok && context.mounted) {
-                              Navigator.of(context).pushNamedAndRemoveUntil(
-                                '/dashboard',
-                                (_) => false,
-                              );
-                            }
-                          },
-                          child: const Text('Select'),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ),
-    );
-  }
-}
-
 class _RouteAuthorizationGate extends StatefulWidget {
   final String routeName;
   final Widget child;
@@ -1113,6 +1084,7 @@ class _RouteAuthorizationGateState extends State<_RouteAuthorizationGate> {
   Future<void> _ensurePermissionsLoaded() async {
     final requiredPermission = AppRouter.routePermissions[widget.routeName];
     if (requiredPermission == null || !_auth.isAuthenticated) return;
+    if (_auth.contextType == 'platform') return;
     if (_auth.authzService.isLoaded ||
         _auth.authzService.isLoading ||
         _loadingStarted)
@@ -1127,7 +1099,9 @@ class _RouteAuthorizationGateState extends State<_RouteAuthorizationGate> {
     final requiredPermission = AppRouter.routePermissions[widget.routeName];
     final requiredModule = AppRoutes.forRoute(widget.routeName).moduleCode;
     if (!_auth.isAuthenticated) return const LoginScreen();
-    if (requiredModule != null && !_auth.hasModule(requiredModule)) {
+    if (_auth.contextType != 'platform' &&
+        requiredModule != null &&
+        !_auth.hasModule(requiredModule)) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(24),
@@ -1137,7 +1111,7 @@ class _RouteAuthorizationGateState extends State<_RouteAuthorizationGate> {
         ),
       );
     }
-    if (requiredPermission != null) {
+    if (requiredPermission != null && _auth.contextType != 'platform') {
       if (_auth.authzService.isLoading || !_auth.authzService.isLoaded) {
         return const Center(child: CircularProgressIndicator());
       }

@@ -38,7 +38,6 @@ Future<void> _waitFor(
     'authenticated=${auth?.isAuthenticated}',
     'tenantId=${auth?.currentTenantId}',
     'organizationId=${auth?.currentOrganizationId}',
-    'selectedOrganizationId=${auth?.selectedOrganizationId}',
     'branchRead=${auth?.hasPermission('branch.read')}',
     'branchManage=${auth?.hasPermission('branch.update')}',
     'branchNotFound=${find.text('Branch not found').evaluate().length}',
@@ -162,8 +161,6 @@ void main() {
       expect(auth.isAuthenticated, isTrue);
       expect(auth.currentTenantId, equals(_tenantId));
       expect(auth.currentOrganizationId, equals(_organizationId));
-      expect(auth.requiresOrganizationSelection, isFalse);
-      expect(auth.requiresLocationSelection, isFalse);
 
       await _openRoute(tester, '/settings');
       await _waitFor(tester, find.text('Organizations'));
@@ -228,7 +225,6 @@ void main() {
       expect(limitedAuth.isAuthenticated, isTrue);
       expect(limitedAuth.currentTenantId, equals(_tenantId));
       expect(limitedAuth.currentOrganizationId, equals(_organizationId));
-      expect(limitedAuth.availableLocations.length, equals(1));
 
       await _openRoute(tester, '/settings/organizations');
       await _waitFor(tester, find.text('Organizations'));

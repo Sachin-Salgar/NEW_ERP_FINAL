@@ -12,7 +12,11 @@ const _organizationId = '22222222-2222-4222-8222-222222222222';
 const _adminEmail = 'e2e@example.com';
 const _adminPassword = 'Password123!';
 
-Future<void> _waitFor(WidgetTester tester, Finder finder, {Duration timeout = const Duration(seconds: 30)}) async {
+Future<void> _waitFor(
+  WidgetTester tester,
+  Finder finder, {
+  Duration timeout = const Duration(seconds: 30),
+}) async {
   final deadline = DateTime.now().add(timeout);
   while (DateTime.now().isBefore(deadline)) {
     await tester.pump(const Duration(milliseconds: 100));
@@ -23,8 +27,14 @@ Future<void> _waitFor(WidgetTester tester, Finder finder, {Duration timeout = co
 
 Future<void> _login(WidgetTester tester) async {
   await _waitFor(tester, find.byKey(const ValueKey('login_identifier_field')));
-  await tester.enterText(find.byKey(const ValueKey('login_identifier_field')), _adminEmail);
-  await tester.enterText(find.byKey(const ValueKey('login_password_field')), _adminPassword);
+  await tester.enterText(
+    find.byKey(const ValueKey('login_identifier_field')),
+    _adminEmail,
+  );
+  await tester.enterText(
+    find.byKey(const ValueKey('login_password_field')),
+    _adminPassword,
+  );
   await tester.tap(find.byKey(const ValueKey('login_submit_button')));
   await tester.pump();
 }
@@ -32,27 +42,28 @@ Future<void> _login(WidgetTester tester) async {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('admin login goes directly to dashboard with authenticated working context', (tester) async {
-    await GetIt.instance.reset();
-    await App.init();
-    await tester.pumpWidget(const App());
-    await _login(tester);
-    await _waitFor(tester, find.text('Dashboard'));
+  testWidgets(
+    'admin login goes directly to dashboard with authenticated working context',
+    (tester) async {
+      await GetIt.instance.reset();
+      await App.init();
+      await tester.pumpWidget(const App());
+      await _login(tester);
+      await _waitFor(tester, find.text('Dashboard'));
 
-    // The authenticated shell intentionally renders "Dashboard" both in the
-    // navigation sidebar and as the current page title. Assert the canonical
-    // route instead of requiring a unique text widget.
-    expect(AppRouteState.currentRoute.value, equals('/dashboard'));
-    expect(find.text('Select organization'), findsNothing);
-    expect(find.text('Select location'), findsNothing);
-    expect(find.text('Dashboard'), findsNWidgets(2));
+      // The authenticated shell intentionally renders "Dashboard" both in the
+      // navigation sidebar and as the current page title. Assert the canonical
+      // route instead of requiring a unique text widget.
+      expect(AppRouteState.currentRoute.value, equals('/dashboard'));
+      expect(find.text('Select organization'), findsNothing);
+      expect(find.text('Select location'), findsNothing);
+      expect(find.text('Dashboard'), findsNWidgets(2));
 
-    final auth = GetIt.instance.get<AuthService>();
-    expect(auth.isAuthenticated, isTrue);
-    expect(auth.currentTenantId, equals(_tenantId));
-    expect(auth.currentOrganizationId, equals(_organizationId));
-    expect(auth.requiresOrganizationSelection, isFalse);
-    expect(auth.requiresLocationSelection, isFalse);
-    expect(auth.availableLocations.length, equals(2));
-  }, timeout: const Timeout(Duration(seconds: 90)));
+      final auth = GetIt.instance.get<AuthService>();
+      expect(auth.isAuthenticated, isTrue);
+      expect(auth.currentTenantId, equals(_tenantId));
+      expect(auth.currentOrganizationId, equals(_organizationId));
+    },
+    timeout: const Timeout(Duration(seconds: 90)),
+  );
 }

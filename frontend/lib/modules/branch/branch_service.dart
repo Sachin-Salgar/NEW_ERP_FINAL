@@ -18,14 +18,17 @@ class BranchService extends ChangeNotifier {
     : auth = GetIt.instance.get<AuthService>();
 
   String _resolveOrganizationId([String? providedOrganizationId]) {
-    final candidate = (providedOrganizationId ?? auth.currentOrganizationId ?? auth.selectedOrganizationId ?? '')
-        .toString()
-        .trim();
-    final fallback = (auth.currentOrganizationId ?? auth.selectedOrganizationId ?? '').toString().trim();
+    final candidate =
+        (providedOrganizationId ?? auth.currentOrganizationId ?? '')
+            .toString()
+            .trim();
+    final fallback = (auth.currentOrganizationId ?? '').toString().trim();
     final resolved = candidate.isEmpty ? fallback : candidate;
 
     if (resolved.isEmpty) {
-      throw StateError('Organization context is missing. Please select or restore an active organization before loading branches.');
+      throw StateError(
+        'Organization context is missing from the authenticated session.',
+      );
     }
 
     return resolved;

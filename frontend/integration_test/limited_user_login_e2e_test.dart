@@ -12,7 +12,11 @@ const _organizationId = '22222222-2222-4222-8222-222222222222';
 const _limitedEmail = 'e2e-limited@example.com';
 const _password = 'Password123!';
 
-Future<void> _waitFor(WidgetTester tester, Finder finder, {Duration timeout = const Duration(seconds: 30)}) async {
+Future<void> _waitFor(
+  WidgetTester tester,
+  Finder finder, {
+  Duration timeout = const Duration(seconds: 30),
+}) async {
   final deadline = DateTime.now().add(timeout);
   while (DateTime.now().isBefore(deadline)) {
     await tester.pump(const Duration(milliseconds: 100));
@@ -23,8 +27,14 @@ Future<void> _waitFor(WidgetTester tester, Finder finder, {Duration timeout = co
 
 Future<void> _login(WidgetTester tester) async {
   await _waitFor(tester, find.byKey(const ValueKey('login_identifier_field')));
-  await tester.enterText(find.byKey(const ValueKey('login_identifier_field')), _limitedEmail);
-  await tester.enterText(find.byKey(const ValueKey('login_password_field')), _password);
+  await tester.enterText(
+    find.byKey(const ValueKey('login_identifier_field')),
+    _limitedEmail,
+  );
+  await tester.enterText(
+    find.byKey(const ValueKey('login_password_field')),
+    _password,
+  );
   await tester.tap(find.byKey(const ValueKey('login_submit_button')));
   await tester.pump();
 }
@@ -32,27 +42,28 @@ Future<void> _login(WidgetTester tester) async {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('limited user reaches dashboard with restricted working context', (tester) async {
-    await GetIt.instance.reset();
-    await App.init();
-    await tester.pumpWidget(const App());
-    await _login(tester);
+  testWidgets(
+    'limited user reaches dashboard with restricted working context',
+    (tester) async {
+      await GetIt.instance.reset();
+      await App.init();
+      await tester.pumpWidget(const App());
+      await _login(tester);
 
-    // The shell/sidebar and the dashboard page can both display the text
-    // "Dashboard". Assert the actual page widget instead of ambiguous text.
-    final dashboard = find.byType(DashboardScreen);
-    await _waitFor(tester, dashboard);
-    expect(dashboard, findsOneWidget);
+      // The shell/sidebar and the dashboard page can both display the text
+      // "Dashboard". Assert the actual page widget instead of ambiguous text.
+      final dashboard = find.byType(DashboardScreen);
+      await _waitFor(tester, dashboard);
+      expect(dashboard, findsOneWidget);
 
-    expect(find.text('Select organization'), findsNothing);
-    expect(find.text('Select location'), findsNothing);
+      expect(find.text('Select organization'), findsNothing);
+      expect(find.text('Select location'), findsNothing);
 
-    final auth = GetIt.instance.get<AuthService>();
-    expect(auth.isAuthenticated, isTrue);
-    expect(auth.currentTenantId, equals(_tenantId));
-    expect(auth.currentOrganizationId, equals(_organizationId));
-    expect(auth.requiresOrganizationSelection, isFalse);
-    expect(auth.requiresLocationSelection, isFalse);
-    expect(auth.availableLocations.length, equals(1));
-  }, timeout: const Timeout(Duration(seconds: 90)));
+      final auth = GetIt.instance.get<AuthService>();
+      expect(auth.isAuthenticated, isTrue);
+      expect(auth.currentTenantId, equals(_tenantId));
+      expect(auth.currentOrganizationId, equals(_organizationId));
+    },
+    timeout: const Timeout(Duration(seconds: 90)),
+  );
 }
