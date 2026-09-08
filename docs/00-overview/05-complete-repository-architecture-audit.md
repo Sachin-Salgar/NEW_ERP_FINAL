@@ -177,7 +177,7 @@ Current `scripts/seed-custom-tenant.ts`:
 - is broadly repeatable for its controlled data;
 - requires environment-provided passwords;
 - has explicit enablement and production safety gates;
-- has no dedicated clean/repeat/login test;
+- has a dedicated three-run clean/repeat/login/authorization/platform-denial integration test;
 - is not wired into a deployment release/pre-deploy command.
 
 This is not safe as a production deployment bootstrap in its current form.
@@ -196,7 +196,7 @@ The safe architecture is an explicit one-shot/release command (or provider pre-d
 |---|---|
 | **HIGH** | No ordered deployment seed/bootstrap workflow exists for the known-login requirement. |
 | **MEDIUM** | Platform login/context switching has backend support but no complete corresponding frontend flow. |
-| **MEDIUM** | Custom seed lacks a dedicated clean/repeat/login validation suite. |
+| **MEDIUM** | Custom seed validation is proven locally, but no provider deployment release/pre-deploy execution is wired. |
 | **MEDIUM** | Frontend/backend capability matrix and vertical-slice status are not maintained as a concise agent-facing map. |
 | **LOW** | Existing browser navigation teardown residual remains documented as a validation gap. |
 | **INFORMATIONAL** | Production TLS, key rotation, worker supervision, backup restoration, and provider runtime evidence remain deployment-only. |
