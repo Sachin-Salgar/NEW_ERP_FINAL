@@ -10,7 +10,7 @@ The authoritative ERP definition remains under `docs/` according to the governan
 - `docs/00-overview/02-governance.md`
 - `docs/10-adr/README.md`
 
-For tenancy, authentication, deployment boundary, and RLS work, the approved decision is `docs/10-adr/0006-identity-based-tenant-context.md`.
+For identity, tenancy, platform membership, deployment boundary, and RLS work, the approved decision is `docs/10-adr/0040-platform-identity-membership-and-context.md`. ADR-0006 remains applicable only where ADR-0040 does not supersede it.
 
 AI workflow files in `.ai/` explain **how an AI coding assistant should navigate, reason about, implement, and validate changes in the repository**.
 
@@ -47,8 +47,9 @@ AI workflow files in `.ai/` explain **how an AI coding assistant should navigate
 8. When required information is missing or contradictory, AI must stop and ask instead of inventing a decision.
 9. A feature is not complete until applicable validation has actually run and passed.
 10. Deployment URL/API endpoint is connectivity configuration only; it is not authoritative tenant identity.
-11. Tenant context is established from authenticated identity, validated tenant access, and the tenant-scoped session defined by ADR-0006.
-12. PostgreSQL RLS remains mandatory for tenant-owned data.
+11. Tenant context is established from authenticated identity, validated tenant membership, and a tenant-scoped session.
+12. Platform context is established independently from platform membership and a platform-scoped session.
+13. PostgreSQL RLS remains mandatory for tenant-owned data.
 
 ## Implementation-progress authority
 
@@ -67,7 +68,7 @@ At the beginning of every AI implementation session the agent must perform the f
 3. Read `.ai/workflows/feature-development.md` and `.ai/workflows/ai-system.md` to re-establish local workflow rules.
 4. Read `docs/00-overview/03-implementation-roadmap.md` and extract CURRENT IMPLEMENTATION CHECKPOINT and IMMEDIATE NEXT STEP.
 5. Use `.ai/authority.md` to determine which authoritative documents apply to the active step.
-6. For tenancy/authentication work, read ADR-0006 and the affected database, backend, security, frontend, and deployment documents before implementation.
+6. For tenancy/authentication/platform work, read ADR-0040, then ADR-0006/0011/0012 where applicable, plus the affected database, backend, security, frontend, and deployment documents before implementation.
 
 The agent must not start implementation until it can answer: "What exact roadmap step am I implementing?"
 

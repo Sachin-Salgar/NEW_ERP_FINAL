@@ -318,32 +318,26 @@ class AuthService extends ChangeNotifier {
       availableOrganizations = organizations
           .map((item) => Map<String, dynamic>.from(item as Map))
           .toList();
-      requiresOrganizationSelection =
-          b['requiresOrganizationSelection'] == true;
-      if (requiresOrganizationSelection) {
-        currentOrganizationId = null;
-        selectedOrganizationId = null;
-        await _secureStorage.delete(key: 'organization_id');
-      } else {
-        final active =
-            (b['activeOrganizationId'] ?? currentOrganizationId ?? '')
-                .toString()
-                .trim();
-        if (active.isNotEmpty &&
-            availableOrganizations.any(
-              (org) => (org['id'] ?? '').toString() == active,
-            )) {
-          currentOrganizationId = active;
-          selectedOrganizationId = active;
-          await _secureStorage.write(key: 'organization_id', value: active);
-        } else if (availableOrganizations.length == 1) {
-          final fallback = (availableOrganizations.first['id'] ?? '')
-              .toString();
-          if (fallback.isNotEmpty) {
-            currentOrganizationId = fallback;
-            selectedOrganizationId = fallback;
-            await _secureStorage.write(key: 'organization_id', value: fallback);
-          }
+      // Login never blocks on organization selection. Working context changes
+      // remain post-login actions from the profile menu.
+      requiresOrganizationSelection = false;
+      final active =
+          (b['activeOrganizationId'] ?? currentOrganizationId ?? '')
+              .toString()
+              .trim();
+      if (active.isNotEmpty &&
+          availableOrganizations.any(
+            (org) => (org['id'] ?? '').toString() == active,
+          )) {
+        currentOrganizationId = active;
+        selectedOrganizationId = active;
+        await _secureStorage.write(key: 'organization_id', value: active);
+      } else if (availableOrganizations.length == 1) {
+        final fallback = (availableOrganizations.first['id'] ?? '').toString();
+        if (fallback.isNotEmpty) {
+          currentOrganizationId = fallback;
+          selectedOrganizationId = fallback;
+          await _secureStorage.write(key: 'organization_id', value: fallback);
         }
       }
       notifyListeners();

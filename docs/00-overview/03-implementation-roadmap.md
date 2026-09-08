@@ -19,7 +19,7 @@
 
 The system is a **layered modular monolith** with Flutter clients, REST API, backend services, repositories/data access, and PostgreSQL.
 
-Tenant identity follows **ADR-0006: Identity-Based Tenant Context and PostgreSQL RLS**. The authenticated user identity is the tenant-discovery authority. Deployment hostname, frontend URL, client-supplied tenant ID, and deployment configuration are not tenant authorities.
+Identity and membership context follows **ADR-0040: Platform Identity, Membership, and Context Architecture**, with compatible tenant/RLS details from ADR-0006. An authenticated identity's validated tenant membership establishes tenant context, while an independent platform membership establishes platform context. Deployment hostname, frontend URL, client-supplied tenant ID, and deployment configuration are not tenant authorities.
 
 PostgreSQL RLS remains the database isolation boundary, with trusted server-side tenant context established transaction-locally.
 
@@ -27,7 +27,7 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 
 ## 2. Current checkpoint
 
-**Current phase:** ADR-0040 platform identity, independent memberships, context authorization, RLS/procedure boundaries, audit atomicity, bootstrap, and tenant administration are implemented and validated. Core Enterprise remains ready for progression to Sales. The broader browser navigation matrix remains a known validation residual caused by a Flutter teardown assertion after navigation assertions completed.
+**Current phase:** ADR-0040 platform identity, independent memberships, context authorization, RLS/procedure boundaries, audit atomicity, bootstrap, and tenant administration are implemented and validated. Core Enterprise remains ready for progression to Sales. The broader browser navigation matrix remains a known validation residual caused by a Flutter teardown assertion after navigation assertions completed. Live-client authentication and deployment-seed hardening remain open audit items until focused validation is recorded.
 
 ### Validation evidence captured
 
@@ -42,6 +42,7 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 ### Implemented
 
 - Production Flutter Web login against deployed backend/database.
+- Single-login direct-to-Dashboard routing with post-login working-context changes.
 - Identity-based tenant discovery and tenant-scoped authentication/session context.
 - TenantContext and PostgreSQL transaction-local tenant context infrastructure.
 - PostgreSQL RLS integration coverage for tenant isolation/rollback/pool context behavior.

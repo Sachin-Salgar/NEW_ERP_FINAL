@@ -99,16 +99,6 @@ class AppRouter {
     final auth = GetIt.instance.get<AuthService>();
     final path = AppRoutes.normalize(settings.name ?? '/');
 
-    if (auth.isAuthenticated &&
-        auth.requiresOrganizationSelection &&
-        path != '/login' &&
-        path != '/organization-selection') {
-      return MaterialPageRoute(
-        settings: const RouteSettings(name: '/organization-selection'),
-        builder: (_) => const _OrganizationSelectionScreen(),
-      );
-    }
-
     if (path.startsWith('/settings/organizations/details/')) {
       return MaterialPageRoute(
         settings: settings,
@@ -1052,8 +1042,6 @@ class AppRouter {
   }) {
     final auth = GetIt.instance.get<AuthService>();
     if (!auth.isAuthenticated) return const LoginScreen();
-    if (auth.requiresOrganizationSelection)
-      return const _OrganizationSelectionScreen();
     return _RouteAuthorizationGate(routeName: routeName, child: child);
   }
 }

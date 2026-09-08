@@ -15,12 +15,29 @@ import { withTenantContext } from '../src/infrastructure/database/tenant-context
  * Creates a controlled multi-organization, multi-branch, multi-location dataset
  * for exercising working-context and authorization flows.
  *
- * IMPORTANT: this is test/deployment data. The three test users intentionally
- * use the shared password requested for the test environment.
+ * This is controlled test/deployment data. It is disabled unless explicitly
+ * enabled and all credentials are supplied through the environment.
  */
 async function main() {
+  const enabled = process.env.CUSTOM_TENANT_SEED_ENABLED === 'true';
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (!enabled) {
+    throw new Error('Custom tenant seed is disabled. Set CUSTOM_TENANT_SEED_ENABLED=true to run it intentionally.');
+  }
+  if (isProduction && process.env.CUSTOM_TENANT_SEED_ALLOW_PRODUCTION !== 'true') {
+    throw new Error(
+      'Custom tenant seed is blocked in production. Set CUSTOM_TENANT_SEED_ALLOW_PRODUCTION=true only for an intentional deployment bootstrap.',
+    );
+  }
+  const administratorPassword = process.env.CUSTOM_TENANT_ADMIN_PASSWORD?.trim();
+  const tenantUserPassword = process.env.CUSTOM_TENANT_USER_PASSWORD?.trim();
+  const managerPassword = process.env.CUSTOM_TENANT_MANAGER_PASSWORD?.trim();
+  if (!administratorPassword || !tenantUserPassword || !managerPassword) {
+    throw new Error(
+      'CUSTOM_TENANT_ADMIN_PASSWORD, CUSTOM_TENANT_USER_PASSWORD, and CUSTOM_TENANT_MANAGER_PASSWORD are required.',
+    );
+  }
   const databaseUrl = resolveDatabaseUrl(process.env);
-  const password = 'Password123!';
 
   const pool = createDatabasePoolFromUrl(databaseUrl, { sslMode: resolveDatabaseSslMode(process.env) });
   const passwordHasher = new BcryptPasswordHasher();
@@ -71,7 +88,7 @@ async function main() {
       id: administratorId,
       username: 'administrator',
       email: 'administrator@magodfusion.in',
-      password,
+      password: administratorPassword,
       organizationId,
       defaultBranchId: branchId,
     },
@@ -411,7 +428,7 @@ async function main() {
       throw new Error('Failed to ensure administrator user.');
     }
 
-    const administratorPasswordHash = await passwordHasher.hash(password);
+    const administratorPasswordHash = await passwordHasher.hash(administratorPassword);
     await withTenantContext(pool, 'app.current_tenant_id', tenantId, async (client) => {
       await client.query('UPDATE users SET password_hash = $1, updated_at = NOW() WHERE tenant_id = $2 AND id = $3', [
         administratorPasswordHash,
@@ -426,9 +443,10 @@ async function main() {
       organizationIdForUser: string,
       defaultBranchId: string,
       defaultLocationId: string,
+      userPassword: string,
     ) {
       let user = await repository.findByTenantAndIdentifier(tenantId, username);
-      const passwordHash = await passwordHasher.hash(password);
+      const passwordHash = await passwordHasher.hash(userPassword);
 
       if (!user) {
         user = await repository.createUser({
@@ -468,13 +486,21 @@ async function main() {
       return user;
     }
 
-    const admin = await ensureUser('admin', 'admin@magodfusion.in', organizationId, magodPune.id, magodPuneLocation.id);
+    const admin = await ensureUser(
+      'admin',
+      'admin@magodfusion.in',
+      organizationId,
+      magodPune.id,
+      magodPuneLocation.id,
+      tenantUserPassword,
+    );
     const manager = await ensureUser(
       'manager',
       'manager@magodfusion.in',
       organizationId,
       magodPune.id,
       magodPuneLocation.id,
+      managerPassword,
     );
 
     await withTenantContext(pool, 'app.current_tenant_id', tenantId, async (client) => {

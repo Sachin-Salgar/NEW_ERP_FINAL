@@ -37,7 +37,7 @@ void main() {
   });
 
   group('Slice 3 frontend auth behavior', () {
-    test('ApiClient sends the real Bearer token and tenant header', () async {
+    test('ApiClient sends the bearer access token and tenant header', () async {
       final storage = _MemorySecureStorage();
       final requests = <String, String>{};
 
@@ -200,7 +200,7 @@ void main() {
       );
     });
 
-    test('AuthService does not auto-select a single organization when the backend requires explicit selection', () async {
+    test('AuthService does not block login on missing organization defaults', () async {
       final storage = _MemorySecureStorage();
       final client = MockClient((request) {
         if (request.url.path == '/api/v1/bootstrap') {
@@ -250,9 +250,9 @@ void main() {
 
       final loginOk = await auth.login('http://example.com', 'user@example.com', 'Password123');
       expect(loginOk, isTrue);
-      expect(auth.requiresOrganizationSelection, isTrue);
-      expect(auth.currentOrganizationId, isNull);
-      expect(auth.selectedOrganizationId, isNull);
+      expect(auth.requiresOrganizationSelection, isFalse);
+      expect(auth.currentOrganizationId, 'org-1');
+      expect(auth.selectedOrganizationId, 'org-1');
     });
 
     test('logout clears tokens, session state, and organization context', () async {
@@ -472,7 +472,7 @@ void main() {
       expect(auth.currentOrganizationId, 'org-1');
     });
 
-    testWidgets('AppRouter redirects authenticated users to the correct selection flow', (tester) async {
+    testWidgets('AppRouter does not redirect authenticated users to organization selection', (tester) async {
       final storage = _MemorySecureStorage();
       final client = MockClient((request) {
         if (request.url.path == '/api/v1/bootstrap') {
@@ -522,7 +522,7 @@ void main() {
 
       final loginOk = await auth.login('http://example.com', 'user@example.com', 'Password123');
       expect(loginOk, isTrue);
-      expect(auth.requiresOrganizationSelection, isTrue);
+      expect(auth.requiresOrganizationSelection, isFalse);
 
       GetIt.instance.registerSingleton<AuthService>(auth);
 
@@ -535,8 +535,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Select organization'), findsOneWidget);
-      expect(find.text('Dashboard'), findsNothing);
+      expect(find.text('Select organization'), findsNothing);
     });
   });
 }

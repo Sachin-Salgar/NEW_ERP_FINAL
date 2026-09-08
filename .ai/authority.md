@@ -17,7 +17,7 @@ Use the repository's governance hierarchy exactly as defined by `docs/00-overvie
 
 ## Current Tenancy Authority
 
-`docs/10-adr/0006-identity-based-tenant-context.md` is the approved architectural authority for authentication, tenant context, tenant isolation, SaaS/on-premises deployment behavior, and web/mobile tenancy flow.
+`docs/10-adr/0040-platform-identity-membership-and-context.md` is the approved architectural authority for identity, independent tenant/platform memberships, authentication context, platform execution, bootstrap, deployment, and RLS boundaries. ADR-0006 remains applicable only for compatible tenant-context details not superseded by ADR-0040.
 
 For tenancy-related work, the canonical security lifecycle is:
 
@@ -60,6 +60,20 @@ The tenant is established by authenticated identity and remains fixed for the se
 - There is no `default_organization_id` field; `users.organization_id` already serves as the user's default Organization.
 
 Deployment URL/API endpoint is connectivity configuration only. Hostname, custom domain, deployment configuration, or client-supplied tenant identifiers must not be treated as authoritative tenant identity.
+
+For platform work, the canonical security lifecycle is:
+
+```text
+Authenticated Identity
+  ↓
+Platform Membership
+  ↓
+Platform-scoped Session
+  ↓
+Platform Permission
+  ↓
+Dedicated Platform Executor / Approved Procedure
+```
 
 ## Document status
 
