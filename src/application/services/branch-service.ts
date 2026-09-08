@@ -73,8 +73,8 @@ export class BranchService {
     return this.repository.getBranchById(tenantId, normalizedId);
   }
 
-  async validateFinancialYear(tenantId: string, financialYearId: string): Promise<boolean> {
+  async validateFinancialYear(tenantId: string, financialYearId: string, branchId?: string): Promise<boolean> {
     if (!tenantId?.trim() || !financialYearId?.trim()) return false;
-    return this.repository.validateFinancialYear(tenantId, financialYearId);
+    return this.repository.validateFinancialYear(tenantId, financialYearId, branchId);
   }
 }

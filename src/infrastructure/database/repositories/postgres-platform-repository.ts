@@ -1100,6 +1100,36 @@ export class PostgresPlatformRepository
     });
   }
 
+  async updateSessionContext(
+    sessionId: string,
+    tenantId: string,
+    userId: string,
+    branchId: string,
+    financialYearId: string,
+  ): Promise<SessionRecord | null> {
+    const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) =>
+      client.query(
+        `UPDATE user_sessions
+            SET branch_id = $4, financial_year_id = $5, updated_at = NOW()
+          WHERE id = $1 AND tenant_id = $2 AND user_id = $3 AND is_active = true
+          RETURNING id, tenant_id as "tenantId", user_id as "userId", branch_id as "branchId",
+                    financial_year_id as "financialYearId", access_token_id as "accessTokenId",
+                    is_active as "isActive", expires_at as "expiresAt", login_at as "loginAt",
+                    last_activity_at as "lastActivityAt", revoked_at as "revokedAt", logout_at as "logoutAt"`,
+        [sessionId, tenantId, userId, branchId, financialYearId],
+      ),
+    );
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
+    return {
+      id: row.id, tenantId: row.tenantId, userId: row.userId, branchId: row.branchId ?? null,
+      financialYearId: row.financialYearId ?? null, accessTokenId: row.accessTokenId,
+      isActive: row.isActive, expiresAt: new Date(row.expiresAt), loginAt: new Date(row.loginAt),
+      lastActivityAt: new Date(row.lastActivityAt), revokedAt: row.revokedAt ? new Date(row.revokedAt) : null,
+      logoutAt: row.logoutAt ? new Date(row.logoutAt) : null,
+    };
+  }
+
   async listActiveSessions(tenantId: string, userId?: string): Promise<SessionRecord[]> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
       return client.query(
@@ -1243,6 +1273,17 @@ export class PostgresPlatformRepository
   }> {
     const id = input.id ?? uuidV7();
     const result = await withTenantContext(this.pool, this.tenantContextKey, input.tenantId, async (client) => {
+      if (input.defaultBranchId) {
+        const access = await client.query(
+          `SELECT 1
+             FROM branches b
+            WHERE b.tenant_id = $1 AND b.id = $2
+              AND b.is_deleted = false AND b.status = 'active'
+            LIMIT 1`,
+          [input.tenantId, input.defaultBranchId],
+        );
+        if (access.rows.length === 0) throw new ValidationError('Default branch must be active and belong to the tenant.');
+      }
       const userResult = await client.query(
         `INSERT INTO users (id, tenant_id, default_branch_id, username, email, password_hash, status, created_at, version)
          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), 1)
@@ -1580,7 +1621,7 @@ export class PostgresPlatformRepository
     return result.rows.length > 0 ? this.mapBranchRow(result.rows[0]) : null;
   }
 
-  async validateFinancialYear(tenantId: string, financialYearId: string): Promise<boolean> {
+  async validateFinancialYear(tenantId: string, financialYearId: string, branchId?: string): Promise<boolean> {
     const result = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) =>
       client.query(
         `SELECT 1
@@ -1591,8 +1632,9 @@ export class PostgresPlatformRepository
             AND is_active = true
             AND status = 'open'
             AND is_locked = false
+            AND ($3::uuid IS NULL OR branch_id IS NULL OR branch_id = $3)
           LIMIT 1`,
-        [tenantId, financialYearId],
+        [tenantId, financialYearId, branchId ?? null],
       ),
     );
     return result.rows.length > 0;
@@ -1939,6 +1981,20 @@ export class PostgresPlatformRepository
       values.push(changes.branchId ?? null);
     }
     if (changes.defaultBranchId !== undefined) {
+      if (changes.defaultBranchId) {
+        const access = await withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) =>
+          client.query(
+            `SELECT 1
+               FROM user_branch_access uba
+               JOIN branches b ON b.id = uba.branch_id AND b.tenant_id = uba.tenant_id
+              WHERE uba.tenant_id = $1 AND uba.user_id = $2 AND uba.branch_id = $3
+                AND b.is_deleted = false AND b.status = 'active'
+              LIMIT 1`,
+            [tenantId, userId, changes.defaultBranchId],
+          ),
+        );
+        if (access.rows.length === 0) throw new ValidationError('Default branch requires active user branch access.');
+      }
       fields.push(`default_branch_id = $${idx++}`);
       values.push(changes.defaultBranchId ?? null);
     }

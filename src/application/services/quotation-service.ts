@@ -37,7 +37,8 @@ const transitions: Record<QuotationStatus, QuotationStatus[]> = {
 export class QuotationService {
   constructor(
     private readonly repository: QuotationRepository,
-    private readonly auth: Pick<AuthorizationService, 'hasPermission'>,
+    private readonly auth: Pick<AuthorizationService, 'hasPermission'> &
+      Partial<Pick<AuthorizationService, 'hasBranchAccess' | 'hasFinancialYearAccess'>>,
     private readonly modules: Pick<ModuleAccessService, 'isModuleEnabled'>,
     private readonly audit: AuditLogger,
     private readonly tx: QuotationTransactionRunner,
@@ -220,6 +221,10 @@ export class QuotationService {
     this.id(c.userId, 'User ID');
     if (!(await this.modules.isModuleEnabled(c.tenantId, SALES_MODULE_CODE)))
       throw new ForbiddenError('Sales module is not enabled.');
+    if (this.auth.hasBranchAccess && !(await this.auth.hasBranchAccess(c.tenantId, c.userId, c.branchId)))
+      throw new ForbiddenError('User is not authorized for this branch.');
+    if (this.auth.hasFinancialYearAccess && !(await this.auth.hasFinancialYearAccess(c.tenantId, c.financialYearId, c.branchId)))
+      throw new ForbiddenError('Financial Year is not valid for this branch.');
     if (!(await this.auth.hasPermission(c.tenantId, c.userId, p)))
       throw new ForbiddenError('Insufficient quotation permission.');
   }

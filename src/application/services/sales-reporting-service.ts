@@ -12,7 +12,8 @@ import { ForbiddenError, UnauthorizedError, ValidationError } from '../../domain
 export class SalesReportingService {
   constructor(
     private readonly repository: SalesReportRepository,
-    private readonly authorization: Pick<AuthorizationService, 'hasPermission'>,
+    private readonly authorization: Pick<AuthorizationService, 'hasPermission'> &
+      Partial<Pick<AuthorizationService, 'hasBranchAccess' | 'hasFinancialYearAccess'>>,
     private readonly modules: Pick<ModuleAccessService, 'isModuleEnabled'>,
   ) {}
 
@@ -45,6 +46,12 @@ export class SalesReportingService {
     }
     if (!(await this.modules.isModuleEnabled(context.tenantId, 'sales'))) {
       throw new ForbiddenError('Sales module is not enabled.');
+    }
+    if (this.authorization.hasBranchAccess && !(await this.authorization.hasBranchAccess(context.tenantId, context.userId, context.branchId))) {
+      throw new ForbiddenError('User is not authorized for this branch.');
+    }
+    if (this.authorization.hasFinancialYearAccess && !(await this.authorization.hasFinancialYearAccess(context.tenantId, context.financialYearId, context.branchId))) {
+      throw new ForbiddenError('Financial Year is not valid for this branch.');
     }
     if (!(await this.authorization.hasPermission(context.tenantId, context.userId, SALES_REPORTING_PERMISSIONS.read))) {
       throw new ForbiddenError('Insufficient Sales reporting permission.');

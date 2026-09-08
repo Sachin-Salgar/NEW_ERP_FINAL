@@ -143,12 +143,18 @@ export class AuthenticationService {
         })
       : 'internal-session-token';
 
+    const branchAuthorized = user.defaultBranchId
+      ? this.authenticationRepository.validateBranchAccess
+        ? await this.authenticationRepository.validateBranchAccess(resolvedTenantId, user.id, user.defaultBranchId)
+        : true
+      : false;
+    const branchId = branchAuthorized ? user.defaultBranchId ?? null : null;
     const session = await this.authenticationRepository.createSession({
       id: sessionId,
       tenantId: resolvedTenantId,
       userId: user.id,
       identityId: user.identityId,
-      branchId: user.defaultBranchId ?? null,
+      branchId,
       accessTokenId: null,
       expiresAt: sessionExpiresAt,
       userAgent: 'erp-client',
@@ -173,7 +179,7 @@ export class AuthenticationService {
         id: user.id,
         identityId: user.identityId,
         tenantId: user.tenantId,
-        branchId: user.defaultBranchId ?? null,
+        branchId: session.branchId ?? null,
         defaultBranchId: user.defaultBranchId,
         username: user.username,
         email: user.email,
@@ -187,6 +193,20 @@ export class AuthenticationService {
 
   async getSession(sessionId: string, tenantId: string): Promise<SessionRecord | null> {
     return this.authenticationRepository.findSession(sessionId, tenantId);
+  }
+
+  async updateBranchContext(
+    sessionId: string,
+    tenantId: string,
+    userId: string,
+    branchId: string,
+    financialYearId: string,
+  ): Promise<SessionRecord | null> {
+    if (!this.authenticationRepository.validateBranchAccess ||
+        !(await this.authenticationRepository.validateBranchAccess(tenantId, userId, branchId))) {
+      return null;
+    }
+    return this.authenticationRepository.updateSessionContext(sessionId, tenantId, userId, branchId, financialYearId);
   }
 
   async findSessionByRefreshTokenHash(tenantId: string, refreshTokenHash: string): Promise<SessionRecord | null> {

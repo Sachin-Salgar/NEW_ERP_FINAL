@@ -84,6 +84,14 @@ export class AuthorizationService {
     return permissions.some((entry) => entry.permissionKey === permissionKey);
   }
 
+  async hasBranchAccess(tenantId: string, userId: string, branchId: string): Promise<boolean> {
+    return this.authorizationRepository.validateBranchAccess?.(tenantId, userId, branchId) ?? false;
+  }
+
+  async hasFinancialYearAccess(tenantId: string, financialYearId: string, branchId: string): Promise<boolean> {
+    return this.authorizationRepository.validateFinancialYear?.(tenantId, financialYearId, branchId) ?? false;
+  }
+
   async hasAnyPermission(tenantId: string, userId: string, permissionKeys: string[]): Promise<PermissionCheckResult[]> {
     const permissions = await this.authorizationRepository.getPermissionKeysForUser(tenantId, userId);
     const permissionSet = new Set(permissions.map((entry) => entry.permissionKey));

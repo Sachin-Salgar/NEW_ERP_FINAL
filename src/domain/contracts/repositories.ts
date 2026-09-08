@@ -71,6 +71,7 @@ export interface UserRepository {
   ): Promise<{ failedLoginCount: number; lockedUntil: Date | null }>;
   resetFailedLoginState?(tenantId: string, userId: string): Promise<void>;
   getPermissionKeysForUser(tenantId: string, userId: string): Promise<UserPermissionRecord[]>;
+  validateBranchAccess?(tenantId: string, userId: string, branchId: string): Promise<boolean>;
 }
 
 export interface SessionRepository {
@@ -80,6 +81,13 @@ export interface SessionRepository {
   invalidateSession(sessionId: string, tenantId: string): Promise<void>;
   listActiveSessions(tenantId: string, userId?: string): Promise<SessionRecord[]>;
   invalidateAllSessions(tenantId: string, userId: string, exceptSessionId?: string): Promise<number>;
+  updateSessionContext(
+    sessionId: string,
+    tenantId: string,
+    userId: string,
+    branchId: string,
+    financialYearId: string,
+  ): Promise<SessionRecord | null>;
 }
 
 export interface UserRegistrationRecord {
@@ -1008,7 +1016,7 @@ export interface UserBranchAccessRecord {
 }
 
 export interface CoreEnterpriseRepository {
-  validateFinancialYear(tenantId: string, financialYearId: string): Promise<boolean>;
+  validateFinancialYear(tenantId: string, financialYearId: string, branchId?: string): Promise<boolean>;
   generateBranchCode(tenantId: string): Promise<string>;
   createBranch(
     tenantId: string,
@@ -1092,6 +1100,8 @@ export interface CoreEnterpriseRepository {
 
 export interface AuthorizationRepository {
   getPermissionKeysForUser(tenantId: string, userId: string): Promise<UserPermissionRecord[]>;
+  validateBranchAccess?(tenantId: string, userId: string, branchId: string): Promise<boolean>;
+  validateFinancialYear?(tenantId: string, financialYearId: string, branchId?: string): Promise<boolean>;
   listRoles(tenantId: string): Promise<
     Array<{
       id: string;

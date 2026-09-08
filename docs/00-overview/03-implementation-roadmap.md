@@ -3,8 +3,8 @@
 **Status:** Living implementation roadmap  
 **Authority:** Architecture documents and Approved ADRs define the intended system; this document records what is actually implemented and what remains to be validated or built.
 
-**Last reconciled:** 2026-09-08
-**Branch:** `audit/strict-architecture-proof-20260908`
+**Last reconciled:** 2026-09-09
+**Branch:** `feature/branch-working-context-0041`
 
 ## Status definitions
 
@@ -43,6 +43,10 @@ implementation are deferred for governed migration and are not current architect
 ### Validation evidence captured
 
 - `npx vitest run tests/integration/authentication-flow.test.ts tests/integration/rbac-role-permissions.test.ts --reporter=basic` → exit code 0 on the current `main` branch.
+- ADR-0041 defines the branch working-context and authorization model. The
+  implementation is in place on the feature branch, with unit, typecheck, lint,
+  build, and diff validation passing; database-backed branch authorization proof
+  remains pending.
 - GitHub Actions run **33486274877**, workflow `CI - Integration Tests (Postgres)`, commit `8dd4d17edd3f050a66c1bd2c25e47597fda21a95` → **success**.
 - The successful CI run completed the Postgres setup/migration/fixture/backend startup path and both Flutter Web E2E steps: **Run admin E2E test → success** and **Run limited-user E2E test → success**.
 - This CI run validates the repository-controlled test environment; it does not use or depend on Vercel/Render production deployment configuration.
