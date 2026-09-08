@@ -84,7 +84,7 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{ Params: LocationIdParams }>(
     '/locations/:id/select',
     { preHandler: [requireAuth, requirePermission('organization.location.read')] },
-    async (request, reply) => {
+    async (request) => {
       if (!request.tenantId || !request.user) throw new ValidationError('Authenticated tenant context is required.');
       const organizationId = request.user.organizationId ?? null;
       if (!organizationId) throw new ValidationError('An active organization is required before selecting a location.');
@@ -96,45 +96,7 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
         organizationId,
       );
       if (!location) throw new NotFoundError('Location not found or access denied.');
-      const result = await request.server.authService.createSessionForUser(
-        request.tenantId,
-        request.user.id,
-        organizationId,
-        location.id,
-      );
-      if (!result.success || !result.user || !result.session || !result.accessToken || !result.refreshToken)
-        throw new ValidationError('Unable to establish the selected active location.');
-      reply.code(200);
-      return {
-        success: true,
-        user: {
-          id: result.user.id,
-          tenantId: result.user.tenantId,
-          organizationId: result.user.organizationId ?? organizationId,
-          activeLocationId: result.user.activeLocationId ?? location.id,
-          defaultLocationId: result.user.defaultLocationId ?? null,
-          defaultBranchId: result.user.defaultBranchId ?? null,
-          username: result.user.username,
-          email: result.user.email,
-          status: result.user.status,
-        },
-        session: {
-          id: result.session.id,
-          tenantId: result.session.tenantId,
-          userId: result.session.userId,
-          organizationId: result.session.organizationId ?? organizationId,
-          locationId: result.session.locationId ?? location.id,
-          branchId: result.session.branchId ?? null,
-          isActive: result.session.isActive,
-          expiresAt: result.session.expiresAt,
-          loginAt: result.session.loginAt,
-        },
-        location,
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        expiresAt: result.session.expiresAt,
-        tokenType: 'bearer',
-      };
+      return { success: true, location };
     },
   );
 

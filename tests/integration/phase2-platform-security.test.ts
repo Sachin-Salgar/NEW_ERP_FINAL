@@ -8,6 +8,7 @@ import { PlatformBootstrapService } from '../../src/application/services/platfor
 import { TenantBootstrapService } from '../../src/application/services/tenant-bootstrap-service.js';
 import { TenantAdministrationService } from '../../src/application/services/tenant-administration-service.js';
 import { BcryptPasswordHasher } from '../../src/infrastructure/security/bcrypt-password-hasher.js';
+import { IdentityAwarePostgresPlatformRepository } from '../../src/infrastructure/database/repositories/identity-aware-postgres-platform-repository.js';
 import { PostgresPlatformRepository } from '../../src/infrastructure/database/repositories/postgres-platform-repository.js';
 import { resolveDatabaseUrl } from '../../src/config/schema.js';
 import { createIntegrationApplicationPool } from './database.js';
@@ -26,7 +27,7 @@ describe('Phase 2 platform and identity foundation', () => {
 
   runIfDatabase('bootstraps a tenant and secures its identity boundaries', async () => {
     pool = createIntegrationApplicationPool();
-    const repository = new PostgresPlatformRepository(pool);
+    const repository = new IdentityAwarePostgresPlatformRepository(pool);
     const passwordHasher = new BcryptPasswordHasher();
     const bootstrapService = new PlatformBootstrapService(repository);
     const tenantService = new TenantBootstrapService(repository, passwordHasher);

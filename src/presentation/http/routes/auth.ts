@@ -342,8 +342,8 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     {
       schema: {
         tags: ['Authentication'],
-        summary: 'List user organization memberships',
-        description: 'Returns all organizations the user has access to and the active organization.',
+        summary: 'List user organization access',
+        description: 'Returns organizations the authenticated tenant user may access.',
         security: [{ bearerAuth: [] }],
         response: {
           200: toJsonSchema(
@@ -359,8 +359,6 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
                   isDefault: z.boolean(),
                 }),
               ),
-              activeOrganizationId: z.string().uuid().nullable(),
-              requiresOrganizationSelection: z.boolean(),
             }),
           ),
           401: toJsonSchema(errorResponseSchema),
@@ -377,48 +375,6 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       return {
         success: true,
         organizations: memberships.organizations,
-        activeOrganizationId: memberships.activeOrganizationId,
-        requiresOrganizationSelection: false,
-      };
-    },
-  );
-  fastify.post<{ Body: z.infer<typeof authSchemas.orgSelectRequest> }>(
-    '/auth/organizations/select',
-    {
-      schema: {
-        tags: ['Authentication'],
-        summary: 'Select active organization',
-        description: 'Switch the active organization for the current session.',
-        security: [{ bearerAuth: [] }],
-        body: toJsonSchema(authSchemas.orgSelectRequest),
-      },
-      preHandler: requireAuth,
-    },
-    async (request, reply) => {
-      if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication required.');
-      const body = authSchemas.orgSelectRequest.parse(request.body);
-      const requestedOrg = body.organizationId.trim();
-      await request.server.tenantMembershipService.resolveOrganizationMemberships(
-        request.tenantId,
-        request.user.id,
-        requestedOrg,
-      );
-      const result = await request.server.authService.createSessionForUser(
-        request.tenantId,
-        request.user.id,
-        requestedOrg,
-      );
-      if (!result.success || !result.user || !result.session)
-        throw new UnauthorizedError('Failed to create organization session.');
-      reply.code(200);
-      return {
-        success: true,
-        user: sanitizeUser(result.user),
-        session: sanitizeSession(result.session),
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        expiresAt: result.session.expiresAt,
-        tokenType: 'bearer',
       };
     },
   );

@@ -24,8 +24,6 @@ export function schemaForRoute(method: string, url: string) {
   else if (method === 'POST' && normalizedUrl === '/auth/login') schema.body = toJsonSchema(authSchemas.loginRequest);
   else if (method === 'POST' && normalizedUrl === '/auth/refresh')
     schema.body = toJsonSchema(authSchemas.refreshRequest);
-  else if (method === 'POST' && normalizedUrl === '/auth/organizations/select')
-    schema.body = toJsonSchema(authSchemas.orgSelectRequest);
   else if (method === 'POST' && normalizedUrl === '/organizations')
     schema.body = toJsonSchema(enterpriseSchemas.createOrganizationRequest);
   else if (method === 'PATCH' && normalizedUrl === '/organizations/:id')
@@ -349,38 +347,6 @@ export const authSchemas = {
       email: z.string().email(),
       status: z.string(),
     }),
-  }),
-  orgSelectRequest: z.object({
-    organizationId: z.string().min(1),
-  }),
-  orgSelectResponse: z.object({
-    success: z.boolean().describe('Always true'),
-    user: z.object({
-      id: z.string().uuid(),
-      tenantId: z.string().uuid(),
-      organizationId: z.string().uuid().nullable(),
-      activeLocationId: z.string().uuid().nullable(),
-      defaultLocationId: z.string().uuid().nullable(),
-      defaultBranchId: z.string().uuid().nullable(),
-      username: z.string(),
-      email: z.string().email(),
-      status: z.string(),
-    }),
-    session: z.object({
-      id: z.string().uuid(),
-      tenantId: z.string().uuid(),
-      userId: z.string().uuid(),
-      organizationId: z.string().uuid().nullable(),
-      locationId: z.string().uuid().nullable(),
-      branchId: z.string().uuid().nullable(),
-      isActive: z.boolean(),
-      expiresAt: z.string().datetime(),
-      loginAt: z.string().datetime(),
-    }),
-    accessToken: z.string(),
-    refreshToken: z.string(),
-    expiresAt: z.string().datetime(),
-    tokenType: z.string().describe('Always "bearer"'),
   }),
   modulesResponse: z.object({
     success: z.boolean().describe('Always true'),

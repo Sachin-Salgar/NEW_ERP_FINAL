@@ -19,7 +19,7 @@ export interface TenantMembershipRepository {
 export class TenantMembershipService {
   constructor(private readonly repository: TenantMembershipRepository) {}
 
-  async resolveOrganizationMemberships(tenantId: string, userId: string, requestedOrganizationId?: string | null) {
+  async resolveOrganizationMemberships(tenantId: string, userId: string) {
     const normalizedTenantId = tenantId.trim();
     const normalizedUserId = userId.trim();
     if (!normalizedTenantId || !normalizedUserId) {
@@ -31,31 +31,6 @@ export class TenantMembershipService {
       throw new ForbiddenError('User does not have any organization membership in the active tenant.');
     }
 
-    const requested = requestedOrganizationId?.trim();
-    if (requested) {
-      const selected = organizations.find((organization) => organization.id === requested);
-      if (!selected) {
-        throw new ForbiddenError('Requested organization is not available for this user in the active tenant.');
-      }
-      return {
-        organizations,
-        activeOrganizationId: selected.id,
-        requiresOrganizationSelection: false,
-      };
-    }
-
-    if (organizations.length === 1) {
-      return {
-        organizations,
-        activeOrganizationId: organizations[0].id,
-        requiresOrganizationSelection: false,
-      };
-    }
-
-    return {
-      organizations,
-      activeOrganizationId: null,
-      requiresOrganizationSelection: true,
-    };
+    return { organizations };
   }
 }
