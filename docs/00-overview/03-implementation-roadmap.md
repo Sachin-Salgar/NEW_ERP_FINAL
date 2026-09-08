@@ -19,7 +19,7 @@
 
 The system is a **layered modular monolith** with Flutter clients, REST API, backend services, repositories/data access, and PostgreSQL.
 
-Identity and membership context follows **ADR-0040: Platform Identity, Membership, and Context Architecture**, with compatible tenant/RLS details from ADR-0006. An authenticated identity's validated tenant membership establishes tenant context, while an independent platform membership establishes platform context. Deployment hostname, frontend URL, client-supplied tenant ID, and deployment configuration are not tenant authorities.
+Identity and membership context follows **ADR-0040: Platform Identity, Membership, and Context Architecture**, with compatible tenant/RLS details from ADR-0006. Credential verification resolves one identity and its memberships before context is granted; a sole active tenant membership may be safely defaulted, while multiple memberships and platform context require explicit server-validated context selection. Deployment hostname, frontend URL, client-supplied tenant ID, and deployment configuration are not tenant authorities.
 
 PostgreSQL RLS remains the database isolation boundary, with trusted server-side tenant context established transaction-locally.
 
@@ -27,7 +27,7 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 
 ## 2. Current checkpoint
 
-**Current phase:** ADR-0040 platform identity, independent memberships, context authorization, RLS/procedure boundaries, audit atomicity, bootstrap, and tenant administration are implemented and validated. Core Enterprise remains ready for progression to Sales. The broader browser navigation matrix remains a known validation residual caused by a Flutter teardown assertion after navigation assertions completed. Live-client authentication and deployment-seed hardening remain open audit items until focused validation is recorded.
+**Current phase:** ADR-0040 platform identity, independent memberships, context authorization, RLS/procedure boundaries, audit atomicity, bootstrap, and tenant administration are implemented and validated in separate flows. The primary one-login membership-discovery/context-selection flow remains incomplete. The broader browser navigation matrix remains a known validation residual caused by a Flutter teardown assertion after navigation assertions completed. Live-client authentication and deployment-seed hardening remain open audit items until focused validation is recorded.
 
 ### Validation evidence captured
 
@@ -42,7 +42,7 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 ### Implemented
 
 - Production Flutter Web login against deployed backend/database.
-- Single-login direct-to-Dashboard routing with post-login working-context changes.
+- Single credential login UI with post-login tenant/platform membership context selection still required by ADR-0040; tenant working-context changes follow after context establishment.
 - Identity-based tenant discovery and tenant-scoped authentication/session context.
 - TenantContext and PostgreSQL transaction-local tenant context infrastructure.
 - PostgreSQL RLS integration coverage for tenant isolation/rollback/pool context behavior.
@@ -76,8 +76,8 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 | Area                                       | Status                               | Current implementation / remaining work                                                                                                                                            |
 | ------------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Tenant data boundary                       | **COMPLETED**                        | Tenant-scoped model and PostgreSQL RLS architecture implemented.                                                                                                                   |
-| Identity-based tenant discovery            | **IMPLEMENTED — VALIDATION PENDING** | Authentication resolves tenant from authenticated user identity and fails closed on ambiguous active matches.                                                                      |
-| Tenant-scoped session                      | **IMPLEMENTED — VALIDATION PENDING** | Session carries tenant/user/organization/location context and token lifecycle.                                                                                                     |
+| Identity-based tenant discovery            | **PARTIAL**                          | Identity and membership tables plus context validation exist, but the primary login endpoint still creates a tenant session directly instead of returning memberships for explicit context selection. |
+| Tenant-scoped session                      | **IMPLEMENTED — VALIDATION PENDING** | Context-bound sessions and token lifecycle exist; integration with ADR-0040's one-login membership discovery remains pending.                                                     |
 | TenantContext                              | **IMPLEMENTED — VALIDATION PENDING** | Server derives tenant from authenticated session; DB helper establishes transaction-local context.                                                                                 |
 | PostgreSQL RLS                             | **COMPLETED**                        | Integration coverage proves tested tenant visibility/write isolation, rollback and pooled-connection context isolation.                                                            |
 | Legacy host/deployment TenantResolver      | **DEFERRED / RETIRED**               | Replaced by identity-based tenant discovery; do not reintroduce it.                                                                                                                |

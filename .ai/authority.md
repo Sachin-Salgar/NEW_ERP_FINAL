@@ -48,7 +48,8 @@ The tenant is established by authenticated identity and remains fixed for the se
 ### Authentication / working-context UX contract
 
 - The configured API URL is connectivity configuration only and is never tenant authority.
-- Successful login goes directly to Dashboard.
+- There is one credential login UI for all supported user types. Credential verification must resolve the identity and memberships before a tenant or platform context is granted; a sole active tenant membership may be safely defaulted, while multiple memberships and platform context require explicit server-validated context selection.
+- After a tenant context is established, the client lands on Dashboard.
 - The user's configured default organization, branch, and location are applied when available.
 - Missing defaults do not block login and do not cause a selection-screen gate.
 - Organization, Branch, and Location are switched from the authenticated Profile / Working Context menu.

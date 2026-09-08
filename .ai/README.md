@@ -47,8 +47,8 @@ AI workflow files in `.ai/` explain **how an AI coding assistant should navigate
 8. When required information is missing or contradictory, AI must stop and ask instead of inventing a decision.
 9. A feature is not complete until applicable validation has actually run and passed.
 10. Deployment URL/API endpoint is connectivity configuration only; it is not authoritative tenant identity.
-11. Tenant context is established from authenticated identity, validated tenant membership, and a tenant-scoped session.
-12. Platform context is established independently from platform membership and a platform-scoped session.
+11. Credential verification resolves one identity and its memberships before context is granted; tenant or platform context must be selected through a server-validated context endpoint (a sole active tenant membership may be safely defaulted).
+12. Tenant context is established from authenticated identity, validated tenant membership, and a tenant-scoped session; platform context is established independently from platform membership and a platform-scoped session.
 13. PostgreSQL RLS remains mandatory for tenant-owned data.
 
 ## Implementation-progress authority

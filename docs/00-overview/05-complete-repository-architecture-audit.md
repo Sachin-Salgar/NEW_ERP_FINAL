@@ -11,7 +11,8 @@ The repository has a substantial and generally well-tested Core Enterprise imple
 
 1. There is no repository deployment manifest or release step that runs migrations, security/bootstrap, and the custom tenant seed in an ordered, controlled deployment flow.
 2. Platform login/context switching has backend support but no complete corresponding frontend flow.
-3. The custom seed lacks a dedicated clean/repeat/login validation suite.
+3. ADR-0040's one-identity membership discovery and explicit tenant/platform context selection are not wired into the primary login endpoint; tenant login and platform login remain separate flows.
+4. The custom seed's dedicated clean/repeat/login validation is present in source but cannot be executed locally without the configured PostgreSQL test role.
 
 These are implementation, context, and operational gaps rather than a reason to redesign the approved architecture.
 
@@ -38,7 +39,7 @@ These are implementation, context, and operational gaps rather than a reason to 
 
 ### DOCUMENTATION_CONFLICT
 
-ADR-0040 is approved and later than ADR-0006. It supersedes the tenant-only identity/session model within its stated scope and requires one identity with independent tenant and platform memberships. The current roadmap and `.ai` files still describe ADR-0006 as the primary tenancy authority, and `docs/04-backend/08-authentication-context-and-module-access-implementation.md` still describes host-resolved tenant bootstrap and organization selection. Those statements are stale and must be reconciled; they must not be used to justify reverting ADR-0040.
+ADR-0040 is approved and later than ADR-0006. It supersedes the tenant-only identity/session model within its stated scope and requires one identity with independent tenant and platform memberships. It also requires login to return memberships without granting context, followed by explicit server-validated context selection (with a single active tenant membership eligible for a safe default). The current implementation still creates a tenant session directly from `/auth/login` and exposes a separate `/auth/platform-login`; this is an implementation gap, not an alternate interpretation of ADR-0040.
 
 ## Architecture intent → implementation → tests → UI → deployment
 
@@ -48,9 +49,9 @@ ADR-0040 is approved and later than ADR-0006. It supersedes the tenant-only iden
 | Tenant authority | Authenticated server-side membership/session; client tenant IDs never authorize | `requireAuth` derives `request.tenantId` from validated session; tenant-scoped services and RLS | tenant mismatch and RLS tests | Client persists/sends tenant display state, but backend remains authority | API endpoint is deployment configuration only | **PASS with client-context cleanup needed** |
 | Platform authority | Platform membership/session and dedicated executor boundary | `requirePlatformContext`, platform permission repository, `platformDbPool`, guarded SQL procedures | platform security and platform/tenant separation tests | `/platform` route and screen | `PLATFORM_DATABASE_URL` required in production | **PASS for tested paths** |
 | Database isolation | `erp_app`-like non-bypass role, transaction-local context, RLS/FORCE RLS | migration policies, `withTenantContext`, role bootstrap SQL, repository transaction boundaries | tenant/RLS/role/audit atomicity suites | Not applicable | CI provisions non-superuser RLS role; production role setup is external | **PASS in repository/CI; production evidence pending** |
-| Login UX | One login; success goes directly to Dashboard; working context is post-login | backend returns active/default context; login no longer gates on selection | backend auth tests and Flutter auth integration tests | router no longer redirects to selection | no deployment smoke workflow | **PASS locally** |
+| Login UX | One login; membership context is selected after credential verification; organization/branch/location are post-login working context | `/auth/context` validates context, but `/auth/login` grants tenant context directly and `/auth/platform-login` is separate | existing tenant/platform tests cover separate flows, not one-login membership discovery | router supports tenant and platform routes but has no membership-selection flow | no deployment smoke workflow | **PARTIAL** |
 | Frontend security | UI visibility is convenience; backend authorizes every operation | route permissions, backend middleware, and bearer propagation | route/authz tests and bearer regression test | permission-aware navigation | frontend/backend split documented | **PASS** |
-| Seed | deterministic, idempotent, non-production-safe known tenant/admin/user identities | environment credentials, opt-in, production guard, deterministic script | disabled-mode fail-closed validation; dedicated DB seed/login suite remains | seeded admin can be used by E2E fixtures | no deployment pre-deploy/release seed | **PARTIAL** |
+| Seed | deterministic, idempotent, non-production-safe known tenant/admin/user identities | environment credentials, opt-in, production guard, deterministic script | dedicated clean/repeat/login vertical-slice test added; execution is blocked locally by unavailable configured PostgreSQL credentials | seeded admin can be used by E2E fixtures | no deployment pre-deploy/release seed | **PARTIAL** |
 
 ## `.ai` audit
 
