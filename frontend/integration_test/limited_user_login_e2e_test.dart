@@ -8,7 +8,6 @@ import 'package:new_erp_final_frontend/core/auth/auth_service.dart';
 import 'package:new_erp_final_frontend/modules/dashboard/dashboard_screen.dart';
 
 const _tenantId = '11111111-1111-4111-8111-111111111111';
-const _organizationId = '22222222-2222-4222-8222-222222222222';
 const _limitedEmail = 'e2e-limited@example.com';
 const _password = 'Password123!';
 
@@ -56,13 +55,10 @@ void main() {
       await _waitFor(tester, dashboard);
       expect(dashboard, findsOneWidget);
 
-      expect(find.text('Select organization'), findsNothing);
-      expect(find.text('Select location'), findsNothing);
 
       final auth = GetIt.instance.get<AuthService>();
       expect(auth.isAuthenticated, isTrue);
       expect(auth.currentTenantId, equals(_tenantId));
-      expect(auth.currentOrganizationId, equals(_organizationId));
     },
     timeout: const Timeout(Duration(seconds: 90)),
   );

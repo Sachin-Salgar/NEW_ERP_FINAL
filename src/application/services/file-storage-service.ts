@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 
 import type {
   FileMetadataRecord,
-  FileMetadataRepository,
   ObjectStorageProvider,
   StructuredPayload,
 } from '../contracts/operational-services.js';
@@ -25,7 +24,7 @@ export interface CreateUploadInput {
 
 export class FileStorageService {
   constructor(
-    private readonly repository: FileMetadataRepository,
+    private readonly repository: any,
     private readonly storage: ObjectStorageProvider,
     private readonly accessPolicy: FileAccessPolicy,
     private readonly options: {

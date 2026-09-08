@@ -41,10 +41,7 @@ class AuthService extends ChangeNotifier {
   String? _accessToken, _refreshToken;
   DateTime? _expiresAt;
   Future<bool>? _refreshRequest;
-  String? currentTenantId,
-      currentOrganizationId,
-      currentBranchId,
-      currentLocationId;
+  String? currentTenantId, currentBranchId;
   Map<String, dynamic>? currentUser, deploymentInfo;
   String? contextType;
   List<Map<String, dynamic>> availableModules = const [];
@@ -85,9 +82,7 @@ class AuthService extends ChangeNotifier {
     if (exp != null) _expiresAt = DateTime.tryParse(exp);
     currentTenantId = await _secureStorage.read(key: 'tenant_id');
     contextType = await _secureStorage.read(key: 'context_type');
-    currentOrganizationId = await _secureStorage.read(key: 'organization_id');
     currentBranchId = await _secureStorage.read(key: 'branch_id');
-    currentLocationId = await _secureStorage.read(key: 'location_id');
     if (_accessToken != null) notifyListeners();
   }
 
@@ -165,22 +160,10 @@ class AuthService extends ChangeNotifier {
         .toString()
         .trim();
     currentTenantId = tenant.isEmpty ? null : tenant;
-    final org = (s['organizationId'] ?? currentUser?['organizationId'] ?? '')
-        .toString()
-        .trim();
-    currentOrganizationId = org.isEmpty ? null : org;
     final branch = (s['branchId'] ?? currentUser?['defaultBranchId'] ?? '')
         .toString()
         .trim();
     currentBranchId = branch.isEmpty ? null : branch;
-    final loc =
-        (s['locationId'] ??
-                currentUser?['activeLocationId'] ??
-                currentUser?['defaultLocationId'] ??
-                '')
-            .toString()
-            .trim();
-    currentLocationId = loc.isEmpty ? null : loc;
     if (_accessToken != null)
       await _secureStorage.write(key: 'access_token', value: _accessToken!);
     if (_refreshToken != null)
@@ -198,15 +181,8 @@ class AuthService extends ChangeNotifier {
       await _secureStorage.delete(key: 'tenant_id');
     if (contextType != null)
       await _secureStorage.write(key: 'context_type', value: contextType!);
-    if (currentOrganizationId != null)
-      await _secureStorage.write(
-        key: 'organization_id',
-        value: currentOrganizationId!,
-      );
     if (currentBranchId != null)
       await _secureStorage.write(key: 'branch_id', value: currentBranchId!);
-    if (currentLocationId != null)
-      await _secureStorage.write(key: 'location_id', value: currentLocationId!);
   }
 
   Future<bool> loadMe(String baseUrl) async {
@@ -219,15 +195,8 @@ class AuthService extends ChangeNotifier {
       currentUser = b['user'] as Map<String, dynamic>?;
       currentTenantId = (currentUser?['tenantId'] ?? currentTenantId)
           ?.toString();
-      currentOrganizationId =
-          (currentUser?['organizationId'] ?? currentOrganizationId)?.toString();
       currentBranchId = (currentUser?['defaultBranchId'] ?? currentBranchId)
           ?.toString();
-      currentLocationId =
-          (currentUser?['activeLocationId'] ??
-                  currentUser?['defaultLocationId'] ??
-                  currentLocationId)
-              ?.toString();
       notifyListeners();
       return true;
     } catch (_) {
@@ -339,9 +308,7 @@ class AuthService extends ChangeNotifier {
     _refreshToken = null;
     _expiresAt = null;
     currentTenantId = null;
-    currentOrganizationId = null;
     currentBranchId = null;
-    currentLocationId = null;
     currentUser = null;
     availableModules = const [];
     _accessibleModulesLoaded = false;
@@ -353,9 +320,7 @@ class AuthService extends ChangeNotifier {
       'expires_at',
       'tenant_id',
       'context_type',
-      'organization_id',
       'branch_id',
-      'location_id',
     ])
       await _secureStorage.delete(key: k);
     notifyListeners();

@@ -26,16 +26,10 @@ void main() {
             'refreshToken': 'refresh',
             'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
             'user': {'id': 'user-id', 'tenantId': 'tenant-1'},
-            'session': {'tenantId': 'tenant-1', 'organizationId': 'org-1', 'locationId': 'loc-1'},
+            'session': {'tenantId': 'tenant-1'},
           }),
           200,
         );
-      }
-      if (request.url.path.contains('/api/v1/auth/organizations')) {
-        return http.Response(jsonEncode({'organizations': [{'id': 'org-1', 'name': 'Org 1'}], 'activeOrganizationId': 'org-1'}), 200);
-      }
-      if (request.url.path.contains('/api/v1/locations')) {
-        return http.Response(jsonEncode({'locations': [{'id': 'loc-1', 'name': 'Loc 1'}], 'activeLocationId': 'loc-1'}), 200);
       }
       if (request.url.path.contains('/api/v1/auth/modules')) {
         return http.Response(jsonEncode({'modules': [{'code': 'security'}]}), 200);
@@ -79,16 +73,10 @@ void main() {
             'refreshToken': 'refresh',
             'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
             'user': {'id': 'user-id', 'tenantId': 'tenant-1'},
-            'session': {'tenantId': 'tenant-1', 'organizationId': 'org-1', 'locationId': 'loc-1'},
+            'session': {'tenantId': 'tenant-1'},
           }),
           200,
         );
-      }
-      if (request.url.path.contains('/api/v1/auth/organizations')) {
-        return http.Response(jsonEncode({'organizations': [{'id': 'org-1', 'name': 'Org 1'}], 'activeOrganizationId': 'org-1'}), 200);
-      }
-      if (request.url.path.contains('/api/v1/locations')) {
-        return http.Response(jsonEncode({'locations': [{'id': 'loc-1', 'name': 'Loc 1'}], 'activeLocationId': 'loc-1'}), 200);
       }
       if (request.url.path.contains('/api/v1/auth/modules')) {
         return http.Response(jsonEncode({'modules': [{'code': 'security'}]}), 200);
@@ -126,16 +114,10 @@ void main() {
             'refreshToken': 'refresh',
             'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
             'user': {'id': 'user-id', 'tenantId': 'tenant-1'},
-            'session': {'tenantId': 'tenant-1', 'organizationId': 'org-1', 'locationId': 'loc-1'},
+            'session': {'tenantId': 'tenant-1'},
           }),
           200,
         );
-      }
-      if (request.url.path.contains('/api/v1/auth/organizations')) {
-        return http.Response(jsonEncode({'organizations': [{'id': 'org-1', 'name': 'Org 1'}], 'activeOrganizationId': 'org-1'}), 200);
-      }
-      if (request.url.path.contains('/api/v1/locations')) {
-        return http.Response(jsonEncode({'locations': [{'id': 'loc-1', 'name': 'Loc 1'}], 'activeLocationId': 'loc-1'}), 200);
       }
       if (request.url.path.contains('/api/v1/auth/modules')) {
         return http.Response(jsonEncode({'modules': [{'code': 'security'}]}), 200);

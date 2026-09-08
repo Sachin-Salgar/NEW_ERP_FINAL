@@ -5,8 +5,7 @@ import 'branch_service.dart';
 import '../../presentation/ui/components/page_header.dart';
 
 class CreateBranchScreen extends StatefulWidget {
-  final String organizationId;
-  const CreateBranchScreen({super.key, required this.organizationId});
+  const CreateBranchScreen({super.key});
 
   @override
   State<CreateBranchScreen> createState() => _CreateBranchScreenState();
@@ -38,7 +37,7 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
-    final ok = await service.createBranch(widget.organizationId, {
+    final ok = await service.createBranch({
       'name': _name.text.trim(),
       'city': _city.text.trim(),
     });
@@ -70,10 +69,9 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
                 children: [
                   const ErpPageHeader(
                     title: 'Create Branch',
-                    subtitle: 'Add a branch to this organization',
+                    subtitle: 'Add a branch to this tenant',
                     breadcrumbs: [
                       ErpBreadcrumbItem(label: 'Dashboard'),
-                      ErpBreadcrumbItem(label: 'Organizations'),
                       ErpBreadcrumbItem(label: 'Branches'),
                       ErpBreadcrumbItem(label: 'Create'),
                     ],

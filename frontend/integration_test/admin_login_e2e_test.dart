@@ -8,7 +8,6 @@ import 'package:new_erp_final_frontend/core/auth/auth_service.dart';
 import 'package:new_erp_final_frontend/routing/route_state.dart';
 
 const _tenantId = '11111111-1111-4111-8111-111111111111';
-const _organizationId = '22222222-2222-4222-8222-222222222222';
 const _adminEmail = 'e2e@example.com';
 const _adminPassword = 'Password123!';
 
@@ -55,14 +54,11 @@ void main() {
       // navigation sidebar and as the current page title. Assert the canonical
       // route instead of requiring a unique text widget.
       expect(AppRouteState.currentRoute.value, equals('/dashboard'));
-      expect(find.text('Select organization'), findsNothing);
-      expect(find.text('Select location'), findsNothing);
       expect(find.text('Dashboard'), findsNWidgets(2));
 
       final auth = GetIt.instance.get<AuthService>();
       expect(auth.isAuthenticated, isTrue);
       expect(auth.currentTenantId, equals(_tenantId));
-      expect(auth.currentOrganizationId, equals(_organizationId));
     },
     timeout: const Timeout(Duration(seconds: 90)),
   );

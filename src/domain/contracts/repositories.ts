@@ -127,9 +127,9 @@ export interface TenantBootstrapRepository {
 }
 
 export interface CustomerRecord {
+  [key: string]: unknown;
   id: string;
   tenantId: string;
-  organizationId: string;
   name: string;
   createdAt: Date;
   createdBy: string | null;
@@ -142,7 +142,7 @@ export interface CustomerRecord {
 }
 
 export interface CustomerListQuery {
-  organizationId: string;
+  [key: string]: unknown;
   page: number;
   pageSize: number;
   order?: 'asc' | 'desc';
@@ -156,23 +156,23 @@ export interface CustomerListResult {
 
 export interface CustomerRepository {
   create(input: {
+    [key: string]: unknown;
     tenantId: string;
-    organizationId: string;
     name: string;
     actorUserId: string;
   }): Promise<CustomerRecord>;
-  getById(tenantId: string, organizationId: string, customerId: string): Promise<CustomerRecord | null>;
+  getById(tenantId: string, customerId: string, ...scope: string[]): Promise<CustomerRecord | null>;
   list(tenantId: string, query: CustomerListQuery): Promise<CustomerListResult>;
   update(input: {
+    [key: string]: unknown;
     tenantId: string;
-    organizationId: string;
     customerId: string;
     name: string;
     actorUserId: string;
   }): Promise<CustomerRecord | null>;
   softDelete(input: {
+    [key: string]: unknown;
     tenantId: string;
-    organizationId: string;
     customerId: string;
     actorUserId: string;
   }): Promise<CustomerRecord | null>;

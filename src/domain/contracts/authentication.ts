@@ -2,13 +2,11 @@ export type AuthTokenType = 'access' | 'refresh';
 export type AuthenticationContextType = 'tenant' | 'platform';
 
 export interface AuthenticatedUser {
+  [key: string]: any;
   id: string;
   identityId?: string;
   tenantId: string;
-  organizationId?: string | null;
   branchId?: string | null;
-  activeLocationId?: string | null;
-  defaultLocationId?: string | null;
   defaultBranchId?: string | null;
   financialYearId?: string | null;
   username: string;
@@ -19,6 +17,7 @@ export interface AuthenticatedUser {
 }
 
 export interface SessionRecord {
+  [key: string]: any;
   id: string;
   tenantId: string;
   userId: string;
@@ -28,8 +27,6 @@ export interface SessionRecord {
   tenantMembershipId?: string | null;
   platformMembershipId?: string | null;
   securityVersion?: number;
-  organizationId?: string | null;
-  locationId?: string | null;
   branchId?: string | null;
   financialYearId?: string | null;
   accessTokenId?: string | null;
@@ -54,11 +51,10 @@ export interface AuthenticationResult {
 }
 
 export interface CreateSessionInput {
+  [key: string]: any;
   id?: string;
   tenantId: string;
   userId: string;
-  organizationId?: string | null;
-  locationId?: string | null;
   branchId?: string | null;
   financialYearId?: string | null;
   accessTokenId?: string | null;

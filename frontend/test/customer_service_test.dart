@@ -11,7 +11,7 @@ import 'package:new_erp_final_frontend/modules/customer/customer_service.dart';
 
 void main() {
   test(
-    'uses active organization and server pagination for customer list',
+    'uses tenant context and server pagination for customer list',
     () async {
       Uri? requested;
       final client = MockClient((request) async {
@@ -27,7 +27,7 @@ void main() {
         );
       });
       final auth = AuthService(authzService: AuthZService());
-      auth.currentOrganizationId = 'org-1';
+      auth.currentTenantId = 'tenant-1';
       final service = CustomerService(
         apiClient: ApiClient(baseUrl: 'http://example.com', httpClient: client),
         auth: auth,
@@ -67,7 +67,7 @@ void main() {
       );
     });
     final auth = AuthService(authzService: AuthZService());
-    auth.currentOrganizationId = 'org-1';
+    auth.currentTenantId = 'tenant-1';
     final service = CustomerService(
       apiClient: ApiClient(baseUrl: 'http://example.com', httpClient: client),
       auth: auth,
@@ -95,7 +95,7 @@ void main() {
       ];
       final client = MockClient((_) async => responses.removeAt(0));
       final auth = AuthService(authzService: AuthZService());
-      auth.currentOrganizationId = 'org-1';
+      auth.currentTenantId = 'tenant-1';
       final service = CustomerService(
         apiClient: ApiClient(baseUrl: 'http://example.com', httpClient: client),
         auth: auth,
@@ -143,7 +143,7 @@ void main() {
       return http.Response(jsonEncode({'deleted': true}), 200);
     });
     final auth = AuthService(authzService: AuthZService());
-    auth.currentOrganizationId = 'org-1';
+    auth.currentTenantId = 'tenant-1';
     final service = CustomerService(
       apiClient: ApiClient(baseUrl: 'http://example.com', httpClient: client),
       auth: auth,
@@ -157,7 +157,6 @@ void main() {
     expect(await service.deleteCustomer('c-1'), isNull);
 
     expect(jsonDecode(requests[0].body), {
-      'organizationId': 'org-1',
       'name': 'Acme',
     });
     expect(jsonDecode(requests[2].body), {'name': 'Acme Updated'});

@@ -78,8 +78,6 @@ export async function clearTenantContextSettingsForClient(client: PoolClient, te
     tenantContextKey,
     `${tenantContextKey}_context`,
     `${tenantContextKey}_user_id`,
-    `${tenantContextKey}_organization_id`,
-    `${tenantContextKey}_location_id`,
   ]) {
     const safeSettingKey = settingKey.replace(/"/g, '""');
     await client.query(`RESET "${safeSettingKey}"`).catch(() => undefined);
@@ -102,11 +100,7 @@ async function setTenantSettingsForClient(
   await client.query(
     `SELECT set_config('${tenantContextKey}_context', '${JSON.stringify(context).replace(/'/g, "''")}', true)`,
   );
-  const contextEntries: Array<[string, string | null]> = [
-    [`${tenantContextKey}_user_id`, context.userId ?? null],
-    [`${tenantContextKey}_organization_id`, context.organizationId ?? context.activeOrganizationId ?? null],
-    [`${tenantContextKey}_location_id`, context.activeLocationId ?? context.locationAccess?.[0] ?? null],
-  ];
+  const contextEntries: Array<[string, string | null]> = [[`${tenantContextKey}_user_id`, context.userId ?? null]];
 
   for (const [settingKey, rawValue] of contextEntries) {
     if (rawValue === null || rawValue === undefined || rawValue.trim() === '') {

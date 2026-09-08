@@ -13,7 +13,6 @@ import 'package:new_erp_final_frontend/routing/app_router_delegate.dart';
 import 'package:new_erp_final_frontend/routing/route_state.dart';
 
 const _tenantId = '11111111-1111-4111-8111-111111111111';
-const _organizationId = '22222222-2222-4222-8222-222222222222';
 const _branchId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const _adminEmail = 'e2e@example.com';
 const _adminPassword = 'Password123!';
@@ -37,7 +36,6 @@ Future<void> _waitFor(
     'currentRoute=${AppRouteState.currentRoute.value}',
     'authenticated=${auth?.isAuthenticated}',
     'tenantId=${auth?.currentTenantId}',
-    'organizationId=${auth?.currentOrganizationId}',
     'branchRead=${auth?.hasPermission('branch.read')}',
     'branchManage=${auth?.hasPermission('branch.update')}',
     'branchNotFound=${find.text('Branch not found').evaluate().length}',
@@ -96,22 +94,13 @@ Future<void> _openRoute(WidgetTester tester, String route) async {
 }
 
 Finder _routeContentFinder(String route) {
-  if (route.contains('/organizations/details/'))
-    return find.text('Organization information');
   if (route.contains('/branches/details/'))
     return find.text('Branch information');
   if (route == '/settings/users') return find.text('Users');
   if (route == '/settings/roles' || route == '/settings/permissions')
     return find.text('Access denied');
   if (route == '/settings/branches') return find.text('Branches');
-  return find.text('Organizations');
-}
-
-Future<void> _navigateRoute(WidgetTester tester, String route) async {
-  final delegate = await _routerDelegate(tester);
-  delegate.navigate(route);
-  await _settle(tester);
-  expect(AppRouteState.currentRoute.value, equals(route));
+  return find.text('Branches');
 }
 
 Future<void> _logout(WidgetTester tester) async {
@@ -123,12 +112,6 @@ Future<void> _logout(WidgetTester tester) async {
 
 Future<void> _browserBack(WidgetTester tester, String expectedRoute) async {
   web.window.history.back();
-  await _waitFor(tester, _routeContentFinder(expectedRoute));
-  expect(AppRouteState.currentRoute.value, equals(expectedRoute));
-}
-
-Future<void> _browserForward(WidgetTester tester, String expectedRoute) async {
-  web.window.history.forward();
   await _waitFor(tester, _routeContentFinder(expectedRoute));
   expect(AppRouteState.currentRoute.value, equals(expectedRoute));
 }
@@ -160,21 +143,10 @@ void main() {
       final auth = GetIt.instance.get<AuthService>();
       expect(auth.isAuthenticated, isTrue);
       expect(auth.currentTenantId, equals(_tenantId));
-      expect(auth.currentOrganizationId, equals(_organizationId));
+      expect(auth.currentTenantId, equals(_tenantId));
 
       await _openRoute(tester, '/settings');
-      await _waitFor(tester, find.text('Organizations'));
-      expect(find.text('Organizations'), findsWidgets);
-      await _openRoute(tester, '/settings/organizations');
-      await _waitFor(tester, find.text('Organizations'));
-      expect(find.text('Organizations'), findsWidgets);
-
-      await _openRoute(
-        tester,
-        '/settings/organizations/details/$_organizationId',
-      );
-      await _waitFor(tester, find.text('Organization information'));
-      expect(find.text('E2E Organization'), findsWidgets);
+      await _waitFor(tester, find.text('Branches'));
       expect(find.byType(SettingsSidebar), findsOneWidget);
       final branchesSidebarTarget = find.descendant(
         of: find.byType(SettingsSidebar),
@@ -191,17 +163,8 @@ void main() {
       await _waitFor(tester, find.text('Branch information'));
       expect(find.text('E2E Main Branch'), findsWidgets);
 
-      await _navigateRoute(
-        tester,
-        '/settings/organizations/details/$_organizationId',
-      );
       await _browserBack(tester, '/settings/branches/details/$_branchId');
       expect(find.text('E2E Main Branch'), findsWidgets);
-      await _browserForward(
-        tester,
-        '/settings/organizations/details/$_organizationId',
-      );
-      expect(find.text('E2E Organization'), findsWidgets);
 
       await _logout(tester);
       await _waitFor(
@@ -209,7 +172,7 @@ void main() {
         find.byKey(const ValueKey('login_identifier_field')),
       );
       final loginDelegate = await _routerDelegate(tester);
-      await loginDelegate.setNewRoutePath('/settings/organizations');
+      await loginDelegate.setNewRoutePath('/settings/branches');
       await _settle(tester);
       await _waitFor(
         tester,
@@ -224,11 +187,11 @@ void main() {
       final limitedAuth = GetIt.instance.get<AuthService>();
       expect(limitedAuth.isAuthenticated, isTrue);
       expect(limitedAuth.currentTenantId, equals(_tenantId));
-      expect(limitedAuth.currentOrganizationId, equals(_organizationId));
+      expect(limitedAuth.currentTenantId, equals(_tenantId));
 
-      await _openRoute(tester, '/settings/organizations');
-      await _waitFor(tester, find.text('Organizations'));
-      expect(find.text('Organizations'), findsWidgets);
+      await _openRoute(tester, '/settings/branches');
+      await _waitFor(tester, find.text('Branches'));
+      expect(find.text('Branches'), findsWidgets);
       await _openRoute(tester, '/settings/users');
       await _waitFor(tester, find.text('Users'));
       expect(find.text('Users'), findsWidgets);

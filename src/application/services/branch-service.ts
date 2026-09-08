@@ -27,7 +27,12 @@ export class BranchService {
     if (!normalizedUserId) {
       throw new ValidationError('User identity is required to list accessible branches.');
     }
+
     return this.repository.listAccessibleBranchesForUser(tenantId, normalizedUserId, organizationId ?? null);
+  }
+
+  async listTenantBranchesForUser(tenantId: string, userId: string): Promise<BranchRecord[]> {
+    return this.listAccessibleBranchesForUser(tenantId, userId, null);
   }
 
   async getAccessibleBranchByIdForUser(
@@ -42,15 +47,21 @@ export class BranchService {
     if (!normalizedUserId) {
       throw new ValidationError('User identity is required to resolve a branch.');
     }
+
     if (!normalizedBranchId) {
       throw new ValidationError('Branch ID is required.');
     }
+
     return this.repository.getAccessibleBranchByIdForUser(
       tenantId,
       normalizedUserId,
       normalizedBranchId,
       organizationId ?? null,
     );
+  }
+
+  async getTenantBranchByIdForUser(tenantId: string, userId: string, branchId: string): Promise<BranchRecord | null> {
+    return this.getAccessibleBranchByIdForUser(tenantId, userId, branchId, null);
   }
 
   async validateBranchAccess(

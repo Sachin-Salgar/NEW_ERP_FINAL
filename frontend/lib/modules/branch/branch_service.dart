@@ -17,32 +17,12 @@ class BranchService extends ChangeNotifier {
   BranchService({required this.apiClient})
     : auth = GetIt.instance.get<AuthService>();
 
-  String _resolveOrganizationId([String? providedOrganizationId]) {
-    final candidate =
-        (providedOrganizationId ?? auth.currentOrganizationId ?? '')
-            .toString()
-            .trim();
-    final fallback = (auth.currentOrganizationId ?? '').toString().trim();
-    final resolved = candidate.isEmpty ? fallback : candidate;
-
-    if (resolved.isEmpty) {
-      throw StateError(
-        'Organization context is missing from the authenticated session.',
-      );
-    }
-
-    return resolved;
-  }
-
-  Future<void> fetchBranches([String? organizationId]) async {
+  Future<void> fetchBranches() async {
     isLoading = true;
     error = null;
     notifyListeners();
     try {
-      final resolvedOrganizationId = _resolveOrganizationId(organizationId);
-      final resp = await apiClient.get(
-        '/api/v1/organizations/$resolvedOrganizationId/branches',
-      );
+      final resp = await apiClient.get('/api/v1/branches');
       if (resp.statusCode == 200) {
         final body = jsonDecode(resp.body) as Map<String, dynamic>;
         final list = (body['branches'] as List<dynamic>?) ?? [];
@@ -59,19 +39,14 @@ class BranchService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> createBranch(
-    String? organizationId, [
-    Map<String, dynamic>? payload,
-  ]) async {
+  Future<bool> createBranch(Map<String, dynamic> payload) async {
     try {
-      final resolvedOrganizationId = _resolveOrganizationId(organizationId);
-      final resolvedPayload = payload ?? const <String, dynamic>{};
       final resp = await apiClient.post(
-        '/api/v1/organizations/$resolvedOrganizationId/branches',
-        body: resolvedPayload,
+        '/api/v1/branches',
+        body: payload,
       );
       if (resp.statusCode == 201) {
-        await fetchBranches(resolvedOrganizationId);
+        await fetchBranches();
         return true;
       }
       return false;
@@ -80,15 +55,9 @@ class BranchService extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>?> getBranch(
-    String? organizationId,
-    String branchId,
-  ) async {
+  Future<Map<String, dynamic>?> getBranch(String branchId) async {
     try {
-      final resolvedOrganizationId = _resolveOrganizationId(organizationId);
-      final resp = await apiClient.get(
-        '/api/v1/organizations/$resolvedOrganizationId/branches/$branchId',
-      );
+      final resp = await apiClient.get('/api/v1/branches/$branchId');
       if (resp.statusCode == 200) {
         final body = jsonDecode(resp.body) as Map<String, dynamic>;
         return Map<String, dynamic>.from(body['branch'] as Map);
@@ -96,7 +65,7 @@ class BranchService extends ChangeNotifier {
       if (kDebugMode) {
         debugPrint(
           'ERP branch detail failed: HTTP ${resp.statusCode}; '
-          'organizationId=$resolvedOrganizationId; branchId=$branchId; '
+          'branchId=$branchId; '
           'body=${resp.body}',
         );
       }
@@ -108,19 +77,14 @@ class BranchService extends ChangeNotifier {
     return null;
   }
 
-  Future<bool> updateBranch(
-    String? organizationId,
-    String branchId,
-    Map<String, dynamic> payload,
-  ) async {
+  Future<bool> updateBranch(String branchId, Map<String, dynamic> payload) async {
     try {
-      final resolvedOrganizationId = _resolveOrganizationId(organizationId);
       final resp = await apiClient.put(
-        '/api/v1/organizations/$resolvedOrganizationId/branches/$branchId',
+        '/api/v1/branches/$branchId',
         body: payload,
       );
       if (resp.statusCode == 200) {
-        await fetchBranches(resolvedOrganizationId);
+        await fetchBranches();
         return true;
       }
     } catch (e) {
@@ -129,14 +93,13 @@ class BranchService extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> deactivateBranch(String? organizationId, String branchId) async {
+  Future<bool> deactivateBranch(String branchId) async {
     try {
-      final resolvedOrganizationId = _resolveOrganizationId(organizationId);
       final resp = await apiClient.post(
-        '/api/v1/organizations/$resolvedOrganizationId/branches/$branchId/deactivate',
+        '/api/v1/branches/$branchId/deactivate',
       );
       if (resp.statusCode == 200) {
-        await fetchBranches(resolvedOrganizationId);
+        await fetchBranches();
         return true;
       }
     } catch (e) {}

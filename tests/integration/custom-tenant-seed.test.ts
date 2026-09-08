@@ -58,18 +58,14 @@ describe('custom tenant seed vertical slice', () => {
       identityCount: number;
       userCount: number;
       roleAssignmentCount: number;
-      organizationCount: number;
       branchCount: number;
-      locationCount: number;
     }>(
       `SELECT
          (SELECT COUNT(*)::int FROM tenants WHERE id = $1) AS "tenantCount",
          (SELECT COUNT(*)::int FROM identities i JOIN users u ON u.identity_id = i.id WHERE u.tenant_id = $1 AND u.username IN ('administrator', 'admin', 'manager')) AS "identityCount",
          (SELECT COUNT(*)::int FROM users WHERE tenant_id = $1 AND username IN ('administrator', 'admin', 'manager')) AS "userCount",
          (SELECT COUNT(*)::int FROM user_roles ur JOIN users u ON u.id = ur.user_id WHERE ur.tenant_id = $1 AND u.username IN ('administrator', 'admin', 'manager')) AS "roleAssignmentCount",
-         (SELECT COUNT(*)::int FROM organizations WHERE tenant_id = $1 AND is_deleted = false) AS "organizationCount",
-         (SELECT COUNT(*)::int FROM branches WHERE tenant_id = $1 AND is_deleted = false) AS "branchCount",
-         (SELECT COUNT(*)::int FROM locations WHERE tenant_id = $1 AND is_deleted = false) AS "locationCount"`,
+         (SELECT COUNT(*)::int FROM branches WHERE tenant_id = $1 AND is_deleted = false) AS "branchCount"`,
       [tenantId],
     );
     expect(counts.rows[0]).toEqual({
@@ -77,9 +73,7 @@ describe('custom tenant seed vertical slice', () => {
       identityCount: 3,
       userCount: 3,
       roleAssignmentCount: 3,
-      organizationCount: 2,
       branchCount: 4,
-      locationCount: 4,
     });
 
     applicationPool = createIntegrationApplicationPool();

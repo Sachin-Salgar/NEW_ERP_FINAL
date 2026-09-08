@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import '../../core/auth/auth_service.dart';
 import '../../presentation/ui/components/back_button.dart';
-import '../../modules/organization/organization_service.dart';
 import 'user_service.dart';
 import '../../presentation/ui/components/page_header.dart';
 
@@ -18,10 +17,8 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
   final _username = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
-  String? _organizationId;
   String? _defaultBranchId;
   late final UserService service;
-  late final OrganizationService orgService;
   late final AuthService auth;
   bool _loading = false;
   String? _error;
@@ -30,9 +27,7 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
   void initState() {
     super.initState();
     service = GetIt.instance.get<UserService>();
-    orgService = GetIt.instance.get<OrganizationService>();
     auth = GetIt.instance.get<AuthService>();
-    orgService.fetchOrganizations();
   }
 
   @override
@@ -50,7 +45,6 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
       'username': _username.text.trim(),
       'email': _email.text.trim(),
       'password': _password.text,
-      'organizationId': _organizationId,
       'defaultBranchId': _defaultBranchId,
     });
     if (!mounted) return;
@@ -82,7 +76,7 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
                 children: [
                   ErpPageHeader(
                     title: 'Create User',
-                    subtitle: 'Create a user account and assign its context',
+                    subtitle: 'Create a user account for this tenant',
                     breadcrumbs: const [
                       ErpBreadcrumbItem(label: 'Dashboard'),
                       ErpBreadcrumbItem(label: 'Users'),

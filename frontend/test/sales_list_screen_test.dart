@@ -44,7 +44,7 @@ void main() {
       apiClientFactory: (_) => api,
       authzService: authz,
     );
-    auth.currentOrganizationId = 'org-1';
+    auth.currentTenantId = 'tenant-1';
     await authz.loadPermissions(
       ApiClient(
         baseUrl: 'http://example.com',

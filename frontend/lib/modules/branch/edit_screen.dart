@@ -5,9 +5,8 @@ import 'branch_service.dart';
 import '../../presentation/ui/components/page_header.dart';
 
 class EditBranchScreen extends StatefulWidget {
-  final String organizationId;
   final String branchId;
-  const EditBranchScreen({super.key, required this.organizationId, required this.branchId});
+  const EditBranchScreen({super.key, required this.branchId});
 
   @override
   State<EditBranchScreen> createState() => _EditBranchScreenState();
@@ -41,7 +40,7 @@ class _EditBranchScreenState extends State<EditBranchScreen> {
   }
 
   Future<void> _load() async {
-    final d = await service.getBranch(widget.organizationId, widget.branchId);
+    final d = await service.getBranch(widget.branchId);
     if (!mounted) return;
     if (d == null) {
       setState(() => _error = 'Branch not found');
@@ -56,7 +55,7 @@ class _EditBranchScreenState extends State<EditBranchScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
-    final ok = await service.updateBranch(widget.organizationId, widget.branchId, {
+    final ok = await service.updateBranch(widget.branchId, {
       'name': _name.text.trim(),
       'city': _city.text.trim(),
     });
@@ -94,7 +93,6 @@ class _EditBranchScreenState extends State<EditBranchScreen> {
                     subtitle: 'Update branch information',
                     breadcrumbs: [
                       ErpBreadcrumbItem(label: 'Dashboard'),
-                      ErpBreadcrumbItem(label: 'Organizations'),
                       ErpBreadcrumbItem(label: 'Branches'),
                       ErpBreadcrumbItem(label: 'Edit'),
                     ],

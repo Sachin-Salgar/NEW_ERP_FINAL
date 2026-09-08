@@ -64,27 +64,21 @@ async function buildAuthApp() {
   return app;
 }
 
-describe('tenant-scoped organization access', () => {
+describe('retired context-selection endpoints', () => {
   let app: Awaited<ReturnType<typeof buildAuthApp>>;
 
   beforeEach(async () => {
     app = await buildAuthApp();
   });
 
-  it('returns organization access without authentication-context fields', async () => {
+  it('does not expose organization discovery', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/api/v1/auth/organizations',
       headers: { authorization: 'Bearer valid-session-t1' },
     });
 
-    expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({
-      success: true,
-      organizations: [
-        { id: 'org-1', tenantId: 'tenant-1', code: 'ORG1', name: 'Org 1', status: 'active', isDefault: true },
-      ],
-    });
+    expect(response.statusCode).toBe(404);
   });
 
   it('retires organization selection instead of creating a session or tokens', async () => {

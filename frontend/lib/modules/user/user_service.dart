@@ -101,21 +101,6 @@ class UserService extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> assignOrganizationAccess(
-    String userId,
-    String organizationId,
-  ) async {
-    try {
-      final resp = await apiClient.post(
-        '/api/v1/users/$userId/organizations/$organizationId/access',
-      );
-      if (resp.statusCode == 200) {
-        return true;
-      }
-    } catch (e) {}
-    return false;
-  }
-
   Future<Map<String, List<Map<String, dynamic>>>> getUserAccess(
     String userId,
   ) async {
@@ -128,7 +113,6 @@ class UserService extends ChangeNotifier {
     if (body is! Map<String, dynamic> ||
         body['success'] != true ||
         body['userId'] != userId ||
-        body['organizations'] is! List<dynamic> ||
         body['branches'] is! List<dynamic>) {
       throw const FormatException('Invalid user access response');
     }
@@ -153,10 +137,7 @@ class UserService extends ChangeNotifier {
       }).toList();
     }
 
-    return {
-      'organizations': parseEntries(body['organizations'], 'organization'),
-      'branches': parseEntries(body['branches'], 'branch'),
-    };
+    return {'branches': parseEntries(body['branches'], 'branch')};
   }
 
   Future<bool> assignRoleToUser(String userId, String roleId) async {

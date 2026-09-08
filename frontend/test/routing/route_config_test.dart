@@ -6,14 +6,13 @@ void main() {
     test('normalizes root and trailing slash', () {
       expect(AppRoutes.normalize('/'), '/dashboard');
       expect(AppRoutes.normalize(''), '/dashboard');
-      expect(AppRoutes.normalize('/organizations/'), '/settings/organizations');
+      expect(AppRoutes.normalize('/branches/'), '/settings/branches');
       expect(AppRoutes.normalize('/users/'), '/settings/users');
     });
 
     test('maps child routes to their top-level navigation item', () {
-      expect(AppRoutes.canonicalTopLevel('/organizations/create'), '/settings');
       expect(
-        AppRoutes.canonicalTopLevel('/organizations/branches/edit'),
+        AppRoutes.canonicalTopLevel('/branches/edit'),
         '/settings',
       );
       expect(AppRoutes.canonicalTopLevel('/settings/branches'), '/settings');
@@ -25,18 +24,6 @@ void main() {
     });
 
     test('uses the same metadata for titles, permissions and modules', () {
-      final organizations = AppRoutes.forRoute('/organizations/details');
-      expect(organizations.title, 'Organizations');
-      expect(organizations.permissionKey, 'organization.read');
-      expect(organizations.moduleCode, 'organization');
-
-      final settingsOrganizations = AppRoutes.forRoute(
-        '/settings/organizations/create',
-      );
-      expect(settingsOrganizations.title, 'Organizations');
-      expect(settingsOrganizations.permissionKey, 'organization.read');
-      expect(settingsOrganizations.moduleCode, 'organization');
-
       final settingsBranches = AppRoutes.forRoute('/settings/branches');
       expect(settingsBranches.title, 'Branches');
       expect(settingsBranches.permissionKey, 'branch.read');
@@ -78,15 +65,6 @@ void main() {
 
     test('keeps all settings child routes under the settings layout', () {
       expect(AppRoutes.isSettingsRoute('/settings'), isTrue);
-      expect(AppRoutes.isSettingsRoute('/settings/organizations'), isTrue);
-      expect(
-        AppRoutes.isSettingsRoute('/settings/organizations/create'),
-        isTrue,
-      );
-      expect(
-        AppRoutes.isSettingsRoute('/settings/organizations/abc/edit'),
-        isTrue,
-      );
       expect(AppRoutes.isSettingsRoute('/settings/branches/create'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/branches/abc/edit'), isTrue);
       expect(AppRoutes.isSettingsRoute('/settings/users'), isTrue);

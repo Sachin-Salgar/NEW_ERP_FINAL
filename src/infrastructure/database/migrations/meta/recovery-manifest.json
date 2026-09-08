@@ -45,6 +45,21 @@
       "strategy": "forward-only-security",
       "destructiveDownAllowed": false,
       "note": "Makes the user-session RLS context fail closed when tenant, organization, or location settings are unset instead of raising UUID cast errors during platform session validation. Recovery is forward-only or restore from backup."
+    },
+    "0009_tenant_branch_architecture": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Forward-only tenant/branch reconciliation. Recovery is restore or a reviewed compensating migration."
+    },
+    "0010_phase4b_tenant_only_access": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Folds legacy organization module state into tenant modules and removes the active organization-module projection."
+    },
+    "0011_phase4c_retire_context_architecture": {
+      "strategy": "compensating-migration",
+      "destructiveDownAllowed": false,
+      "note": "Contracts the retired Organization/Location hierarchy and organization_id/location_id columns. Tenant-owned branches and domain-owned inventory warehouses remain. Recovery is restore or a reviewed compensating migration."
     }
   }
 }

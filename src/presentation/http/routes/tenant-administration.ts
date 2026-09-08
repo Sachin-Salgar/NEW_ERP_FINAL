@@ -126,7 +126,7 @@ const tenantAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
     { preHandler: [requireAuth, requirePermission('tenant.member.read')] },
     async (request) => {
       if (!request.tenantId) throw new ValidationError('Tenant context is required.');
-      return { success: true, members: await request.server.coreEnterpriseService.listUsers(request.tenantId) };
+      return { success: true, members: await request.server.tenantAdministrationService.listUsers(request.tenantId) };
     },
   );
   fastify.post<{
@@ -134,9 +134,7 @@ const tenantAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
       username: string;
       email: string;
       password: string;
-      organizationId?: string;
       defaultBranchId?: string;
-      defaultLocationId?: string;
       roleCode?: string;
     };
   }>(
@@ -149,9 +147,7 @@ const tenantAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
         username: body.username,
         email: body.email,
         password: body.password,
-        organizationId: body.organizationId ?? request.user.organizationId ?? null,
         defaultBranchId: body.defaultBranchId ?? request.user.defaultBranchId ?? null,
-        defaultLocationId: body.defaultLocationId ?? request.user.defaultLocationId ?? null,
         roleCode: body.roleCode ?? 'member',
       });
       await recordSecurityEvent(request, {
@@ -181,7 +177,6 @@ const tenantAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
     Body: {
       username?: string;
       email?: string;
-      organizationId?: string | null;
       defaultBranchId?: string | null;
       status?: string;
     };
@@ -190,7 +185,7 @@ const tenantAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
     { preHandler: [requireAuth, requirePermission('tenant.member.update')] },
     async (request) => {
       if (!request.tenantId) throw new ValidationError('Tenant context is required.');
-      const member = await request.server.coreEnterpriseService.updateUser(
+      const member = await request.server.tenantAdministrationService.updateUser(
         request.tenantId,
         request.params.userId,
         request.body as never,
@@ -220,7 +215,7 @@ const tenantAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
         if (!request.tenantId) throw new ValidationError('Tenant context is required.');
         if (request.params.userId === request.user?.id)
           throw new ForbiddenError('An administrator cannot remove or deactivate their own membership.');
-        const changed = await request.server.coreEnterpriseService[operation](request.tenantId, request.params.userId);
+        const changed = await request.server.tenantAdministrationService[operation](request.tenantId, request.params.userId);
         if (!changed) throw new NotFoundError('Tenant member not found.');
         await recordSecurityEvent(request, {
           tenantId: request.tenantId,
@@ -242,62 +237,8 @@ const tenantAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
       if (!request.tenantId) throw new ValidationError('Tenant context is required.');
       return {
         success: true,
-        access: await request.server.coreEnterpriseService.getUserAccess(request.tenantId, request.params.userId),
+        access: await request.server.tenantAdministrationService.getUserAccess(request.tenantId, request.params.userId),
       };
-    },
-  );
-  fastify.post<{ Params: { userId: string; organizationId: string } }>(
-    '/tenants/current/access/:userId/organizations/:organizationId',
-    { preHandler: [requireAuth, requirePermission('tenant.access.grant')] },
-    async (request) => {
-      if (!request.tenantId) throw new ValidationError('Tenant context is required.');
-      if (request.params.userId === request.user?.id)
-        throw new ForbiddenError('Users cannot grant themselves tenant access.');
-      if (
-        !(await request.server.coreEnterpriseService.assignUserToOrganization(
-          request.tenantId,
-          request.params.userId,
-          request.params.organizationId,
-        ))
-      )
-        throw new NotFoundError('User or organization not found.');
-      await recordSecurityEvent(request, {
-        tenantId: request.tenantId,
-        actorUserId: request.user?.id,
-        action: 'tenant.access.grant',
-        resourceType: 'user_organization_access',
-        resourceId: request.params.userId,
-        outcome: 'success',
-        metadata: { organizationId: request.params.organizationId },
-      });
-      return { success: true, granted: true };
-    },
-  );
-  fastify.delete<{ Params: { userId: string; organizationId: string } }>(
-    '/tenants/current/access/:userId/organizations/:organizationId',
-    { preHandler: [requireAuth, requirePermission('tenant.access.revoke')] },
-    async (request) => {
-      if (!request.tenantId) throw new ValidationError('Tenant context is required.');
-      if (request.params.userId === request.user?.id)
-        throw new ForbiddenError('Users cannot revoke their own tenant access.');
-      if (
-        !(await request.server.coreEnterpriseService.revokeUserOrganizationAccess(
-          request.tenantId,
-          request.params.userId,
-          request.params.organizationId,
-        ))
-      )
-        throw new NotFoundError('Access not found.');
-      await recordSecurityEvent(request, {
-        tenantId: request.tenantId,
-        actorUserId: request.user?.id,
-        action: 'tenant.access.revoke',
-        resourceType: 'user_organization_access',
-        resourceId: request.params.userId,
-        outcome: 'success',
-        metadata: { organizationId: request.params.organizationId },
-      });
-      return { success: true, revoked: true };
     },
   );
 };

@@ -247,13 +247,6 @@ describe('Phase 2 platform security services', () => {
     const keys = new Set(DEFAULT_PLATFORM_SEED.permissions.map((permission) => permission.permissionKey));
 
     for (const key of [
-      'organization.create',
-      'organization.update',
-      'organization.deactivate',
-      'organization.location.read',
-      'organization.location.create',
-      'organization.location.update',
-      'organization.location.deactivate',
       'branch.create',
       'branch.update',
       'branch.deactivate',

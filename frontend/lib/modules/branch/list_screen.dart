@@ -8,8 +8,7 @@ import '../../presentation/ui/components/page_header.dart';
 import 'branch_service.dart';
 
 class BranchListScreen extends StatefulWidget {
-  final String organizationId;
-  const BranchListScreen({super.key, required this.organizationId});
+  const BranchListScreen({super.key});
   @override
   State<BranchListScreen> createState() => _BranchListScreenState();
 }
@@ -29,7 +28,7 @@ class _BranchListScreenState extends State<BranchListScreen> {
   Future<void> _init() async {
     final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3000');
     await auth.fetchEffectivePermissions(baseUrl);
-    await service.fetchBranches(widget.organizationId);
+    await service.fetchBranches();
   }
 
   @override
@@ -43,16 +42,16 @@ class _BranchListScreenState extends State<BranchListScreen> {
         final items = svc.branches;
         return Scaffold(
           body: RefreshIndicator(
-            onRefresh: () => svc.fetchBranches(widget.organizationId),
+            onRefresh: () => svc.fetchBranches(),
             child: CustomScrollView(slivers: [
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                 sliver: SliverToBoxAdapter(child: ErpPageHeader(
                   title: 'Branches',
-                  subtitle: 'Branches for this organization',
-                  breadcrumbs: const [ErpBreadcrumbItem(label: 'Dashboard'), ErpBreadcrumbItem(label: 'Organizations'), ErpBreadcrumbItem(label: 'Branches')],
+                  subtitle: 'Branches for this tenant',
+                  breadcrumbs: const [ErpBreadcrumbItem(label: 'Dashboard'), ErpBreadcrumbItem(label: 'Branches')],
                   actions: auth.hasPermission('branch.create') ? [FilledButton.icon(
-                   onPressed: () => Navigator.of(context).pushNamed('/settings/branches/create', arguments: widget.organizationId),
+                   onPressed: () => Navigator.of(context).pushNamed('/settings/branches/create'),
                     icon: const Icon(Icons.add), label: const Text('Add Branch'),
                   )] : null,
                 )),
@@ -72,7 +71,7 @@ class _BranchListScreenState extends State<BranchListScreen> {
                           title: Text(b['name'] ?? b['code'] ?? 'Unnamed', style: const TextStyle(fontWeight: FontWeight.w600)),
                           subtitle: Text(b['city'] ?? b['code'] ?? ''),
                           trailing: const Icon(Icons.chevron_right),
-                          onTap: () => Navigator.of(context).pushNamed('/settings/branches/details', arguments: {'organizationId': widget.organizationId, 'branchId': b['id']}),
+                          onTap: () => Navigator.of(context).pushNamed('/settings/branches/details', arguments: {'branchId': b['id']}),
                         )).toList());
                       }
                       return DataTable(
@@ -86,7 +85,7 @@ class _BranchListScreenState extends State<BranchListScreen> {
                           DataCell(Text(b['name'] ?? b['code'] ?? 'Unnamed', style: const TextStyle(fontWeight: FontWeight.w600))),
                           DataCell(Text(b['code'] ?? '—')),
                           DataCell(Text(b['city'] ?? '—')),
-                          DataCell(IconButton(onPressed: () => Navigator.of(context).pushNamed('/settings/branches/details', arguments: {'organizationId': widget.organizationId, 'branchId': b['id']}), icon: const Icon(Icons.chevron_right))),
+                          DataCell(IconButton(onPressed: () => Navigator.of(context).pushNamed('/settings/branches/details', arguments: {'branchId': b['id']}), icon: const Icon(Icons.chevron_right))),
                         ])).toList(),
                       );
                     }),

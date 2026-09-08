@@ -1,6 +1,6 @@
 import { type FastifyPluginAsync, type FastifyRequest } from 'fastify';
 
-import { NotFoundError, ValidationError, ForbiddenError } from '../../../domain/errors.js';
+import { ValidationError } from '../../../domain/errors.js';
 import type { CustomerRecord } from '../../../domain/contracts/repositories.js';
 import { requireAuth, requirePermission } from '../middleware/auth.js';
 import { requestParam } from '../request-input.js';
@@ -11,7 +11,6 @@ interface CustomerParams {
 }
 
 interface CreateCustomerBody {
-  organizationId: string;
   name: string;
 }
 
@@ -19,19 +18,17 @@ interface UpdateCustomerBody {
   name: string;
 }
 
-function requireTenantAndOrganization(request: FastifyRequest) {
+function requireTenant(request: FastifyRequest) {
   const tenantId = request.tenantId;
   if (!request.user) throw new ValidationError('Authentication is required.');
-  const organizationId = request.user?.organizationId;
   if (!tenantId) throw new ValidationError('Tenant context is required.');
-  if (!organizationId) throw new ValidationError('An active organization is required.');
-  return { tenantId, organizationId, userId: request.user.id };
+  return { tenantId, userId: request.user.id };
 }
 
 function customerResponse(customer: CustomerRecord) {
   return {
     id: customer.id,
-    organizationId: customer.organizationId,
+    tenantId: customer.tenantId,
     name: customer.name,
     createdAt: customer.createdAt,
     createdBy: customer.createdBy,
@@ -49,18 +46,8 @@ const customerRoutes: FastifyPluginAsync = async (fastify) => {
     '/customers',
     { preHandler: [requireAuth, requirePermission('customer.create')] },
     async (request, reply) => {
-      const context = requireTenantAndOrganization(request);
+      const context = requireTenant(request);
       const body = request.body;
-      if (body.organizationId !== context.organizationId) {
-        throw new ForbiddenError('Customer organization must match the active organization.');
-      }
-
-      const organization = await request.server.coreEnterpriseService.getOrganization(
-        context.tenantId,
-        body.organizationId,
-      );
-      if (!organization) throw new NotFoundError('Organization not found.');
-
       const customer = await request.server.customerService.create(context, { name: body.name });
       reply.code(201);
       return { success: true, customer: customerResponse(customer) };
@@ -68,7 +55,7 @@ const customerRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   fastify.get('/customers', { preHandler: [requireAuth, requirePermission('customer.read')] }, async (request) => {
-    const context = requireTenantAndOrganization(request);
+    const context = requireTenant(request);
     const query = parsePaginationQuery(request.query);
     if (query.sort && query.sort !== 'name') {
       throw new ValidationError('Unsupported sort field: ' + query.sort + '.');
@@ -98,7 +85,7 @@ const customerRoutes: FastifyPluginAsync = async (fastify) => {
     '/customers/:id',
     { preHandler: [requireAuth, requirePermission('customer.read')] },
     async (request) => {
-      const context = requireTenantAndOrganization(request);
+      const context = requireTenant(request);
       const customerId = requestParam(request.params, 'id') ?? '';
       const customer = await request.server.customerService.get(context, customerId);
       return { success: true, customer: customerResponse(customer) };
@@ -109,7 +96,7 @@ const customerRoutes: FastifyPluginAsync = async (fastify) => {
     '/customers/:id',
     { preHandler: [requireAuth, requirePermission('customer.update')] },
     async (request) => {
-      const context = requireTenantAndOrganization(request);
+      const context = requireTenant(request);
       const customerId = requestParam(request.params, 'id') ?? '';
       const customer = await request.server.customerService.update(context, customerId, {
         name: request.body.name,
@@ -122,7 +109,7 @@ const customerRoutes: FastifyPluginAsync = async (fastify) => {
     '/customers/:id',
     { preHandler: [requireAuth, requirePermission('customer.delete')] },
     async (request) => {
-      const context = requireTenantAndOrganization(request);
+      const context = requireTenant(request);
       const customerId = requestParam(request.params, 'id') ?? '';
       await request.server.customerService.softDelete(context, customerId);
       return { success: true, deleted: true };

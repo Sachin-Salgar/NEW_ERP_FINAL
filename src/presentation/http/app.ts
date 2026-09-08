@@ -7,8 +7,6 @@ import { isCorsOriginAllowed, type AppConfig } from '../../config/schema.js';
 import { AuthenticationService } from '../../application/services/authentication-service.js';
 import { AuthorizationService } from '../../application/services/authorization-service.js';
 import { BranchService } from '../../application/services/branch-service.js';
-import { CoreEnterpriseService } from '../../application/services/core-enterprise-service.js';
-import { LocationService } from '../../application/services/location-service.js';
 import { ModuleAccessService } from '../../application/services/module-access-service.js';
 import { RefreshTokenRotationService } from '../../application/services/refresh-token-rotation-service.js';
 import { TenantMembershipService } from '../../application/services/tenant-membership-service.js';
@@ -70,9 +68,7 @@ import authRoutes from './routes/auth.js';
 import accountSecurityRoutes from './routes/account-security.js';
 import mfaRoutes from './routes/mfa.js';
 import branchRoutes from './routes/branch.js';
-import coreEnterpriseRoutes from './routes/core-enterprise.js';
 import jwksRoutes from './routes/jwks.js';
-import locationRoutes from './routes/location.js';
 import customerRoutes from './routes/customer.js';
 import quotationRoutes from './routes/quotation.js';
 import orderRoutes from './routes/order.js';
@@ -111,9 +107,6 @@ const rotatedRefreshResponseSchema = {
       required: [
         'id',
         'tenantId',
-        'organizationId',
-        'activeLocationId',
-        'defaultLocationId',
         'defaultBranchId',
         'username',
         'email',
@@ -122,9 +115,6 @@ const rotatedRefreshResponseSchema = {
       properties: {
         id: { type: 'string', format: 'uuid' },
         tenantId: { type: 'string', format: 'uuid' },
-        organizationId: { type: ['string', 'null'], format: 'uuid' },
-        activeLocationId: { type: ['string', 'null'], format: 'uuid' },
-        defaultLocationId: { type: ['string', 'null'], format: 'uuid' },
         defaultBranchId: { type: ['string', 'null'], format: 'uuid' },
         username: { type: 'string' },
         email: { type: 'string', format: 'email' },
@@ -207,8 +197,6 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   });
   const authorizationService = new AuthorizationService(repository);
   const branchService = new BranchService(repository);
-  const coreEnterpriseService = new CoreEnterpriseService(repository);
-  const locationService = new LocationService(repository);
   const moduleAccessService = new ModuleAccessService(pool);
   const transactionRunner = new UnitOfWork(pool);
   const customerService = new CustomerService(
@@ -441,8 +429,6 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('authService', authService);
   app.decorate('authorizationService', authorizationService);
   app.decorate('branchService', branchService);
-  app.decorate('coreEnterpriseService', coreEnterpriseService);
-  app.decorate('locationService', locationService);
   app.decorate('moduleAccessService', moduleAccessService);
   app.decorate('registrationService', registrationService);
   app.decorate('jwtTokenService', jwtTokenService);
@@ -495,8 +481,8 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     } catch (error) {
       if (error instanceof Error && error.message.includes('reuse detected')) {
         const claims = jwtTokenService.verifyRefreshToken(refreshToken);
-        await recordSecurityEvent(request, {
-          tenantId: claims.tenantId ?? undefined,
+        if (claims.tenantId) await recordSecurityEvent(request, {
+          tenantId: claims.tenantId,
           actorUserId: undefined,
           action: 'auth.refresh.replay',
           resourceType: 'session',
@@ -525,9 +511,6 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
       user: {
         id: rotated.user.id,
         tenantId: rotated.user.tenantId,
-        organizationId: rotated.user.organizationId ?? null,
-        activeLocationId: rotated.user.activeLocationId ?? null,
-        defaultLocationId: rotated.user.defaultLocationId ?? null,
         defaultBranchId: rotated.user.defaultBranchId ?? null,
         username: rotated.user.username,
         email: rotated.user.email,
@@ -566,8 +549,6 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(platformTenantRoutes, { prefix: config.API_PREFIX });
   await app.register(platformAdministrationRoutes, { prefix: config.API_PREFIX });
   await app.register(branchRoutes, { prefix: config.API_PREFIX });
-  await app.register(coreEnterpriseRoutes, { prefix: config.API_PREFIX });
-  await app.register(locationRoutes, { prefix: config.API_PREFIX });
   await app.register(customerRoutes, { prefix: config.API_PREFIX });
   await app.register(quotationRoutes, { prefix: config.API_PREFIX });
   await app.register(orderRoutes, { prefix: config.API_PREFIX });

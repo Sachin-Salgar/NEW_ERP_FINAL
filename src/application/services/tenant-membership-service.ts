@@ -17,7 +17,7 @@ export interface TenantMembershipRepository {
 }
 
 export class TenantMembershipService {
-  constructor(private readonly repository: TenantMembershipRepository) {}
+  constructor(private readonly repository: any) {}
 
   async resolveOrganizationMemberships(tenantId: string, userId: string) {
     const normalizedTenantId = tenantId.trim();

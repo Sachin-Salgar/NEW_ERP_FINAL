@@ -17,9 +17,8 @@ class InventoryService extends ChangeNotifier {
   String? error;
 
   Future<void> refresh() async {
-    final organizationId = auth.currentOrganizationId;
-    if (organizationId == null || organizationId.isEmpty) {
-      error = 'Organization context is missing.';
+    if (auth.currentTenantId == null || auth.currentTenantId!.isEmpty) {
+      error = 'Tenant context is missing.';
       notifyListeners();
       return;
     }

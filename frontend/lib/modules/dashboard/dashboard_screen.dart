@@ -3,7 +3,6 @@ import 'package:get_it/get_it.dart';
 
 import '../../core/auth/auth_service.dart';
 import '../../core/network/api_client.dart';
-import '../../modules/organization/organization_service.dart';
 import '../../modules/user/user_service.dart';
 import '../../presentation/ui/components/dashboard/storage_details_card.dart';
 import '../../presentation/ui/components/responsive.dart';
@@ -18,7 +17,6 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   late final AuthService _authService;
-  late final OrganizationService _organizationService;
   late final UserService _userService;
   bool _isLoading = false;
   String? _error;
@@ -30,9 +28,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final apiClient = GetIt.instance.isRegistered<ApiClient>()
         ? GetIt.instance.get<ApiClient>()
         : ApiClient(baseUrl: 'http://localhost:3000');
-    _organizationService = GetIt.instance.isRegistered<OrganizationService>()
-        ? GetIt.instance.get<OrganizationService>()
-        : OrganizationService(apiClient: apiClient);
     _userService = GetIt.instance.isRegistered<UserService>()
         ? GetIt.instance.get<UserService>()
         : UserService(apiClient: apiClient);
@@ -47,7 +42,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
     try {
       await Future.wait([
-        _organizationService.fetchOrganizations(),
         _userService.fetchUsers(),
       ]);
     } catch (e) {
@@ -63,22 +57,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final user = _authService.currentUser;
-    final currentLocation = _authService.currentLocationId ?? 'Not selected';
     final username = user != null
         ? (user['username'] ?? user['email'] ?? 'User')
         : 'User';
 
     final cards = [
       ErpStatCard(
-        title: 'Organizations',
-        value: _isLoading
-            ? 'Loading…'
-            : _organizationService.organizations.length.toString(),
-        icon: Icons.apartment_outlined,
-        subtitle: 'Active organizations in ERP',
+        title: 'Branches',
+        value: 'Tenant',
+        icon: Icons.store_outlined,
+        subtitle: 'Tenant operating branches',
         accentColor: theme.colorScheme.primary,
-        loading: _isLoading,
-        onTap: () => Navigator.of(context).pushNamed('/settings/organizations'),
+        onTap: () => Navigator.of(context).pushNamed('/settings/branches'),
       ),
       ErpStatCard(
         title: 'Users',
@@ -101,18 +91,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ? null
             : () => Navigator.of(context).pushReplacementNamed('/login'),
       ),
-      ErpStatCard(
-        title: 'Location',
-        value: currentLocation,
-        icon: Icons.location_on_outlined,
-        subtitle: 'Active authorized location',
-        accentColor: Colors.green,
-      ),
     ];
 
     final hasNoData =
         !_isLoading &&
-        _organizationService.organizations.isEmpty &&
         _userService.users.isEmpty;
 
     Widget statusContent() {
@@ -171,7 +153,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Text('No data available', style: theme.textTheme.titleMedium),
                 const SizedBox(height: 4),
                 Text(
-                  'There are no organizations or users to summarize yet.',
+                  'There are no users to summarize yet.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.textTheme.bodySmall?.color,
                   ),

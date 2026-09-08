@@ -3,8 +3,6 @@ import type { AuthenticatedUser } from '../../../domain/contracts/authentication
 import { ForbiddenError, UnauthorizedError } from '../../../domain/errors.js';
 import type { AuthenticationService } from '../../../application/services/authentication-service.js';
 import type { AuthorizationService } from '../../../application/services/authorization-service.js';
-import type { CoreEnterpriseService } from '../../../application/services/core-enterprise-service.js';
-import type { LocationService } from '../../../application/services/location-service.js';
 import type { ModuleAccessService } from '../../../application/services/module-access-service.js';
 import type { TenantMembershipService } from '../../../application/services/tenant-membership-service.js';
 import type { UserRegistrationService } from '../../../application/services/user-registration-service.js';
@@ -40,8 +38,6 @@ declare module 'fastify' {
     authService: AuthenticationService;
     authorizationService: AuthorizationService;
     branchService: import('../../../application/services/branch-service.js').BranchService;
-    coreEnterpriseService: CoreEnterpriseService;
-    locationService: LocationService;
     moduleAccessService: ModuleAccessService;
     registrationService: UserRegistrationService;
     jwtTokenService: JwtTokenService;
@@ -118,12 +114,7 @@ export function requireModule(moduleCode: string) {
   return async function requireModuleHandler(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
     if (!request.user || !request.tenantId)
       throw new UnauthorizedError('Authentication is required to access a module.');
-    if (!request.user.organizationId) throw new ForbiddenError('An active organization is required to access modules.');
-    const enabled = await request.server.moduleAccessService.isModuleEnabled(
-      request.tenantId,
-      request.user.organizationId,
-      moduleCode,
-    );
+    const enabled = await request.server.moduleAccessService.isModuleEnabled(request.tenantId, moduleCode);
     if (!enabled) throw new ForbiddenError('Module access denied.');
   };
 }
@@ -151,11 +142,8 @@ export function requirePermission(permissionKey: string) {
   return async function requirePermissionHandler(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
     if (!request.user || !request.tenantId)
       throw new UnauthorizedError('Authentication is required to perform this action.');
-    if (!request.user.organizationId)
-      throw new ForbiddenError('An active organization is required to perform this action.');
     const moduleEnabled = await request.server.moduleAccessService.isModuleEnabled(
       request.tenantId,
-      request.user.organizationId,
       moduleCodeForPermission(permissionKey),
     );
     if (!moduleEnabled) throw new ForbiddenError('Module access denied.');
@@ -176,11 +164,8 @@ export function requirePermissionOrSelf(
       throw new UnauthorizedError('Authentication is required to perform this action.');
     const resolvedSelfId = selfIdGetter ? selfIdGetter(request) : null;
     if (resolvedSelfId && request.user.id === resolvedSelfId) return;
-    if (!request.user.organizationId)
-      throw new ForbiddenError('An active organization is required to perform this action.');
     const moduleEnabled = await request.server.moduleAccessService.isModuleEnabled(
       request.tenantId,
-      request.user.organizationId,
       moduleCodeForPermission(permissionKey),
     );
     if (!moduleEnabled) throw new ForbiddenError('Module access denied.');

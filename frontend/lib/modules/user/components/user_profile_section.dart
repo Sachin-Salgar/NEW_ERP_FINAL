@@ -24,7 +24,7 @@ class _UserProfileSectionState extends State<UserProfileSection> {
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _saving = true);
-    final ok = await service.updateUser(_user['id'].toString(), {'username': _username.text.trim(), 'email': _email.text.trim(), 'organizationId': _user['organizationId'], 'defaultBranchId': _user['defaultBranchId']});
+    final ok = await service.updateUser(_user['id'].toString(), {'username': _username.text.trim(), 'email': _email.text.trim(), 'defaultBranchId': _user['defaultBranchId']});
     if (!mounted) return;
     if (ok) { var updated = {..._user, 'username': _username.text.trim(), 'email': _email.text.trim()}; final refreshed = await service.getUser(_user['id'].toString()); if (refreshed != null) updated = refreshed; if (!mounted) return; setState(() { _user = updated; _editing = false; _saving = false; _error = null; }); widget.onUserChanged?.call(updated); } else { setState(() { _saving = false; _error = 'Failed to update user'; }); }
   }

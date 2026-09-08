@@ -13,7 +13,6 @@ import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } fro
 
 export interface CustomerContext {
   tenantId: string;
-  organizationId: string;
   userId: string;
 }
 
@@ -60,7 +59,7 @@ export class CustomerService {
   async get(context: CustomerContext, customerId: string): Promise<CustomerRecord> {
     await this.authorize(context, CUSTOMER_PERMISSIONS.read);
     const id = this.validateId(customerId, 'Customer ID');
-    const customer = await this.repository.getById(context.tenantId, context.organizationId, id);
+    const customer = await this.repository.getById(context.tenantId, id);
     if (!customer) throw new NotFoundError('Customer not found.');
     return customer;
   }
@@ -68,7 +67,6 @@ export class CustomerService {
   async list(context: CustomerContext, input: CustomerListInput = {}) {
     await this.authorize(context, CUSTOMER_PERMISSIONS.read);
     const query: CustomerListQuery = {
-      organizationId: context.organizationId,
       page: this.validatePage(input.page),
       pageSize: this.validatePageSize(input.pageSize),
       order: input.order ?? 'asc',
@@ -133,7 +131,6 @@ export class CustomerService {
     this.validateContext(context);
     const moduleEnabled = await this.moduleAccessService.isModuleEnabled(
       context.tenantId,
-      context.organizationId,
       CUSTOMER_MODULE_CODE,
     );
     if (!moduleEnabled) throw new ForbiddenError('Customer module is not enabled for this organization.');
@@ -145,7 +142,6 @@ export class CustomerService {
   private validateContext(context: CustomerContext): void {
     if (!context.userId?.trim()) throw new UnauthorizedError();
     this.validateId(context.tenantId, 'Tenant ID');
-    this.validateId(context.organizationId, 'Organization ID');
     this.validateId(context.userId, 'User ID');
   }
 

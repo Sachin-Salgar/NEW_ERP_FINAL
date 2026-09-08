@@ -7,8 +7,8 @@ import 'branch_service.dart';
 import '../../presentation/ui/components/page_header.dart';
 
 class BranchDetailsScreen extends StatefulWidget {
-  final String organizationId, branchId;
-  const BranchDetailsScreen({super.key, required this.organizationId, required this.branchId});
+  final String branchId;
+  const BranchDetailsScreen({super.key, required this.branchId});
   @override
   State<BranchDetailsScreen> createState() => _BranchDetailsScreenState();
 }
@@ -28,7 +28,7 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
   }
 
   Future<void> _load() async {
-    final d = await service.getBranch(widget.organizationId, widget.branchId);
+    final d = await service.getBranch(widget.branchId);
     if (!mounted) return;
     setState(() {
       branch = d;
@@ -51,7 +51,7 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
       ),
     );
     if (ok == true &&
-        await service.deactivateBranch(widget.organizationId, widget.branchId) &&
+        await service.deactivateBranch(widget.branchId) &&
         mounted)
       Navigator.pop(context);
   }
@@ -77,7 +77,6 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
                     subtitle: branch!['city'] ?? '',
                     breadcrumbs: const [
                       ErpBreadcrumbItem(label: 'Dashboard'),
-                      ErpBreadcrumbItem(label: 'Organizations'),
                       ErpBreadcrumbItem(label: 'Branches'),
                       ErpBreadcrumbItem(label: 'Details'),
                     ],
@@ -90,10 +89,7 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
                           onPressed: () => Navigator.pushNamed(
                             context,
                             '/settings/branches/edit/${widget.branchId}',
-                            arguments: {
-                              'organizationId': widget.organizationId,
-                              'branchId': widget.branchId,
-                            },
+                            arguments: {'branchId': widget.branchId},
                           ),
                           icon: const Icon(Icons.edit_outlined),
                           label: const Text('Edit'),

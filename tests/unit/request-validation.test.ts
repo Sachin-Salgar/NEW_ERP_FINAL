@@ -19,11 +19,8 @@ async function validationApp(method: 'POST' | 'PATCH' | 'PUT' | 'DELETE', url: s
   return { app, wasHandlerCalled: () => handlerCalled };
 }
 
-describe('legacy route request validation', () => {
+describe('route request validation', () => {
   it.each([
-    ['/organizations', {}],
-    ['/organizations/00000000-0000-0000-0000-000000000001/branches', {}],
-    ['/locations', {}],
     ['/rbac/roles', {}],
   ] as const)('rejects invalid create body for %s before the handler', async (url, payload) => {
     const { app, wasHandlerCalled } = await validationApp('POST', url);
@@ -41,7 +38,7 @@ describe('legacy route request validation', () => {
     }
   });
 
-  it.each([['/organizations/invalid'], ['/locations/invalid'], ['/rbac/roles/invalid']] as const)(
+  it.each([['/rbac/roles/invalid']] as const)(
     'rejects malformed identifiers for %s before the handler',
     async (url) => {
       const routeUrl = url.replace(/\/[^/]+$/, '/:id');

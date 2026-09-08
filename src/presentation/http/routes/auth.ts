@@ -338,52 +338,11 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
   fastify.get(
-    '/auth/organizations',
-    {
-      schema: {
-        tags: ['Authentication'],
-        summary: 'List user organization access',
-        description: 'Returns organizations the authenticated tenant user may access.',
-        security: [{ bearerAuth: [] }],
-        response: {
-          200: toJsonSchema(
-            z.object({
-              success: z.boolean(),
-              organizations: z.array(
-                z.object({
-                  id: z.string().uuid(),
-                  tenantId: z.string().uuid(),
-                  code: z.string(),
-                  name: z.string(),
-                  status: z.string(),
-                  isDefault: z.boolean(),
-                }),
-              ),
-            }),
-          ),
-          401: toJsonSchema(errorResponseSchema),
-        },
-      },
-      preHandler: requireAuth,
-    },
-    async (request) => {
-      if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication required.');
-      const memberships = await request.server.tenantMembershipService.resolveOrganizationMemberships(
-        request.tenantId,
-        request.user.id,
-      );
-      return {
-        success: true,
-        organizations: memberships.organizations,
-      };
-    },
-  );
-  fastify.get(
     '/auth/modules',
     {
       schema: {
         tags: ['Authentication'],
-        summary: 'List accessible modules for current organization',
+        summary: 'List accessible modules for current tenant',
         security: [{ bearerAuth: [] }],
         response: {
           200: toJsonSchema(authSchemas.modulesResponse),
@@ -395,12 +354,8 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request) => {
       if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication required.');
-      if (!request.user.organizationId) throw new ValidationError('An active organization is required.');
-      const modules = await request.server.moduleAccessService.listAccessibleModules(
-        request.tenantId,
-        request.user.organizationId,
-      );
-      return { success: true, organizationId: request.user.organizationId, modules };
+      const modules = await request.server.moduleAccessService.listAccessibleModules(request.tenantId);
+      return { success: true, modules };
     },
   );
   fastify.post<{ Params: ModuleCodeParams }>(
@@ -408,7 +363,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     {
       schema: {
         tags: ['Authentication'],
-        summary: 'Enable a module for the organization',
+        summary: 'Enable a module for the tenant',
         security: [{ bearerAuth: [] }],
         params: toJsonSchema(z.object({ code: z.string().min(1) })),
         response: {
@@ -421,16 +376,9 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       preHandler: [requireAuth, requirePermission('tenant.update')],
     },
     async (request) => {
-      if (!request.user || !request.tenantId || !request.user.organizationId)
-        throw new UnauthorizedError('Authentication and organization context are required.');
+      if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication required.');
       const moduleCode = request.params.code.trim();
-      const module = await request.server.moduleAccessService.setOrganizationModule(
-        request.tenantId,
-        request.user.organizationId,
-        moduleCode,
-        true,
-        request.user.id,
-      );
+      const module = await request.server.moduleAccessService.setTenantModule(request.tenantId, moduleCode, true, request.user.id);
       return { success: true, enabled: true, module };
     },
   );
@@ -439,7 +387,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     {
       schema: {
         tags: ['Authentication'],
-        summary: 'Disable a module for the organization',
+        summary: 'Disable a module for the tenant',
         security: [{ bearerAuth: [] }],
         params: toJsonSchema(z.object({ code: z.string().min(1) })),
         response: {
@@ -452,16 +400,9 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       preHandler: [requireAuth, requirePermission('tenant.update')],
     },
     async (request) => {
-      if (!request.user || !request.tenantId || !request.user.organizationId)
-        throw new UnauthorizedError('Authentication and organization context are required.');
+      if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication required.');
       const moduleCode = request.params.code.trim();
-      await request.server.moduleAccessService.setOrganizationModule(
-        request.tenantId,
-        request.user.organizationId,
-        moduleCode,
-        false,
-        request.user.id,
-      );
+      await request.server.moduleAccessService.setTenantModule(request.tenantId, moduleCode, false, request.user.id);
       return { success: true, enabled: false, moduleCode };
     },
   );

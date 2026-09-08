@@ -51,6 +51,7 @@ implementation are deferred for governed migration and are not current architect
 - Focused ADR-0040 proof on `audit/strict-architecture-proof-20260908`: `npx vitest run --config vitest.integration.config.ts tests/integration/authentication-flow.test.ts tests/integration/authorization-flow.test.ts tests/integration/phase2-platform-security.test.ts tests/integration/zero-state-platform-acceptance.test.ts tests/integration/tenant-rls.test.ts tests/integration/custom-tenant-seed.test.ts --reporter=basic` → **6 files / 9 tests passed**. The zero-state test now resolves its temporary database through the administrative integration configuration rather than application `DATABASE_URL`.
 - `npm run typecheck`, `npm run lint -- --no-fix`, `python tools/ai/validate_ai_workflow.py`, `python tools/ai/repository_scanner.py`, `npm run db:diagnose`, and `git diff --check` passed for this proof run.
 - Machine-derived permission inventory passed with zero catalog-only or missing enforcement references.
+- Phase 4C seed cleanup now uses Tenant → Branch fixtures only; targeted seed lint and JavaScript syntax validation pass. The custom-tenant integration test remains blocked before test execution by migration `0009_tenant_branch_architecture.sql` failing with `ON CONFLICT DO UPDATE command cannot affect row a second time`.
 
 ### Implemented
 
@@ -60,7 +61,7 @@ implementation are deferred for governed migration and are not current architect
 - Tenant-scoped authentication/session context derived from trusted server state.
 - TenantContext and PostgreSQL transaction-local tenant context infrastructure.
 - PostgreSQL RLS integration coverage for tenant isolation/rollback/pool context behavior.
-- Branch and user administration backend/API surfaces; organization/location records remain domain implementation residue and are not architecture levels.
+- Branch and user administration backend/API surfaces; Organization/Location records remain legacy schema residue and are not seeded or used as active architecture levels.
 - Flutter organization, branch, user, role, permission, dashboard, and authentication surfaces.
 - Backend RBAC and permission enforcement.
 - Flutter permission state, permission-aware navigation and route guards.
@@ -101,11 +102,11 @@ implementation are deferred for governed migration and are not current architect
 | ------------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Authentication                              | **COMPLETED**                          | Backend authentication, token/session handling, security tests, and admin/limited-user browser E2E pass in CI.                                                                                     |
 | Session management / refresh / logout       | **COMPLETED**                          | Rotation, replay detection, invalidation, logout, and lifecycle tests pass; browser matrix teardown remains a validation residual.                                                                 |
-| Organization selection                      | **COMPLETED**                          | Backend access/select flow, default user context, and Flutter working-context UI are implemented and validated in scope.                                                                           |
-| Branch selection                            | **COMPLETED**                          | Branch belongs to the active Organization; branch defaults and switching are validated in backend and UI flow.                                                                                     |
-| Location selection                          | **COMPLETED**                          | Location belongs to the active Organization; persisted default location and selection validation are implemented.                                                                                  |
-| Active organization/branch/location context | **COMPLETED**                          | Session/request context supports the complete `tenantId + organizationId + branchId + locationId` tuple and preserves prior valid context on failed switches.                                      |
-| Organization administration                 | **COMPLETED**                          | Backend lifecycle operations, Flutter module, integration coverage, and CI validation exist.                                                                                                       |
+| Organization selection                      | **DEFERRED / RETIRED**                 | Not part of the approved Platform → Tenant → Branch architecture; active seed/bootstrap paths no longer create or select organizations.                                                           |
+| Branch selection                            | **IMPLEMENTED — VALIDATION PENDING**   | Branch is the only business subdivision below Tenant; branch defaults/access remain the supported working-context contract.                                                                        |
+| Location selection                          | **DEFERRED / RETIRED**                 | Not part of the approved architecture; active seed/bootstrap paths no longer create or select generic locations.                                                                                 |
+| Active tenant/branch context                | **IMPLEMENTED — VALIDATION PENDING**   | Active fixture/bootstrap context is tenant-scoped with branch access; legacy organization/location columns remain compatibility residue pending governed cleanup.                                 |
+| Organization administration                 | **DEFERRED / RETIRED**                 | No longer an active architecture or seed/bootstrap target.                                                                                                                                        |
 | Branch administration                       | **COMPLETED**                          | Backend lifecycle operations, Flutter module, integration coverage, and CI validation exist.                                                                                                       |
 | User administration                         | **COMPLETED**                          | Backend administration and Flutter list/create/edit/details/access surfaces are covered by tests and CI.                                                                                           |
 | User → role assignment                      | **COMPLETED**                          | Backend endpoints and Flutter assignment UI are covered by tests and CI.                                                                                                                           |
@@ -270,8 +271,8 @@ The current verification pass must cover:
 2. Login at desktop, tablet and mobile breakpoints.
 3. Light/dark theme switching from login and authenticated layouts.
 4. Responsive navigation/sidebar/top-bar behavior.
-5. Organization/branch/user/role/permission screens.
-6. Authentication → organization/location context → authorization flow.
+5. Branch/user/role/permission screens.
+6. Authentication → tenant/branch context → authorization flow.
 7. Backend authorization enforcement independent of frontend visibility.
 8. Tenant isolation and transaction-local RLS behavior.
 9. Regression check for existing backend tests and frontend tests.

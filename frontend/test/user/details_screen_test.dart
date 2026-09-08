@@ -10,7 +10,6 @@ import 'package:new_erp_final_frontend/core/auth/auth_service.dart';
 import 'package:new_erp_final_frontend/core/auth/authz_service.dart';
 import 'package:new_erp_final_frontend/core/network/api_client.dart';
 import 'package:new_erp_final_frontend/modules/branch/branch_service.dart';
-import 'package:new_erp_final_frontend/modules/organization/organization_service.dart';
 import 'package:new_erp_final_frontend/modules/role/role_service.dart';
 import 'package:new_erp_final_frontend/modules/user/details_screen.dart';
 import 'package:new_erp_final_frontend/modules/user/user_service.dart';
@@ -47,23 +46,15 @@ void main() {
           200,
         );
       }
-      if (request.url.path == '/api/v1/organizations') {
-        return http.Response(jsonEncode({'organizations': []}), 200);
-      }
       if (request.url.path == '/api/v1/users/user-1/access') {
         return http.Response(
           jsonEncode({
             'success': true,
             'userId': 'user-1',
-            'organizations': [
-              {'id': 'org-1', 'name': 'Assigned Org'},
-            ],
             'branches': [
               {
                 'id': 'branch-1',
                 'name': 'Assigned Branch',
-                'organizationId': 'org-1',
-                'organizationName': 'Assigned Org',
               },
             ],
           }),
@@ -94,9 +85,6 @@ void main() {
     await authz.loadPermissions(api, 'user-1');
     GetIt.instance.registerSingleton<UserService>(UserService(apiClient: api));
     GetIt.instance.registerSingleton<RoleService>(RoleService(apiClient: api));
-    GetIt.instance.registerSingleton<OrganizationService>(
-      OrganizationService(apiClient: api),
-    );
     GetIt.instance.registerSingleton<BranchService>(
       BranchService(apiClient: api),
     );
@@ -110,16 +98,16 @@ void main() {
     expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Roles'), findsOneWidget);
     expect(find.text('Access'), findsOneWidget);
-    expect(find.text('1 organization • 1 branch'), findsOneWidget);
+    expect(find.text('1 branch'), findsOneWidget);
     await tester.ensureVisible(find.text('Hide Access'));
     await tester.tap(find.text('Hide Access'));
     await tester.pump();
     expect(find.text('Manage Access'), findsOneWidget);
-    expect(find.text('1 organization • 1 branch'), findsOneWidget);
+    expect(find.text('1 branch'), findsOneWidget);
     await tester.tap(find.text('Manage Access'));
     await tester.pump();
     expect(find.text('Hide Access'), findsOneWidget);
-    expect(find.text('Assign Organization'), findsOneWidget);
+    expect(find.text('Assign Branch'), findsOneWidget);
     expect(find.text('Account details'), findsOneWidget);
     expect(find.byType(TabBar), findsNothing);
 
@@ -150,9 +138,6 @@ void main() {
             }),
             200,
           );
-        }
-        if (path == '/api/v1/organizations') {
-          return http.Response(jsonEncode({'organizations': []}), 200);
         }
         if (path == '/api/v1/rbac/roles') {
           return http.Response(
@@ -205,9 +190,6 @@ void main() {
       );
       GetIt.instance.registerSingleton<RoleService>(
         RoleService(apiClient: api),
-      );
-      GetIt.instance.registerSingleton<OrganizationService>(
-        OrganizationService(apiClient: api),
       );
       GetIt.instance.registerSingleton<BranchService>(
         BranchService(apiClient: api),
