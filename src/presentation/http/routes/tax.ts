@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { requireAuth, requirePermission } from '../middleware/auth.js';
-const ctx = (r: any) => ({ tenantId: r.tenantId, organizationId: r.user.organizationId, userId: r.user.id });
+const ctx = (r: any) => ({ tenantId: r.tenantId, userId: r.user.id });
 const routes: FastifyPluginAsync = async (f) => {
   f.post(
     '/tax/rules',

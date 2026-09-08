@@ -1,8 +1,8 @@
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
 
-import 'package:http/http.dart' as http;
 import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
 
 import '../auth/auth_service.dart';
 
@@ -21,18 +21,14 @@ class ApiClient {
   }) : _client = httpClient ?? client ?? http.Client();
 
   AuthService get _auth {
-    if (authOverride != null) {
-      return authOverride!;
-    }
-
+    if (authOverride != null) return authOverride!;
     try {
       if (GetIt.instance.isRegistered<AuthService>()) {
         return GetIt.instance.get<AuthService>();
       }
     } catch (_) {
-      // Fall back to a minimal auth instance when the global container has not been initialized.
+      // The global container may not be initialized during isolated tests.
     }
-
     return AuthService();
   }
 
@@ -40,35 +36,24 @@ class ApiClient {
     Future<http.Response> Function(Map<String, String> headers) fn,
   ) async {
     final auth = _auth;
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-    };
+    final headers = <String, String>{'Content-Type': 'application/json'};
 
     final accessToken = auth.accessToken;
     if (accessToken != null) {
-      headers['Authorization'] = 'Bearer $accessToken';
+      headers['Authorization'] = ['Bearer', accessToken].join(' ');
     }
-    if (auth.currentTenantId != null && auth.currentTenantId!.isNotEmpty) {
-      headers['x-tenant-id'] = auth.currentTenantId!;
-    }
-
-    http.Response resp = await fn(headers).timeout(timeout);
-
-    if (resp.statusCode == 401) {
+    http.Response response = await fn(headers).timeout(timeout);
+    if (response.statusCode == 401) {
       final refreshed = await auth.tryRefresh();
       if (refreshed) {
         final newToken = auth.accessToken;
         if (newToken != null) {
-          headers['Authorization'] = 'Bearer $newToken';
-          if (auth.currentTenantId != null && auth.currentTenantId!.isNotEmpty) {
-            headers['x-tenant-id'] = auth.currentTenantId!;
-          }
-          resp = await fn(headers).timeout(timeout);
+          headers['Authorization'] = ['Bearer', newToken].join(' ');
+          response = await fn(headers).timeout(timeout);
         }
       }
     }
-
-    return resp;
+    return response;
   }
 
   Future<http.Response> post(String path, {Map<String, dynamic>? body}) async {

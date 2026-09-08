@@ -25,7 +25,7 @@ void main() {
       );
     });
     final auth = AuthService(authzService: AuthZService())
-      ..currentOrganizationId = 'org-1';
+      ..currentTenantId = 'tenant-1';
     final service = SalesService(
       apiClient: ApiClient(baseUrl: 'http://example.com', httpClient: client),
       auth: auth,

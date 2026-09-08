@@ -1,11 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 
 import { AuthenticationService } from '../../src/application/services/authentication-service.js';
 
 const user = (tenantId: string, userId: string) => ({
   id: userId,
   tenantId,
-  organizationId: 'org-1',
   defaultBranchId: null,
   username: 'alice',
   email: 'alice@example.com',
@@ -22,8 +21,6 @@ describe('identity-based tenant authentication', () => {
         id: input.id,
         tenantId: input.tenantId,
         userId: input.userId,
-        organizationId: input.organizationId,
-        locationId: input.locationId,
         branchId: input.branchId,
         isActive: true,
         expiresAt: input.expiresAt,
@@ -46,20 +43,17 @@ describe('identity-based tenant authentication', () => {
     expect(repository.findById).toHaveBeenCalledWith('tenant-1', 'user-1');
   });
 
-  it('uses the saved default location as the default session location when available', async () => {
+  it('uses the saved default branch as the session branch when available', async () => {
     const repository = {
       findLoginCandidates: vi.fn(async () => [{ userId: 'user-1', tenantId: 'tenant-1' }]),
       findById: vi.fn(async (tenantId: string, userId: string) => ({
         ...user(tenantId, userId),
         defaultBranchId: 'branch-1',
-        defaultLocationId: 'location-1',
       })),
       createSession: vi.fn(async (input: any) => ({
         id: input.id,
         tenantId: input.tenantId,
         userId: input.userId,
-        organizationId: input.organizationId,
-        locationId: input.locationId,
         branchId: input.branchId,
         isActive: true,
         expiresAt: input.expiresAt,
@@ -77,9 +71,8 @@ describe('identity-based tenant authentication', () => {
     const result = await service.authenticate('alice@example.com', 'password');
 
     expect(result.success).toBe(true);
-    expect(result.session?.locationId).toBe('location-1');
     expect(repository.createSession).toHaveBeenCalledWith(
-      expect.objectContaining({ locationId: 'location-1', branchId: 'branch-1' }),
+      expect.objectContaining({ branchId: 'branch-1' }),
     );
   });
 
@@ -106,8 +99,6 @@ describe('identity-based tenant authentication', () => {
         id: 'session-1',
         tenantId: 'tenant-1',
         userId: 'user-1',
-        organizationId: 'org-1',
-        locationId: 'location-1',
         branchId: 'branch-session',
         financialYearId: 'fy-session',
         isActive: true,

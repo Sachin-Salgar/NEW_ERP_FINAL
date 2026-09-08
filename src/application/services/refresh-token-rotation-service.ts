@@ -93,14 +93,10 @@ export class RefreshTokenRotationService {
           username: string;
           email: string;
           status: string;
-          default_location_id: string | null;
           default_branch_id: string | null;
-          organization_id: string | null;
-          location_id: string | null;
         }>(
           `SELECT u.id, u.tenant_id, u.username, u.email, u.status,
-                  u.default_location_id, u.default_branch_id,
-                  s.organization_id, s.location_id
+                  u.default_branch_id
            FROM users u
            JOIN user_sessions s ON s.tenant_id = u.tenant_id AND s.user_id = u.id AND s.id = $3
            WHERE u.tenant_id = $1 AND u.id = $2 AND u.status = 'active'`,
@@ -179,9 +175,6 @@ export class RefreshTokenRotationService {
             user: {
               id: user.id,
               tenantId: user.tenant_id,
-              organizationId: user.organization_id,
-              activeLocationId: user.location_id,
-              defaultLocationId: user.default_location_id,
               defaultBranchId: user.default_branch_id,
               username: user.username,
               email: user.email,

@@ -1,6 +1,5 @@
 export interface SalesDependencyContext {
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   actorUserId: string;

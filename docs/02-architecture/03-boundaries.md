@@ -18,7 +18,7 @@ This document defines:
 - How modules communicate
 - What dependencies are allowed
 - How to maintain independence while supporting integration
-- Which future communication mechanisms remain deferred
+- Which approved communication mechanisms are available
 
 ---
 
@@ -104,7 +104,7 @@ Because the ERP is currently a modular monolith, modules may communicate through
 
 REST is the external/client API contract and may also be used for explicitly defined module integration boundaries where required. Internal module calls should prefer the documented in-process contract unless the architecture explicitly requires a network boundary.
 
-**Use Case**: An integration requires an API boundary or a future extracted service.
+**Use Case**: An integration requires an API boundary.
 
 **Guidelines**:
 - Keep synchronous calls fast where used.
@@ -117,10 +117,6 @@ REST is the external/client API contract and may also be used for explicitly def
 **Status: Approved and implemented through the transactional outbox architecture defined by ADR-0020.**
 
 Use events only where an approved event contract exists. The current modular-monolith implementation uses in-process contracts and a PostgreSQL-backed outbox/dispatcher; an external broker remains optional and requires the relevant deployment or architecture decision.
-
-### Pattern 4: Data Synchronization — Deferred
-
-Read-model replication and asynchronous synchronization are future capabilities. They require an approved architecture and explicit ownership/reconciliation rules before implementation.
 
 ---
 
@@ -175,7 +171,8 @@ The dependency matrix must be maintained as module specifications are implemente
 | Inventory | Accounting | ✓ Only through published contract when required | Inventory may require accounting integration |
 | Accounting | Inventory | ✓ Only through published contract when required | Allowed when a documented business capability requires inventory data |
 
-A future dependency-checking mechanism must validate actual module dependencies against an authoritative matrix rather than hard-code the illustrative examples above.
+Dependency checks validate actual module dependencies against an authoritative
+matrix rather than hard-code the illustrative examples above.
 
 ---
 
@@ -189,13 +186,14 @@ Benefits:
 - Explicit ownership
 - Easier testing
 - Reduced coupling
-- Future extraction readiness
+- Clear ownership for any later governed change
 
-### Pattern: Anti-Corruption Layer — Future
+### Pattern: Anti-Corruption Layer
 
 When integrating with external systems or legacy domains, use an anti-corruption layer where the architecture requires translation between domain models.
 
-**Status**: Deferred until an applicable integration requires it.
+Use an anti-corruption layer when an approved integration requires translation
+between domain models.
 
 ---
 
@@ -217,9 +215,8 @@ Before module A calls module B, verify:
 
 ## Scalability Implications
 
-The modular monolith is currently deployed as a single application. Module boundaries should nevertheless allow future extraction if a later approved architecture decision requires independent scaling or deployment.
-
-Future extraction is an architectural change and requires an approved ADR before implementation.
+The modular monolith is deployed as a single application. Any change to that
+deployment model requires an approved ADR before implementation.
 
 ---
 
@@ -272,6 +269,6 @@ The ERP currently uses a **Modular Monolith**:
 - Published contracts for cross-module communication
 - No direct access to another module's internal persistence
 - Explicit dependency direction
-- Future service extraction only through approved architecture decisions
+- Deployment-model changes only through approved architecture decisions
 
 This model is the current source of truth for module deployment boundaries.

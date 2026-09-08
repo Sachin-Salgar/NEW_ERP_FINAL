@@ -20,16 +20,13 @@ export type {
   AuthorizationRepository,
   BranchRecord,
   CoreEnterpriseRepository,
-  LocationRecord,
   LoginCandidate,
-  OrganizationRecord,
   PlatformBootstrapRepository,
   SessionRepository,
   TenantBootstrapRepository,
   UserAccountRecord,
   UserAdminRecord,
   UserBranchAccessRecord,
-  UserOrganizationAccessRecord,
   UserRegistrationRecord,
   UserRegistrationRepository,
   UserRepository,
@@ -88,9 +85,7 @@ export interface UserRegistrationInput {
   username: string;
   email: string;
   password: string;
-  organizationId?: string | null;
   defaultBranchId?: string | null;
-  defaultLocationId?: string | null;
   roleCode?: string;
 }
 

@@ -76,18 +76,23 @@ The unified platform includes:
 
 ## Objective 2: Modular Licensing
 
-**Statement**: Organizations shall subscribe only to the modules they require. The ERP platform shall dynamically adapt its interface and available functionality based on the licensed modules.
+**Statement**: Tenants shall subscribe only to the modules they require. The ERP
+platform shall dynamically adapt its interface and available functionality
+based on the Tenant's licensed modules.
 
 ### Rationale
 
-Not every organization requires every ERP module. A small retail business needs Sales and Inventory but not Manufacturing. A trading company needs Purchase and Inventory but not Manufacturing. A service organization needs HR and Accounting but not Manufacturing or Inventory.
+Not every Tenant requires every ERP module. A small retail business needs Sales
+and Inventory but not Manufacturing. A trading company needs Purchase and
+Inventory but not Manufacturing. A service Tenant needs HR and Accounting but
+not Manufacturing or Inventory.
 
 Traditional ERP vendors charge for the entire system. The Enterprise ERP System charges only for what is used.
 
 ### Solution
 
-Organizations select the modules they need at implementation time:
-- **Required**: Organization, Branch, Accounting, HR, Payroll (core platform)
+Tenants select the modules they need at implementation time:
+- **Required**: Tenant administration, Branch administration, Accounting, HR, Payroll (core platform)
 - **Optional**: Sales, Purchase, Inventory, Manufacturing, Assets, CRM, and future modules
 
 The platform automatically:
@@ -100,14 +105,14 @@ The platform automatically:
 
 - **Cost control**: Pay only for what is used
 - **Simplicity**: Users see only relevant functionality
-- **Future flexibility**: Organizations can add modules as they grow
-- **Modular updates**: Module updates don't affect unrelated organizations
+- **Future flexibility**: Tenants can add modules as they grow
+- **Modular updates**: Module updates don't affect unrelated tenants
 - **Competitive pricing**: Lower entry cost than full-suite competitors
 
 ### Implementation
 
 Module licensing is managed through:
-- **Entitlement service**: Determines which modules are licensed for each organization
+- **Entitlement service**: Determines which modules are licensed for each tenant
 - **API gate**: Enforces module access at API layer
 - **UI routing**: Hides module menus and screens for unlicensed modules
 - **Audit logging**: Records module access for compliance
@@ -127,7 +132,7 @@ The architecture supports adding new modules without modifying core or existing 
 
 ## Objective 3: Multi-Tenant Platform
 
-**Statement**: The ERP shall support multiple organizations using the same application instance while ensuring complete logical isolation of data. Each organization shall have independent Users, Branches, Financial Years, Settings, Permissions, Transactions, and Reports. No organization shall be capable of accessing another organization's information.
+**Statement**: The ERP shall support multiple tenants using the same application instance while ensuring complete logical isolation of data. Each tenant shall have independent Users, Branches, Financial Years, Settings, Permissions, Transactions, and Reports. No tenant shall be capable of accessing another tenant's information.
 
 ### Rationale
 
@@ -138,7 +143,7 @@ Running separate instances for each organization is expensive:
 - Operational complexity increases with customer count
 
 A multi-tenant platform:
-- Shares infrastructure across organizations
+- Shares infrastructure across tenants
 - Reduces operational cost
 - Enables rapid scaling
 - Provides economies of scale
@@ -146,10 +151,10 @@ A multi-tenant platform:
 ### Solution
 
 The ERP implements a shared-schema multi-tenant model where:
-- Single PostgreSQL database serves all organizations
+- Single PostgreSQL database serves all tenants
 - Every table includes a `tenant_id` column
-- Row-Level Security (RLS) policies restrict access to rows for the current organization
-- Users belong to one organization
+- Row-Level Security (RLS) policies restrict access to rows for the current tenant
+- Users belong to one tenant
 - Every API includes tenant context
 - Every audit record is tenant-scoped
 
@@ -159,16 +164,16 @@ Complete logical isolation means:
 
 | Entity | Isolation | Owner |
 |--------|-----------|-------|
-| **Users** | Each organization has independent user accounts | Each organization |
-| **Permissions** | Each organization defines independent roles and permissions | Each organization |
-| **Data** | Each organization's transactions are invisible to other organizations | Each organization |
-| **Branches** | Each organization has independent branches | Each organization |
-| **Financial Years** | Each organization has independent fiscal years | Each organization |
-| **Master Data** | Customers, suppliers, employees are organization-specific | Each organization |
-| **Configuration** | Each organization configures taxes, approval levels, workflows | Each organization |
-| **Reports** | Each organization sees only its data in reports | Each organization |
-| **Backups** | Organizations can be restored independently | Platform |
-| **Audit Logs** | Audit logs are organization-scoped | Each organization |
+| **Users** | Each tenant has independent user accounts | Each tenant |
+| **Permissions** | Each tenant defines independent roles and permissions | Each tenant |
+| **Data** | Each tenant's transactions are invisible to other tenants | Each tenant |
+| **Branches** | Each tenant has independent branches | Each tenant |
+| **Financial Years** | Each tenant has independent fiscal years | Each tenant |
+| **Master Data** | Customers, suppliers, employees are tenant-specific | Each tenant |
+| **Configuration** | Each tenant configures taxes, approval levels, workflows | Each tenant |
+| **Reports** | Each tenant sees only its data in reports | Each tenant |
+| **Backups** | Tenants can be restored independently | Platform |
+| **Audit Logs** | Audit logs are tenant-scoped | Each tenant |
 
 ### Multi-Tenant Benefits
 
@@ -176,7 +181,7 @@ Complete logical isolation means:
 - **Operational simplicity**: One database, one server infrastructure to manage
 - **Version consistency**: All organizations run the same version
 - **Resource efficiency**: Shared infrastructure scales with total usage
-- **Data isolation**: Organizations never see each other's data
+- **Data isolation**: Tenants never see each other's data
 
 ### Security Implications
 
@@ -189,7 +194,7 @@ Multi-tenancy is a critical security architecture decision affecting every table
 - **Audit isolation**: Audit logs tagged with tenant
 - **Reporting isolation**: Reports filtered by tenant
 - **Backup isolation**: Tenants can be restored independently
-- **Administrative isolation**: Organization admins cannot access other organizations
+- **Administrative isolation**: Tenant administrators cannot access other Tenants
 
 ---
 

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { execFile } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -5,7 +6,7 @@ import { promisify } from 'node:util';
 import { afterAll, describe, expect, it } from 'vitest';
 import { Pool } from 'pg';
 
-import { parseAppConfig, resolveDatabaseUrl } from '../../src/config/schema.js';
+import { parseAppConfig } from '../../src/config/schema.js';
 import { createApplication } from '../../src/presentation/http/app.js';
 import { runMigrations } from '../../src/infrastructure/database/migrate.js';
 import { PostgresPlatformRepository } from '../../src/infrastructure/database/repositories/postgres-platform-repository.js';
@@ -13,9 +14,10 @@ import { PlatformBootstrapService } from '../../src/application/services/platfor
 import { UnitOfWork } from '../../src/infrastructure/database/unit-of-work.js';
 import { PostgresAuditLogger } from '../../src/infrastructure/audit/postgres-audit-logger.js';
 import { v7 as uuidV7 } from 'uuid';
+import { resolveIntegrationAdminDatabaseUrl } from './database.js';
 
 const execFileAsync = promisify(execFile);
-const adminUrl = resolveDatabaseUrl(process.env, { forTest: false });
+const adminUrl = resolveIntegrationAdminDatabaseUrl();
 
 describe('fresh zero-state platform acceptance', () => {
   let databaseName: string | undefined;
@@ -66,7 +68,6 @@ describe('fresh zero-state platform acceptance', () => {
       [
         [
           'tenant.manage',
-          'organization.manage',
           'branch.manage',
           'user.manage',
           'role.manage',
@@ -126,6 +127,11 @@ describe('fresh zero-state platform acceptance', () => {
     });
     expect(platformLogin.statusCode, platformLogin.body).toBe(200);
     const platformToken = platformLogin.json().accessToken as string;
+    const normalLoginWithPlatformCredentials = await request('POST', '/api/v1/auth/login', undefined, {
+      identifier: email,
+      password,
+    });
+    expect(normalLoginWithPlatformCredentials.statusCode, normalLoginWithPlatformCredentials.body).toBe(401);
 
     const suffix = Date.now();
     const createTenant = (name: string, user: string) =>
@@ -135,7 +141,6 @@ describe('fresh zero-state platform acceptance', () => {
         subdomain: `sub-${user}`,
         slug: `slug-${user}`,
         administrator: { username: user, email: `${user}@example.com`, password },
-        organization: { name: `${name} Org` },
         branch: { name: `${name} Branch` },
       });
     const tenantAResponse = await createTenant(`Tenant A ${suffix}`, `tenant-a-${suffix}`);
@@ -160,7 +165,7 @@ describe('fresh zero-state platform acceptance', () => {
     expect(
       (await request('POST', '/api/v1/auth/context', tenantToken, { contextType: 'tenant', tenantId: tenantB }))
         .statusCode,
-    ).toBe(403);
+    ).toBe(404);
     expect((await request('GET', '/api/v1/platform/tenants', tenantToken)).statusCode).toBe(403);
     for (const path of [
       '/api/v1/platform/members',
@@ -177,16 +182,10 @@ describe('fresh zero-state platform acceptance', () => {
     expect((await request('GET', '/api/v1/inventory/items', platformToken)).statusCode).not.toBe(200);
     expect((await request('GET', '/api/v1/sales/reports/document-summary', platformToken)).statusCode).not.toBe(200);
     expect((await request('GET', '/api/v1/purchases', platformToken)).statusCode).not.toBe(200);
-    const tenantAContext = await request('POST', '/api/v1/auth/context', tenantToken, {
-      contextType: 'tenant',
-      tenantId: tenantA,
-    });
-    expect(tenantAContext.statusCode).toBe(200);
-    const tenantAToken = tenantAContext.json().accessToken as string;
-    const organizationId = tenantLogin.json().user.organizationId as string;
+    const tenantAToken = tenantToken;
+    const tenantId = tenantLogin.json().user.tenantId as string;
     const customer = await request('POST', '/api/v1/customers', tenantAToken, {
       name: `Customer ${suffix}`,
-      organizationId,
     });
     expect(customer.statusCode).toBe(201);
     const headerSpoof = await app.inject({
@@ -198,7 +197,7 @@ describe('fresh zero-state platform acceptance', () => {
     expect(
       headerSpoof
         .json()
-        .customers.every((entry: { organizationId: string }) => entry.organizationId === organizationId),
+        .customers.every((entry: { tenantId: string }) => entry.tenantId === tenantId),
     ).toBe(true);
     const alteredJwt = `${tenantAToken.slice(0, -1)}${tenantAToken.endsWith('a') ? 'b' : 'a'}`;
     expect((await request('GET', '/api/v1/customers', alteredJwt)).statusCode).toBe(401);

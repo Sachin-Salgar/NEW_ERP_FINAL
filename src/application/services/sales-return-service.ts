@@ -13,7 +13,6 @@ import type { InventoryDependencyPort } from '../../domain/contracts/inventory.j
 
 export interface SalesReturnContext {
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   userId: string;
@@ -93,7 +92,6 @@ export class SalesReturnService {
     this.id(id, 'Return ID');
     const value = await this.repository.getById(
       context.tenantId,
-      context.organizationId,
       context.branchId,
       context.financialYearId,
       id,
@@ -108,7 +106,6 @@ export class SalesReturnService {
     await this.authorize(context, SALES_RETURN_PERMISSIONS.read);
     return this.repository.list(context.tenantId, {
       ...input,
-      organizationId: context.organizationId,
       branchId: context.branchId,
       financialYearId: context.financialYearId,
     });
@@ -208,13 +205,12 @@ export class SalesReturnService {
     if (!c.userId?.trim()) throw new UnauthorizedError();
     for (const [v, l] of [
       [c.tenantId, 'Tenant ID'],
-      [c.organizationId, 'Organization ID'],
       [c.branchId, 'Branch ID'],
       [c.financialYearId, 'Financial Year ID'],
       [c.userId, 'User ID'],
     ] as const)
       this.id(v, l);
-    if (!(await this.modules.isModuleEnabled(c.tenantId, c.organizationId, 'sales')))
+    if (!(await this.modules.isModuleEnabled(c.tenantId, 'sales')))
       throw new ForbiddenError('Sales module is not enabled.');
     if (!(await this.auth.hasPermission(c.tenantId, c.userId, p)))
       throw new ForbiddenError('Insufficient Sales Return permission.');

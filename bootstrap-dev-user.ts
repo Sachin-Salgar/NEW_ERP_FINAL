@@ -32,11 +32,6 @@ async function main() {
       currency: 'USD',
       locale: 'en_US',
     },
-    organization: {
-      code: `CORE${uniqueSuffix}`.slice(0, 18),
-      name: `Core Org ${uniqueSuffix}`,
-      fiscalCalendar: 'standard',
-    },
     branch: {
       code: `BR-${uniqueSuffix}`.slice(0, 15),
       name: `Core Branch ${uniqueSuffix}`,
@@ -53,16 +48,6 @@ async function main() {
       name: `Core Admin ${uniqueSuffix}`,
     },
     permissions: [
-      'organization.read',
-      'organization.create',
-      'organization.update',
-      'organization.activate',
-      'organization.deactivate',
-      'organization.location.read',
-      'organization.location.create',
-      'organization.location.update',
-      'organization.location.activate',
-      'organization.location.deactivate',
       'branch.read',
       'branch.create',
       'branch.update',
@@ -97,7 +82,6 @@ async function main() {
     JSON.stringify(
       {
         tenantId: result.tenantId,
-        organizationId: result.organizationId,
         branchId: result.branchId,
         userId: result.userId,
         username: provider.administrator.username,

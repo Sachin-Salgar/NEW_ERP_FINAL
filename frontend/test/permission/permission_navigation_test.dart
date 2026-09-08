@@ -72,7 +72,6 @@ Future<AuthService> _setupAuthenticatedAuth({
           'modules': [
             {'code': 'core'},
             {'code': 'security'},
-            {'code': 'organization'},
             {'code': 'branch'},
             {'code': 'user-management'},
             {'code': 'tenant-configuration'},
@@ -105,7 +104,7 @@ Future<AuthService> _setupAuthenticatedAuth({
   );
   expect(loginOk, isTrue);
 
-  auth.currentOrganizationId = 'org-1';
+  auth.currentTenantId = 'tenant-1';
   await auth.loadAccessibleModules('http://example.com');
   await auth.authzService.loadPermissions(api, 'user-1');
 

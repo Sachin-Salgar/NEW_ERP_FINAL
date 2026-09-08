@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 
 import { OutboxDispatcher } from '../../src/application/services/outbox-dispatcher.js';
 import { trustedWorkerScope } from '../../src/application/contracts/operational-workers.js';
@@ -71,3 +71,4 @@ describe('OutboxDispatcher', () => {
     expect(transport.deliver.mock.calls[0]?.[0].id).toBe(transport.deliver.mock.calls[1]?.[0].id);
   });
 });
+

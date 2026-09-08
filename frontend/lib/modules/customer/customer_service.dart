@@ -22,9 +22,8 @@ class CustomerService extends ChangeNotifier {
   int get totalPages => total == 0 ? 1 : (total / pageSize).ceil();
 
   Future<void> fetchCustomers({String? search, int? page}) async {
-    final organizationId = auth.currentOrganizationId;
-    if (organizationId == null || organizationId.isEmpty) {
-      error = 'Organization context is missing.';
+    if (auth.currentTenantId == null || auth.currentTenantId!.isEmpty) {
+      error = 'Tenant context is missing.';
       customers = [];
       notifyListeners();
       return;
@@ -80,14 +79,10 @@ class CustomerService extends ChangeNotifier {
   }
 
   Future<String?> createCustomer(String name) async {
-    final organizationId = auth.currentOrganizationId;
-    if (organizationId == null || organizationId.isEmpty) {
-      return 'Organization context is missing.';
-    }
     try {
       final response = await apiClient.post(
         '/api/v1/customers',
-        body: {'organizationId': organizationId, 'name': name.trim()},
+        body: {'name': name.trim()},
       );
       if (response.statusCode == 201) {
         await fetchCustomers();

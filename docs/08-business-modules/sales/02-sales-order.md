@@ -25,9 +25,8 @@ in Section 19.
 |---|---|---:|---|
 | `id` | UUIDv7 | yes | primary key |
 | `tenant_id` | UUID | yes | authenticated tenant; immutable |
-| `organization_id` | UUID | yes | active authorized organization |
-| `branch_id` | UUID | mandatory reference; semantics decision | Core branch in same organization |
-| `warehouse_id` | UUID | required for new order conversion | Active Inventory warehouse in the same organization |
+| `branch_id` | UUID | mandatory reference; semantics decision | Core branch in the same tenant |
+| `warehouse_id` | UUID | required for new order conversion | Active Inventory warehouse in the same tenant |
 | `financial_year_id` | UUID | mandatory reference; semantics decision | financial-year contract |
 | `order_number` | text | yes | server-generated, scope pending |
 | `customer_id` | UUID | yes | CRM Customer contract |
@@ -45,7 +44,7 @@ in Section 19.
 
 ### Detail: `sales_order_items`
 
-Required baseline: UUIDv7 `id`, `tenant_id`, `organization_id`, `order_id`,
+Required baseline: UUIDv7 `id`, `tenant_id`, `order_id`,
 line number, Item Master `item_id`, description snapshot, quantity, unit of
 measure, unit price, discount reference, tax reference, and canonical audit
 columns (`created_at`, `created_by`, `updated_at`, `updated_by`,
@@ -54,12 +53,12 @@ Historical lines may retain a null `item_id`; new Inventory-backed order
 conversion requires it. Exact monetary types, tax snapshots, discount snapshots, and whether
 services are allowed are **BUSINESS DECISION REQUIRED**.
 
-Header/detail rows require composite tenant/organization foreign-key integrity,
+Header/detail rows require tenant foreign-key integrity,
 unique line numbers per order, and no orphan details.
 
 Transactional Sales records must include the mandatory `tenant_id`,
-`organization_id`, `branch_id`, and `financial_year_id` references required by
-the organizational-isolation standard. The exact branch and financial-year
+`branch_id`, and `financial_year_id` references required by the tenant-isolation
+standard. The exact branch and financial-year
 business semantics remain **BUSINESS DECISION REQUIRED**.
 
 ## 3. Lifecycle and authorization
@@ -95,7 +94,7 @@ Candidate permission keys require approval before registration:
 ## 5. API contract
 
 Base path: `/api/v1/sales/orders`. All endpoints require authentication,
-`sales` module enablement, active organization authorization, and the relevant
+`sales` module enablement, tenant authorization, and the relevant
 approved permission.
 
 Required endpoint families:
@@ -125,7 +124,7 @@ permission-aware controls. Flutter never authorizes, calculates totals, or
 changes status locally.
 
 Tests must cover authentication, permissions, module enablement, CRUD,
-cross-tenant and cross-organization GET/LIST/PATCH/DELETE, RLS, lifecycle and
+cross-tenant and unauthorized-Branch GET/LIST/PATCH/DELETE, RLS, lifecycle and
 invalid transitions, version conflicts, numbering concurrency, immutability,
 audit, rollback, and every integration failure boundary.
 

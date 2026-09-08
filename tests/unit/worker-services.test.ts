@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 
 import { NotificationDeliveryWorker } from '../../src/application/services/notification-delivery-worker.js';
 import { SchedulerWorker } from '../../src/application/services/scheduler-worker.js';
@@ -71,3 +71,4 @@ describe('tenant-scoped workers', () => {
     );
   });
 });
+

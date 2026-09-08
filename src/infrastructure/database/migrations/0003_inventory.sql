@@ -18,7 +18,6 @@ SET client_min_messages = warning;
 CREATE TABLE public.inventory_items (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     code character varying(100) NOT NULL,
     name character varying(255) NOT NULL,
     description text,
@@ -49,7 +48,6 @@ ALTER TABLE ONLY public.inventory_items FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.inventory_movements (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     financial_year_id uuid NOT NULL,
     warehouse_id uuid NOT NULL,
@@ -77,7 +75,6 @@ ALTER TABLE ONLY public.inventory_movements FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.inventory_reservations (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     financial_year_id uuid NOT NULL,
     warehouse_id uuid NOT NULL,
@@ -108,7 +105,6 @@ ALTER TABLE ONLY public.inventory_reservations FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.inventory_stock (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     warehouse_id uuid NOT NULL,
     item_id uuid NOT NULL,
     on_hand_quantity numeric(18,4) DEFAULT 0 NOT NULL,
@@ -133,7 +129,6 @@ ALTER TABLE ONLY public.inventory_stock FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.inventory_warehouses (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     code character varying(100) NOT NULL,
     name character varying(255) NOT NULL,
     status character varying(20) DEFAULT 'ACTIVE'::character varying NOT NULL,
@@ -164,7 +159,7 @@ CREATE UNIQUE INDEX uq_inventory_item_id_tenant ON public.inventory_items USING 
 -- Name: uq_inventory_item_org_code; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_inventory_item_org_code ON public.inventory_items USING btree (tenant_id, organization_id, code) WHERE (is_deleted = false);
+CREATE UNIQUE INDEX uq_inventory_item_org_code ON public.inventory_items USING btree (tenant_id, code) WHERE (is_deleted = false);
 
 
 --
@@ -240,7 +235,7 @@ ALTER TABLE ONLY public.inventory_warehouses
 --
 
 ALTER TABLE ONLY public.inventory_movements
-    ADD CONSTRAINT uq_inventory_movement_operation UNIQUE (tenant_id, organization_id, operation_key);
+    ADD CONSTRAINT uq_inventory_movement_operation UNIQUE (tenant_id, operation_key);
 
 
 --
@@ -250,7 +245,7 @@ ALTER TABLE ONLY public.inventory_movements
 --
 
 ALTER TABLE ONLY public.inventory_reservations
-    ADD CONSTRAINT uq_inventory_reservation_source_item UNIQUE (tenant_id, organization_id, source_type, source_id, item_id);
+    ADD CONSTRAINT uq_inventory_reservation_source_item UNIQUE (tenant_id, source_type, source_id, item_id);
 
 
 --
@@ -260,7 +255,7 @@ ALTER TABLE ONLY public.inventory_reservations
 --
 
 ALTER TABLE ONLY public.inventory_stock
-    ADD CONSTRAINT uq_inventory_stock_scope UNIQUE (tenant_id, organization_id, warehouse_id, item_id);
+    ADD CONSTRAINT uq_inventory_stock_scope UNIQUE (tenant_id, warehouse_id, item_id);
 
 
 --
@@ -270,17 +265,7 @@ ALTER TABLE ONLY public.inventory_stock
 --
 
 ALTER TABLE ONLY public.inventory_warehouses
-    ADD CONSTRAINT uq_inventory_warehouse_code UNIQUE (tenant_id, organization_id, code);
-
-
---
-
-
--- Name: inventory_items fk_inventory_item_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.inventory_items
-    ADD CONSTRAINT fk_inventory_item_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id) ON DELETE RESTRICT;
+    ADD CONSTRAINT uq_inventory_warehouse_code UNIQUE (tenant_id, code);
 
 
 --
@@ -311,16 +296,6 @@ ALTER TABLE ONLY public.inventory_movements
 
 ALTER TABLE ONLY public.inventory_movements
     ADD CONSTRAINT fk_inventory_movement_item FOREIGN KEY (item_id, tenant_id) REFERENCES public.inventory_items(id, tenant_id) ON DELETE RESTRICT;
-
-
---
-
-
--- Name: inventory_movements fk_inventory_movement_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.inventory_movements
-    ADD CONSTRAINT fk_inventory_movement_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id) ON DELETE RESTRICT;
 
 
 --
@@ -366,16 +341,6 @@ ALTER TABLE ONLY public.inventory_reservations
 --
 
 
--- Name: inventory_reservations fk_inventory_reservation_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.inventory_reservations
-    ADD CONSTRAINT fk_inventory_reservation_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id) ON DELETE RESTRICT;
-
-
---
-
-
 -- Name: inventory_reservations fk_inventory_reservation_warehouse; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -396,31 +361,11 @@ ALTER TABLE ONLY public.inventory_stock
 --
 
 
--- Name: inventory_stock fk_inventory_stock_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.inventory_stock
-    ADD CONSTRAINT fk_inventory_stock_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id) ON DELETE RESTRICT;
-
-
---
-
-
 -- Name: inventory_stock fk_inventory_stock_warehouse; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.inventory_stock
     ADD CONSTRAINT fk_inventory_stock_warehouse FOREIGN KEY (warehouse_id, tenant_id) REFERENCES public.inventory_warehouses(id, tenant_id) ON DELETE RESTRICT;
-
-
---
-
-
--- Name: inventory_warehouses fk_inventory_warehouse_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.inventory_warehouses
-    ADD CONSTRAINT fk_inventory_warehouse_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id) ON DELETE RESTRICT;
 
 
 --
@@ -644,7 +589,7 @@ CREATE POLICY inventory_warehouses_tenant_isolation ON public.inventory_warehous
 -- Name: idx_inventory_item_org_name; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_inventory_item_org_name ON public.inventory_items USING btree (tenant_id, organization_id, name, id) WHERE (is_deleted = false);
+CREATE INDEX idx_inventory_item_org_name ON public.inventory_items USING btree (tenant_id, name, id) WHERE (is_deleted = false);
 
 
 --
@@ -653,7 +598,7 @@ CREATE INDEX idx_inventory_item_org_name ON public.inventory_items USING btree (
 -- Name: idx_inventory_movement_org_item; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_inventory_movement_org_item ON public.inventory_movements USING btree (tenant_id, organization_id, item_id, created_at);
+CREATE INDEX idx_inventory_movement_org_item ON public.inventory_movements USING btree (tenant_id, item_id, created_at);
 
 
 --
@@ -662,7 +607,7 @@ CREATE INDEX idx_inventory_movement_org_item ON public.inventory_movements USING
 -- Name: idx_inventory_reservation_org_status; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_inventory_reservation_org_status ON public.inventory_reservations USING btree (tenant_id, organization_id, status, created_at);
+CREATE INDEX idx_inventory_reservation_org_status ON public.inventory_reservations USING btree (tenant_id, status, created_at);
 
 
 --
@@ -671,7 +616,7 @@ CREATE INDEX idx_inventory_reservation_org_status ON public.inventory_reservatio
 -- Name: idx_inventory_stock_org_warehouse; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_inventory_stock_org_warehouse ON public.inventory_stock USING btree (tenant_id, organization_id, warehouse_id, item_id);
+CREATE INDEX idx_inventory_stock_org_warehouse ON public.inventory_stock USING btree (tenant_id, warehouse_id, item_id);
 
 
 --
@@ -680,7 +625,7 @@ CREATE INDEX idx_inventory_stock_org_warehouse ON public.inventory_stock USING b
 -- Name: idx_inventory_warehouse_org_name; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_inventory_warehouse_org_name ON public.inventory_warehouses USING btree (tenant_id, organization_id, name);
+CREATE INDEX idx_inventory_warehouse_org_name ON public.inventory_warehouses USING btree (tenant_id, name);
 
 
 --

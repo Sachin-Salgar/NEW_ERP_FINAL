@@ -129,10 +129,10 @@ CREATE TYPE public.membership_status_enum AS ENUM (
 --
 
 
--- Name: org_status_enum; Type: TYPE; Schema: public; Owner: -
+-- Name: branch_status_enum; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public.org_status_enum AS ENUM (
+CREATE TYPE public.branch_status_enum AS ENUM (
     'active',
     'inactive',
     'archived'
@@ -141,14 +141,12 @@ CREATE TYPE public.org_status_enum AS ENUM (
 
 --
 
-
 -- Name: permission_scope_enum; Type: TYPE; Schema: public; Owner: -
 --
 
 CREATE TYPE public.permission_scope_enum AS ENUM (
     'own',
     'branch',
-    'organization',
     'tenant',
     'global'
 );
@@ -296,32 +294,6 @@ BEGIN
     SET secret_hash = EXCLUDED.secret_hash,
         password_changed_at = COALESCE(EXCLUDED.password_changed_at, identity_credentials.password_changed_at),
         updated_at = now();
-  RETURN NEW;
-END;
-$$;
-
-
---
-
-
--- Name: initialize_core_organization_modules(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.initialize_core_organization_modules() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-  INSERT INTO "organization_modules" (tenant_id, organization_id, module_id, enabled, enabled_at)
-  SELECT NEW.tenant_id, NEW.id, m.id, true, NOW()
-  FROM "modules" m
-  WHERE m.is_core = true OR m.code IN ('crm', 'sales')
-  ON CONFLICT (organization_id, module_id) DO UPDATE
-  SET
-    tenant_id = EXCLUDED.tenant_id,
-    enabled = true,
-    enabled_at = NOW(),
-    disabled_at = NULL,
-    disabled_by = NULL;
   RETURN NEW;
 END;
 $$;
@@ -532,10 +504,9 @@ COMMENT ON COLUMN public.auth_login_identifiers.tenant_id IS 'Candidate tenant d
 CREATE TABLE public.branches (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     code character varying(50) NOT NULL,
     name character varying(255) NOT NULL,
-    status public.org_status_enum DEFAULT 'active'::public.org_status_enum NOT NULL,
+    status public.branch_status_enum DEFAULT 'active'::public.branch_status_enum NOT NULL,
     is_head_office boolean DEFAULT false NOT NULL,
     is_default boolean DEFAULT false NOT NULL,
     address_line1 text,
@@ -603,7 +574,7 @@ ALTER TABLE ONLY public.email_verification_tokens FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.financial_years (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
+    branch_id uuid,
     name character varying(100) NOT NULL,
     start_date date NOT NULL,
     end_date date NOT NULL,
@@ -664,42 +635,6 @@ CREATE TABLE public.identity_credentials (
     updated_at timestamp with time zone,
     CONSTRAINT identity_credentials_failed_attempts_check CHECK ((failed_attempt_count >= 0))
 );
-
-
---
-
-
--- Name: locations; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.locations (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
-    code character varying(50) NOT NULL,
-    name character varying(255) NOT NULL,
-    description text,
-    status public.org_status_enum DEFAULT 'active'::public.org_status_enum NOT NULL,
-    is_default boolean DEFAULT false NOT NULL,
-    address_line1 text,
-    address_line2 text,
-    city character varying(100),
-    state character varying(100),
-    country character varying(100),
-    postal_code character varying(20),
-    timezone character varying(100) DEFAULT 'UTC'::character varying NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_by uuid,
-    updated_at timestamp with time zone,
-    updated_by uuid,
-    deleted_at timestamp with time zone,
-    deleted_by uuid,
-    is_deleted boolean DEFAULT false NOT NULL,
-    version integer DEFAULT 1 NOT NULL,
-    CONSTRAINT check_location_soft_delete CHECK ((((is_deleted = false) AND (deleted_at IS NULL)) OR ((is_deleted = true) AND (deleted_at IS NOT NULL))))
-);
-
-ALTER TABLE ONLY public.locations FORCE ROW LEVEL SECURITY;
 
 
 --
@@ -809,66 +744,6 @@ CREATE TABLE public.notifications (
 );
 
 ALTER TABLE ONLY public.notifications FORCE ROW LEVEL SECURITY;
-
-
---
-
-
--- Name: organization_modules; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.organization_modules (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
-    module_id uuid NOT NULL,
-    enabled boolean DEFAULT true NOT NULL,
-    enabled_at timestamp with time zone DEFAULT now() NOT NULL,
-    enabled_by uuid,
-    disabled_at timestamp with time zone,
-    disabled_by uuid,
-    CONSTRAINT check_organization_module_lifecycle CHECK ((((enabled = true) AND (disabled_at IS NULL)) OR ((enabled = false) AND (disabled_at IS NOT NULL))))
-);
-
-ALTER TABLE ONLY public.organization_modules FORCE ROW LEVEL SECURITY;
-
-
---
-
-
--- Name: organizations; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.organizations (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    tenant_id uuid NOT NULL,
-    code character varying(50) NOT NULL,
-    name character varying(255) NOT NULL,
-    legal_name character varying(255),
-    gst_no character varying(50),
-    pan_no character varying(50),
-    cin_no character varying(50),
-    email character varying(255),
-    phone character varying(50),
-    website character varying(255),
-    base_currency character varying(10) DEFAULT 'USD'::character varying NOT NULL,
-    fiscal_calendar character varying(50) DEFAULT 'standard'::character varying NOT NULL,
-    status public.org_status_enum DEFAULT 'active'::public.org_status_enum NOT NULL,
-    is_default boolean DEFAULT false NOT NULL,
-    remarks text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_by uuid,
-    updated_at timestamp with time zone,
-    updated_by uuid,
-    deleted_at timestamp with time zone,
-    deleted_by uuid,
-    is_deleted boolean DEFAULT false NOT NULL,
-    version integer DEFAULT 1 NOT NULL,
-    CONSTRAINT check_org_default_status CHECK ((NOT ((is_default = true) AND (status = 'archived'::public.org_status_enum)))),
-    CONSTRAINT check_org_soft_delete CHECK ((((is_deleted = false) AND (deleted_at IS NULL)) OR ((is_deleted = true) AND (deleted_at IS NOT NULL))))
-);
-
-ALTER TABLE ONLY public.organizations FORCE ROW LEVEL SECURITY;
 
 
 --
@@ -1331,41 +1206,6 @@ ALTER TABLE ONLY public.user_branch_access FORCE ROW LEVEL SECURITY;
 --
 
 
--- Name: user_location_access; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.user_location_access (
-    tenant_id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
-    location_id uuid NOT NULL,
-    is_active boolean DEFAULT true NOT NULL,
-    granted_by uuid,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone
-);
-
-ALTER TABLE ONLY public.user_location_access FORCE ROW LEVEL SECURITY;
-
-
---
-
-
--- Name: user_organization_access; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.user_organization_access (
-    tenant_id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    organization_id uuid NOT NULL
-);
-
-ALTER TABLE ONLY public.user_organization_access FORCE ROW LEVEL SECURITY;
-
-
---
-
-
 -- Name: user_permissions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1404,7 +1244,6 @@ CREATE TABLE public.user_sessions (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
     user_id uuid NOT NULL,
-    organization_id uuid,
     branch_id uuid,
     access_token_id character varying(255),
     refresh_token_hash character varying(255) NOT NULL,
@@ -1422,7 +1261,6 @@ CREATE TABLE public.user_sessions (
     logout_at timestamp with time zone,
     updated_at timestamp with time zone,
     version integer DEFAULT 1 NOT NULL,
-    location_id uuid,
     financial_year_id uuid,
     identity_id uuid NOT NULL,
     context_type public.session_context_enum DEFAULT 'tenant'::public.session_context_enum NOT NULL,
@@ -1448,7 +1286,6 @@ ALTER TABLE ONLY public.user_sessions FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.users (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid,
     default_branch_id uuid,
     username character varying(150) NOT NULL,
     email character varying(255) NOT NULL,
@@ -1471,7 +1308,6 @@ CREATE TABLE public.users (
     deleted_by uuid,
     is_deleted boolean DEFAULT false NOT NULL,
     version integer DEFAULT 1 NOT NULL,
-    default_location_id uuid,
     identity_id uuid NOT NULL,
     CONSTRAINT check_user_reset_expiry CHECK (((password_reset_expires_at IS NULL) OR (password_reset_token_hash IS NOT NULL))),
     CONSTRAINT check_user_soft_delete CHECK ((((is_deleted = false) AND (deleted_at IS NULL)) OR ((is_deleted = true) AND (deleted_at IS NOT NULL))))
@@ -1573,16 +1409,6 @@ ALTER TABLE ONLY public.identity_credentials
 --
 
 
--- Name: locations locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.locations
-    ADD CONSTRAINT locations_pkey PRIMARY KEY (id);
-
-
---
-
-
 -- Name: mfa_enrollments mfa_enrollments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1628,26 +1454,6 @@ ALTER TABLE ONLY public.notification_delivery_attempts
 
 ALTER TABLE ONLY public.notifications
     ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
-
-
---
-
-
--- Name: organization_modules organization_modules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.organization_modules
-    ADD CONSTRAINT organization_modules_pkey PRIMARY KEY (id);
-
-
---
-
-
--- Name: organizations organizations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.organizations
-    ADD CONSTRAINT organizations_pkey PRIMARY KEY (id);
 
 
 --
@@ -1903,41 +1709,11 @@ ALTER TABLE ONLY public.tenants
 --
 
 
--- Name: organization_modules uq_organization_module; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.organization_modules
-    ADD CONSTRAINT uq_organization_module UNIQUE (organization_id, module_id);
-
-
---
-
-
 -- Name: user_branch_access user_branch_access_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.user_branch_access
     ADD CONSTRAINT user_branch_access_pkey PRIMARY KEY (user_id, branch_id, tenant_id);
-
-
---
-
-
--- Name: user_location_access user_location_access_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_location_access
-    ADD CONSTRAINT user_location_access_pkey PRIMARY KEY (user_id, location_id, tenant_id);
-
-
---
-
-
--- Name: user_organization_access user_organization_access_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_organization_access
-    ADD CONSTRAINT user_organization_access_pkey PRIMARY KEY (user_id, organization_id, tenant_id);
 
 
 --
@@ -2132,24 +1908,6 @@ CREATE INDEX idx_notifications_due ON public.notifications USING btree (tenant_i
 --
 
 
--- Name: idx_organization_modules_tenant_module; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_organization_modules_tenant_module ON public.organization_modules USING btree (tenant_id, module_id);
-
-
---
-
-
--- Name: idx_organization_modules_tenant_org; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_organization_modules_tenant_org ON public.organization_modules USING btree (tenant_id, organization_id);
-
-
---
-
-
 -- Name: idx_outbox_events_claimable; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2249,33 +2007,6 @@ CREATE INDEX idx_user_branch_access_tenant_user ON public.user_branch_access USI
 --
 
 
--- Name: idx_user_location_access_tenant_org; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_user_location_access_tenant_org ON public.user_location_access USING btree (tenant_id, organization_id);
-
-
---
-
-
--- Name: idx_user_location_access_tenant_user; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_user_location_access_tenant_user ON public.user_location_access USING btree (tenant_id, user_id);
-
-
---
-
-
--- Name: idx_user_organization_access_tenant_user; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_user_organization_access_tenant_user ON public.user_organization_access USING btree (tenant_id, user_id);
-
-
---
-
-
 -- Name: idx_user_permissions_tenant_user; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2321,24 +2052,6 @@ CREATE INDEX idx_user_sessions_platform_membership_active ON public.user_session
 --
 
 
--- Name: idx_user_sessions_tenant_location; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_user_sessions_tenant_location ON public.user_sessions USING btree (tenant_id, location_id);
-
-
---
-
-
--- Name: idx_users_default_location_tenant; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_users_default_location_tenant ON public.users USING btree (tenant_id, default_location_id);
-
-
---
-
-
 -- Name: unique_tenant_module; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2351,7 +2064,7 @@ CREATE UNIQUE INDEX unique_tenant_module ON public.tenant_modules USING btree (t
 -- Name: uq_active_financial_year; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_active_financial_year ON public.financial_years USING btree (tenant_id, organization_id) WHERE ((is_active = true) AND (is_deleted = false));
+CREATE UNIQUE INDEX uq_active_financial_year ON public.financial_years USING btree (tenant_id) WHERE ((is_active = true) AND (is_deleted = false));
 
 
 --
@@ -2378,25 +2091,7 @@ CREATE UNIQUE INDEX uq_branch_id_tenant ON public.branches USING btree (id, tena
 -- Name: uq_default_branch; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_default_branch ON public.branches USING btree (organization_id) WHERE ((is_default = true) AND (is_deleted = false));
-
-
---
-
-
--- Name: uq_default_location; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX uq_default_location ON public.locations USING btree (organization_id) WHERE ((is_default = true) AND (is_deleted = false));
-
-
---
-
-
--- Name: uq_default_organization; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX uq_default_organization ON public.organizations USING btree (tenant_id) WHERE ((is_default = true) AND (is_deleted = false));
+CREATE UNIQUE INDEX uq_default_branch ON public.branches USING btree (tenant_id) WHERE ((is_default = true) AND (is_deleted = false));
 
 
 --
@@ -2423,16 +2118,7 @@ CREATE UNIQUE INDEX uq_fy_id_tenant ON public.financial_years USING btree (id, t
 -- Name: uq_head_office; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_head_office ON public.branches USING btree (organization_id) WHERE ((is_head_office = true) AND (is_deleted = false));
-
-
---
-
-
--- Name: uq_location_id_tenant; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX uq_location_id_tenant ON public.locations USING btree (id, tenant_id);
+CREATE UNIQUE INDEX uq_head_office ON public.branches USING btree (tenant_id) WHERE ((is_head_office = true) AND (is_deleted = false));
 
 
 --
@@ -2460,15 +2146,6 @@ CREATE UNIQUE INDEX uq_modules_code ON public.modules USING btree (code);
 --
 
 CREATE UNIQUE INDEX uq_notification_attempt_no ON public.notification_delivery_attempts USING btree (tenant_id, notification_id, attempt_no);
-
-
---
-
-
--- Name: uq_org_id_tenant; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX uq_org_id_tenant ON public.organizations USING btree (id, tenant_id);
 
 
 --
@@ -2541,24 +2218,6 @@ CREATE UNIQUE INDEX uq_tenant_branch_code_active ON public.branches USING btree 
 --
 
 CREATE UNIQUE INDEX uq_tenant_email_active ON public.users USING btree (tenant_id, email) WHERE (is_deleted = false);
-
-
---
-
-
--- Name: uq_tenant_org_code_active; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX uq_tenant_org_code_active ON public.organizations USING btree (tenant_id, code) WHERE (is_deleted = false);
-
-
---
-
-
--- Name: uq_tenant_org_location_code_active; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX uq_tenant_org_location_code_active ON public.locations USING btree (tenant_id, organization_id, code) WHERE (is_deleted = false);
 
 
 --
@@ -2649,15 +2308,6 @@ CREATE TRIGGER trg_assign_session_context_compatibility BEFORE INSERT ON public.
 --
 
 CREATE TRIGGER trg_assign_user_identity_compatibility BEFORE INSERT ON public.users FOR EACH ROW EXECUTE FUNCTION public.assign_user_identity_compatibility();
-
-
---
-
-
--- Name: organizations trg_initialize_core_organization_modules; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_initialize_core_organization_modules AFTER INSERT ON public.organizations FOR EACH ROW EXECUTE FUNCTION public.initialize_core_organization_modules();
 
 
 --
@@ -2779,6 +2429,12 @@ ALTER TABLE ONLY public.branches
 ALTER TABLE ONLY public.financial_years
     ADD CONSTRAINT financial_years_tenant_id_tenants_id_fk FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON DELETE CASCADE;
 
+-- Name: financial_years fk_financial_year_branch_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -;
+--
+
+ALTER TABLE ONLY public.financial_years
+    ADD CONSTRAINT fk_financial_year_branch_tenant FOREIGN KEY (branch_id, tenant_id) REFERENCES public.branches(id, tenant_id);
+
 
 --
 
@@ -2803,16 +2459,6 @@ ALTER TABLE ONLY public.audit_events
 --
 
 
--- Name: branches fk_branch_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.branches
-    ADD CONSTRAINT fk_branch_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
-
-
---
-
-
 -- Name: code_counters fk_code_counters_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2828,26 +2474,6 @@ ALTER TABLE ONLY public.code_counters
 
 ALTER TABLE ONLY public.email_verification_tokens
     ADD CONSTRAINT fk_email_verification_tokens_user FOREIGN KEY (user_id, tenant_id) REFERENCES public.users(id, tenant_id) ON DELETE CASCADE;
-
-
---
-
-
--- Name: financial_years fk_fy_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.financial_years
-    ADD CONSTRAINT fk_fy_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
-
-
---
-
-
--- Name: locations fk_location_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.locations
-    ADD CONSTRAINT fk_location_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
 
 
 --
@@ -2898,36 +2524,6 @@ ALTER TABLE ONLY public.notification_delivery_attempts
 
 ALTER TABLE ONLY public.notifications
     ADD CONSTRAINT fk_notifications_tenant FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON DELETE CASCADE;
-
-
---
-
-
--- Name: organization_modules fk_organization_modules_module; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.organization_modules
-    ADD CONSTRAINT fk_organization_modules_module FOREIGN KEY (module_id) REFERENCES public.modules(id) ON DELETE CASCADE;
-
-
---
-
-
--- Name: organization_modules fk_organization_modules_organization; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.organization_modules
-    ADD CONSTRAINT fk_organization_modules_organization FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id) ON DELETE CASCADE;
-
-
---
-
-
--- Name: organization_modules fk_organization_modules_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.organization_modules
-    ADD CONSTRAINT fk_organization_modules_tenant FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON DELETE CASCADE;
 
 
 --
@@ -3003,26 +2599,6 @@ ALTER TABLE ONLY public.user_sessions
 --
 
 
--- Name: user_sessions fk_session_location_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_sessions
-    ADD CONSTRAINT fk_session_location_tenant FOREIGN KEY (location_id, tenant_id) REFERENCES public.locations(id, tenant_id);
-
-
---
-
-
--- Name: user_sessions fk_session_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_sessions
-    ADD CONSTRAINT fk_session_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
-
-
---
-
-
 -- Name: user_sessions fk_session_user_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3063,81 +2639,11 @@ ALTER TABLE ONLY public.user_branch_access
 --
 
 
--- Name: user_location_access fk_ula_access_location; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_location_access
-    ADD CONSTRAINT fk_ula_access_location FOREIGN KEY (location_id, tenant_id) REFERENCES public.locations(id, tenant_id);
-
-
---
-
-
--- Name: user_location_access fk_ula_access_org; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_location_access
-    ADD CONSTRAINT fk_ula_access_org FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
-
-
---
-
-
--- Name: user_location_access fk_ula_access_user; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_location_access
-    ADD CONSTRAINT fk_ula_access_user FOREIGN KEY (user_id, tenant_id) REFERENCES public.users(id, tenant_id);
-
-
---
-
-
--- Name: user_organization_access fk_uo_access_org; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_organization_access
-    ADD CONSTRAINT fk_uo_access_org FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
-
-
---
-
-
--- Name: user_organization_access fk_uo_access_user; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_organization_access
-    ADD CONSTRAINT fk_uo_access_user FOREIGN KEY (user_id, tenant_id) REFERENCES public.users(id, tenant_id);
-
-
---
-
-
 -- Name: users fk_user_branch_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT fk_user_branch_tenant FOREIGN KEY (default_branch_id, tenant_id) REFERENCES public.branches(id, tenant_id);
-
-
---
-
-
--- Name: users fk_user_location_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT fk_user_location_tenant FOREIGN KEY (default_location_id, tenant_id) REFERENCES public.locations(id, tenant_id) ON DELETE SET NULL;
-
-
---
-
-
--- Name: users fk_user_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT fk_user_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
 
 
 --
@@ -3188,26 +2694,6 @@ ALTER TABLE ONLY public.user_sessions
 
 ALTER TABLE ONLY public.identity_credentials
     ADD CONSTRAINT identity_credentials_identity_id_fkey FOREIGN KEY (identity_id) REFERENCES public.identities(id) ON DELETE CASCADE;
-
-
---
-
-
--- Name: locations locations_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.locations
-    ADD CONSTRAINT locations_tenant_id_tenants_id_fk FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON DELETE CASCADE;
-
-
---
-
-
--- Name: organizations organizations_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.organizations
-    ADD CONSTRAINT organizations_tenant_id_tenants_id_fk FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON DELETE CASCADE;
 
 
 --
@@ -3373,26 +2859,6 @@ ALTER TABLE ONLY public.user_branch_access
 --
 
 
--- Name: user_location_access user_location_access_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_location_access
-    ADD CONSTRAINT user_location_access_tenant_id_tenants_id_fk FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON DELETE CASCADE;
-
-
---
-
-
--- Name: user_organization_access user_organization_access_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_organization_access
-    ADD CONSTRAINT user_organization_access_tenant_id_tenants_id_fk FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON DELETE CASCADE;
-
-
---
-
-
 -- Name: user_permissions user_permissions_permission_id_permissions_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3550,25 +3016,6 @@ ALTER TABLE public.financial_years ENABLE ROW LEVEL SECURITY;
 --
 
 
--- Name: locations; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.locations ENABLE ROW LEVEL SECURITY;
-
---
-
-
--- Name: locations locations_tenant_and_org_access_policy; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY locations_tenant_and_org_access_policy ON public.locations USING (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((current_setting('app.current_organization_id'::text, true) IS NULL) OR (organization_id = (current_setting('app.current_organization_id'::text, true))::uuid)) AND (is_deleted = false) AND ((current_setting('app.current_user_id'::text, true) IS NULL) OR (EXISTS ( SELECT 1
-   FROM public.user_location_access ula
-  WHERE ((ula.tenant_id = locations.tenant_id) AND (ula.organization_id = locations.organization_id) AND (ula.location_id = locations.id) AND (ula.user_id = (current_setting('app.current_user_id'::text, true))::uuid) AND (ula.is_active = true))))))) WITH CHECK (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((current_setting('app.current_organization_id'::text, true) IS NULL) OR (organization_id = (current_setting('app.current_organization_id'::text, true))::uuid)) AND (is_deleted = false)));
-
-
---
-
-
 -- Name: mfa_enrollments; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -3633,31 +3080,6 @@ ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY notifications_tenant_isolation_policy ON public.notifications USING ((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid));
 
-
---
-
-
--- Name: organization_modules; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.organization_modules ENABLE ROW LEVEL SECURITY;
-
---
-
-
--- Name: organization_modules organization_modules_tenant_org_isolation_policy; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY organization_modules_tenant_org_isolation_policy ON public.organization_modules USING (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((NULLIF(current_setting('app.current_tenant_id_organization_id'::text, true), ''::text) IS NULL) OR (organization_id = (NULLIF(current_setting('app.current_tenant_id_organization_id'::text, true), ''::text))::uuid)))) WITH CHECK (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((NULLIF(current_setting('app.current_tenant_id_organization_id'::text, true), ''::text) IS NULL) OR (organization_id = (NULLIF(current_setting('app.current_tenant_id_organization_id'::text, true), ''::text))::uuid))));
-
-
---
-
-
--- Name: organizations; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 
 --
 
@@ -3798,24 +3220,6 @@ CREATE POLICY tenant_isolation_policy ON public.financial_years USING ((tenant_i
 --
 
 
--- Name: locations tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY tenant_isolation_policy ON public.locations USING ((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid));
-
-
---
-
-
--- Name: organizations tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY tenant_isolation_policy ON public.organizations USING ((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid));
-
-
---
-
-
 -- Name: role_permissions tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -3856,15 +3260,6 @@ CREATE POLICY tenant_isolation_policy ON public.tenant_subscriptions USING ((ten
 --
 
 CREATE POLICY tenant_isolation_policy ON public.user_branch_access USING ((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid));
-
-
---
-
-
--- Name: user_organization_access tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY tenant_isolation_policy ON public.user_organization_access USING ((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid));
 
 
 --
@@ -3930,31 +3325,6 @@ ALTER TABLE public.user_branch_access ENABLE ROW LEVEL SECURITY;
 --
 
 
--- Name: user_location_access; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.user_location_access ENABLE ROW LEVEL SECURITY;
-
---
-
-
--- Name: user_location_access user_location_access_tenant_isolation_policy; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY user_location_access_tenant_isolation_policy ON public.user_location_access USING ((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid));
-
-
---
-
-
--- Name: user_organization_access; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.user_organization_access ENABLE ROW LEVEL SECURITY;
-
---
-
-
 -- Name: user_permissions; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -3975,19 +3345,6 @@ ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.user_sessions ENABLE ROW LEVEL SECURITY;
-
---
-
-
--- Name: user_sessions user_sessions_active_location_policy; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY user_sessions_active_location_policy ON public.user_sessions USING (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((organization_id IS NULL) OR (organization_id = (current_setting('app.current_organization_id'::text, true))::uuid)) AND ((location_id IS NULL) OR (location_id = (current_setting('app.current_location_id'::text, true))::uuid)) AND ((location_id IS NULL) OR (EXISTS ( SELECT 1
-   FROM public.user_location_access ula
-  WHERE ((ula.tenant_id = user_sessions.tenant_id) AND (ula.user_id = user_sessions.user_id) AND (ula.location_id = user_sessions.location_id) AND (ula.is_active = true))))))) WITH CHECK (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((organization_id IS NULL) OR (organization_id = (current_setting('app.current_organization_id'::text, true))::uuid)) AND ((location_id IS NULL) OR (location_id = (current_setting('app.current_location_id'::text, true))::uuid)) AND ((location_id IS NULL) OR (EXISTS ( SELECT 1
-   FROM public.user_location_access ula
-  WHERE ((ula.tenant_id = user_sessions.tenant_id) AND (ula.user_id = user_sessions.user_id) AND (ula.location_id = user_sessions.location_id) AND (ula.is_active = true)))))));
-
 
 --
 
@@ -4033,3 +3390,6 @@ $$;
 
 
 --
+
+
+CREATE INDEX idx_financial_years_tenant_branch ON public.financial_years USING btree (tenant_id, branch_id);

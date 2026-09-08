@@ -32,8 +32,8 @@ class SalesService extends ChangeNotifier {
       reportTotal == 0 ? 1 : (reportTotal / pageSize).ceil();
 
   Future<void> fetchInvoices({String? search, int? page}) async {
-    if (auth.currentOrganizationId == null) {
-      error = 'Organization context is missing.';
+    if (auth.currentTenantId == null) {
+      error = 'Tenant context is missing.';
       invoices = [];
       notifyListeners();
       return;
@@ -316,8 +316,8 @@ class SalesService extends ChangeNotifier {
   }
 
   Future<void> fetchQuotations({String? search, int? page}) async {
-    if (auth.currentOrganizationId == null) {
-      error = 'Organization context is missing.';
+    if (auth.currentTenantId == null) {
+      error = 'Tenant context is missing.';
       quotations = [];
       notifyListeners();
       return;

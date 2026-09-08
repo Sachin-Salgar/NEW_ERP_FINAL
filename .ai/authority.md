@@ -17,49 +17,37 @@ Use the repository's governance hierarchy exactly as defined by `docs/00-overvie
 
 ## Current Tenancy Authority
 
-`docs/10-adr/0040-platform-identity-membership-and-context.md` is the approved architectural authority for identity, independent tenant/platform memberships, authentication context, platform execution, bootstrap, deployment, and RLS boundaries. ADR-0006 remains applicable only for compatible tenant-context details not superseded by ADR-0040.
+`docs/10-adr/0040-platform-identity-membership-and-context.md` is the approved
+architectural authority for Platform, Tenant, Branch, authentication, platform
+administration, deployment, and RLS boundaries.
 
-For tenancy-related work, the canonical security lifecycle is:
+The current hierarchy is:
 
 ```text
-Authenticated Identity
-  ↓
-Tenant Membership
-  ↓
-Active Tenant
-  ↓
-Tenant-scoped Session
-  ↓
-TenantContext
-  ↓
-Working Context: Tenant + Organization + Branch + Location
-  ↓
-Authorization
-  ↓
-Tenant Transaction
-  ↓
-SET LOCAL app.current_tenant_id
-  ↓
-PostgreSQL RLS
+Platform
+  └── Tenant
+       └── Branch
+            ├── Users
+            ├── Roles
+            └── Data
 ```
 
-The tenant is established by authenticated identity and remains fixed for the session. Organization, Branch, and Location are post-login working context within that tenant. Branch and Location are siblings under Organization; they are not parent/child.
+The ERP is multi-tenant at the platform level. Tenant is the security, authorization,
+and data-isolation boundary. A normal application user belongs to exactly one tenant,
+and normal login establishes that tenant automatically. Tenant switching and
+multi-tenant user context selection are not supported. Branch is a business
+subdivision inside a tenant and is not another security tenant. Organisation and
+Location are not current architecture levels.
 
 ### Authentication / working-context UX contract
 
 - The configured API URL is connectivity configuration only and is never tenant authority.
-- Successful login goes directly to Dashboard.
-- The user's configured default organization, branch, and location are applied when available.
-- Missing defaults do not block login and do not cause a selection-screen gate.
-- Organization, Branch, and Location are switched from the authenticated Profile / Working Context menu.
-- No standalone organization-selection, branch-selection, or location-selection screen is part of the login flow.
-- Switching organization reloads valid branches and locations and effective permissions for the new organization.
-- A selected branch and location must both belong to and be authorized within the active organization.
-- Working-context changes can never change the authenticated tenant.
+- Credential verification establishes the user's single tenant context automatically.
+- Normal login does not show a tenant selector and does not support tenant switching.
+- Branch access is evaluated only where a domain operation requires branch distinction.
+- Working-context changes cannot change the authenticated tenant.
 - Web and mobile clients connect to the configured ERP backend endpoint and never directly to PostgreSQL.
-- There is no `default_organization_id` field; `users.organization_id` already serves as the user's default Organization.
-
-Deployment URL/API endpoint is connectivity configuration only. Hostname, custom domain, deployment configuration, or client-supplied tenant identifiers must not be treated as authoritative tenant identity.
+- Deployment URL/API endpoint is connectivity configuration only. Hostname, custom domain, deployment configuration, or client-supplied tenant identifiers must not be treated as authoritative tenant identity.
 
 For platform work, the canonical security lifecycle is:
 
@@ -74,6 +62,18 @@ Platform Permission
   ↓
 Dedicated Platform Executor / Approved Procedure
 ```
+
+### Platform administration boundary
+
+The approved operator bootstrap is `npm exec tsx scripts/platform-admin.ts bootstrap <email>`.
+It creates the first identity, local credential, active platform membership, protected
+`platform_owner` role assignment, and platform audit event. The custom tenant seed does
+not create a platform administrator; it creates tenant users and tenant memberships.
+Platform recovery is the separate operator-only `recover` command.
+
+Platform administration is a distinct platform context with separate platform
+membership, session, permissions, bootstrap, and audit rules. It does not change the
+normal user's single-tenant application model.
 
 ## Document status
 
@@ -110,6 +110,17 @@ If two apparently authoritative documents conflict and the conflict cannot be re
 Database infrastructure is developer-owned. AI agents must never create, modify, delete, replace, or provision PostgreSQL databases, PostgreSQL users, or PostgreSQL roles. AI agents must never invent database credentials or connection strings. AI agents must use the project's documented environment configuration and must fail clearly when the configured database is unavailable.
 
 A database connection failure is NOT permission to create another database, create another user, change credentials, or switch to Docker PostgreSQL.
+
+## Local PostgreSQL access contract
+
+- Local PostgreSQL credentials are supplied through the uncommitted `.env.local`; never commit it or copy its values into `.ai`, logs, tests, or documentation.
+- Inspect the repository configuration loader before diagnosing access. `DATABASE_URL` is the application connection, while `TEST_DATABASE_URL` is the explicit integration-test target.
+- Integration setup requires an administrative connection for migrations and security bootstrap. Locally it may use the existing `PGHOST`, `PGPORT`, `PGUSER`, and `PGPASSWORD` variables; CI supplies its own administrative `DATABASE_URL` and test credentials.
+- Integration security-role setup uses `ADR0040_SECURITY_ROLE_PASSWORD` when explicitly configured, otherwise its documented test-only fallback; the application pool receives that provisioned role password, not an unverified application URL password.
+- The integration application pool uses the repository-provisioned `erp_app` role after setup. Platform operations use the separately provisioned platform executor boundary.
+- Do not invent credentials, switch databases, weaken PostgreSQL authentication, or provision roles/databases. Use the repository configuration path and `npm run db:diagnose` for sanitized diagnostics.
+- Before reporting authentication failure, confirm `.env.local` loading, identify whether `DATABASE_URL` or `TEST_DATABASE_URL` was used, verify PostgreSQL availability, run migrations/security setup when required, and rerun the targeted test. Never print passwords or full connection strings.
+- CI and production credentials are independent from developer credentials and must never be copied into local configuration or `.ai`.
 
 ## PostgreSQL role / RLS testing trust boundary
 

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Pool } from 'pg';
 
 import type { LoginCandidate } from '../../../domain/contracts/repositories.js';

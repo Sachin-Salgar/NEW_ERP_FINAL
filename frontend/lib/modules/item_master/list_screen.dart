@@ -54,7 +54,7 @@ class _ItemMasterListScreenState extends State<ItemMasterListScreen> {
                     sliver: SliverToBoxAdapter(
                       child: ErpPageHeader(
                         title: 'Item Master',
-                        subtitle: 'Manage organization-owned items for Sales and Inventory',
+                        subtitle: 'Manage tenant items for Sales and Inventory',
                         breadcrumbs: const [
                           ErpBreadcrumbItem(label: 'Dashboard'),
                           ErpBreadcrumbItem(label: 'Item Master'),

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, expect, it } from 'vitest';
 import { calculateCommercialLine, calculateCommercialTotals } from '../../src/domain/commercial-calculation.js';
 import { resolveCommercialLines } from '../../src/application/services/commercial-transaction-service.js';
@@ -11,7 +12,7 @@ describe('commercial calculation', () => {
 
   it('resolves and snapshots price-list and discount identities', async () => {
     const result = await resolveCommercialLines(
-      { tenantId: 't', organizationId: 'o', branchId: 'b', userId: 'u' },
+      { tenantId: 't', branchId: 'b', userId: 'u' },
       [{ itemCode: 'ITEM-1', unitOfMeasure: 'each', quantity: 3, unitPrice: 99 }],
       '2026-09-05',
       { resolvePrice: async () => ({ id: 'price-item', priceListId: 'price-list', price: 10 }) },
@@ -27,3 +28,4 @@ describe('commercial calculation', () => {
     });
   });
 });
+

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 
 import { PostgresAuditLogger, filterMetadata } from '../../src/infrastructure/audit/postgres-audit-logger.js';
 import { runInTransactionContext } from '../../src/infrastructure/database/transaction-context.js';
@@ -96,3 +96,4 @@ describe('filterMetadata', () => {
     expect(filterMetadata({ safe: true }, new Set())).toEqual({});
   });
 });
+

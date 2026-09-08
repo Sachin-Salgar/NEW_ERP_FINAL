@@ -5,7 +5,7 @@ All relationships between entities must be enforced via database-level **Foreign
 
 ## 8.4 Naming Standard
 Foreign keys must include the referenced table name: `<referenced_table>_id`.
-Example: `organization_id`, `customer_id`.
+Example: `tenant_id`, `customer_id`.
 
 ## 8.7 Cascade Rules
 - `ON DELETE RESTRICT`: Default for most master data (e.g., cannot delete a Customer with Invoices).

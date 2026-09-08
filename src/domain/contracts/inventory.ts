@@ -21,7 +21,6 @@ export type MovementType = 'RECEIPT' | 'ISSUE' | 'RETURN';
 
 export interface InventoryContext {
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   userId: string;
@@ -39,7 +38,6 @@ export interface InventoryReservationRequest {
 export interface InventoryReservationResult {
   id: string;
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   warehouseId: string;

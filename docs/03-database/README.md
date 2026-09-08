@@ -23,7 +23,7 @@ This domain defines the authoritative database architecture for the Enterprise E
 
 ### Part IV: Multi-Tenancy & Isolation
 11. [Multi-Tenant Architecture](./11-multi-tenancy.md) - Shared schema implementation with PostgreSQL RLS.
-12. [Organizational Isolation](./12-organizational-isolation.md) - Multi-company, Branch, and Financial Year hierarchy.
+12. [Tenant and Branch Isolation](./12-organizational-isolation.md) - Tenant security boundary and branch business subdivision.
 13. [Shared, Master & Transaction Data](./13-data-categories.md) - Categorization and caching strategies.
 
 ### Part V: Optimization & Reliability

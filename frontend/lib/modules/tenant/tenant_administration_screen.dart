@@ -17,7 +17,7 @@ class _TenantAdministrationScreenState
   late final ApiClient _api;
   Map<String, dynamic>? _tenant;
   List<dynamic> _members = [];
-  List<dynamic> _organizations = [];
+  List<dynamic> _branches = [];
   String? _error;
 
   @override
@@ -31,15 +31,14 @@ class _TenantAdministrationScreenState
     try {
       final tenant = await _api.get('/api/v1/tenants/current');
       final members = await _api.get('/api/v1/tenants/current/members');
-      final organizations = await _api.get('/api/v1/organizations');
+      final branches = await _api.get('/api/v1/branches');
       if (mounted)
         setState(() {
           _tenant = jsonDecode(tenant.body)['tenant'] as Map<String, dynamic>;
           _members =
               (jsonDecode(members.body)['members'] as List<dynamic>?) ?? [];
-          _organizations =
-              (jsonDecode(organizations.body)['organizations']
-                  as List<dynamic>?) ??
+          _branches =
+              (jsonDecode(branches.body)['branches'] as List<dynamic>?) ??
               [];
         });
     } catch (error) {
@@ -206,30 +205,30 @@ class _TenantAdministrationScreenState
     }
     final access =
         (jsonDecode(response.body)['access'] as Map<String, dynamic>?) ?? {};
-    final organizations = (access['organizations'] as List<dynamic>?) ?? [];
+    final branches = (access['branches'] as List<dynamic>?) ?? [];
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Access: ${member['username']}'),
-        content: organizations.isEmpty
-            ? const Text('No organization access assigned.')
+        content: branches.isEmpty
+            ? const Text('No branch access assigned.')
             : SizedBox(
                 width: 420,
                 child: ListView(
                   shrinkWrap: true,
-                  children: organizations
+                  children: branches
                       .map(
-                        (organization) => ListTile(
+                        (branch) => ListTile(
                           title: Text(
-                            organization['organizationName']?.toString() ??
-                                organization['organizationId'].toString(),
+                            branch['name']?.toString() ??
+                                branch['id'].toString(),
                           ),
                           trailing: IconButton(
                             tooltip: 'Revoke access',
                             icon: const Icon(Icons.remove_circle_outline),
                             onPressed: () async {
                               final revoke = await _api.delete(
-                                '/api/v1/tenants/current/access/${member['id']}/organizations/${organization['organizationId']}',
+                                '/api/v1/users/${member['id']}/branches/${branch['id']}/access',
                               );
                               if (context.mounted && revoke.statusCode < 400) {
                                 Navigator.pop(context);
@@ -252,9 +251,9 @@ class _TenantAdministrationScreenState
     );
   }
 
-  Future<void> _grantAccess(String userId, String organizationId) async {
+  Future<void> _grantAccess(String userId, String branchId) async {
     final response = await _api.post(
-      '/api/v1/tenants/current/access/$userId/organizations/$organizationId',
+      '/api/v1/users/$userId/branches/$branchId/access',
     );
     if (response.statusCode >= 400) throw Exception(response.body);
     if (mounted) {
@@ -441,16 +440,16 @@ class _TenantAdministrationScreenState
                     onPressed: () => _showAccess(member),
                     icon: const Icon(Icons.business_outlined),
                   ),
-                  if (_organizations.isNotEmpty)
+                  if (_branches.isNotEmpty)
                     PopupMenuButton<String>(
-                      tooltip: 'Grant organization access',
-                      onSelected: (organizationId) =>
-                          _grantAccess(member['id'].toString(), organizationId),
-                      itemBuilder: (context) => _organizations
+                      tooltip: 'Grant branch access',
+                      onSelected: (branchId) =>
+                          _grantAccess(member['id'].toString(), branchId),
+                      itemBuilder: (context) => _branches
                           .map(
-                            (organization) => PopupMenuItem<String>(
-                              value: organization['id'].toString(),
-                              child: Text(organization['name'].toString()),
+                            (branch) => PopupMenuItem<String>(
+                              value: branch['id'].toString(),
+                              child: Text(branch['name'].toString()),
                             ),
                           )
                           .toList(),

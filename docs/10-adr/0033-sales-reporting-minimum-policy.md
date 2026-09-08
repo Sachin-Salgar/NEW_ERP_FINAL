@@ -7,7 +7,7 @@
 
 Sales exposes a read-only document summary report covering Sales Invoices,
 Sales Returns, and Sales Credit Notes. Results are limited to the authenticated
-tenant, organization, branch, and financial-year context, require the Sales
+tenant, branch, and financial-year context, require the Sales
 reporting permission, and use deterministic document-number and ID ordering with
 server pagination.
 

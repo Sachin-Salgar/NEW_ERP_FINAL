@@ -43,8 +43,8 @@ class PurchaseService extends ChangeNotifier {
       return;
     }
     if (page != null) this.page = page;
-    if (auth.currentOrganizationId == null) {
-      error = 'Organization context is missing.';
+    if (auth.currentTenantId == null) {
+      error = 'Tenant context is missing.';
       notifyListeners();
       return;
     }
@@ -73,8 +73,8 @@ class PurchaseService extends ChangeNotifier {
       'purchaseOrders': '/api/v1/purchase/purchase-orders',
       'receipts': '/api/v1/purchase/receipts',
     };
-    if (auth.currentOrganizationId == null) {
-      errors[key] = 'Organization context is missing.';
+    if (auth.currentTenantId == null) {
+      errors[key] = 'Tenant context is missing.';
       notifyListeners();
       return;
     }

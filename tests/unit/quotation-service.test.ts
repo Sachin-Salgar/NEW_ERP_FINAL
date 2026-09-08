@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+﻿import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { QuotationService } from '../../src/application/services/quotation-service.js';
 import type { AuditLogger } from '../../src/application/contracts/audit.js';
@@ -11,7 +11,6 @@ import { ForbiddenError, ValidationError } from '../../src/domain/errors.js';
 
 const context = {
   tenantId: randomUUID(),
-  organizationId: randomUUID(),
   branchId: randomUUID(),
   financialYearId: randomUUID(),
   userId: randomUUID(),
@@ -195,3 +194,4 @@ describe('QuotationService', () => {
     ).rejects.toBeInstanceOf(ForbiddenError);
   });
 });
+

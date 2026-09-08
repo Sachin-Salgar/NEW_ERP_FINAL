@@ -1,4 +1,4 @@
-import { generateKeyPairSync } from 'node:crypto';
+﻿import { generateKeyPairSync } from 'node:crypto';
 
 import { describe, expect, it } from 'vitest';
 
@@ -83,3 +83,4 @@ describe('RotatingJwtTokenService', () => {
     ).toThrow('private key');
   });
 });
+

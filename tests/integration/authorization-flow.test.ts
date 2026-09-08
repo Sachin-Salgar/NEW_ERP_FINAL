@@ -1,4 +1,4 @@
-﻿import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { Pool } from 'pg';
 import { v7 as uuidV7 } from 'uuid';
 
@@ -46,9 +46,9 @@ describe('Authorization RBAC vertical slice', () => {
         currency: 'USD',
         locale: 'en_US',
       },
-      organization: {
+      Tenant: {
         code: `RBACA${uniqueSuffix}`.slice(0, 18),
-        name: `RBAC Org A ${uniqueSuffix}`,
+        name: `RBAC Tenant A ${uniqueSuffix}`,
         fiscalCalendar: 'standard',
       },
       branch: {
@@ -85,9 +85,9 @@ describe('Authorization RBAC vertical slice', () => {
         currency: 'USD',
         locale: 'en_US',
       },
-      organization: {
+      Tenant: {
         code: `RBACB${uniqueSuffix}`.slice(0, 18),
-        name: `RBAC Org B ${uniqueSuffix}`,
+        name: `RBAC Tenant B ${uniqueSuffix}`,
         fiscalCalendar: 'standard',
       },
       branch: {
@@ -346,3 +346,4 @@ describe('Authorization RBAC vertical slice', () => {
     expect(staleLogin.statusCode).toBe(401);
   });
 });
+

@@ -12,7 +12,6 @@ DECLARE
 BEGIN
   SELECT
     (SELECT COUNT(*) FROM public.users WHERE tenant_id = target_tenant AND is_deleted = false)
-    + (SELECT COUNT(*) FROM public.organizations WHERE tenant_id = target_tenant AND is_deleted = false)
     + (SELECT COUNT(*) FROM public.branches WHERE tenant_id = target_tenant AND is_deleted = false)
     + (SELECT COUNT(*) FROM public.audit_events WHERE tenant_id = target_tenant)
   INTO protected_record_count;

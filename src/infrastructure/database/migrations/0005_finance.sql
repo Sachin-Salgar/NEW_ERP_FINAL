@@ -18,7 +18,6 @@ SET client_min_messages = warning;
 CREATE TABLE public.finance_postings (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     financial_year_id uuid NOT NULL,
     document_type character varying(32) NOT NULL,
@@ -52,7 +51,7 @@ ALTER TABLE ONLY public.finance_postings
 --
 
 ALTER TABLE ONLY public.finance_postings
-    ADD CONSTRAINT uq_finance_posting_key UNIQUE (tenant_id, organization_id, branch_id, financial_year_id, idempotency_key);
+    ADD CONSTRAINT uq_finance_posting_key UNIQUE (tenant_id, branch_id, financial_year_id, idempotency_key);
 
 
 --
@@ -88,16 +87,6 @@ ALTER TABLE ONLY public.finance_postings
 --
 
 
--- Name: finance_postings fk_finance_posting_org; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.finance_postings
-    ADD CONSTRAINT fk_finance_posting_org FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
-
-
---
-
-
 -- Name: finance_postings; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -119,7 +108,7 @@ CREATE POLICY finance_postings_tenant_policy ON public.finance_postings USING ((
 -- Name: idx_finance_posting_document; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_finance_posting_document ON public.finance_postings USING btree (tenant_id, organization_id, document_type, document_id);
+CREATE INDEX idx_finance_posting_document ON public.finance_postings USING btree (tenant_id, document_type, document_id);
 
 
 --

@@ -67,7 +67,7 @@ The implementation must define failure handling so that a database metadata reco
 
 Every uploaded file shall maintain metadata including:
 - File Identifier.
-- Organization/Tenant Context.
+- Tenant Context and Branch association where required.
 - Module Name.
 - Related Record ID.
 - Original File Name.
@@ -93,7 +93,7 @@ Storage providers shall be replaceable without affecting business modules.
 ## Access Control
 
 File access shall follow ERP authorization policies.
-Users shall only access files for which they possess appropriate permissions and organization/tenant scope.
+Users shall only access files for which they possess appropriate permissions and tenant scope.
 All download operations shall be subject to authentication and authorization.
 
 ## Versioning

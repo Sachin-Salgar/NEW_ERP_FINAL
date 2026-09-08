@@ -18,7 +18,6 @@ SET client_min_messages = warning;
 CREATE TABLE public.procurement_purchase_order_lines (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     purchase_order_id uuid NOT NULL,
     line_number integer NOT NULL,
     item_id uuid NOT NULL,
@@ -48,7 +47,6 @@ ALTER TABLE ONLY public.procurement_purchase_order_lines FORCE ROW LEVEL SECURIT
 CREATE TABLE public.procurement_purchase_orders (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     financial_year_id uuid NOT NULL,
     supplier_id uuid NOT NULL,
@@ -79,7 +77,6 @@ ALTER TABLE ONLY public.procurement_purchase_orders FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.procurement_receipt_lines (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     receipt_id uuid NOT NULL,
     item_id uuid NOT NULL,
     quantity numeric(18,4) NOT NULL,
@@ -105,7 +102,6 @@ ALTER TABLE ONLY public.procurement_receipt_lines FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.procurement_receipts (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     financial_year_id uuid NOT NULL,
     purchase_order_id uuid NOT NULL,
@@ -136,7 +132,6 @@ ALTER TABLE ONLY public.procurement_receipts FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.procurement_requisition_lines (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     requisition_id uuid NOT NULL,
     line_number integer NOT NULL,
     item_id uuid NOT NULL,
@@ -166,7 +161,6 @@ ALTER TABLE ONLY public.procurement_requisition_lines FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.procurement_requisitions (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     financial_year_id uuid NOT NULL,
     requisition_number character varying(50) DEFAULT ('PR-'::text || substr((gen_random_uuid())::text, 1, 8)) NOT NULL,
@@ -196,7 +190,6 @@ ALTER TABLE ONLY public.procurement_requisitions FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.procurement_suppliers (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     code character varying(50) NOT NULL,
     name character varying(255) NOT NULL,
     email character varying(255),
@@ -222,7 +215,7 @@ ALTER TABLE ONLY public.procurement_suppliers FORCE ROW LEVEL SECURITY;
 -- Name: uq_procurement_po_context; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_procurement_po_context ON public.procurement_purchase_orders USING btree (id, organization_id, tenant_id, branch_id, financial_year_id);
+CREATE UNIQUE INDEX uq_procurement_po_context ON public.procurement_purchase_orders USING btree (id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -231,7 +224,7 @@ CREATE UNIQUE INDEX uq_procurement_po_context ON public.procurement_purchase_ord
 -- Name: uq_procurement_receipt_context; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_procurement_receipt_context ON public.procurement_receipts USING btree (id, organization_id, tenant_id, branch_id, financial_year_id);
+CREATE UNIQUE INDEX uq_procurement_receipt_context ON public.procurement_receipts USING btree (id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -240,7 +233,7 @@ CREATE UNIQUE INDEX uq_procurement_receipt_context ON public.procurement_receipt
 -- Name: uq_procurement_requisition_context; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_procurement_requisition_context ON public.procurement_requisitions USING btree (id, organization_id, tenant_id, branch_id, financial_year_id);
+CREATE UNIQUE INDEX uq_procurement_requisition_context ON public.procurement_requisitions USING btree (id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -249,7 +242,7 @@ CREATE UNIQUE INDEX uq_procurement_requisition_context ON public.procurement_req
 -- Name: uq_procurement_supplier_context; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_procurement_supplier_context ON public.procurement_suppliers USING btree (id, organization_id, tenant_id);
+CREATE UNIQUE INDEX uq_procurement_supplier_context ON public.procurement_suppliers USING btree (id, tenant_id);
 
 
 --
@@ -337,7 +330,7 @@ ALTER TABLE ONLY public.procurement_purchase_order_lines
 --
 
 ALTER TABLE ONLY public.procurement_purchase_orders
-    ADD CONSTRAINT uq_procurement_po_number UNIQUE (tenant_id, organization_id, po_number);
+    ADD CONSTRAINT uq_procurement_po_number UNIQUE (tenant_id, po_number);
 
 
 --
@@ -377,7 +370,7 @@ ALTER TABLE ONLY public.procurement_requisition_lines
 --
 
 ALTER TABLE ONLY public.procurement_requisitions
-    ADD CONSTRAINT uq_procurement_requisition_number UNIQUE (tenant_id, organization_id, requisition_number);
+    ADD CONSTRAINT uq_procurement_requisition_number UNIQUE (tenant_id, requisition_number);
 
 
 --
@@ -387,7 +380,7 @@ ALTER TABLE ONLY public.procurement_requisitions
 --
 
 ALTER TABLE ONLY public.procurement_suppliers
-    ADD CONSTRAINT uq_procurement_supplier_code UNIQUE (tenant_id, organization_id, code);
+    ADD CONSTRAINT uq_procurement_supplier_code UNIQUE (tenant_id, code);
 
 
 --
@@ -423,26 +416,6 @@ ALTER TABLE ONLY public.procurement_purchase_order_lines
 --
 
 
--- Name: procurement_purchase_order_lines fk_procurement_po_line_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.procurement_purchase_order_lines
-    ADD CONSTRAINT fk_procurement_po_line_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
-
-
---
-
-
--- Name: procurement_purchase_orders fk_procurement_po_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.procurement_purchase_orders
-    ADD CONSTRAINT fk_procurement_po_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
-
-
---
-
-
 -- Name: procurement_purchase_orders fk_procurement_po_requisition; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -467,7 +440,7 @@ ALTER TABLE ONLY public.procurement_purchase_orders
 --
 
 ALTER TABLE ONLY public.procurement_purchase_orders
-    ADD CONSTRAINT fk_procurement_po_supplier_context FOREIGN KEY (supplier_id, organization_id, tenant_id) REFERENCES public.procurement_suppliers(id, organization_id, tenant_id);
+    ADD CONSTRAINT fk_procurement_po_supplier_context FOREIGN KEY (supplier_id, tenant_id) REFERENCES public.procurement_suppliers(id, tenant_id);
 
 
 --
@@ -503,26 +476,6 @@ ALTER TABLE ONLY public.procurement_receipt_lines
 --
 
 
--- Name: procurement_receipt_lines fk_procurement_receipt_line_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.procurement_receipt_lines
-    ADD CONSTRAINT fk_procurement_receipt_line_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
-
-
---
-
-
--- Name: procurement_receipts fk_procurement_receipt_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.procurement_receipts
-    ADD CONSTRAINT fk_procurement_receipt_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
-
-
---
-
-
 -- Name: procurement_requisitions fk_procurement_requisition_branch_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -548,36 +501,6 @@ ALTER TABLE ONLY public.procurement_requisitions
 
 ALTER TABLE ONLY public.procurement_requisition_lines
     ADD CONSTRAINT fk_procurement_requisition_line FOREIGN KEY (requisition_id) REFERENCES public.procurement_requisitions(id) ON DELETE CASCADE;
-
-
---
-
-
--- Name: procurement_requisition_lines fk_procurement_requisition_line_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.procurement_requisition_lines
-    ADD CONSTRAINT fk_procurement_requisition_line_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
-
-
---
-
-
--- Name: procurement_requisitions fk_procurement_requisition_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.procurement_requisitions
-    ADD CONSTRAINT fk_procurement_requisition_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
-
-
---
-
-
--- Name: procurement_suppliers fk_procurement_supplier_org; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.procurement_suppliers
-    ADD CONSTRAINT fk_procurement_supplier_org FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
 
 
 --
@@ -634,12 +557,7 @@ ALTER TABLE public.procurement_purchase_order_lines ENABLE ROW LEVEL SECURITY;
 -- Name: procurement_purchase_order_lines procurement_purchase_order_lines_tenant_policy; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY procurement_purchase_order_lines_tenant_policy ON public.procurement_purchase_order_lines USING (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((current_setting('app.current_tenant_id_organization_id'::text, true) IS NULL) OR (organization_id = (current_setting('app.current_tenant_id_organization_id'::text, true))::uuid)))) WITH CHECK (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((current_setting('app.current_tenant_id_organization_id'::text, true) IS NULL) OR (organization_id = (current_setting('app.current_tenant_id_organization_id'::text, true))::uuid))));
-
-
---
-
-
+CREATE POLICY procurement_purchase_order_lines_tenant_policy ON public.procurement_purchase_order_lines USING ((tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid)) WITH CHECK ((tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid));
 -- Name: procurement_purchase_orders; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -651,12 +569,7 @@ ALTER TABLE public.procurement_purchase_orders ENABLE ROW LEVEL SECURITY;
 -- Name: procurement_purchase_orders procurement_purchase_orders_tenant_policy; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY procurement_purchase_orders_tenant_policy ON public.procurement_purchase_orders USING (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((current_setting('app.current_tenant_id_organization_id'::text, true) IS NULL) OR (organization_id = (current_setting('app.current_tenant_id_organization_id'::text, true))::uuid)))) WITH CHECK (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((current_setting('app.current_tenant_id_organization_id'::text, true) IS NULL) OR (organization_id = (current_setting('app.current_tenant_id_organization_id'::text, true))::uuid))));
-
-
---
-
-
+CREATE POLICY procurement_purchase_orders_tenant_policy ON public.procurement_purchase_orders USING ((tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid)) WITH CHECK ((tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid));
 -- Name: procurement_receipt_lines; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -668,12 +581,7 @@ ALTER TABLE public.procurement_receipt_lines ENABLE ROW LEVEL SECURITY;
 -- Name: procurement_receipt_lines procurement_receipt_lines_tenant_policy; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY procurement_receipt_lines_tenant_policy ON public.procurement_receipt_lines USING (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((current_setting('app.current_tenant_id_organization_id'::text, true) IS NULL) OR (organization_id = (current_setting('app.current_tenant_id_organization_id'::text, true))::uuid)))) WITH CHECK (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((current_setting('app.current_tenant_id_organization_id'::text, true) IS NULL) OR (organization_id = (current_setting('app.current_tenant_id_organization_id'::text, true))::uuid))));
-
-
---
-
-
+CREATE POLICY procurement_receipt_lines_tenant_policy ON public.procurement_receipt_lines USING ((tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid)) WITH CHECK ((tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid));
 -- Name: procurement_receipts; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -685,12 +593,7 @@ ALTER TABLE public.procurement_receipts ENABLE ROW LEVEL SECURITY;
 -- Name: procurement_receipts procurement_receipts_tenant_policy; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY procurement_receipts_tenant_policy ON public.procurement_receipts USING (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((current_setting('app.current_tenant_id_organization_id'::text, true) IS NULL) OR (organization_id = (current_setting('app.current_tenant_id_organization_id'::text, true))::uuid)))) WITH CHECK (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((current_setting('app.current_tenant_id_organization_id'::text, true) IS NULL) OR (organization_id = (current_setting('app.current_tenant_id_organization_id'::text, true))::uuid))));
-
-
---
-
-
+CREATE POLICY procurement_receipts_tenant_policy ON public.procurement_receipts USING ((tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid)) WITH CHECK ((tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid));
 -- Name: procurement_requisition_lines; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -702,12 +605,7 @@ ALTER TABLE public.procurement_requisition_lines ENABLE ROW LEVEL SECURITY;
 -- Name: procurement_requisition_lines procurement_requisition_lines_tenant_policy; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY procurement_requisition_lines_tenant_policy ON public.procurement_requisition_lines USING (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((current_setting('app.current_tenant_id_organization_id'::text, true) IS NULL) OR (organization_id = (current_setting('app.current_tenant_id_organization_id'::text, true))::uuid)))) WITH CHECK (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((current_setting('app.current_tenant_id_organization_id'::text, true) IS NULL) OR (organization_id = (current_setting('app.current_tenant_id_organization_id'::text, true))::uuid))));
-
-
---
-
-
+CREATE POLICY procurement_requisition_lines_tenant_policy ON public.procurement_requisition_lines USING ((tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid)) WITH CHECK ((tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid));
 -- Name: procurement_requisitions; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -719,12 +617,7 @@ ALTER TABLE public.procurement_requisitions ENABLE ROW LEVEL SECURITY;
 -- Name: procurement_requisitions procurement_requisitions_tenant_policy; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY procurement_requisitions_tenant_policy ON public.procurement_requisitions USING (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((current_setting('app.current_tenant_id_organization_id'::text, true) IS NULL) OR (organization_id = (current_setting('app.current_tenant_id_organization_id'::text, true))::uuid)))) WITH CHECK (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((current_setting('app.current_tenant_id_organization_id'::text, true) IS NULL) OR (organization_id = (current_setting('app.current_tenant_id_organization_id'::text, true))::uuid))));
-
-
---
-
-
+CREATE POLICY procurement_requisitions_tenant_policy ON public.procurement_requisitions USING ((tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid)) WITH CHECK ((tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid));
 -- Name: procurement_suppliers; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -736,17 +629,11 @@ ALTER TABLE public.procurement_suppliers ENABLE ROW LEVEL SECURITY;
 -- Name: procurement_suppliers procurement_suppliers_tenant_policy; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY procurement_suppliers_tenant_policy ON public.procurement_suppliers USING (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((current_setting('app.current_tenant_id_organization_id'::text, true) IS NULL) OR (organization_id = (current_setting('app.current_tenant_id_organization_id'::text, true))::uuid)))) WITH CHECK (((tenant_id = (current_setting('app.current_tenant_id'::text, true))::uuid) AND ((current_setting('app.current_tenant_id_organization_id'::text, true) IS NULL) OR (organization_id = (current_setting('app.current_tenant_id_organization_id'::text, true))::uuid))));
-
-
---
-
-
--- Domain indexes relocated from the historical dump ordering.
+CREATE POLICY procurement_suppliers_tenant_policy ON public.procurement_suppliers USING ((tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid)) WITH CHECK ((tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid));
 -- Name: idx_procurement_purchase_order_lines_tenant_org_active; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_procurement_purchase_order_lines_tenant_org_active ON public.procurement_purchase_order_lines USING btree (tenant_id, organization_id, id) WHERE (is_deleted = false);
+CREATE INDEX idx_procurement_purchase_order_lines_tenant_org_active ON public.procurement_purchase_order_lines USING btree (tenant_id, id) WHERE (is_deleted = false);
 
 
 --
@@ -754,7 +641,7 @@ CREATE INDEX idx_procurement_purchase_order_lines_tenant_org_active ON public.pr
 -- Name: idx_procurement_purchase_orders_tenant_org_active; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_procurement_purchase_orders_tenant_org_active ON public.procurement_purchase_orders USING btree (tenant_id, organization_id, id) WHERE (is_deleted = false);
+CREATE INDEX idx_procurement_purchase_orders_tenant_org_active ON public.procurement_purchase_orders USING btree (tenant_id, id) WHERE (is_deleted = false);
 
 
 --
@@ -762,7 +649,7 @@ CREATE INDEX idx_procurement_purchase_orders_tenant_org_active ON public.procure
 -- Name: idx_procurement_receipt_lines_tenant_org_active; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_procurement_receipt_lines_tenant_org_active ON public.procurement_receipt_lines USING btree (tenant_id, organization_id, id) WHERE (is_deleted = false);
+CREATE INDEX idx_procurement_receipt_lines_tenant_org_active ON public.procurement_receipt_lines USING btree (tenant_id, id) WHERE (is_deleted = false);
 
 
 --
@@ -770,7 +657,7 @@ CREATE INDEX idx_procurement_receipt_lines_tenant_org_active ON public.procureme
 -- Name: idx_procurement_receipts_tenant_org_active; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_procurement_receipts_tenant_org_active ON public.procurement_receipts USING btree (tenant_id, organization_id, id) WHERE (is_deleted = false);
+CREATE INDEX idx_procurement_receipts_tenant_org_active ON public.procurement_receipts USING btree (tenant_id, id) WHERE (is_deleted = false);
 
 
 --
@@ -778,7 +665,7 @@ CREATE INDEX idx_procurement_receipts_tenant_org_active ON public.procurement_re
 -- Name: idx_procurement_requisition_lines_tenant_org_active; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_procurement_requisition_lines_tenant_org_active ON public.procurement_requisition_lines USING btree (tenant_id, organization_id, id) WHERE (is_deleted = false);
+CREATE INDEX idx_procurement_requisition_lines_tenant_org_active ON public.procurement_requisition_lines USING btree (tenant_id, id) WHERE (is_deleted = false);
 
 
 --
@@ -786,7 +673,7 @@ CREATE INDEX idx_procurement_requisition_lines_tenant_org_active ON public.procu
 -- Name: idx_procurement_requisitions_tenant_org_active; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_procurement_requisitions_tenant_org_active ON public.procurement_requisitions USING btree (tenant_id, organization_id, id) WHERE (is_deleted = false);
+CREATE INDEX idx_procurement_requisitions_tenant_org_active ON public.procurement_requisitions USING btree (tenant_id, id) WHERE (is_deleted = false);
 
 
 --
@@ -794,7 +681,7 @@ CREATE INDEX idx_procurement_requisitions_tenant_org_active ON public.procuremen
 -- Name: idx_procurement_suppliers_tenant_org_active; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_procurement_suppliers_tenant_org_active ON public.procurement_suppliers USING btree (tenant_id, organization_id, id) WHERE (is_deleted = false);
+CREATE INDEX idx_procurement_suppliers_tenant_org_active ON public.procurement_suppliers USING btree (tenant_id, id) WHERE (is_deleted = false);
 
 
 --

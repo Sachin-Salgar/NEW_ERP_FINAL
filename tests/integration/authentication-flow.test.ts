@@ -49,9 +49,9 @@ describe('Authentication vertical slice', () => {
         currency: 'USD',
         locale: 'en_US',
       },
-      organization: {
+      Tenant: {
         code: `AUTH${uniqueSuffix}`.slice(0, 18),
-        name: `Auth Org ${uniqueSuffix}`,
+        name: `Auth Tenant ${uniqueSuffix}`,
         fiscalCalendar: 'standard',
       },
       branch: {
@@ -69,7 +69,7 @@ describe('Authentication vertical slice', () => {
         code: `authadmin${uniqueSuffix}`.slice(0, 20),
         name: `Auth Admin ${uniqueSuffix}`,
       },
-      permissions: ['role.manage', 'user.manage', 'session.manage', 'organization.manage', 'branch.manage'],
+      permissions: ['role.manage', 'user.manage', 'session.manage', 'branch.manage'],
       subscriptionPlanName: 'Starter',
       initialFinancialYear: {
         name: `FY-${uniqueSuffix}`,
@@ -240,7 +240,7 @@ describe('Authentication vertical slice', () => {
         currency: 'USD',
         locale: 'en_US',
       },
-      organization: { code: `HB${uniqueSuffix}`.slice(0, 18), name: 'Header Boundary Org' },
+      Tenant: { code: `HB${uniqueSuffix}`.slice(0, 18), name: 'Header Boundary Tenant' },
       branch: { code: `HBB${uniqueSuffix}`.slice(0, 15), name: 'Header Boundary Branch' },
       administrator: {
         username: `header-boundary-${uniqueSuffix}`,
@@ -440,9 +440,9 @@ describe('Authentication vertical slice', () => {
         currency: 'USD',
         locale: 'en_US',
       },
-      organization: {
+      Tenant: {
         code: `INACT${uniqueSuffix}`.slice(0, 18),
-        name: `Inactive Org ${uniqueSuffix}`,
+        name: `Inactive Tenant ${uniqueSuffix}`,
         fiscalCalendar: 'standard',
       },
       branch: {
@@ -498,7 +498,6 @@ describe('Authentication vertical slice', () => {
     const testUser = await repository.createUser({
       id: testUserId,
       tenantId: tenantResult.tenantId,
-      organizationId: tenantResult.organizationId,
       defaultBranchId: tenantResult.branchId,
       username: inactiveUsername,
       email: inactiveEmail,
@@ -560,9 +559,9 @@ describe('Authentication vertical slice', () => {
         currency: 'USD',
         locale: 'en_US',
       },
-      organization: {
+      Tenant: {
         code: `DELT${uniqueSuffix}`.slice(0, 18),
-        name: `Deleted Org ${uniqueSuffix}`,
+        name: `Deleted Tenant ${uniqueSuffix}`,
         fiscalCalendar: 'standard',
       },
       branch: {
@@ -618,7 +617,6 @@ describe('Authentication vertical slice', () => {
     const testUser = await repository.createUser({
       id: testUserId,
       tenantId: tenantResult.tenantId,
-      organizationId: tenantResult.organizationId,
       defaultBranchId: tenantResult.branchId,
       username: deletedUsername,
       email: deletedEmail,
@@ -682,3 +680,4 @@ describe('Authentication vertical slice', () => {
     expect(deletedEmailLogin.json().error.message).toBe('Invalid credentials.');
   });
 });
+

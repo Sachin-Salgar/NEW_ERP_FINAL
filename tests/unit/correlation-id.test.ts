@@ -1,4 +1,4 @@
-import Fastify from 'fastify';
+﻿import Fastify from 'fastify';
 import { describe, expect, it } from 'vitest';
 
 import { applyCorrelationIdHooks } from '../../src/infrastructure/http/correlation-id.js';
@@ -43,3 +43,4 @@ describe('correlation id propagation', () => {
     }
   });
 });
+

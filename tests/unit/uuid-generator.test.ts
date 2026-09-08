@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 
 import { UuidV7Generator } from '../../src/infrastructure/uuid/uuid-generator.js';
 
@@ -11,3 +11,4 @@ describe('UuidV7Generator', () => {
     expect(id).toMatch(/^[0-9a-f-]{36}$/i);
   });
 });
+

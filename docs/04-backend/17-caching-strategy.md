@@ -22,7 +22,7 @@ The caching strategy aims to:
 ## 17.3 What Should Be Cached
 
 Suitable candidates include relatively stable or expensive-to-compute information such as:
-- Organization Settings.
+- Tenant Settings.
 - Branch Information.
 - User Permissions, subject to prompt invalidation when authorization changes.
 - Lookup Tables.
@@ -87,14 +87,14 @@ The selected strategy depends on business requirements and consistency requireme
 
 ## 17.8 Cache Keys
 
-Cache keys shall follow standardized naming conventions and include the relevant tenant/organization context where required to prevent cross-tenant data exposure.
+Cache keys shall follow standardized naming conventions and include the relevant tenant context where required to prevent cross-tenant data exposure.
 
 Examples:
 ```text
-organization:settings:{organization_id}
-user:permissions:{organization_id}:{user_id}
-branch:{organization_id}:{branch_id}
-tax:configuration:{organization_id}
+tenant:settings:{tenant_id}
+user:permissions:{tenant_id}:{user_id}
+branch:{tenant_id}:{branch_id}
+tax:configuration:{tenant_id}
 ```
 
 Consistent key naming simplifies administration and debugging.

@@ -57,13 +57,13 @@ If an ADR conflicts with another authoritative document and the scope cannot be 
 | ID | Title | Status | Date | Scope |
 |----|-------|--------|------|-------|
 | [0005](./0005-uuid-version-standard.md) | UUID Version Standard | Approved | 2026-08-07 | UUID primary identifier generation |
-| [0006](./0006-identity-based-tenant-context.md) | Identity-Based Tenant Context and PostgreSQL RLS | Approved | 2026-08-27 | Authentication, tenant context, tenant isolation, web/mobile clients, SaaS and on-premises deployments |
+| [0006](./0006-identity-based-tenant-context.md) | Identity-Based Tenant Context and PostgreSQL RLS | Superseded | 2026-08-27 | Historical tenant-resolution decision; superseded by ADR-0040 |
 | [0007](./0007-zero-downtime-migrations.md) | Zero-Downtime Migration Strategy | Approved | 2026-08-07 | Production database migrations |
 | [0008](./0008-event-contracts-versioning.md) | Event Contracts & Versioning | Approved | 2026-08-07 | Cross-module/integration event contract versioning |
 | [0009](./0009-token-refresh-rotation.md) | Token Strategy — Refresh Token Rotation | Approved | 2026-08-07 | Refresh-token lifecycle |
-| [0010](./0010-organization-module-access.md) | Organization Module Access Boundary | Approved | 2026-08-26 | Tenant entitlement, organization module enablement, and effective permission access |
-| [0011](./0011-organization-branch-location-context.md) | Organization, Branch, and Location Context Model | Approved | 2026-09-01 | Core enterprise context, business hierarchy, operational authorization, transaction scoping |
-| [0012](./0012-branch-access-representation.md) | Branch Access Representation | Approved | 2026-09-03 | Tenant-scoped user authorization for Branch records |
+| [0010](./0010-organization-module-access.md) | Tenant Module Entitlement and Access | Approved | 2026-09-08 | Tenant-level module entitlement, membership, permissions, and Branch authorization |
+| [0011](./0011-organization-branch-location-context.md) | Tenant and Branch Context Architecture | Approved | 2026-09-08 | Automatic Tenant context, Tenant RLS, and Branch application authorization |
+| [0012](./0012-branch-access-representation.md) | Branch Access Representation | Approved | 2026-09-08 | Tenant-scoped Branch access and application/domain authorization |
 | [0013](./0013-centralized-tls-managed-postgresql.md) | Centralized PostgreSQL Connection Policy for Managed Endpoints | Approved | 2026-09-03 | Centralized PostgreSQL connection configuration, endpoint selection, and transport security |
 | [0014](./0014-audit-logging-foundation.md) | Audit Logging Foundation | Approved | 2026-09-04 | Security, authorization, identity, and business audit records |
 | [0015](./0015-email-verification-password-recovery.md) | Email Verification and Password Recovery | Approved | 2026-09-04 | Local-account verification and password recovery |

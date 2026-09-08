@@ -1,4 +1,4 @@
-import { readFile, readdir } from 'node:fs/promises';
+﻿import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Pool } from 'pg';
@@ -55,3 +55,4 @@ describe('machine-derived permission inventory', () => {
     });
   });
 });
+

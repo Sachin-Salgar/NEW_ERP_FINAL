@@ -9,7 +9,6 @@ import '../modules/item_master/item_master_service.dart';
 import '../modules/inventory/inventory_service.dart';
 import '../modules/sales/sales_service.dart';
 import '../modules/purchase/purchase_service.dart';
-import '../modules/organization/organization_service.dart';
 import '../modules/role/role_service.dart';
 import '../modules/user/user_service.dart';
 import '../routing/app_router_delegate.dart';
@@ -30,9 +29,6 @@ class App extends StatefulWidget {
       defaultValue: 'http://localhost:3000',
     );
     di.registerLazySingleton(() => ApiClient(baseUrl: baseUrl));
-    di.registerLazySingleton(
-      () => OrganizationService(apiClient: di.get<ApiClient>()),
-    );
     di.registerLazySingleton(
       () => BranchService(apiClient: di.get<ApiClient>()),
     );

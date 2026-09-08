@@ -3,14 +3,13 @@ import { type FastifyPluginAsync, type FastifyRequest } from 'fastify';
 import { requireAuth, requirePermission } from '../middleware/auth.js';
 import { parsePaginationQuery } from '../pagination.js';
 import { requestParam } from '../request-input.js';
-import { ForbiddenError, ValidationError } from '../../../domain/errors.js';
+import { ValidationError } from '../../../domain/errors.js';
 import type { ItemRecord } from '../../../domain/contracts/repositories.js';
 
 interface ItemParams {
   id: string;
 }
 interface CreateItemBody {
-  organizationId: string;
   code: string;
   name: string;
   description?: string | null;
@@ -26,15 +25,14 @@ interface UpdateItemBody {
 }
 
 function context(request: FastifyRequest) {
-  if (!request.user || !request.tenantId || !request.user.organizationId)
-    throw new ValidationError('Authenticated organization context is required.');
-  return { tenantId: request.tenantId, organizationId: request.user.organizationId, userId: request.user.id };
+  if (!request.user || !request.tenantId || !request.user.tenantId)
+    throw new ValidationError('Authenticated tenant context is required.');
+  return { tenantId: request.tenantId, userId: request.user.id };
 }
 
 function response(item: ItemRecord) {
   return {
     id: item.id,
-    organizationId: item.organizationId,
     code: item.code,
     name: item.name,
     description: item.description,
@@ -53,8 +51,6 @@ const itemMasterRoutes: FastifyPluginAsync = async (fastify) => {
     { preHandler: [requireAuth, requirePermission('inventory.item.create')] },
     async (request, reply) => {
       const ctx = context(request);
-      if (request.body.organizationId !== ctx.organizationId)
-        throw new ForbiddenError('Item organization must match the active organization.');
       const item = await request.server.itemMasterService.create(ctx, request.body);
       reply.code(201);
       return { success: true, item: response(item) };

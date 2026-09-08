@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 
-import type { MfaRepository, MfaSecretProtector, TotpProvider } from '../contracts/mfa.js';
+import type { MfaSecretProtector, TotpProvider } from '../contracts/mfa.js';
 
 export interface MfaEnrollmentResult {
   secret: string;
@@ -19,7 +19,7 @@ export class MfaService {
   private readonly recoveryCodeCount: number;
 
   constructor(
-    private readonly repository: MfaRepository,
+    private readonly repository: any,
     private readonly totp: TotpProvider,
     private readonly protector: MfaSecretProtector,
     private readonly options: MfaOptions,

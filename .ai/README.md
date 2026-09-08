@@ -10,7 +10,11 @@ The authoritative ERP definition remains under `docs/` according to the governan
 - `docs/00-overview/02-governance.md`
 - `docs/10-adr/README.md`
 
-For identity, tenancy, platform membership, deployment boundary, and RLS work, the approved decision is `docs/10-adr/0040-platform-identity-membership-and-context.md`. ADR-0006 remains applicable only where ADR-0040 does not supersede it.
+For identity, tenancy, platform administration, deployment boundary, and RLS work, the
+approved decision is `docs/10-adr/0040-platform-identity-membership-and-context.md`.
+ADR-0006 is a superseded historical decision and must not guide current implementation.
+ADR-0010, ADR-0011, and ADR-0012 are current approved architecture decisions for
+Tenant module entitlement, Tenant/Branch context, and Branch access representation.
 
 AI workflow files in `.ai/` explain **how an AI coding assistant should navigate, reason about, implement, and validate changes in the repository**.
 
@@ -47,9 +51,17 @@ AI workflow files in `.ai/` explain **how an AI coding assistant should navigate
 8. When required information is missing or contradictory, AI must stop and ask instead of inventing a decision.
 9. A feature is not complete until applicable validation has actually run and passed.
 10. Deployment URL/API endpoint is connectivity configuration only; it is not authoritative tenant identity.
-11. Tenant context is established from authenticated identity, validated tenant membership, and a tenant-scoped session.
-12. Platform context is established independently from platform membership and a platform-scoped session.
-13. PostgreSQL RLS remains mandatory for tenant-owned data.
+11. The ERP is multi-tenant at the platform level. Tenant is the security, authorization, and data-isolation boundary.
+12. A normal application user belongs to exactly one tenant. Normal login establishes that tenant automatically; tenant switching and multi-tenant user context selection are not supported.
+13. Branch is the only business subdivision below Tenant. Branch is not a security tenant. Organisation and Location are not current architecture levels.
+14. Platform administration remains a distinct platform context with separate authorization.
+15. PostgreSQL RLS remains mandatory for tenant-owned data.
+
+### Local database workflow
+
+Local PostgreSQL credentials live in the uncommitted `.env.local` and must never be committed or copied into `.ai`. Agents must inspect the loader in `src/config/schema.ts` and integration setup before diagnosing access. `DATABASE_URL` is the application database; `TEST_DATABASE_URL` is the explicit integration-test database. Integration setup uses local `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD` administrative variables when present, while CI provides separate workflow credentials. Use `npm run db:diagnose` for sanitized source, endpoint, role, password-presence, and connectivity diagnostics. Never print passwords or full URLs, invent credentials, weaken PostgreSQL authentication, or make production depend on local credentials.
+
+Required order: read this contract; inspect configuration loading; confirm `.env.local` exists without exposing contents; determine sanitized effective configuration; verify connectivity; run migrations and security/bootstrap; run the targeted integration test; only then report a database authentication failure.
 
 ## Implementation-progress authority
 
@@ -68,7 +80,9 @@ At the beginning of every AI implementation session the agent must perform the f
 3. Read `.ai/workflows/feature-development.md` and `.ai/workflows/ai-system.md` to re-establish local workflow rules.
 4. Read `docs/00-overview/03-implementation-roadmap.md` and extract CURRENT IMPLEMENTATION CHECKPOINT and IMMEDIATE NEXT STEP.
 5. Use `.ai/authority.md` to determine which authoritative documents apply to the active step.
-6. For tenancy/authentication/platform work, read ADR-0040, then ADR-0006/0011/0012 where applicable, plus the affected database, backend, security, frontend, and deployment documents before implementation.
+6. For tenancy/authentication/platform work, read ADR-0040 and the affected database,
+   backend, security, frontend, and deployment documents before implementation. Read
+   superseded ADRs only to understand historical rationale.
 
 The agent must not start implementation until it can answer: "What exact roadmap step am I implementing?"
 

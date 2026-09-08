@@ -4,7 +4,7 @@ import type { LoginCandidate } from '../../../domain/contracts/repositories.js';
 import { PostgresPlatformRepository } from './postgres-platform-repository.js';
 
 /**
- * Adds the deployment-independent login lookup required by identity-based tenant discovery.
+ * Adds the deployment-independent login lookup used to resolve a single tenant account.
  *
  * This lookup returns only candidate user/tenant identities. Password verification and all
  * tenant-owned user reads continue through PostgresPlatformRepository under RLS tenant context.

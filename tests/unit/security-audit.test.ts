@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 
 import { recordSecurityEvent } from '../../src/presentation/http/security-audit.js';
 
@@ -28,3 +28,4 @@ describe('security audit event adapter', () => {
     expect(JSON.stringify(record.mock.calls[0]?.[0])).not.toMatch(/password|token|secret|credential/i);
   });
 });
+

@@ -3,10 +3,7 @@ import type { AuthenticatedUser } from '../../../domain/contracts/authentication
 import { ForbiddenError, UnauthorizedError } from '../../../domain/errors.js';
 import type { AuthenticationService } from '../../../application/services/authentication-service.js';
 import type { AuthorizationService } from '../../../application/services/authorization-service.js';
-import type { CoreEnterpriseService } from '../../../application/services/core-enterprise-service.js';
-import type { LocationService } from '../../../application/services/location-service.js';
 import type { ModuleAccessService } from '../../../application/services/module-access-service.js';
-import type { TenantMembershipService } from '../../../application/services/tenant-membership-service.js';
 import type { UserRegistrationService } from '../../../application/services/user-registration-service.js';
 import type { AccountSecurityService } from '../../../application/services/account-security-service.js';
 import type { MfaService } from '../../../application/services/mfa-service.js';
@@ -40,12 +37,9 @@ declare module 'fastify' {
     authService: AuthenticationService;
     authorizationService: AuthorizationService;
     branchService: import('../../../application/services/branch-service.js').BranchService;
-    coreEnterpriseService: CoreEnterpriseService;
-    locationService: LocationService;
     moduleAccessService: ModuleAccessService;
     registrationService: UserRegistrationService;
     jwtTokenService: JwtTokenService;
-    tenantMembershipService: TenantMembershipService;
     accountSecurityService: AccountSecurityService;
     mfaService: MfaService;
     auditLogger: AuditLogger;
@@ -100,7 +94,7 @@ export function requirePlatformContext(permissionKey?: string) {
     const token = getBearerToken(request);
     if (!token) throw new UnauthorizedError('Authentication token is required.');
     const claims = request.server.jwtTokenService.verifyAccessToken(token);
-    if (claims.contextType !== 'platform') throw new ForbiddenError('Platform context is required.');
+    if (claims.contextType !== 'platform' || !claims.sub) throw new ForbiddenError('Platform context is required.');
     const context = await request.server.platformAuthorizationService.validateContext(claims.sessionId, claims.sub);
     if (!context) throw new UnauthorizedError('Platform session is invalid or expired.');
     if (
@@ -118,12 +112,7 @@ export function requireModule(moduleCode: string) {
   return async function requireModuleHandler(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
     if (!request.user || !request.tenantId)
       throw new UnauthorizedError('Authentication is required to access a module.');
-    if (!request.user.organizationId) throw new ForbiddenError('An active organization is required to access modules.');
-    const enabled = await request.server.moduleAccessService.isModuleEnabled(
-      request.tenantId,
-      request.user.organizationId,
-      moduleCode,
-    );
+    const enabled = await request.server.moduleAccessService.isModuleEnabled(request.tenantId, moduleCode);
     if (!enabled) throw new ForbiddenError('Module access denied.');
   };
 }
@@ -151,11 +140,8 @@ export function requirePermission(permissionKey: string) {
   return async function requirePermissionHandler(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
     if (!request.user || !request.tenantId)
       throw new UnauthorizedError('Authentication is required to perform this action.');
-    if (!request.user.organizationId)
-      throw new ForbiddenError('An active organization is required to perform this action.');
     const moduleEnabled = await request.server.moduleAccessService.isModuleEnabled(
       request.tenantId,
-      request.user.organizationId,
       moduleCodeForPermission(permissionKey),
     );
     if (!moduleEnabled) throw new ForbiddenError('Module access denied.');
@@ -176,11 +162,8 @@ export function requirePermissionOrSelf(
       throw new UnauthorizedError('Authentication is required to perform this action.');
     const resolvedSelfId = selfIdGetter ? selfIdGetter(request) : null;
     if (resolvedSelfId && request.user.id === resolvedSelfId) return;
-    if (!request.user.organizationId)
-      throw new ForbiddenError('An active organization is required to perform this action.');
     const moduleEnabled = await request.server.moduleAccessService.isModuleEnabled(
       request.tenantId,
-      request.user.organizationId,
       moduleCodeForPermission(permissionKey),
     );
     if (!moduleEnabled) throw new ForbiddenError('Module access denied.');

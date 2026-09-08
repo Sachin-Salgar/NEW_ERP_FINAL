@@ -1,10 +1,17 @@
-import { Pool } from 'pg';
+﻿import { Pool } from 'pg';
 
 import { resolveDatabaseUrl } from '../../src/config/schema.js';
 
 export function resolveIntegrationAdminDatabaseUrl(): string {
-  const adminUrl = new URL(resolveDatabaseUrl(process.env));
   const testUrl = new URL(resolveDatabaseUrl(process.env, { forTest: true }));
+  const configuredAdminUrl = process.env.INTEGRATION_ADMIN_DATABASE_URL?.trim();
+  const adminUrl = configuredAdminUrl
+    ? new URL(configuredAdminUrl)
+    : process.env.PGUSER && process.env.PGPASSWORD
+      ? new URL(
+          `postgresql://${encodeURIComponent(process.env.PGUSER)}:${encodeURIComponent(process.env.PGPASSWORD)}@${process.env.PGHOST ?? 'localhost'}:${process.env.PGPORT ?? '5432'}/postgres`,
+        )
+      : new URL(resolveDatabaseUrl(process.env));
   adminUrl.pathname = testUrl.pathname;
   return adminUrl.toString();
 }
@@ -24,3 +31,4 @@ export function createIntegrationAdminPool(): Pool {
 export function createIntegrationApplicationPool(): Pool {
   return new Pool({ connectionString: resolveIntegrationApplicationDatabaseUrl(), ssl: false });
 }
+

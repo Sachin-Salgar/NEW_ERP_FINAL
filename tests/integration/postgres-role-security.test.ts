@@ -1,14 +1,15 @@
-import dotenv from 'dotenv';
+﻿import dotenv from 'dotenv';
 import fs from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Pool } from 'pg';
 
 import { resolveDatabaseUrl } from '../../src/config/schema.js';
 import { v7 as uuidV7 } from 'uuid';
+import { resolveIntegrationAdminDatabaseUrl } from './database.js';
 
 dotenv.config({ path: '.env.local' });
 
-const adminUrl = resolveDatabaseUrl(process.env);
+const adminUrl = resolveIntegrationAdminDatabaseUrl();
 const testUrl = resolveDatabaseUrl(process.env, { forTest: true });
 const rolePassword = process.env.ADR0040_SECURITY_ROLE_PASSWORD ?? 'integration-role-password-2026!';
 const roleNames = ['erp_app', 'erp_platform_executor', 'erp_procedure_owner'] as const;
@@ -21,10 +22,7 @@ function roleUrl(role: string): string {
 }
 
 function targetAdminUrl(): string {
-  const admin = new URL(adminUrl);
-  const target = new URL(testUrl);
-  admin.pathname = target.pathname;
-  return admin.toString();
+  return adminUrl;
 }
 
 describe('PostgreSQL platform security boundary', () => {
@@ -150,3 +148,4 @@ describe('PostgreSQL platform security boundary', () => {
     }
   });
 });
+

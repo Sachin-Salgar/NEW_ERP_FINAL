@@ -19,7 +19,7 @@ Pricing module has been established. A separate owner or module requires an
 approved architecture decision and dependency contract.
 
 Implemented entities are `sales_price_lists` and `sales_price_list_items`.
-Potential fields include UUIDv7 IDs, tenant/org ownership, mandatory branch and
+Potential fields include UUIDv7 IDs, tenant ownership, mandatory branch and
 financial-year references where the records are transactional, name/code,
 status, currency, effective period, customer/customer-group scope, item
 reference, unit, price, minimum quantity, and canonical audit/version metadata.
@@ -28,7 +28,7 @@ Table names, field types, requiredness, precedence, currency, overlapping
 period behavior, customer-group ownership, item-master contract, uniqueness,
 soft deletion, branch/financial-year semantics, and financial-year relationship
 are **BUSINESS DECISION REQUIRED**. Mandatory branch and financial-year
-references for transactional records follow the organizational-isolation
+references for transactional records follow the tenant-isolation
 standard. Price snapshots used on transactions must be immutable.
 
 ## 3. API and authorization
@@ -48,7 +48,7 @@ approved, with loading/empty/error/search/pagination and permission-aware
 actions. Sales documents consume server results and never calculate prices in
 Flutter.
 
-Tests must cover tenant/org isolation, RLS/FORCE RLS, overlap/precedence
+Tests must cover tenant isolation, RLS/FORCE RLS, overlap/precedence
 decisions, version-number conflicts, immutable transaction snapshots,
 authorization, canonical audit metadata, rollback, and unavailable Item
 Master/CRM contracts.

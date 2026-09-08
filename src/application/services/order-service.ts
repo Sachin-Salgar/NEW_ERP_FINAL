@@ -14,7 +14,6 @@ import type { InventoryDependencyPort } from '../../domain/contracts/inventory.j
 
 export interface OrderContext {
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   userId: string;
@@ -65,7 +64,6 @@ export class OrderService {
     await this.authorize(c, ORDER_PERMISSIONS.read);
     return this.repository.list(c.tenantId, {
       ...input,
-      organizationId: c.organizationId,
       branchId: c.branchId,
       financialYearId: c.financialYearId,
     });
@@ -73,7 +71,7 @@ export class OrderService {
   async get(c: OrderContext, id: string) {
     await this.authorize(c, ORDER_PERMISSIONS.read);
     this.id(id, 'Order ID');
-    const x = await this.repository.getById(c.tenantId, c.organizationId, c.branchId, c.financialYearId, id);
+    const x = await this.repository.getById(c.tenantId, c.branchId, c.financialYearId, id);
     if (!x) throw new NotFoundError('Order not found.');
     return x;
   }
@@ -106,7 +104,7 @@ export class OrderService {
     await this.authorize(c, ORDER_PERMISSIONS[key]);
     this.id(id, 'Order ID');
     return this.tx.runInTransaction(async () => {
-      const current = await this.repository.getById(c.tenantId, c.organizationId, c.branchId, c.financialYearId, id);
+      const current = await this.repository.getById(c.tenantId, c.branchId, c.financialYearId, id);
       if (!current) throw new NotFoundError('Order not found.');
       if (!transitions[current.status].includes(status))
         throw new ValidationError(`Order cannot transition from ${current.status} to ${status}.`);
@@ -162,7 +160,7 @@ export class OrderService {
     if (!this.inventory) throw new ValidationError('Inventory reservation provider is not configured.');
     const inventory = this.inventory;
     return this.tx.runInTransaction(async () => {
-      const order = await this.repository.getById(c.tenantId, c.organizationId, c.branchId, c.financialYearId, id);
+      const order = await this.repository.getById(c.tenantId, c.branchId, c.financialYearId, id);
       if (!order) throw new NotFoundError('Order not found.');
       if (order.status !== 'CONFIRMED') throw new ValidationError('Only confirmed orders can reserve Inventory.');
       if (!order.warehouseId) throw new ValidationError('Order warehouse context is required.');
@@ -205,13 +203,12 @@ export class OrderService {
     if (!c.userId?.trim()) throw new UnauthorizedError();
     for (const [v, label] of [
       [c.tenantId, 'Tenant ID'],
-      [c.organizationId, 'Organization ID'],
       [c.branchId, 'Branch ID'],
       [c.financialYearId, 'Financial Year ID'],
       [c.userId, 'User ID'],
     ] as const)
       this.id(v, label);
-    if (!(await this.modules.isModuleEnabled(c.tenantId, c.organizationId, SALES_MODULE_CODE)))
+    if (!(await this.modules.isModuleEnabled(c.tenantId, SALES_MODULE_CODE)))
       throw new ForbiddenError('Sales module is not enabled.');
     if (!(await this.auth.hasPermission(c.tenantId, c.userId, p)))
       throw new ForbiddenError('Insufficient order permission.');

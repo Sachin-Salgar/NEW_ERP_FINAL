@@ -29,8 +29,7 @@ Target metrics for the database platform:
 Every tenant-owned transactional table must include:
 - `id`: UUID (ADR-0005)
 - `tenant_id`: UUID (For RLS isolation)
-- `organization_id`: UUID (Legal entity)
-- `branch_id`: UUID (Location)
+- `branch_id`: UUID (Branch, where the domain requires branch distinction)
 - `financial_year_id`: UUID (Period)
 - `version_number`: Integer (Concurrency)
 - Audit columns (`created_at`, `updated_at`, etc.)

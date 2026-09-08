@@ -300,13 +300,14 @@ Possible costing methods include:
 - Job costing
 - Process costing
 - Batch costing
-- Other organization-approved costing methods
+- Other Tenant-approved costing methods
 
 The applicable costing method is a Finance/accounting policy decision and must remain consistent with the authoritative Finance and Inventory valuation architecture. Manufacturing must not independently redefine enterprise accounting rules.
 
 Cost calculations may support variance analysis for material, labor, machine, overhead, yield, and scrap.
 
-Financial postings must use the established Finance/Accounting boundary and configured organizational accounting policies.
+Financial postings must use the established Finance/Accounting boundary and
+configured Tenant or Branch accounting policies where the domain requires them.
 
 ## 14. Quality Management Integration
 
@@ -426,11 +427,14 @@ Representative manufacturing events may include:
 
 Events are integration contracts and must follow the repository's established event architecture. Event-driven integration is not a license to create an independent service for every capability.
 
-## 20. Tenant and Organization Scope
+## 20. Tenant and Branch Scope
 
-Manufacturing data shall respect the enterprise organization/tenant model.
+Manufacturing data shall respect the enterprise tenant model.
 
-Where the product supports multiple organizations, companies, plants, warehouses, or manufacturing sites, scope must be represented according to the canonical organizational architecture rather than through module-specific assumptions.
+Where the product supports multiple Tenants, companies, plants, warehouses, or
+manufacturing sites, scope must be represented according to the canonical
+Platform → Tenant → Branch architecture rather than through module-specific
+assumptions.
 
 Database-level tenant isolation and row-level security requirements defined by the backend architecture remain authoritative.
 
@@ -493,7 +497,7 @@ AI-generated Manufacturing code must:
 4. Never directly modify another module's authoritative data.
 5. Use established backend/application/event boundaries.
 6. Preserve immutable/auditable production history.
-7. Respect tenant, organization, authorization, and RLS requirements.
+7. Respect Tenant, Branch authorization, and RLS requirements.
 8. Use existing Inventory, Finance, Quality, Maintenance, Workflow, and Document boundaries instead of duplicating them.
 9. Never invent unsupported costing, planning, scheduling, IoT, AI, or deployment infrastructure.
 10. STOP and ask when a manufacturing requirement conflicts with an authoritative architecture document or is materially ambiguous.

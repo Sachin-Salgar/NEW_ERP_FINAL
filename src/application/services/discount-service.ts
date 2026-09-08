@@ -11,7 +11,6 @@ import type {
 import { ForbiddenError, UnauthorizedError, ValidationError } from '../../domain/errors.js';
 export interface DiscountContext {
   tenantId: string;
-  organizationId: string;
   branchId?: string;
   userId: string;
 }
@@ -42,12 +41,12 @@ export class DiscountService {
   }
   async list(c: DiscountContext) {
     await this.auth(c, 'sales.discount.read');
-    return this.r.list(c.tenantId, c.organizationId);
+    return this.r.list(c.tenantId);
   }
   async get(c: DiscountContext, id: string) {
     await this.auth(c, 'sales.discount.read');
     this.id(id);
-    const x = await this.r.get(c.tenantId, c.organizationId, id);
+    const x = await this.r.get(c.tenantId, id);
     if (!x) throw new ValidationError('Discount rule not found.');
     return x;
   }
@@ -97,7 +96,7 @@ export class DiscountService {
   async resolve(c: DiscountContext, asOf: string): Promise<ResolvedDiscountRule | null> {
     await this.auth(c, 'sales.discount.read');
     if (!asOf || Number.isNaN(Date.parse(asOf))) throw new ValidationError('A valid effective date is required.');
-    return this.r.resolve(c.tenantId, c.organizationId, asOf);
+    return this.r.resolve(c.tenantId, asOf);
   }
   async transition(c: DiscountContext, id: string, status: DiscountStatus, expectedVersion: number) {
     await this.auth(c, `sales.discount.${status === 'PUBLISHED' ? 'publish' : 'archive'}`);
@@ -116,8 +115,8 @@ export class DiscountService {
   }
   private async auth(c: DiscountContext, p: string) {
     if (!c.userId) throw new UnauthorizedError();
-    for (const v of [c.tenantId, c.organizationId, c.userId]) this.id(v);
-    if (!(await this.m.isModuleEnabled(c.tenantId, c.organizationId, 'sales')))
+    for (const v of [c.tenantId, c.userId]) this.id(v);
+    if (!(await this.m.isModuleEnabled(c.tenantId, 'sales')))
       throw new ForbiddenError('Sales module is not enabled.');
     if (!(await this.a.hasPermission(c.tenantId, c.userId, p)))
       throw new ForbiddenError('Insufficient discount permission.');

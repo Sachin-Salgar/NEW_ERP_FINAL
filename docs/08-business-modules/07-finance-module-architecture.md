@@ -26,7 +26,9 @@ The Finance module covers:
 - Tax Management integration
 - Financial Analytics and Business Intelligence
 
-The exact capabilities enabled for an organization may be governed by the platform's module/capability configuration. A capability listed here is not a claim that its production implementation already exists.
+The exact capabilities enabled for a Tenant may be governed by the platform's
+module/capability configuration. A capability listed here is not a claim that
+its production implementation already exists.
 
 ## 3. Financial Authority and Integrity
 
@@ -79,7 +81,7 @@ A journal entry may contain:
 
 - Journal identifier/number
 - Posting date
-- Organization/legal entity context
+- Tenant and Branch/legal-entity context where required
 - Branch where applicable
 - Reference to originating document
 - Account lines
@@ -199,7 +201,7 @@ The platform must not claim support for a particular banking network, payment ra
 
 Budgeting supports planning and control across relevant organizational dimensions, which may include:
 
-- Organization/legal entity
+- Tenant/legal entity
 - Branch
 - Business unit
 - Department
@@ -398,13 +400,13 @@ Finance Posting
 
 The exact integration mechanism is determined by the platform's implementation architecture; documentation must not imply that every integration is necessarily asynchronous.
 
-## 16. Organization, Tenant and Security Scope
+## 16. Tenant and Security Scope
 
-Finance data is subject to the platform's organization/tenant isolation and authorization architecture.
+Finance data is subject to the platform's tenant isolation and authorization architecture.
 
 Security requirements include, as applicable:
 
-- Tenant/organization isolation
+- Tenant isolation
 - Branch/legal-entity scope
 - Role and permission enforcement
 - Segregation of duties

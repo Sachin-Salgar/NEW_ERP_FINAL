@@ -3,8 +3,8 @@
 **Status:** Living implementation roadmap  
 **Authority:** Architecture documents and Approved ADRs define the intended system; this document records what is actually implemented and what remains to be validated or built.
 
-**Last reconciled:** 2026-09-06
-**Branch:** `main`
+**Last reconciled:** 2026-09-08
+**Branch:** `audit/strict-architecture-proof-20260908`
 
 ## Status definitions
 
@@ -19,7 +19,14 @@
 
 The system is a **layered modular monolith** with Flutter clients, REST API, backend services, repositories/data access, and PostgreSQL.
 
-Identity and membership context follows **ADR-0040: Platform Identity, Membership, and Context Architecture**, with compatible tenant/RLS details from ADR-0006. An authenticated identity's validated tenant membership establishes tenant context, while an independent platform membership establishes platform context. Deployment hostname, frontend URL, client-supplied tenant ID, and deployment configuration are not tenant authorities.
+The current architecture follows **ADR-0040: Platform, Tenant, and Branch
+Architecture**. The platform is the system administration boundary; Tenant is the
+security, authorization, data-isolation, and PostgreSQL RLS boundary; Branch is the
+only business subdivision below Tenant. A normal application user belongs to exactly
+one tenant and normal login establishes that tenant automatically. Tenant selection,
+tenant switching, and multi-tenant user context selection are not supported.
+Deployment hostname, frontend URL, client-supplied tenant ID, and deployment
+configuration are not tenant authorities.
 
 PostgreSQL RLS remains the database isolation boundary, with trusted server-side tenant context established transaction-locally.
 
@@ -27,7 +34,11 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 
 ## 2. Current checkpoint
 
-**Current phase:** ADR-0040 platform identity, independent memberships, context authorization, RLS/procedure boundaries, audit atomicity, bootstrap, and tenant administration are implemented and validated. Core Enterprise remains ready for progression to Sales. The broader browser navigation matrix remains a known validation residual caused by a Flutter teardown assertion after navigation assertions completed. Live-client authentication and deployment-seed hardening remain open audit items until focused validation is recorded.
+**Current phase:** The repository is reconciling implementation residue with the
+approved Platform → Tenant → Branch architecture. Retained tenant authentication,
+platform administration, branch authorization, RLS, and audit foundations remain
+roadmap items; identity-wide discovery, context-selection, and multi-membership
+implementation are deferred for governed migration and are not current architecture.
 
 ### Validation evidence captured
 
@@ -37,21 +48,21 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 - This CI run validates the repository-controlled test environment; it does not use or depend on Vercel/Render production deployment configuration.
 - Remaining browser validation item: the broader authenticated browser navigation matrix is a **KNOWN VALIDATION RESIDUAL**; run `33948006417` fails after navigation assertions with `FocusManager was used after being disposed` during Flutter teardown.
 - ADR-0040 fresh zero-state acceptance passed against a temporary local PostgreSQL database: all migrations from zero, production bootstrap CLI, platform and tenant HTTP authentication/context, tenant isolation, platform-to-tenant separation, membership revocation, audit attribution, and audit-failure rollback.
+- Focused ADR-0040 proof on `audit/strict-architecture-proof-20260908`: `npx vitest run --config vitest.integration.config.ts tests/integration/authentication-flow.test.ts tests/integration/authorization-flow.test.ts tests/integration/phase2-platform-security.test.ts tests/integration/zero-state-platform-acceptance.test.ts tests/integration/tenant-rls.test.ts tests/integration/custom-tenant-seed.test.ts --reporter=basic` → **6 files / 9 tests passed**. The zero-state test now resolves its temporary database through the administrative integration configuration rather than application `DATABASE_URL`.
+- `npm run typecheck`, `npm run lint -- --no-fix`, `python tools/ai/validate_ai_workflow.py`, `python tools/ai/repository_scanner.py`, `npm run db:diagnose`, and `git diff --check` passed for this proof run.
 - Machine-derived permission inventory passed with zero catalog-only or missing enforcement references.
+- Phase 4C seed cleanup now uses Tenant → Branch fixtures only; targeted seed lint and JavaScript syntax validation pass. The custom-tenant integration test remains blocked before test execution by migration `0009_tenant_branch_architecture.sql` failing with `ON CONFLICT DO UPDATE command cannot affect row a second time`.
 
 ### Implemented
 
 - Production Flutter Web login against deployed backend/database.
-- Single-login direct-to-Dashboard routing with post-login working-context changes.
-- Identity-based tenant discovery and tenant-scoped authentication/session context.
+- Single credential login establishes the authenticated user's single tenant and routes to Dashboard; any existing context-selection implementation is residue pending governed migration.
+- Platform administrator operator bootstrap (`scripts/platform-admin.ts`) and separate platform-session authorization are proven; the custom tenant seed does not create a platform administrator.
+- Tenant-scoped authentication/session context derived from trusted server state.
 - TenantContext and PostgreSQL transaction-local tenant context infrastructure.
 - PostgreSQL RLS integration coverage for tenant isolation/rollback/pool context behavior.
-- Organization, branch/location, and user administration backend/API surfaces.
-- Server-generated immutable Organization and Branch codes with explicit branch/location hierarchy validation.
-- Organization → Branch → Location working context is implemented as the canonical active context tuple: `tenantId`, `organizationId`, `branchId`, `locationId`.
-- User defaults are persisted as `users.organization_id`, `users.default_branch_id`, and `users.default_location_id` with no separate `default_organization_id` field.
-- Branch and Location are implemented as sibling operational contexts under Organization; neither is a child of the other.
-- Flutter organization, branch, user, role, permission, dashboard, and authentication surfaces.
+- Branch and user administration backend/API surfaces under the Platform → Tenant → Branch architecture.
+- Flutter tenant, branch, user, role, permission, dashboard, and authentication surfaces.
 - Backend RBAC and permission enforcement.
 - Flutter permission state, permission-aware navigation and route guards.
 - Module enablement enforcement.
@@ -63,7 +74,7 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 - Deterministic Postgres-backed CI environment for backend integration and Flutter Web E2E login/dashboard validation.
 - Customer foundation and HTTP API vertical slice, including tenant-scoped persistence, RLS, authorization, soft delete, audit, pagination, validation, and dedicated API integration coverage.
 - Customer Flutter frontend vertical slice, including CRM navigation, permission/module-aware routing, authenticated CRUD screens, server-side search/pagination, soft-delete confirmation, and focused service/routing tests.
-- Bounded Purchase module backend and Flutter navigation vertical slice, including supplier soft-delete, requisition/order lifecycle actions, receipt-to-Inventory integration, purchase permissions/module registration, tenant/organization RLS, optimistic versioning, and migration recovery governance.
+- Bounded Purchase module backend and Flutter navigation vertical slice, including supplier soft-delete, requisition/order lifecycle actions, receipt-to-Inventory integration, purchase permissions/module registration, tenant RLS, optimistic versioning, and migration recovery governance.
 
 ### Remaining work and residuals
 
@@ -76,11 +87,11 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 | Area                                       | Status                               | Current implementation / remaining work                                                                                                                                            |
 | ------------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Tenant data boundary                       | **COMPLETED**                        | Tenant-scoped model and PostgreSQL RLS architecture implemented.                                                                                                                   |
-| Identity-based tenant discovery            | **IMPLEMENTED — VALIDATION PENDING** | Authentication resolves tenant from authenticated user identity and fails closed on ambiguous active matches.                                                                      |
-| Tenant-scoped session                      | **IMPLEMENTED — VALIDATION PENDING** | Session carries tenant/user/organization/location context and token lifecycle.                                                                                                     |
+| Identity-based tenant discovery            | **DEFERRED / RETIRED**               | Legacy identity/membership tables remain for later cleanup, but active backend login no longer discovers or exposes tenant contexts.                                                                       |
+| Tenant-scoped session                      | **COMPLETED**                        | Normal login resolves exactly one active tenant server-side, fails closed on ambiguity/no match, and issues a tenant-bound session and JWT.                                                               |
 | TenantContext                              | **IMPLEMENTED — VALIDATION PENDING** | Server derives tenant from authenticated session; DB helper establishes transaction-local context.                                                                                 |
 | PostgreSQL RLS                             | **COMPLETED**                        | Integration coverage proves tested tenant visibility/write isolation, rollback and pooled-connection context isolation.                                                            |
-| Legacy host/deployment TenantResolver      | **DEFERRED / RETIRED**               | Replaced by identity-based tenant discovery; do not reintroduce it.                                                                                                                |
+| Legacy host/deployment TenantResolver      | **DEFERRED / RETIRED**               | Tenant authority remains server-established from the authenticated tenant account; do not reintroduce host or client tenant resolution.                                           |
 | Login/session frontend                     | **IMPLEMENTED — VALIDATION PENDING** | Flutter authentication/session restoration exists; CI now proves admin and limited-user browser login/dashboard flows. Full browser navigation/session-restoration matrix remains. |
 | Cross-deployment tenancy verification      | **PENDING**                          | Deployment-independent architecture exists, but required representative cross-deployment verification is not yet evidenced.                                                        |
 | Ambiguous multi-tenant credential handling | **IMPLEMENTED**                      | Fail-closed behavior is covered by tests.                                                                                                                                          |
@@ -91,11 +102,11 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 | ------------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Authentication                              | **COMPLETED**                          | Backend authentication, token/session handling, security tests, and admin/limited-user browser E2E pass in CI.                                                                                     |
 | Session management / refresh / logout       | **COMPLETED**                          | Rotation, replay detection, invalidation, logout, and lifecycle tests pass; browser matrix teardown remains a validation residual.                                                                 |
-| Organization selection                      | **COMPLETED**                          | Backend access/select flow, default user context, and Flutter working-context UI are implemented and validated in scope.                                                                           |
-| Branch selection                            | **COMPLETED**                          | Branch belongs to the active Organization; branch defaults and switching are validated in backend and UI flow.                                                                                     |
-| Location selection                          | **COMPLETED**                          | Location belongs to the active Organization; persisted default location and selection validation are implemented.                                                                                  |
-| Active organization/branch/location context | **COMPLETED**                          | Session/request context supports the complete `tenantId + organizationId + branchId + locationId` tuple and preserves prior valid context on failed switches.                                      |
-| Organization administration                 | **COMPLETED**                          | Backend lifecycle operations, Flutter module, integration coverage, and CI validation exist.                                                                                                       |
+| Tenant selection                            | **DEFERRED / RETIRED**                 | Normal users do not select or switch tenants; the authenticated session establishes tenant context automatically.                                                                                 |
+| Branch selection                            | **IMPLEMENTED — VALIDATION PENDING**   | Branch is the only business subdivision below Tenant; branch defaults/access remain the supported working-context contract.                                                                        |
+| Generic location selection                  | **DEFERRED / RETIRED**                 | Generic Location is not an architecture level; domain-specific physical locations remain owned by their bounded module where applicable.                                                           |
+| Active tenant/branch context                | **IMPLEMENTED — VALIDATION PENDING**   | Active fixture/bootstrap context is tenant-scoped with branch access.                                                                                                                               |
+| Tenant administration                       | **COMPLETED**                          | Tenant lifecycle and membership administration are the active platform boundary.                                                                                                                     |
 | Branch administration                       | **COMPLETED**                          | Backend lifecycle operations, Flutter module, integration coverage, and CI validation exist.                                                                                                       |
 | User administration                         | **COMPLETED**                          | Backend administration and Flutter list/create/edit/details/access surfaces are covered by tests and CI.                                                                                           |
 | User → role assignment                      | **COMPLETED**                          | Backend endpoints and Flutter assignment UI are covered by tests and CI.                                                                                                                           |
@@ -188,7 +199,7 @@ resolution is implemented for quotation creation and draft updates, with
 immutable snapshots copied through order and invoice conversion. The Inventory
 provider is
 implemented. Under approved ADR-0035, new Sales quotation lines can carry Item
-Master identity, order conversion requires an active organization warehouse and
+Master identity, order conversion requires an active tenant-owned warehouse and
 item identity, and confirmed orders expose an idempotent reservation operation
 through the typed Inventory boundary. Historical rows remain nullable and are
 not backfilled. Delivery fulfillment is now activated through the typed
@@ -196,15 +207,15 @@ Inventory boundary: delivery creation requires order reservations, copies
 item/warehouse identity, and delivery completion fulfills all source
 reservations idempotently. Sales Return processing now invokes Inventory
 return-to-stock under ADR-0037 with deterministic idempotency and transaction
-rollback. An organization-scoped
+rollback. An inventory-bounded
 Item Master vertical slice is now implemented under the Inventory boundary with
 RLS/FORCE RLS, permission/module gating, audit/versioning, optimistic concurrency,
 and authenticated API coverage. The bounded Inventory foundation now persists
-organization-owned warehouses, stock balances, reservations, fulfillment issues,
+tenant-owned warehouses, stock balances, reservations, fulfillment issues,
 receipts, and return movements under ADR-0034. Sales transaction item/warehouse
 references are now additive in the order contract; delivery and return
 orchestration are connected for new Inventory-backed records. The bounded Tax foundation is implemented under
-ADR-0038 with organization-scoped deterministic rules, authenticated API
+ADR-0038 with tenant-scoped deterministic rules, authenticated API
 administration, RLS/FORCE RLS, and invoice tax snapshots. The bounded Finance
 posting foundation is implemented under ADR-0039 with idempotent invoice and
 credit-note postings, RLS/FORCE RLS, and Sales references. Workflow, Documents,
@@ -223,7 +234,7 @@ or weakened.
 
 Implementation evidence: backend unit and integration suites pass,
 including quotation HTTP authentication coverage and restricted-role
-PostgreSQL tenant/organization isolation, soft-delete, rollback, search, and
+PostgreSQL tenant isolation, soft-delete, rollback, search, and
 RLS/FORCE RLS validation. Backend typecheck, lint, build, migration-recovery
 verification, production dependency audit, Flutter analyzer, full Flutter
 tests, focused Sales route/service tests, and Flutter Web build pass. Full
@@ -260,8 +271,8 @@ The current verification pass must cover:
 2. Login at desktop, tablet and mobile breakpoints.
 3. Light/dark theme switching from login and authenticated layouts.
 4. Responsive navigation/sidebar/top-bar behavior.
-5. Organization/branch/user/role/permission screens.
-6. Authentication → organization/location context → authorization flow.
+5. Branch/user/role/permission screens.
+6. Authentication → tenant/branch context → authorization flow.
 7. Backend authorization enforcement independent of frontend visibility.
 8. Tenant isolation and transaction-local RLS behavior.
 9. Regression check for existing backend tests and frontend tests.

@@ -25,7 +25,8 @@ The application may support:
 - Multiple languages.
 - Runtime language switching where supported.
 - User-specific language selection.
-- Organization-level default language.
+- Tenant-level default language, with Branch-specific settings only where the
+  owning business domain requires them.
 
 The exact initial language set is a product/deployment decision and must not be invented by individual modules.
 
@@ -52,7 +53,9 @@ Localization may affect presentation of:
 - Percentages.
 - Addresses.
 
-Formatting shall follow the applicable user, organization, or business context. Authoritative currency, tax, accounting, and financial calculations must not be replaced by client-side formatting logic.
+Formatting shall follow the applicable user, Tenant, Branch, or business context.
+Authoritative currency, tax, accounting, and financial calculations must not be
+replaced by client-side formatting logic.
 
 ## 20.6 Time Zones
 

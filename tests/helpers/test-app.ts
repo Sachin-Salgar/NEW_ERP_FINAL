@@ -1,4 +1,4 @@
-import { type Pool } from 'pg';
+﻿import { type Pool } from 'pg';
 
 import { parseAppConfig } from '../../src/config/schema.js';
 import { createApplication } from '../../src/presentation/http/app.js';
@@ -20,3 +20,4 @@ export async function createTestApp(pool: Pool) {
 
   return createApplication(config, pool);
 }
+

@@ -1,4 +1,4 @@
-﻿import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { Pool } from 'pg';
 import { v7 as uuidV7 } from 'uuid';
 
@@ -42,7 +42,7 @@ describe('GET /rbac/roles/:roleId/permissions', () => {
         currency: 'USD',
         locale: 'en_US',
       },
-      organization: { code: `R${unique}`.slice(0, 18), name: `Org ${unique}`, fiscalCalendar: 'standard' },
+      Tenant: { code: `R${unique}`.slice(0, 18), name: `Tenant ${unique}`, fiscalCalendar: 'standard' },
       branch: { code: `B${unique}`.slice(0, 15), name: `Branch ${unique}`, city: 'City', country: 'IN' },
       administrator: { username: `admin${unique}`, email: `admin${unique}@example.com`, password: 'Password123!' },
       role: { code: `admin${unique}`.slice(0, 20), name: `Admin ${unique}` },
@@ -132,7 +132,7 @@ describe('GET /rbac/roles/:roleId/permissions', () => {
         currency: 'USD',
         locale: 'en_US',
       },
-      organization: { code: `RU${unique}`.slice(0, 18), name: `Org U ${unique}`, fiscalCalendar: 'standard' },
+      Tenant: { code: `RU${unique}`.slice(0, 18), name: `Tenant U ${unique}`, fiscalCalendar: 'standard' },
       branch: { code: `RB${unique}`.slice(0, 15), name: `Branch U ${unique}`, city: 'City', country: 'IN' },
       administrator: { username: `adminu${unique}`, email: `adminu${unique}@example.com`, password: 'Password123!' },
       role: { code: `adminu${unique}`.slice(0, 20), name: `Admin U ${unique}` },
@@ -209,7 +209,7 @@ describe('GET /rbac/roles/:roleId/permissions', () => {
         currency: 'USD',
         locale: 'en_US',
       },
-      organization: { code: `RF${unique}`.slice(0, 18), name: `Org F ${unique}`, fiscalCalendar: 'standard' },
+      Tenant: { code: `RF${unique}`.slice(0, 18), name: `Tenant F ${unique}`, fiscalCalendar: 'standard' },
       branch: { code: `RBF${unique}`.slice(0, 15), name: `Branch F ${unique}`, city: 'City', country: 'IN' },
       administrator: { username: `adminf${unique}`, email: `adminf${unique}@example.com`, password: 'Password123!' },
       role: { code: `adminf${unique}`.slice(0, 20), name: `Admin F ${unique}` },
@@ -318,7 +318,7 @@ describe('GET /rbac/roles/:roleId/permissions', () => {
         currency: 'USD',
         locale: 'en_US',
       },
-      organization: { code: `TA${unique}`.slice(0, 18), name: `TA Org ${unique}`, fiscalCalendar: 'standard' },
+      Tenant: { code: `TA${unique}`.slice(0, 18), name: `TA Tenant ${unique}`, fiscalCalendar: 'standard' },
       branch: { code: `TAB${unique}`.slice(0, 15), name: `TA Branch ${unique}`, city: 'City', country: 'IN' },
       administrator: { username: `adminta${unique}`, email: `adminta${unique}@example.com`, password: 'Password123!' },
       role: { code: `adminta${unique}`.slice(0, 20), name: `Admin TA ${unique}` },
@@ -337,7 +337,7 @@ describe('GET /rbac/roles/:roleId/permissions', () => {
         currency: 'USD',
         locale: 'en_US',
       },
-      organization: { code: `TB${unique}`.slice(0, 18), name: `TB Org ${unique}`, fiscalCalendar: 'standard' },
+      Tenant: { code: `TB${unique}`.slice(0, 18), name: `TB Tenant ${unique}`, fiscalCalendar: 'standard' },
       branch: { code: `TBB${unique}`.slice(0, 15), name: `TB Branch ${unique}`, city: 'City', country: 'IN' },
       administrator: { username: `admintb${unique}`, email: `admintb${unique}@example.com`, password: 'Password123!' },
       role: { code: `admintb${unique}`.slice(0, 20), name: `Admin TB ${unique}` },
@@ -463,7 +463,7 @@ describe('GET /rbac/roles/:roleId/permissions', () => {
         currency: 'USD',
         locale: 'en_US',
       },
-      organization: { code: `RNX${unique}`.slice(0, 18), name: `Org NX ${unique}`, fiscalCalendar: 'standard' },
+      Tenant: { code: `RNX${unique}`.slice(0, 18), name: `Tenant NX ${unique}`, fiscalCalendar: 'standard' },
       branch: { code: `RNB${unique}`.slice(0, 15), name: `Branch NX ${unique}`, city: 'City', country: 'IN' },
       administrator: { username: `adminnx${unique}`, email: `adminnx${unique}@example.com`, password: 'Password123!' },
       role: { code: `adminnx${unique}`.slice(0, 20), name: `Admin NX ${unique}` },
@@ -512,3 +512,4 @@ describe('GET /rbac/roles/:roleId/permissions', () => {
     expect(resp.json().permissions.length).toBe(0);
   });
 });
+

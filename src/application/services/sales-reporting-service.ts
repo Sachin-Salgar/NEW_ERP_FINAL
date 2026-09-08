@@ -37,14 +37,13 @@ export class SalesReportingService {
     if (!context.userId?.trim()) throw new UnauthorizedError();
     for (const [value, label] of [
       [context.tenantId, 'Tenant ID'],
-      [context.organizationId, 'Organization ID'],
       [context.branchId, 'Branch ID'],
       [context.financialYearId, 'Financial Year ID'],
       [context.userId, 'User ID'],
     ] as const) {
       if (!isUuid(value)) throw new ValidationError(`${label} must be a valid UUID.`);
     }
-    if (!(await this.modules.isModuleEnabled(context.tenantId, context.organizationId, 'sales'))) {
+    if (!(await this.modules.isModuleEnabled(context.tenantId, 'sales'))) {
       throw new ForbiddenError('Sales module is not enabled.');
     }
     if (!(await this.authorization.hasPermission(context.tenantId, context.userId, SALES_REPORTING_PERMISSIONS.read))) {

@@ -31,7 +31,7 @@ Security shall not be treated as a feature added after implementation.
 ## Sales quotation security scope
 
 The current Sales quotation slice applies backend RBAC and module enablement,
-authenticated tenant authority, active-organization checks, customer
+authenticated Tenant authority, Branch authorization where required, customer
 relationship boundaries, audit logging, and PostgreSQL RLS/FORCE RLS. It does
 not change the existing Core Enterprise security model. Details are in the
 [Sales Quotation Management specification](../08-business-modules/sales/01-sales-quotation.md).
@@ -40,7 +40,7 @@ not change the existing Core Enterprise security model. Details are in the
 
 The current documented authentication baseline uses JWT-based access and refresh tokens. Token lifecycle and refresh/rotation behavior are governed by the canonical backend authentication documentation and applicable ADRs.
 
-The current authorization baseline uses centralized, policy-driven authorization with RBAC/permission-based access control and applicable organization/tenant/data-isolation rules.
+The current authorization baseline uses centralized, policy-driven authorization with RBAC/permission-based access control and applicable tenant/data-isolation rules.
 
 Capabilities such as MFA, SSO, OIDC/SAML federation, passwordless authentication, certificate-based authentication, ABAC, or PBAC require explicit implementation decisions before being treated as implemented platform behavior.
 
@@ -53,7 +53,7 @@ Identity
   ↓
 Authentication
   ↓
-Authorization / organizational scope
+Tenant authorization and Branch scope where required
   ↓
 Business operation
   ↓

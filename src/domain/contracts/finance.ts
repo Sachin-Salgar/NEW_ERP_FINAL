@@ -1,6 +1,5 @@
 export interface FinanceContext {
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   userId: string;

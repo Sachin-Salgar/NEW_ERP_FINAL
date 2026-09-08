@@ -1,9 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 import { InventoryService } from '../../src/application/services/inventory-service.js';
 
 const context = {
   tenantId: '00000000-0000-7000-8000-000000000001',
-  organizationId: '00000000-0000-7000-8000-000000000002',
   branchId: '00000000-0000-7000-8000-000000000003',
   financialYearId: '00000000-0000-7000-8000-000000000004',
   userId: '00000000-0000-7000-8000-000000000005',
@@ -24,7 +23,7 @@ describe('InventoryService', () => {
     const repository = { reserveStock: vi.fn() };
     await expect(
       service(repository).reserve(context, {
-        warehouseId: context.organizationId,
+        warehouseId: context.tenantId,
         itemId: context.branchId,
         quantity: 0,
         sourceType: 'SALES_ORDER',
@@ -39,7 +38,7 @@ describe('InventoryService', () => {
     const reservation = { id: context.financialYearId, quantity: 2, status: 'RESERVED' };
     const repository = { reserveStock: vi.fn().mockResolvedValue(reservation) };
     const result = await service(repository).reserve(context, {
-      warehouseId: context.organizationId,
+      warehouseId: context.tenantId,
       itemId: context.branchId,
       quantity: 2,
       sourceType: 'SALES_ORDER',
@@ -62,3 +61,4 @@ describe('InventoryService', () => {
     );
   });
 });
+

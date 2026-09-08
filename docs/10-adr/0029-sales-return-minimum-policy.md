@@ -6,7 +6,7 @@
 ## Decision
 
 Sales Returns are created from an `ISSUED` Sales Invoice in the active
-tenant/organization/branch/financial-year context. They snapshot invoice lines
+tenant/branch/financial-year context. They snapshot invoice lines
 and requested quantities. One return is allowed per invoice and idempotency key
 is unique per context; quantity validation and duplicate prevention remain
 Sales-owned.

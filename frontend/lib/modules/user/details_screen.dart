@@ -83,7 +83,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                   const SizedBox(height: 16),
                   _SectionCard(
                     title: 'Profile',
-                    subtitle: 'Personal and organizational information',
+                    subtitle: 'Personal information',
                     child: UserProfileSection(
                       user: user!,
                       onUserChanged: (updated) =>
@@ -113,7 +113,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                   const SizedBox(height: 16),
                   _SectionCard(
                     title: 'Access',
-                    subtitle: 'Organization and branch access',
+                    subtitle: 'Branch access',
                     summary: _accessSummary ?? 'Loading access...',
                     actionLabel: _accessExpanded
                         ? 'Hide Access'

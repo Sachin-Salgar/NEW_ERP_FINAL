@@ -21,9 +21,8 @@ class ItemMasterService extends ChangeNotifier {
   int get totalPages => total == 0 ? 1 : (total / pageSize).ceil();
 
   Future<void> fetchItems({String? search, int? page}) async {
-    final organizationId = auth.currentOrganizationId;
-    if (organizationId == null || organizationId.isEmpty) {
-      error = 'Organization context is missing.';
+    if (auth.currentTenantId == null || auth.currentTenantId!.isEmpty) {
+      error = 'Tenant context is missing.';
       items = [];
       notifyListeners();
       return;
@@ -67,15 +66,10 @@ class ItemMasterService extends ChangeNotifier {
     String? description,
     bool salesEligible = true,
   }) async {
-    final organizationId = auth.currentOrganizationId;
-    if (organizationId == null || organizationId.isEmpty) {
-      return 'Organization context is missing.';
-    }
     try {
       final response = await apiClient.post(
         '/api/v1/inventory/items',
         body: {
-          'organizationId': organizationId,
           'code': code.trim(),
           'name': name.trim(),
           'unitOfMeasure': unitOfMeasure.trim(),

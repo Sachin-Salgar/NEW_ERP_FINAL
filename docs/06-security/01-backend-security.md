@@ -47,14 +47,17 @@ Authentication mechanisms not established by the current architecture, such as M
 Authorization shall be enforced by the backend for every protected operation.
 
 Applicable checks may include:
-- Organization/tenant scope.
+- Tenant scope.
 - Module/capability access.
 - Role permissions.
-- Branch or organizational restrictions.
+- Branch restrictions where the domain requires them.
 - Record-level access.
 - Resource-specific policies.
 
-The project architecture requires authorization to evaluate the resolved tenant and organization context, and separately the user's allowed operational locations. A location may refine authorization but does not replace the tenant boundary or the requirement to establish `TenantContext` before database work.
+The project architecture requires authorization to evaluate the authenticated
+tenant context. Branch access may refine authorization where a domain requires
+branch-level distinction, but it does not replace the tenant boundary or the
+requirement to establish `TenantContext` before database work.
 
 Frontend visibility is not a security control.
 

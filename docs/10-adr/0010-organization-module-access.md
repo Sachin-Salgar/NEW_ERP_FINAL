@@ -1,64 +1,93 @@
-# ADR-0010 — Organization Module Access Boundary
+# ADR-0010 — Tenant Module Entitlement and Access
 
 - **Status:** Approved
-- **Date:** 2026-08-26
-- **Decision:** Separate tenant module entitlement from organization module enablement and combine both with effective user permissions for runtime access.
+- **Date:** 2026-09-08
+- **Scope:** Tenant-level module entitlement, authentication context, and permission-gated module access
 
 ## Context
 
-The ERP architecture requires module access to be controlled independently from RBAC permissions. A role may grant a permission, but that permission must not make a disabled organization module accessible.
+The ERP has two distinct authorization concerns:
 
-The existing database already contains `tenant_modules`, which represents tenant-level module entitlement. The missing boundary was organization-specific module enablement.
+1. `tenant_modules` records which business modules a Tenant is entitled to use.
+2. Tenant roles and permissions determine which authenticated users may perform
+   actions within an entitled module.
+
+Tenant is the ERP account/company, security, authorization, and PostgreSQL RLS
+boundary. A normal application user belongs to exactly one Tenant through
+`tenant_memberships`. Normal login establishes that Tenant automatically from
+trusted authenticated identity and membership state.
+
+Module entitlement must not be derived from deployment configuration, client
+input, Branch access, or an individual user's permissions. Branch is an
+operational subdivision below Tenant and is not a module-entitlement or RLS
+boundary.
 
 ## Decision
 
-Introduce `organization_modules` as the organization-level enablement boundary.
+Module entitlement is owned by Tenant and represented by `tenant_modules`.
+There is no `organization_modules`, no Organization-level module boundary, and
+no Organization membership or context model.
 
-Runtime access requires all three conditions:
+Runtime access to a protected module requires all applicable conditions:
 
-1. the module is entitled/enabled for the tenant;
-2. the module is enabled for the active organization;
-3. the authenticated user has the required permission.
+1. the authenticated session establishes a valid Tenant;
+2. the Tenant has the module enabled or entitled in `tenant_modules`;
+3. the authenticated user has the required tenant permission through the
+   tenant's roles and permission assignments;
+4. any additional Branch authorization required by the domain operation passes.
 
-The backend enforces this through the shared authorization middleware. Frontend module visibility is a UX representation of the same effective access state and is never a security boundary.
+Tenant bootstrap and tenant administration provision or maintain tenant-level
+module entitlements according to the approved module catalog. Core platform
+behavior must not create a second module boundary below Tenant.
 
-Core platform modules are enabled automatically for new tenants and organizations and cannot be disabled through the module management API.
+Frontend module visibility is only a user-experience optimization. Backend
+authorization remains authoritative, and PostgreSQL RLS remains the final
+Tenant-isolation boundary for tenant-owned data.
 
-## Context sequencing
+## Current authorization flow
 
-Operational authorization must not be evaluated against an organization or location that the user has not explicitly established.
+```text
+Authenticated identity
+  ↓
+tenant_memberships
+  ↓
+Automatic Tenant context
+  ↓
+tenant_modules entitlement
+  ↓
+Tenant role and permission evaluation
+  ↓
+Branch authorization where the domain requires it
+  ↓
+Backend module operation
+  ↓
+Tenant transaction and PostgreSQL RLS
+```
 
-The login flow therefore establishes context in this order:
-
-`tenant → authentication → organization → location → modules → permissions → dashboard`
-
-When multiple organizations are available, the initial authenticated session has no active organization. Selecting an organization creates a new server-authoritative session. Location resolution is blocked until that organization context exists.
+There is no Tenant selector or switching flow. The client cannot select a
+Tenant or module entitlement through a request body, query parameter, header,
+URL, or local state. A missing, invalid, revoked, or unauthorized Tenant
+context fails closed.
 
 ## Consequences
 
-### Positive
-
-- Module entitlement and RBAC remain separate concerns.
-- Organization-specific module enablement is data-driven.
-- Disabled modules cannot be reached merely because a role contains the permission.
-- PostgreSQL RLS can scope `organization_modules` to tenant and active organization context.
-- The same effective module state can drive navigation without making the client authoritative.
-
-### Trade-offs
-
-- A module access check adds a database lookup to protected permission checks.
-- Module configuration requires both tenant entitlement and organization configuration.
-- New business modules must define their module registry entry and tenant/org enablement policy.
+- Module entitlement has one clear owner: Tenant.
+- `tenant_modules` and RBAC remain separate but composable access controls.
+- A permission cannot make a module available when the Tenant is not entitled.
+- Branch authorization can constrain an operation without becoming a second
+  security boundary.
+- The design avoids Organization-level enablement, Organization membership,
+  Organization context, and generic Location context.
+- New modules must define their catalog entry, Tenant entitlement behavior,
+  required permissions, and any domain-specific Branch authorization.
 
 ## Validation
 
-The E2E fixture and integration test verify:
+Validation must cover:
 
-- tenant resolution before login;
-- explicit organization selection;
-- explicit location selection;
-- module discovery;
-- denial of a protected RBAC route when its organization module is disabled;
-- restoration after re-enabling the module;
-- tenant mismatch rejection;
-- limited-user permission denial.
+- tenant membership and automatic Tenant establishment during authentication;
+- denial when `tenant_modules` does not entitle the requested module;
+- denial when the user lacks the required permission;
+- Branch authorization for branch-aware operations;
+- tenant isolation through PostgreSQL RLS;
+- frontend visibility not bypassing backend authorization.

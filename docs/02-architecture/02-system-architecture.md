@@ -81,9 +81,6 @@ The Client Layer is NOT responsible for:
 | Windows Desktop | Flutter Desktop | Office workers, data entry |
 | Web Browser | Flutter Web | Remote access, any browser |
 | Android Mobile | Flutter Mobile | Field staff, warehouse |
-| iOS | (Future) | Mobile users |
-| macOS | (Future) | Developer community, executives |
-| Linux | (Future) | Advanced users |
 
 ### Characteristics
 
@@ -430,7 +427,7 @@ In addition to business modules, the ERP provides platform-wide services:
 | **Audit Service** | Audit event logging, retrieval | Platform Team |
 | **Notification Service** | User notifications, alerts, escalations | Platform Team |
 | **File Storage Service** | Document management, file storage | Platform Team |
-| **Configuration Service** | Organization settings, system config | Platform Team |
+| **Configuration Service** | Tenant and branch settings, system config | Platform Team |
 | **Scheduler Service** | Background jobs, scheduled tasks | Platform Team |
 | **Reporting Service** | Report execution, report management | Platform Team |
 

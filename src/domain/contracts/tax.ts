@@ -10,14 +10,12 @@ export type TaxStatus = 'ACTIVE' | 'INACTIVE';
 
 export interface TaxContext {
   tenantId: string;
-  organizationId: string;
   userId: string;
 }
 
 export interface TaxRuleRecord {
   id: string;
   tenantId: string;
-  organizationId: string;
   code: string;
   name: string;
   rate: number;
@@ -41,7 +39,7 @@ export interface TaxRepository {
   create(
     input: Omit<TaxRuleRecord, 'id' | 'tenantId' | 'versionNumber' | 'createdAt' | 'updatedAt' | 'status'> & TaxContext,
   ): Promise<TaxRuleRecord>;
-  list(tenantId: string, organizationId: string): Promise<TaxRuleRecord[]>;
+  list(tenantId: string): Promise<TaxRuleRecord[]>;
   update(
     input: TaxContext & { id: string; name: string; rate: number; effectiveTo: string | null; expectedVersion: number },
   ): Promise<TaxRuleRecord | null>;

@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+﻿import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
 
@@ -28,3 +28,4 @@ describe('API versioning contract', () => {
     expect(response.headers['x-api-version-policy']).toBe('path');
   });
 });
+

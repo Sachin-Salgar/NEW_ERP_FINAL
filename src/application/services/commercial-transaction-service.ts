@@ -7,7 +7,6 @@ import { ValidationError } from '../../domain/errors.js';
 
 export interface TransactionCommercialContext {
   tenantId: string;
-  organizationId: string;
   branchId: string;
   userId: string;
 }

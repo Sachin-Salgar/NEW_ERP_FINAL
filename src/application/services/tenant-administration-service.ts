@@ -1,11 +1,17 @@
 import type { Pool } from 'pg';
 import { ValidationError } from '../../domain/errors.js';
 import { withTenantContext } from '../../infrastructure/database/tenant-context.js';
+import type {
+  CoreEnterpriseRepository,
+  UserAdminRecord,
+  UserBranchAccessRecord,
+} from '../../domain/contracts/repositories.js';
 
 export class TenantAdministrationService {
   constructor(
     private readonly pool: Pool,
     private readonly tenantContextKey = 'app.current_tenant_id',
+    private readonly repository?: CoreEnterpriseRepository,
   ) {}
 
   async get(tenantId: string) {
@@ -18,6 +24,43 @@ export class TenantAdministrationService {
       ),
     );
     return result?.rows?.[0] ?? null;
+  }
+
+  private requireRepository(): CoreEnterpriseRepository {
+    if (!this.repository) throw new ValidationError('Tenant administration repository is not configured.');
+    return this.repository;
+  }
+
+  async listUsers(tenantId: string): Promise<UserAdminRecord[]> {
+    return this.requireRepository().listUsers(tenantId);
+  }
+
+  async getUserAccess(tenantId: string, userId: string): Promise<{ branches: UserBranchAccessRecord[] }> {
+    return { branches: await this.requireRepository().listUserBranchAccess(tenantId, userId) };
+  }
+
+  async updateUser(
+    tenantId: string,
+    userId: string,
+    changes: Partial<Pick<UserAdminRecord, 'username' | 'email' | 'defaultBranchId' | 'status'>>,
+  ): Promise<UserAdminRecord | null> {
+    return this.requireRepository().updateUser(tenantId, userId, changes);
+  }
+
+  async assignUserToBranch(tenantId: string, userId: string, branchId: string): Promise<boolean> {
+    return this.requireRepository().assignUserToBranch(tenantId, userId, branchId);
+  }
+
+  async revokeUserBranchAccess(tenantId: string, userId: string, branchId: string): Promise<boolean> {
+    return this.requireRepository().revokeUserBranchAccess(tenantId, userId, branchId);
+  }
+
+  async activateUser(tenantId: string, userId: string): Promise<boolean> {
+    return this.requireRepository().activateUser(tenantId, userId);
+  }
+
+  async deactivateUser(tenantId: string, userId: string): Promise<boolean> {
+    return this.requireRepository().deactivateUser(tenantId, userId);
   }
 
   async update(
@@ -79,7 +122,6 @@ export class TenantAdministrationService {
       const protectedData = await client.query(
         `SELECT
            (SELECT COUNT(*) FROM users WHERE tenant_id = $1 AND is_deleted = false) AS users,
-           (SELECT COUNT(*) FROM organizations WHERE tenant_id = $1 AND is_deleted = false) AS organizations,
            (SELECT COUNT(*) FROM branches WHERE tenant_id = $1 AND is_deleted = false) AS branches,
            (SELECT COUNT(*) FROM audit_events WHERE tenant_id = $1) AS audit_events`,
         [tenantId],
@@ -87,7 +129,6 @@ export class TenantAdministrationService {
       const counts = protectedData.rows[0];
       if (
         Number(counts.users) > 0 ||
-        Number(counts.organizations) > 0 ||
         Number(counts.branches) > 0 ||
         Number(counts.audit_events) > 0
       ) {

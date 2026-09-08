@@ -22,7 +22,8 @@ The HR module covers:
 - HR analytics and workforce planning
 - HR compliance and employee relations
 
-Organizations may enable only the capabilities applicable to their deployment, subject to the platform's module/capability configuration model.
+Tenants may enable only the capabilities applicable to their deployment, subject
+to the platform's module/capability configuration model.
 
 ## 2. Employee Master
 
@@ -160,7 +161,7 @@ Balance Update
 Payroll Impact where applicable
 ```
 
-Leave policies are organization-specific configuration and must not be replaced by fixed universal rules.
+Leave policies are tenant-specific configuration and must not be replaced by fixed universal rules.
 
 ## 7. Payroll
 
@@ -289,7 +290,7 @@ Predictive analytics and AI-assisted workforce planning are future capabilities 
 
 ## 12. HR Compliance and Employee Relations
 
-HR may manage organization-specific compliance and employee-relations processes, including:
+HR may manage tenant-specific compliance and employee-relations processes, including:
 
 - Grievances
 - Disciplinary actions
@@ -339,7 +340,7 @@ HR contains sensitive personal and employment information and therefore follows 
 Requirements include:
 
 - Backend authorization
-- Tenant/organization isolation
+- Tenant isolation, with Branch authorization where required
 - Role and permission controls
 - Least privilege
 - Auditability of sensitive operations
@@ -351,9 +352,9 @@ Optional capabilities such as MFA must not be represented as implemented unless 
 
 ## 16. Tenant and Organization Scope
 
-HR data shall respect the ERP's organization/tenant model.
+HR data shall respect the ERP's tenant model.
 
-Where the deployment supports multiple legal entities, branches, or organizational units, HR records and permissions shall follow the established organization scope and authorization model.
+Where the deployment supports multiple legal entities or branches, HR records and permissions shall follow the established tenant scope and authorization model.
 
 The module shall not invent a separate tenant-isolation mechanism.
 

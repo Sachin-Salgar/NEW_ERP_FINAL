@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+﻿import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { SalesReportingService } from '../../src/application/services/sales-reporting-service.js';
 import type { SalesReportRepository } from '../../src/domain/contracts/sales-reporting.js';
@@ -6,7 +6,6 @@ import { ForbiddenError } from '../../src/domain/errors.js';
 
 const context = {
   tenantId: randomUUID(),
-  organizationId: randomUUID(),
   branchId: randomUUID(),
   financialYearId: randomUUID(),
   userId: randomUUID(),
@@ -42,3 +41,4 @@ describe('SalesReportingService', () => {
     });
   });
 });
+

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+﻿import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TenantBootstrapService } from '../../src/application/services/tenant-bootstrap-service.js';
 import { UserRegistrationService } from '../../src/application/services/user-registration-service.js';
@@ -20,7 +20,6 @@ describe('service transaction boundaries', () => {
     const repository = {
       bootstrapTenant: vi.fn(async (input: any) => ({
         tenantId: input.tenant.id,
-        organizationId: input.organization.id,
         branchId: input.branch.id,
         userId: input.administrator.id,
         roleId: input.role.id,
@@ -30,7 +29,6 @@ describe('service transaction boundaries', () => {
 
     const input: any = {
       tenant: { name: 'Tenant' },
-      organization: { name: 'Organization' },
       branch: { name: 'Branch' },
       administrator: { username: 'admin', email: 'admin@example.com', password: 'Password123!' },
       role: { code: 'admin', name: 'Administrator' },
@@ -50,7 +48,6 @@ describe('service transaction boundaries', () => {
       findById: vi.fn(async () => ({
         id: 'actor',
         tenantId: 'tenant',
-        organizationId: 'org',
         defaultBranchId: 'branch',
         username: 'actor',
         email: 'actor@example.com',
@@ -63,13 +60,11 @@ describe('service transaction boundaries', () => {
       createUser: vi.fn(async (input: any) => ({
         id: input.id,
         tenantId: input.tenantId,
-        organizationId: input.organizationId,
         defaultBranchId: input.defaultBranchId,
         username: input.username,
         email: input.email,
         status: input.status,
       })),
-      assignUserToOrganization: vi.fn(async () => true),
       assignUserRole: vi.fn(async () => undefined),
     };
     const passwordHasher = { hash: vi.fn(async () => 'password-hash'), verify: vi.fn(async () => true) };
@@ -84,7 +79,6 @@ describe('service transaction boundaries', () => {
     expect(result.username).toBe('new-user');
     expect(runInTransactionSpy).toHaveBeenCalledTimes(1);
     expect(repository.createUser).toHaveBeenCalledTimes(1);
-    expect(repository.assignUserToOrganization).toHaveBeenCalledTimes(1);
     expect(repository.assignUserRole).toHaveBeenCalledTimes(1);
   });
 
@@ -99,7 +93,6 @@ describe('service transaction boundaries', () => {
       findById: vi.fn(async () => ({
         id: 'actor',
         tenantId: 'tenant',
-        organizationId: 'org',
         defaultBranchId: 'branch',
         username: 'actor',
         email: 'actor@example.com',
@@ -110,7 +103,6 @@ describe('service transaction boundaries', () => {
       findRoleByTenantAndCode: vi.fn(async () => ({ id: 'role', tenantId: 'tenant', code: 'member', name: 'Member' })),
       createRole: vi.fn(),
       createUser: vi.fn(),
-      assignUserToOrganization: vi.fn(),
       assignUserRole: vi.fn(),
     };
     const passwordHasher = { hash: vi.fn(async () => 'password-hash'), verify: vi.fn(async () => true) };

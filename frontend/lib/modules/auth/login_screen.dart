@@ -29,9 +29,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (ok) {
       final delegate = Router.of(context).routerDelegate;
       if (delegate is AppRouterDelegate) {
-        await delegate.setNewRoutePath('/dashboard');
+        await delegate.setNewRoutePath(auth.nextPostAuthRoute);
       } else {
-        Navigator.of(context).pushNamedAndRemoveUntil('/dashboard', (route) => false);
+        Navigator.of(context).pushNamedAndRemoveUntil(auth.nextPostAuthRoute, (route) => false);
       }
       return;
     }

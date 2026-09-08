@@ -1,0 +1,57 @@
+﻿import { beforeEach, describe, expect, it, vi } from 'vitest';
+import Fastify from 'fastify';
+
+import branchRoutes from '../../src/presentation/http/routes/branch.js';
+
+async function buildApp() {
+  const app = Fastify({ logger: false });
+  app.decorate('appConfig', { isTest: true, AUTH_RATE_LIMIT_WINDOW_MS: 60_000 } as any);
+  app.decorate('jwtTokenService', {
+    verifyAccessToken: vi.fn(() => ({
+      sub: 'user-1',
+      tenantId: 'tenant-1',
+      sessionId: 'session-1',
+      tokenType: 'access',
+    })),
+  } as any);
+  app.decorate('authService', {
+    validateSession: vi.fn(async () => ({
+      id: 'user-1',
+      tenantId: 'tenant-1',
+      defaultBranchId: 'branch-1',
+      username: 'alice',
+      email: 'alice@example.com',
+      status: 'active',
+    })),
+  } as any);
+  app.decorate('authorizationService', { hasPermission: vi.fn(async () => true) } as any);
+  app.decorate('moduleAccessService', { isModuleEnabled: vi.fn(async () => true) } as any);
+  app.decorate('branchService', {
+    getTenantBranchByIdForUser: vi.fn(async () => ({
+      id: 'branch-1',
+      tenantId: 'tenant-1',
+      name: 'Branch 1',
+    })),
+  } as any);
+  await app.register(branchRoutes, { prefix: '/api/v1' });
+  await app.ready();
+  return app;
+}
+
+describe('domain selection routes', () => {
+  let app: Awaited<ReturnType<typeof buildApp>>;
+
+  beforeEach(async () => {
+    app = await buildApp();
+  });
+
+  it('does not expose a branch-selection workflow', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/branches/branch-1/select',
+      headers: { authorization: 'Bearer token' },
+    });
+
+    expect(response.statusCode).toBe(404);
+  });
+});

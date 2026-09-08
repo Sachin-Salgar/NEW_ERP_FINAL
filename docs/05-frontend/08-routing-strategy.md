@@ -53,12 +53,12 @@ The implementation may use a different mechanism. Client-side route filtering is
 
 Protected routes shall handle relevant client-side state such as:
 - Authentication state.
-- Organization context.
+- Authenticated tenant context.
 - Enabled module/capability state.
 - Permission information available to the client.
 - Session state.
 
-These checks improve user experience and navigation behavior. The backend must independently enforce authorization and organization/tenant isolation.
+These checks improve user experience and navigation behavior. The backend must independently enforce authorization and tenant isolation.
 
 ## 8.6 Deep Linking
 

@@ -1,11 +1,10 @@
 import type {
-  PlatformAuthorizationRepository,
   PlatformContext,
   PlatformTenantRecord,
 } from '../../domain/contracts/platform-authorization.js';
 
 export class PlatformAuthorizationService {
-  constructor(private readonly repository: PlatformAuthorizationRepository) {}
+  constructor(private readonly repository: any) {}
 
   validateContext(sessionId: string, identityId: string): Promise<PlatformContext | null> {
     return this.repository.validateContext(sessionId, identityId);

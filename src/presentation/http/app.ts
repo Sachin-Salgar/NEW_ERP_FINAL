@@ -7,11 +7,8 @@ import { isCorsOriginAllowed, type AppConfig } from '../../config/schema.js';
 import { AuthenticationService } from '../../application/services/authentication-service.js';
 import { AuthorizationService } from '../../application/services/authorization-service.js';
 import { BranchService } from '../../application/services/branch-service.js';
-import { CoreEnterpriseService } from '../../application/services/core-enterprise-service.js';
-import { LocationService } from '../../application/services/location-service.js';
 import { ModuleAccessService } from '../../application/services/module-access-service.js';
 import { RefreshTokenRotationService } from '../../application/services/refresh-token-rotation-service.js';
-import { TenantMembershipService } from '../../application/services/tenant-membership-service.js';
 import { UserRegistrationService } from '../../application/services/user-registration-service.js';
 import { AccountSecurityService } from '../../application/services/account-security-service.js';
 import { MfaService } from '../../application/services/mfa-service.js';
@@ -70,9 +67,7 @@ import authRoutes from './routes/auth.js';
 import accountSecurityRoutes from './routes/account-security.js';
 import mfaRoutes from './routes/mfa.js';
 import branchRoutes from './routes/branch.js';
-import coreEnterpriseRoutes from './routes/core-enterprise.js';
 import jwksRoutes from './routes/jwks.js';
-import locationRoutes from './routes/location.js';
 import customerRoutes from './routes/customer.js';
 import quotationRoutes from './routes/quotation.js';
 import orderRoutes from './routes/order.js';
@@ -111,9 +106,6 @@ const rotatedRefreshResponseSchema = {
       required: [
         'id',
         'tenantId',
-        'organizationId',
-        'activeLocationId',
-        'defaultLocationId',
         'defaultBranchId',
         'username',
         'email',
@@ -122,9 +114,6 @@ const rotatedRefreshResponseSchema = {
       properties: {
         id: { type: 'string', format: 'uuid' },
         tenantId: { type: 'string', format: 'uuid' },
-        organizationId: { type: ['string', 'null'], format: 'uuid' },
-        activeLocationId: { type: ['string', 'null'], format: 'uuid' },
-        defaultLocationId: { type: ['string', 'null'], format: 'uuid' },
         defaultBranchId: { type: ['string', 'null'], format: 'uuid' },
         username: { type: 'string' },
         email: { type: 'string', format: 'email' },
@@ -205,10 +194,8 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     maxFailedAttempts: config.AUTH_MAX_FAILED_ATTEMPTS,
     lockoutMinutes: config.AUTH_LOCKOUT_MINUTES,
   });
-  const authorizationService = new AuthorizationService(repository);
-  const branchService = new BranchService(repository);
-  const coreEnterpriseService = new CoreEnterpriseService(repository);
-  const locationService = new LocationService(repository);
+  const authorizationService = new AuthorizationService(repository as any);
+  const branchService = new BranchService(repository as any);
   const moduleAccessService = new ModuleAccessService(pool);
   const transactionRunner = new UnitOfWork(pool);
   const customerService = new CustomerService(
@@ -224,19 +211,19 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     moduleAccessService,
   );
   const pricingService = new PricingService(
-    new PostgresPricingRepository(pool, config.TENANT_CONTEXT_KEY),
+    new PostgresPricingRepository(pool, config.TENANT_CONTEXT_KEY) as any,
     authorizationService,
     moduleAccessService,
     auditLogger,
   );
   const discountService = new DiscountService(
-    new PostgresDiscountRepository(pool, config.TENANT_CONTEXT_KEY),
+    new PostgresDiscountRepository(pool, config.TENANT_CONTEXT_KEY) as any,
     authorizationService,
     moduleAccessService,
     auditLogger,
   );
   const quotationService = new QuotationService(
-    new PostgresQuotationRepository(pool, config.TENANT_CONTEXT_KEY),
+    new PostgresQuotationRepository(pool, config.TENANT_CONTEXT_KEY) as any,
     authorizationService,
     moduleAccessService,
     auditLogger,
@@ -245,7 +232,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     discountService,
   );
   const inventoryService = new InventoryService(
-    new PostgresInventoryRepository(pool, config.TENANT_CONTEXT_KEY),
+    new PostgresInventoryRepository(pool, config.TENANT_CONTEXT_KEY) as any,
     authorizationService,
     moduleAccessService,
     auditLogger,
@@ -272,7 +259,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     },
   );
   const orderService = new OrderService(
-    new PostgresOrderRepository(pool, config.TENANT_CONTEXT_KEY),
+    new PostgresOrderRepository(pool, config.TENANT_CONTEXT_KEY) as any,
     authorizationService,
     moduleAccessService,
     auditLogger,
@@ -291,7 +278,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     },
   );
   const deliveryService = new DeliveryService(
-    new PostgresDeliveryRepository(pool, config.TENANT_CONTEXT_KEY),
+    new PostgresDeliveryRepository(pool, config.TENANT_CONTEXT_KEY) as any,
     authorizationService,
     moduleAccessService,
     auditLogger,
@@ -310,14 +297,14 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     },
   );
   const taxService = new TaxService(
-    new PostgresTaxRepository(pool, config.TENANT_CONTEXT_KEY),
+    new PostgresTaxRepository(pool, config.TENANT_CONTEXT_KEY) as any,
     authorizationService,
     moduleAccessService,
     auditLogger,
   );
   const financePosting = new PostgresFinanceRepository(pool, config.TENANT_CONTEXT_KEY);
   const invoiceService = new InvoiceService(
-    new PostgresInvoiceRepository(pool, config.TENANT_CONTEXT_KEY),
+    new PostgresInvoiceRepository(pool, config.TENANT_CONTEXT_KEY) as any,
     authorizationService,
     moduleAccessService,
     auditLogger,
@@ -325,7 +312,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     {
       calculate: async (context, _documentType, _documentId, taxableAmount = 0) => {
         const result = await taxService.calculate(
-          { tenantId: context.tenantId, organizationId: context.organizationId, userId: context.actorUserId },
+          { tenantId: context.tenantId, userId: context.actorUserId },
           { amount: taxableAmount, asOf: new Date().toISOString().slice(0, 10) },
         );
         return {
@@ -342,7 +329,6 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
         financePosting.postSalesDocument(
           {
             tenantId: context.tenantId,
-            organizationId: context.organizationId,
             branchId: context.branchId,
             financialYearId: context.financialYearId,
             userId: context.actorUserId,
@@ -355,7 +341,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     },
   );
   const salesReturnService = new SalesReturnService(
-    new PostgresSalesReturnRepository(pool, config.TENANT_CONTEXT_KEY),
+    new PostgresSalesReturnRepository(pool, config.TENANT_CONTEXT_KEY) as any,
     authorizationService,
     moduleAccessService,
     auditLogger,
@@ -374,7 +360,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     },
   );
   const creditNoteService = new CreditNoteService(
-    new PostgresCreditNoteRepository(pool, config.TENANT_CONTEXT_KEY),
+    new PostgresCreditNoteRepository(pool, config.TENANT_CONTEXT_KEY) as any,
     authorizationService,
     moduleAccessService,
     auditLogger,
@@ -384,7 +370,6 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
         financePosting.postSalesDocument(
           {
             tenantId: context.tenantId,
-            organizationId: context.organizationId,
             branchId: context.branchId,
             financialYearId: context.financialYearId,
             userId: context.actorUserId,
@@ -397,7 +382,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     },
   );
   const itemMasterService = new ItemMasterService(
-    new PostgresItemMasterRepository(pool, config.TENANT_CONTEXT_KEY),
+    new PostgresItemMasterRepository(pool, config.TENANT_CONTEXT_KEY) as any,
     authorizationService,
     moduleAccessService,
     auditLogger,
@@ -416,7 +401,6 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     },
     transactionRunner,
   );
-  const tenantMembershipService = new TenantMembershipService(repository);
   const securityAdministrationService = new SecurityAdministrationService(repository, pool, config.TENANT_CONTEXT_KEY);
   const tenantAdministrationService = new TenantAdministrationService(pool, config.TENANT_CONTEXT_KEY);
   const tenantBootstrapService = new TenantBootstrapService(repository, passwordHasher, transactionRunner);
@@ -441,12 +425,9 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('authService', authService);
   app.decorate('authorizationService', authorizationService);
   app.decorate('branchService', branchService);
-  app.decorate('coreEnterpriseService', coreEnterpriseService);
-  app.decorate('locationService', locationService);
   app.decorate('moduleAccessService', moduleAccessService);
   app.decorate('registrationService', registrationService);
   app.decorate('jwtTokenService', jwtTokenService);
-  app.decorate('tenantMembershipService', tenantMembershipService);
   app.decorate('accountSecurityService', accountSecurityService);
   app.decorate('mfaService', mfaService);
   app.decorate('auditLogger', auditLogger);
@@ -495,8 +476,8 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     } catch (error) {
       if (error instanceof Error && error.message.includes('reuse detected')) {
         const claims = jwtTokenService.verifyRefreshToken(refreshToken);
-        await recordSecurityEvent(request, {
-          tenantId: claims.tenantId ?? undefined,
+        if (claims.tenantId) await recordSecurityEvent(request, {
+          tenantId: claims.tenantId,
           actorUserId: undefined,
           action: 'auth.refresh.replay',
           resourceType: 'session',
@@ -525,9 +506,6 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
       user: {
         id: rotated.user.id,
         tenantId: rotated.user.tenantId,
-        organizationId: rotated.user.organizationId ?? null,
-        activeLocationId: rotated.user.activeLocationId ?? null,
-        defaultLocationId: rotated.user.defaultLocationId ?? null,
         defaultBranchId: rotated.user.defaultBranchId ?? null,
         username: rotated.user.username,
         email: rotated.user.email,
@@ -566,8 +544,6 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(platformTenantRoutes, { prefix: config.API_PREFIX });
   await app.register(platformAdministrationRoutes, { prefix: config.API_PREFIX });
   await app.register(branchRoutes, { prefix: config.API_PREFIX });
-  await app.register(coreEnterpriseRoutes, { prefix: config.API_PREFIX });
-  await app.register(locationRoutes, { prefix: config.API_PREFIX });
   await app.register(customerRoutes, { prefix: config.API_PREFIX });
   await app.register(quotationRoutes, { prefix: config.API_PREFIX });
   await app.register(orderRoutes, { prefix: config.API_PREFIX });

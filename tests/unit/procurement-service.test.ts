@@ -1,11 +1,10 @@
-import { randomUUID } from 'node:crypto';
+﻿import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { ProcurementService } from '../../src/application/services/procurement-service.js';
 import type { ProcurementRepository } from '../../src/domain/contracts/procurement.js';
 
 const context = {
   tenantId: randomUUID(),
-  organizationId: randomUUID(),
   branchId: randomUUID(),
   financialYearId: randomUUID(),
   userId: randomUUID(),
@@ -85,3 +84,4 @@ describe('ProcurementService receipt completion', () => {
 function receiptId() {
   return randomUUID();
 }
+

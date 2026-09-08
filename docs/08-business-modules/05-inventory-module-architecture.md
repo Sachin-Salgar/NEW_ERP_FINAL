@@ -4,7 +4,7 @@
 
 ## 1. Overview
 
-The Inventory module provides control over inventory quantities, locations, movements, reservations, traceability, valuation, and physical verification across the organization's enabled operational structure.
+The Inventory module provides control over inventory quantities, warehouse/storage locations, movements, reservations, traceability, valuation, and physical verification across the tenant's enabled operational structure.
 
 The module supports multi-warehouse and multi-location operations and integrates with Procurement, Sales, Manufacturing, Finance, Asset Management, Maintenance, Projects, Quality, Workflow, and Reporting where those capabilities are enabled.
 
@@ -84,7 +84,7 @@ An item may include:
 - Applicable HSN/SAC or tax classification where required.
 - Default operational attributes.
 - Status.
-- Organization-specific attributes where supported.
+- Tenant-specific attributes where supported.
 
 Typical item categories include raw materials, semi-finished goods, finished goods, trading goods, spare parts, consumables, packaging materials, services, fixed assets, and non-inventory items. The actual supported category model shall be defined by the implementation.
 
@@ -144,7 +144,7 @@ Transaction sources may include:
 
 A transaction may contain:
 - Transaction number/type.
-- Organization and branch context.
+- Tenant and Branch context where required.
 - Warehouse and storage location.
 - Item.
 - Batch/serial reference where applicable.
@@ -191,7 +191,7 @@ Serial information may include:
 - Current status/location.
 - Customer assignment where applicable.
 
-Serial uniqueness shall be enforced according to the applicable organization/tenant scope established by the data model; the exact uniqueness boundary must not be invented by individual features.
+Serial uniqueness shall be enforced according to the applicable tenant scope established by the data model; the exact uniqueness boundary must not be invented by individual features.
 
 The module should support forward and backward traceability, including supplier, production, warehouse, and customer relationships where the corresponding business processes provide the required references.
 
@@ -228,8 +228,8 @@ The exact accounting calendar and period-control rules are governed by the Finan
 ## 12A. Minimum Sales Fulfillment Foundation
 
 ADR-0034 defines the bounded Inventory foundation currently implemented for
-Sales integration. Warehouses are organization-owned and explicitly active or
-inactive. The first slice persists stock balances keyed by organization,
+Sales integration. Warehouses are tenant-owned and explicitly active or
+inactive. The first slice persists stock balances keyed by tenant,
 warehouse, and item with `on_hand`, `reserved`, and derived `available`
 quantities. Reservations are all-or-nothing and move available quantity to
 reserved quantity without changing on-hand. Release reverses that reservation;
@@ -368,7 +368,7 @@ Typical inventory reporting may include:
 - Physical-count variance.
 - Inventory accuracy and shrinkage analysis.
 
-Reports must respect organization/tenant and authorization boundaries.
+Reports must respect tenant and authorization boundaries.
 
 ## 17. Integration Principles
 
@@ -391,7 +391,7 @@ The exact integration mechanism shall follow the backend architecture, applicati
 
 Inventory operations shall respect:
 - Authentication and authorization boundaries.
-- Organization/tenant isolation.
+- Tenant isolation, with Branch authorization where required.
 - Role/permission controls.
 - Immutable historical transaction requirements.
 - Audit logging for sensitive changes.

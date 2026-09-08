@@ -12,7 +12,6 @@ export interface PriceListItemRecord {
 export interface PriceListRecord {
   id: string;
   tenantId: string;
-  organizationId: string;
   branchId: string | null;
   code: string;
   name: string;
@@ -28,7 +27,6 @@ export interface PriceListRecord {
 export interface PriceListRepository {
   create(i: {
     tenantId: string;
-    organizationId: string;
     branchId: string | null;
     code: string;
     name: string;
@@ -37,11 +35,10 @@ export interface PriceListRepository {
     effectiveTo?: string | null;
     actorUserId: string;
   }): Promise<PriceListRecord>;
-  getById(t: string, o: string, id: string): Promise<PriceListRecord | null>;
-  list(t: string, o: string): Promise<PriceListRecord[]>;
+  getById(t: string, id: string): Promise<PriceListRecord | null>;
+  list(t: string): Promise<PriceListRecord[]>;
   addItem(i: {
     tenantId: string;
-    organizationId: string;
     priceListId: string;
     itemCode: string;
     unitOfMeasure: string;
@@ -52,7 +49,6 @@ export interface PriceListRepository {
   }): Promise<PriceListItemRecord>;
   resolvePrice(i: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     itemCode: string;
     unitOfMeasure: string;
@@ -60,7 +56,6 @@ export interface PriceListRepository {
   }): Promise<PriceListItemRecord | null>;
   update(i: {
     tenantId: string;
-    organizationId: string;
     id: string;
     name: string;
     effectiveTo?: string | null;
@@ -69,7 +64,6 @@ export interface PriceListRepository {
   }): Promise<PriceListRecord | null>;
   transition(i: {
     tenantId: string;
-    organizationId: string;
     id: string;
     status: PriceListStatus;
     expectedVersion: number;

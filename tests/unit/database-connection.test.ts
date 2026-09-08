@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 
 import { createDatabaseClientOptions, getDatabaseSslOptions } from '../../src/infrastructure/database/connection.js';
 
@@ -19,3 +19,4 @@ describe('database connection policy', () => {
     });
   });
 });
+

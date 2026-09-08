@@ -88,7 +88,7 @@ Business modules may consume common platform capabilities through their publishe
 - Authentication
 - Authorization
 - User Management
-- Organization Management
+- Tenant and Branch Administration
 - Branch Management
 - Audit Logging
 - Notification

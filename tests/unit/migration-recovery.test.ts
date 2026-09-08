@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 
 import {
   type MigrationRecoveryManifest,
@@ -80,3 +80,4 @@ describe('migration recovery governance', () => {
     expect(result.errors).toContain('0002-orphan: recovery entry has no matching migration journal entry');
   });
 });
+

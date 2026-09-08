@@ -13,9 +13,9 @@ void main() {
     );
     expect(
       await parser.parseRouteInformation(
-        RouteInformation(uri: Uri.parse('/organizations/')),
+        RouteInformation(uri: Uri.parse('/branches/')),
       ),
-      '/settings/organizations',
+      '/settings/branches',
     );
   });
 
@@ -23,8 +23,8 @@ void main() {
     final parser = AppRouteInformationParser();
     expect(parser.restoreRouteInformation('/').uri.path, '/dashboard');
     expect(
-      parser.restoreRouteInformation('/organizations').uri.path,
-      '/settings/organizations',
+      parser.restoreRouteInformation('/branches').uri.path,
+      '/settings/branches',
     );
   });
 }

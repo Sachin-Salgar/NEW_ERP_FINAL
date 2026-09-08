@@ -171,7 +171,7 @@ Depending on the integration, approved mechanisms may include OAuth 2.x/OIDC, mu
 
 The exact mechanism is determined by the integration contract and security requirements; this document does not mandate a universal mechanism.
 
-Tenant and organization context must be preserved across integration boundaries wherever applicable.
+Tenant and branch context must be preserved across integration boundaries wherever applicable.
 
 ## 10. Reporting
 

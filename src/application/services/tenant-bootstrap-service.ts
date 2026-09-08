@@ -9,16 +9,6 @@ const normalizeBootstrapPermissions = (permissions: string[]): string[] => {
   for (const permission of permissions) {
     const replacements: Record<string, string[]> = {
       'user.manage': ['user.read', 'user.create', 'user.update', 'user.activate', 'user.deactivate'],
-      'organization.manage': [
-        'organization.read',
-        'organization.create',
-        'organization.update',
-        'organization.deactivate',
-        'organization.location.read',
-        'organization.location.create',
-        'organization.location.update',
-        'organization.location.deactivate',
-      ],
       'branch.manage': ['branch.read', 'branch.create', 'branch.update', 'branch.deactivate'],
       'role.manage': [
         'role.read',
@@ -43,7 +33,6 @@ export class TenantBootstrapService implements TenantBootstrapServicePort {
   ) {}
   async bootstrapTenant(input: TenantBootstrapInput): Promise<TenantBootstrapResult> {
     const tenantId = input.tenant.id ?? uuidV7();
-    const organizationId = input.organization.id ?? uuidV7();
     const branchId = input.branch.id ?? uuidV7();
     const adminId = input.administrator.id ?? uuidV7();
     const roleId = input.role.id ?? uuidV7();
@@ -54,7 +43,6 @@ export class TenantBootstrapService implements TenantBootstrapServicePort {
       ...input,
       permissions: normalizeBootstrapPermissions(input.permissions),
       tenant: { ...input.tenant, id: tenantId },
-      organization: { ...input.organization, id: organizationId },
       branch: { ...input.branch, id: branchId },
       administrator: { ...input.administrator, id: adminId, password: passwordHash },
       role: { ...input.role, id: roleId },

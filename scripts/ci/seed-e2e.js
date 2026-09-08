@@ -7,11 +7,7 @@ import pg from 'pg';
 const { Client } = pg;
 
 const TENANT_ID = '11111111-1111-4111-8111-111111111111';
-const ORGANIZATION_ID = '22222222-2222-4222-8222-222222222222';
-const ORGANIZATION_TWO_ID = '77777777-7777-4777-8777-777777777777';
 const BRANCH_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-const LOCATION_ONE_ID = '88888888-8888-4888-8888-888888888888';
-const LOCATION_TWO_ID = '99999999-9999-4999-8999-999999999999';
 const ADMIN_ROLE_ID = '33333333-3333-4333-8333-333333333333';
 const LIMITED_ROLE_ID = '44444444-4444-4444-8444-444444444444';
 const ADMIN_USER_ID = '55555555-5555-4555-8555-555555555555';
@@ -26,11 +22,10 @@ const PASSWORD = 'Password123!';
 const CORE_MODULES = [
   ['core', 'Core Platform', 'Administration', true, 1],
   ['security', 'Security', 'Administration', true, 2],
-  ['organization', 'Organizations', 'Administration', true, 3],
-  ['branch', 'Branches', 'Administration', true, 4],
-  ['user-management', 'User Management', 'Administration', true, 5],
-  ['tenant-configuration', 'Tenant Configuration', 'Administration', true, 6],
-  ['crm', 'CRM', 'Business', false, 7],
+  ['branch', 'Branches', 'Administration', true, 3],
+  ['user-management', 'User Management', 'Administration', true, 4],
+  ['tenant-configuration', 'Tenant Configuration', 'Administration', true, 5],
+  ['crm', 'CRM', 'Business', false, 6],
 ];
 
 async function main() {
@@ -55,16 +50,9 @@ async function main() {
     await client.query(
       `INSERT INTO tenants (id, name, display_name, subdomain, slug, timezone, currency, locale, status, created_at)
        VALUES ($1, 'E2E Tenant', 'E2E Tenant', 'localhost', 'e2e', 'UTC', 'USD', 'en_US', 'active', NOW())
-       ON CONFLICT (id) DO NOTHING`,
+      ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, display_name = EXCLUDED.display_name,
+        subdomain = EXCLUDED.subdomain, slug = EXCLUDED.slug, status = EXCLUDED.status`,
       [TENANT_ID],
-    );
-
-    await client.query(
-      `INSERT INTO organizations (id, tenant_id, code, name, legal_name, status, is_default, created_at)
-       VALUES ($1, $2, 'E2E_ORG', 'E2E Organization', 'E2E Organization', 'active', true, NOW()),
-              ($3, $2, 'E2E_ORG_2', 'E2E Secondary Organization', 'E2E Secondary Organization', 'active', false, NOW())
-       ON CONFLICT (id) DO NOTHING`,
-      [ORGANIZATION_ID, TENANT_ID, ORGANIZATION_TWO_ID],
     );
 
     await client.query(
@@ -75,32 +63,17 @@ async function main() {
     );
 
     await client.query(
-      `INSERT INTO organization_modules (tenant_id, organization_id, module_id, enabled, enabled_at)
-       SELECT $1, o.id, m.id, true, NOW() FROM organizations o CROSS JOIN modules m
-       WHERE o.tenant_id = $1 AND m.code = ANY($2)
-       ON CONFLICT (organization_id, module_id) DO UPDATE SET enabled = true, disabled_at = NULL`,
-      [TENANT_ID, CORE_MODULES.map(([code]) => code)],
-    );
-
-    await client.query(
       `INSERT INTO branches (
-         id, tenant_id, organization_id, code, name, status, is_head_office, is_default,
+         id, tenant_id, code, name, status, is_head_office, is_default,
          city, district, state, country, postal_code, timezone, remarks, created_at
        )
        VALUES (
-         $1, $2, $3, 'E2E_BRANCH_1', 'E2E Main Branch', 'active', true, true,
+         $1, $2, 'E2E_BRANCH_1', 'E2E Main Branch', 'active', true, true,
          'Pune', 'Pune', 'Maharashtra', 'India', '411001', 'Asia/Kolkata', 'E2E branch fixture', NOW()
        )
-       ON CONFLICT (id) DO NOTHING`,
-      [BRANCH_ID, TENANT_ID, ORGANIZATION_ID],
-    );
-
-    await client.query(
-      `INSERT INTO locations (id, tenant_id, organization_id, code, name, status, is_default, timezone, created_at)
-       VALUES ($1, $2, $3, 'E2E_LOC_1', 'E2E Main Location', 'active', true, 'UTC', NOW()),
-              ($4, $2, $3, 'E2E_LOC_2', 'E2E Secondary Location', 'active', false, 'UTC', NOW())
-       ON CONFLICT (id) DO NOTHING`,
-      [LOCATION_ONE_ID, TENANT_ID, ORGANIZATION_ID, LOCATION_TWO_ID],
+       ON CONFLICT (id) DO UPDATE SET code = EXCLUDED.code, name = EXCLUDED.name,
+        status = EXCLUDED.status, is_head_office = EXCLUDED.is_head_office, is_default = EXCLUDED.is_default`,
+      [BRANCH_ID, TENANT_ID],
     );
 
     const passwordHash = await bcrypt.hash(PASSWORD, 10);
@@ -115,19 +88,20 @@ async function main() {
     await client.query(
       `INSERT INTO identities (id, status, created_at)
        VALUES ($1, 'active', NOW()), ($2, 'active', NOW())
-       ON CONFLICT (id) DO NOTHING`,
+      ON CONFLICT (id) DO NOTHING`,
       [ADMIN_IDENTITY_ID, LIMITED_IDENTITY_ID],
     );
 
     await client.query(
-      `INSERT INTO users (id, tenant_id, organization_id, username, email, password_hash, status, identity_id, created_at)
+      `INSERT INTO users (id, tenant_id, default_branch_id, username, email, password_hash, status, identity_id, created_at)
        VALUES ($1, $2, $3, 'e2e@example.com', $4, $5, 'active', $6, NOW()),
               ($7, $2, $3, 'e2e-limited', $8, $5, 'active', $9, NOW())
-       ON CONFLICT (id) DO NOTHING`,
+       ON CONFLICT (id) DO UPDATE SET default_branch_id = EXCLUDED.default_branch_id,
+         password_hash = EXCLUDED.password_hash, status = EXCLUDED.status, email = EXCLUDED.email`,
       [
         ADMIN_USER_ID,
         TENANT_ID,
-        ORGANIZATION_ID,
+        BRANCH_ID,
         ADMIN_EMAIL,
         passwordHash,
         ADMIN_IDENTITY_ID,
@@ -146,15 +120,35 @@ async function main() {
     );
 
     const adminPermissions = [
-      'tenant.read', 'organization.read', 'organization.location.read', 'organization.create', 'organization.update', 'organization.activate',
-      'organization.deactivate', 'branch.read', 'branch.create', 'branch.update', 'branch.activate',
-      'branch.deactivate', 'user.read', 'user.create', 'user.update', 'user.activate', 'user.deactivate',
-      'role.read', 'role.create', 'role.update', 'role.activate', 'role.deactivate', 'role_permission.read',
-      'role_permission.grant', 'role_permission.revoke', 'permission.read', 'security.session.read',
-      'security.session.revoke', 'security.session.revoke_all', 'customer.read', 'customer.create',
-      'customer.update', 'customer.delete',
+      'tenant.read',
+      'branch.read',
+      'branch.create',
+      'branch.update',
+      'branch.activate',
+      'branch.deactivate',
+      'user.read',
+      'user.create',
+      'user.update',
+      'user.activate',
+      'user.deactivate',
+      'role.read',
+      'role.create',
+      'role.update',
+      'role.activate',
+      'role.deactivate',
+      'role_permission.read',
+      'role_permission.grant',
+      'role_permission.revoke',
+      'permission.read',
+      'security.session.read',
+      'security.session.revoke',
+      'security.session.revoke_all',
+      'customer.read',
+      'customer.create',
+      'customer.update',
+      'customer.delete',
     ];
-    const limitedPermissions = ['organization.read', 'organization.location.read', 'user.read'];
+    const limitedPermissions = ['branch.read', 'user.read'];
     for (const permissionKey of [...new Set([...adminPermissions, ...limitedPermissions])]) {
       const [resource, action] = permissionKey.split('.');
       const moduleCode =
@@ -164,11 +158,9 @@ async function main() {
             ? 'user-management'
             : resource === 'branch'
               ? 'branch'
-              : resource === 'organization'
-                ? 'organization'
-                : resource === 'customer'
-                  ? 'crm'
-                  : 'security';
+              : resource === 'customer'
+                ? 'crm'
+                : 'security';
       await client.query(
         `INSERT INTO permissions (id, module_code, resource, action, scope, permission_key, display_name, description, is_system)
          VALUES ($1, $2, $3, $4, 'tenant', $5, $5, $6, false)
@@ -177,7 +169,10 @@ async function main() {
       );
     }
 
-    for (const [roleId, permissions] of [[ADMIN_ROLE_ID, adminPermissions], [LIMITED_ROLE_ID, limitedPermissions]]) {
+    for (const [roleId, permissions] of [
+      [ADMIN_ROLE_ID, adminPermissions],
+      [LIMITED_ROLE_ID, limitedPermissions],
+    ]) {
       await client.query(
         `INSERT INTO role_permissions (tenant_id, role_id, permission_id)
          SELECT $1, $2, p.id FROM permissions p WHERE p.permission_key = ANY($3)
@@ -193,17 +188,10 @@ async function main() {
     );
 
     await client.query(
-      `INSERT INTO user_organization_access (tenant_id, user_id, organization_id)
-       VALUES ($1, $2, $3), ($1, $2, $4), ($1, $5, $3)
-       ON CONFLICT (user_id, organization_id, tenant_id) DO NOTHING`,
-      [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, ORGANIZATION_TWO_ID, LIMITED_USER_ID],
-    );
-
-    await client.query(
-      `INSERT INTO user_location_access (tenant_id, user_id, organization_id, location_id, is_active)
-       VALUES ($1, $2, $3, $4, true), ($1, $2, $3, $5, true), ($1, $6, $3, $4, true)
-       ON CONFLICT (user_id, location_id, tenant_id) DO UPDATE SET is_active = true`,
-      [TENANT_ID, ADMIN_USER_ID, ORGANIZATION_ID, LOCATION_ONE_ID, LOCATION_TWO_ID, LIMITED_USER_ID],
+      `INSERT INTO user_branch_access (tenant_id, user_id, branch_id)
+       VALUES ($1, $2, $3), ($1, $4, $3)
+       ON CONFLICT (user_id, branch_id, tenant_id) DO NOTHING`,
+      [TENANT_ID, ADMIN_USER_ID, BRANCH_ID, LIMITED_USER_ID],
     );
 
     await client.query('COMMIT');

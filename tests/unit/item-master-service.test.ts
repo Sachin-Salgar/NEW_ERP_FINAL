@@ -7,13 +7,12 @@ import type { AuditLogger } from '../../src/application/contracts/audit.js';
 import type { ItemRecord, ItemRepository } from '../../src/domain/contracts/repositories.js';
 import { ForbiddenError, NotFoundError, ValidationError } from '../../src/domain/errors.js';
 
-const context = { tenantId: randomUUID(), organizationId: randomUUID(), userId: randomUUID() };
+const context = { tenantId: randomUUID(), userId: randomUUID() };
 
 function record(overrides: Partial<ItemRecord> = {}): ItemRecord {
   return {
     id: randomUUID(),
     tenantId: context.tenantId,
-    organizationId: context.organizationId,
     code: 'SKU-1',
     name: 'Widget',
     description: null,
@@ -119,3 +118,4 @@ describe('ItemMasterService', () => {
     await expect(createService({ permission: false }).service.list(context, {})).rejects.toBeInstanceOf(ForbiddenError);
   });
 });
+

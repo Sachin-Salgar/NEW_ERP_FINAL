@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../src/infrastructure/database/tenant-context.js', () => ({
   withTenantContext: async (
@@ -34,24 +34,25 @@ describe('ModuleAccessService', () => {
   it('returns enabled=true for every accessible module', async () => {
     const { service } = createService([{ rows: [moduleRow] }]);
 
-    await expect(service.listAccessibleModules('tenant-1', 'organization-1')).resolves.toEqual([
+    await expect(service.listAccessibleModules('tenant-1')).resolves.toEqual([
       { ...moduleRow, enabled: true },
     ]);
   });
 
-  it('returns enabled=true when enabling an organization module', async () => {
+  it('returns enabled=true when enabling a tenant module', async () => {
     const { service } = createService([{ rows: [moduleRow] }, { rows: [{ enabled: true }] }]);
 
-    await expect(service.setOrganizationModule('tenant-1', 'organization-1', 'sales', true, 'user-1')).resolves.toEqual(
+    await expect(service.setTenantModule('tenant-1', 'sales', true, 'user-1')).resolves.toEqual(
       { ...moduleRow, enabled: true },
     );
   });
 
-  it('returns null when disabling an organization module', async () => {
+  it('returns null when disabling a tenant module', async () => {
     const { service } = createService([{ rows: [moduleRow] }, { rows: [{ enabled: false }] }]);
 
     await expect(
-      service.setOrganizationModule('tenant-1', 'organization-1', 'sales', false, 'user-1'),
+      service.setTenantModule('tenant-1', 'sales', false, 'user-1'),
     ).resolves.toBeNull();
   });
 });
+

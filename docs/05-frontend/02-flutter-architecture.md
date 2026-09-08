@@ -117,7 +117,7 @@ Examples include:
 
 ## 2.9 Backend Boundary
 
-The frontend is a client of the backend. Backend APIs are authoritative for authentication, authorization, tenant/organization access, validation, business rules, financial calculations, workflows, and persistence.
+The frontend is a client of the backend. Backend APIs are authoritative for authentication, authorization, tenant access, validation, business rules, financial calculations, workflows, and persistence.
 
 Client-side validation may improve UX but must never be relied upon as the security or business-rule enforcement point.
 

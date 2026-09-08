@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 import { v7 } from 'uuid';
 
 import { TenantContextService } from '../../src/application/services/tenant-context-service.js';
@@ -30,3 +30,4 @@ describe('TenantContextService', () => {
     await expect(service.bindTenant('invalid-tenant')).rejects.toThrow('Invalid tenant identifier');
   });
 });
+

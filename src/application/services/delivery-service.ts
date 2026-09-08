@@ -9,7 +9,6 @@ import type { InventoryDependencyPort } from '../../domain/contracts/inventory.j
 
 export interface DeliveryContext {
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   userId: string;
@@ -106,7 +105,6 @@ export class DeliveryService {
     this.id(id, 'Delivery ID');
     const delivery = await this.repository.getById(
       context.tenantId,
-      context.organizationId,
       context.branchId,
       context.financialYearId,
       id,
@@ -122,7 +120,6 @@ export class DeliveryService {
     await this.authorize(context, DELIVERY_PERMISSIONS.read);
     return this.repository.list(context.tenantId, {
       ...input,
-      organizationId: context.organizationId,
       branchId: context.branchId,
       financialYearId: context.financialYearId,
     });
@@ -200,13 +197,12 @@ export class DeliveryService {
     if (!context.userId?.trim()) throw new UnauthorizedError();
     for (const [value, label] of [
       [context.tenantId, 'Tenant ID'],
-      [context.organizationId, 'Organization ID'],
       [context.branchId, 'Branch ID'],
       [context.financialYearId, 'Financial Year ID'],
       [context.userId, 'User ID'],
     ] as const)
       this.id(value, label);
-    if (!(await this.modules.isModuleEnabled(context.tenantId, context.organizationId, 'sales')))
+    if (!(await this.modules.isModuleEnabled(context.tenantId, 'sales')))
       throw new ForbiddenError('Sales module is not enabled.');
     if (!(await this.auth.hasPermission(context.tenantId, context.userId, permission)))
       throw new ForbiddenError('Insufficient delivery permission.');

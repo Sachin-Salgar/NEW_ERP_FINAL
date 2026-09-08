@@ -13,7 +13,7 @@ Business modules are **logical boundaries inside the current modular-monolith ba
 
 | Document | Module | Purpose |
 |---|---|---|
-| `02-core-enterprise-modules.md` | Core Enterprise | Organization, branch, identity, roles, permissions, and RBAC capabilities |
+| `02-core-enterprise-modules.md` | Core Enterprise | Tenant, Branch, identity, roles, permissions, and RBAC capabilities |
 | `03-sales-module-architecture.md` | Sales | Sales and order-to-cash business capabilities |
 | `sales/01-sales-quotation.md` | Sales Quotation | Implemented slice; architectural remediation required |
 | `sales/02-sales-order.md` | Sales Order | Implemented bounded slice |
@@ -37,7 +37,7 @@ Business modules are **logical boundaries inside the current modular-monolith ba
 | `13-bi-analytics-module-architecture.md` | BI & Analytics | Governed analytical, reporting, KPI, and business-intelligence capabilities |
 | `14-workflow-bpm-module-architecture.md` | Workflow / BPM | Business workflow and process-automation usage within the platform architecture |
 
-`01-business-modules-architecture.md` defines the overall module architecture and boundary rules. `02-core-enterprise-modules.md` defines the core enterprise capabilities that provide organizational and authorization foundations.
+`01-business-modules-architecture.md` defines the overall module architecture and boundary rules. `02-core-enterprise-modules.md` defines the core enterprise capabilities that provide Tenant, Branch, and authorization foundations.
 
 ### Deferred / Removed Modules
 
@@ -91,7 +91,8 @@ Tenant isolation, RLS, audit, soft-delete, transaction scoping, and related data
 
 ## Module Enablement / Licensing
 
-The architecture supports organizations using only the business capabilities/modules they are configured and licensed to use.
+The architecture supports Tenants using only the business capabilities/modules
+they are configured and licensed to use.
 
 There is **no universal list of business modules that every customer must purchase or enable** in this document. Whether one module requires another is determined by the authoritative dependency and implementation rules of the relevant module.
 
@@ -127,7 +128,7 @@ If ownership, dependency, contract, data boundary, or required behavior is uncle
 ## Related Documentation
 
 - [Business Modules Architecture](./01-business-modules-architecture.md) — authoritative module boundaries and communication rules
-- [Core Enterprise Modules](./02-core-enterprise-modules.md) — organization, branch, identity, role, permission, and RBAC capabilities
+- [Core Enterprise Modules](./02-core-enterprise-modules.md) — tenant, branch, identity, role, permission, and RBAC capabilities
 - [Backend Module Development Guidelines](../04-backend/21-module-development-guidelines.md) — implementation rules
 - [Enterprise Security Architecture](../06-security/04-enterprise-security-architecture.md) — security boundaries and authorization
 - [Platform Service Architecture](../09-platform-services/01-platform-service-architecture.md) — shared platform capabilities

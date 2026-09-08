@@ -5,7 +5,7 @@
 
 ## Purpose
 
-The Procurement Module manages the organization's purchasing lifecycle from internal requirement through supplier settlement. It is a logical module within the current modular monolith.
+The Procurement Module manages the tenant's purchasing lifecycle from internal requirement through supplier settlement. It is a logical module within the current modular monolith.
 
 ## 1. Procurement Overview
 
@@ -43,7 +43,7 @@ Payment
 Procurement Closed
 ```
 
-The actual workflow and approval stages are configurable according to organizational policy and implemented workflow contracts.
+The actual workflow and approval stages are configurable according to tenant policy and implemented workflow contracts.
 
 ## 3. Vendor Management
 
@@ -73,7 +73,7 @@ Supplier evaluation may consider price, delivery, quality, previous performance,
 
 Purchase Orders authorize procurement from suppliers and form the basis for receiving, invoice matching, and financial processing.
 
-Supported order types may include standard, blanket, contract, planned, service, and capital purchases where required by the organization.
+Supported order types may include standard, blanket, contract, planned, service, and capital purchases where required by the tenant.
 
 Authorized amendments may change quantities, dates, items, or cancellation status. Significant amendments may require reapproval.
 
@@ -171,14 +171,14 @@ When implementing Procurement features, AI must:
 
 The current bounded implementation exposes the Purchase module under the `purchase`
 module code and `/api/v1/purchase/*` resource namespace. It includes tenant- and
-organization-scoped suppliers, purchase requisitions, purchase orders, and
+tenant-scoped suppliers, purchase requisitions, purchase orders, and
 purchase receipts. Requisitions and orders support draft, submit, approve,
 reject, and cancel transitions with optimistic version checks. Receipts support
 partial and repeated receipt creation by operation key and post accepted
 quantities through the Inventory receipt contract in the same transaction.
 
 Supplier records support soft deletion. All Purchase records use FORCE RLS,
-composite tenant/organization/context ownership constraints, audit columns, and
+tenant/context ownership constraints, audit columns, and
 versioned updates. The Flutter Purchase workspace provides paginated/searchable
 supplier, requisition, order, and receipt views with create/edit/detail actions
 and permission-gated lifecycle controls. The public permission namespace is

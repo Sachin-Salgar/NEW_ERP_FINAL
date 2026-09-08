@@ -1,4 +1,4 @@
-import { Pool, type PoolClient } from 'pg';
+﻿import { Pool, type PoolClient } from 'pg';
 
 import { resolveDatabaseUrl } from '../../src/config/schema.js';
 
@@ -44,3 +44,4 @@ export async function withRollbackTransaction<T>(
 export async function closeIntegrationPool(pool: Pool | undefined): Promise<void> {
   if (pool) await pool.end();
 }
+

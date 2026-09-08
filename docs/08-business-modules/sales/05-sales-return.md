@@ -20,14 +20,14 @@ state.
 
 ### Header: `sales_returns`
 
-Candidate fields: UUIDv7 `id`, tenant/org IDs, mandatory branch, warehouse, and
+Candidate fields: UUIDv7 `id`, tenant ID, mandatory branch, warehouse, and
 financial-year IDs, `return_number`, customer ID, invoice ID, delivery ID,
 return date, reason reference, inspection status, approval status, return
 status, `version_number`, and canonical audit/deletion metadata.
 
 ### Detail: `sales_return_items`
 
-Candidate fields: UUIDv7 `id`, tenant/org IDs, mandatory branch and financial-year
+Candidate fields: UUIDv7 `id`, tenant ID, mandatory branch and financial-year
 references, `return_id`, source invoice or delivery item reference, line number,
 requested quantity, accepted quantity, unit of measure, value snapshot,
 disposition reference, and canonical audit columns.
@@ -60,7 +60,7 @@ inspection actions, loading/empty/error/pagination/search states, routing,
 module guards, and permission-aware controls.
 
 Tests must cover authentication, authorization, source-document linkage,
-cross-tenant and cross-organization GET/LIST/PATCH/DELETE, RLS/FORCE RLS,
+cross-tenant and unauthorized-Branch GET/LIST/PATCH/DELETE, RLS/FORCE RLS,
 quantity and duplicate prevention, lifecycle, concurrency, audit, rollback,
 and Inventory/Finance failure boundaries.
 

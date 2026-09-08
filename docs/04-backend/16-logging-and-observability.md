@@ -43,7 +43,7 @@ Typical fields include:
 - Timestamp.
 - Correlation ID.
 - User ID where available and appropriate.
-- Organization/Tenant ID where available and appropriate.
+- Tenant ID and Branch ID where available and appropriate.
 - Module.
 - Service/component.
 - Operation.

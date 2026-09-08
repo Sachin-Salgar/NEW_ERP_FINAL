@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 
 import { appConfigSchema } from '../../src/config/schema.js';
 
@@ -36,3 +36,4 @@ describe('security boolean environment parsing', () => {
     ).toThrow();
   });
 });
+

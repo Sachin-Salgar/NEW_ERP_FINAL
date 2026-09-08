@@ -2,9 +2,7 @@ import { v7 as uuidV7 } from 'uuid';
 
 export interface TestIdentityFactoryOptions {
   tenantId?: string;
-  organizationId?: string;
   branchId?: string;
-  locationId?: string;
   userId?: string;
   username?: string;
   email?: string;
@@ -14,9 +12,7 @@ export function createTestIdentity(overrides: TestIdentityFactoryOptions = {}) {
   const suffix = uuidV7();
   return {
     tenantId: overrides.tenantId ?? uuidV7(),
-    organizationId: overrides.organizationId ?? uuidV7(),
     branchId: overrides.branchId ?? uuidV7(),
-    locationId: overrides.locationId ?? uuidV7(),
     userId: overrides.userId ?? uuidV7(),
     username: overrides.username ?? `user-${suffix}`,
     email: overrides.email ?? `user-${suffix}@example.com`,
@@ -26,7 +22,7 @@ export function createTestIdentity(overrides: TestIdentityFactoryOptions = {}) {
 export function createTenantHeaders(tenantId: string, accessToken?: string) {
   return {
     'x-tenant-id': tenantId,
-    ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
+    ...(accessToken ? { authorization: '******' } : {}),
   };
 }
 
@@ -61,3 +57,4 @@ export async function expectRejectsWithCode(operation: Promise<unknown>, expecte
 
   throw new Error(`Expected operation to reject with code ${expectedCode}.`);
 }
+

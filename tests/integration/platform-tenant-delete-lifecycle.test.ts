@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it } from 'vitest';
+﻿import { afterAll, describe, expect, it } from 'vitest';
 import { v7 as uuidV7 } from 'uuid';
 
 import { createIntegrationAdminPool } from './database.js';
@@ -75,3 +75,4 @@ describe('platform tenant delete lifecycle procedure', () => {
     }
   });
 });
+

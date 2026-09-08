@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 
 import {
   isCorsOriginAllowed,
@@ -111,3 +111,4 @@ describe('parseAppConfig', () => {
     ).toThrow('JWT_SECRET must be configured for production HS256 compatibility deployments.');
   });
 });
+

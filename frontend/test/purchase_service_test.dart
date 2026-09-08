@@ -30,7 +30,7 @@ void main() {
       );
     });
     final auth = AuthService(authzService: AuthZService())
-      ..currentOrganizationId = 'org-1';
+      ..currentTenantId = 'tenant-1';
     final service = PurchaseService(
       apiClient: ApiClient(baseUrl: 'http://example.com', httpClient: client),
       auth: auth,
@@ -66,7 +66,7 @@ void main() {
       final service = PurchaseService(
         apiClient: ApiClient(baseUrl: 'http://example.com', httpClient: client),
         auth: AuthService(authzService: AuthZService())
-          ..currentOrganizationId = 'org-1',
+          ..currentTenantId = 'tenant-1',
       );
 
       expect(
@@ -109,7 +109,7 @@ void main() {
     final service = PurchaseService(
       apiClient: ApiClient(baseUrl: 'http://example.com', httpClient: client),
       auth: AuthService(authzService: AuthZService())
-        ..currentOrganizationId = 'org-1',
+        ..currentTenantId = 'tenant-1',
     );
 
     expect(

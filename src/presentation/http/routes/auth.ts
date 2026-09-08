@@ -2,11 +2,10 @@ import { type FastifyPluginAsync } from 'fastify';
 import crypto from 'node:crypto';
 import { compare } from 'bcryptjs';
 import { z } from 'zod';
-import { ValidationError, UnauthorizedError, ForbiddenError } from '../../../domain/errors.js';
+import { ValidationError, UnauthorizedError } from '../../../domain/errors.js';
 import { requireAuth, requirePermission } from '../middleware/auth.js';
 import { authSchemas, errorResponseSchema, toJsonSchema } from '../swagger.js';
 import { recordSecurityEvent } from '../security-audit.js';
-import { withTenantContext } from '../../../infrastructure/database/tenant-context.js';
 interface ModuleCodeParams {
   code: string;
 }
@@ -17,9 +16,7 @@ const registerRequestJsonSchema = {
     username: { type: 'string', minLength: 3, maxLength: 150 },
     email: { type: 'string', format: 'email' },
     password: { type: 'string', minLength: 8, maxLength: 128 },
-    organizationId: { type: 'string', format: 'uuid' },
     defaultBranchId: { type: 'string', format: 'uuid' },
-    defaultLocationId: { type: 'string', format: 'uuid' },
     roleCode: { type: 'string', minLength: 1, maxLength: 50 },
   },
 } as const;
@@ -34,9 +31,6 @@ const loginRequestJsonSchema = {
 const sanitizeUser = (user: {
   id: string;
   tenantId: string;
-  organizationId?: string | null;
-  activeLocationId?: string | null;
-  defaultLocationId?: string | null;
   defaultBranchId?: string | null;
   username: string;
   email: string;
@@ -44,9 +38,6 @@ const sanitizeUser = (user: {
 }) => ({
   id: user.id,
   tenantId: user.tenantId,
-  organizationId: user.organizationId ?? null,
-  activeLocationId: user.activeLocationId ?? null,
-  defaultLocationId: user.defaultLocationId ?? null,
   defaultBranchId: user.defaultBranchId ?? null,
   username: user.username,
   email: user.email,
@@ -56,8 +47,6 @@ const sanitizeSession = (session: {
   id: string;
   tenantId: string;
   userId: string;
-  organizationId?: string | null;
-  locationId?: string | null;
   branchId?: string | null;
   financialYearId?: string | null;
   isActive: boolean;
@@ -67,8 +56,6 @@ const sanitizeSession = (session: {
   id: session.id,
   tenantId: session.tenantId,
   userId: session.userId,
-  organizationId: session.organizationId ?? null,
-  locationId: session.locationId ?? null,
   branchId: session.branchId ?? null,
   financialYearId: session.financialYearId ?? null,
   isActive: session.isActive,
@@ -79,6 +66,7 @@ const authRateLimit = (fastify: Parameters<FastifyPluginAsync>[0], max: number) 
   max: fastify.appConfig.isTest ? Math.max(max, 1000) : max,
   timeWindow: fastify.appConfig.AUTH_RATE_LIMIT_WINDOW_MS,
 });
+
 const authRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get(
     '/bootstrap',
@@ -96,8 +84,8 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       capabilities: {
         apiVersion: 'v1',
         tenantSelection: false,
-        multiOrganization: true,
-        workingContextSelection: true,
+        platformAdministration: true,
+        branchAccess: true,
       },
     }),
   );
@@ -186,9 +174,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         username: body.username,
         email: body.email,
         password: body.password,
-        organizationId: body.organizationId ?? request.user.organizationId ?? null,
         defaultBranchId: body.defaultBranchId ?? request.user.defaultBranchId ?? null,
-        defaultLocationId: body.defaultLocationId ?? request.user.defaultLocationId ?? null,
         roleCode: body.roleCode ?? 'member',
       });
       reply.code(201);
@@ -208,23 +194,21 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       bodyLimit: 10 * 1024,
       config: { rateLimit: authRateLimit(fastify, fastify.appConfig.AUTH_LOGIN_RATE_LIMIT) },
     },
-    async (request, reply) => {
+    async (request) => {
       const body = authSchemas.loginRequest.parse(request.body);
       const result = await request.server.authService.authenticate(body.identifier.trim(), body.password);
       if (!result.success || !result.user || !result.session || !result.accessToken || !result.refreshToken) {
-        if (result.failureTenantId)
+        if (result.failureTenantId) {
           await recordSecurityEvent(request, {
             tenantId: result.failureTenantId,
             actorUserId: result.failureUserId ?? null,
-            action: result.reason === 'ACCOUNT_LOCKED' ? 'auth.account.lockout' : 'auth.login.failure',
+            action: result.reason === 'ACCOUNT_LOCKED' ? 'auth.login.lockout' : 'auth.login.failure',
             resourceType: 'authentication',
             resourceId: result.failureUserId ?? null,
             outcome: 'failure',
-            metadata: {
-              reason: result.reason ?? 'INVALID_CREDENTIALS',
-              retryAfterSeconds: result.retryAfterSeconds ?? null,
-            },
+            metadata: { reason: result.reason ?? 'INVALID_CREDENTIALS' },
           });
+        }
         throw new UnauthorizedError('Invalid credentials.');
       }
       await recordSecurityEvent(request, {
@@ -234,45 +218,18 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         resourceType: 'session',
         resourceId: result.session.id,
         outcome: 'success',
-        metadata: { sessionId: result.session.id },
+        metadata: { sessionId: result.session.id, contextType: 'tenant' },
       });
-      const memberships = await request.server.tenantMembershipService.resolveOrganizationMemberships(
-        result.user.tenantId,
-        result.user.id,
-      );
-      let finalResult = result;
-      if (memberships.activeOrganizationId && !result.user.organizationId) {
-        await request.server.authService.invalidateSession(result.session.id, result.user.tenantId);
-        finalResult = await request.server.authService.createSessionForUser(
-          result.user.tenantId,
-          result.user.id,
-          memberships.activeOrganizationId,
-        );
-        if (
-          !finalResult.success ||
-          !finalResult.user ||
-          !finalResult.session ||
-          !finalResult.accessToken ||
-          !finalResult.refreshToken
-        )
-          throw new UnauthorizedError('Unable to establish the tenant-scoped login session.');
-      }
-      const finalUser = finalResult.user;
-      const finalSession = finalResult.session;
-      if (!finalUser || !finalSession) throw new UnauthorizedError('Unable to establish login session.');
-      reply.code(200);
       return {
         success: true,
-        user: sanitizeUser(finalUser),
-        session: sanitizeSession(finalSession),
-        accessToken: finalResult.accessToken,
-        refreshToken: finalResult.refreshToken,
-        expiresAt: finalSession.expiresAt,
+        user: sanitizeUser(result.user),
+        session: sanitizeSession(result.session),
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        expiresAt: result.session.expiresAt,
         tokenType: 'bearer',
-        tenant: { id: finalUser.tenantId },
-        organizations: memberships.organizations,
-        activeOrganizationId: memberships.activeOrganizationId,
-        requiresOrganizationSelection: false,
+        contextType: 'tenant' as const,
+        tenant: { id: result.user.tenantId },
       };
     },
   );
@@ -349,95 +306,6 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       };
     },
   );
-  fastify.post<{ Body: { contextType: 'tenant' | 'platform'; tenantId?: string } }>(
-    '/auth/context',
-    async (request, reply) => {
-      const token = request.server.jwtTokenService.verifyAccessToken(
-        String(request.headers.authorization ?? '').replace(/^Bearer\s+/i, ''),
-      );
-      if (request.body.contextType === 'platform') {
-        const membership = await request.server.dbPool.query<{ membershipId: string }>(
-          `SELECT m.id as "membershipId"
-         FROM platform_memberships m
-         JOIN identities i ON i.id = m.identity_id
-         WHERE m.identity_id = $1 AND m.status = 'active' AND i.status = 'active'
-         LIMIT 1`,
-          [token.sub],
-        );
-        if (membership.rowCount !== 1) throw new ForbiddenError('Platform membership is inactive.');
-        const sessionId = crypto.randomUUID();
-        const refreshToken = request.server.jwtTokenService.createRefreshToken({
-          userId: token.sub,
-          identityId: token.sub,
-          tenantId: null,
-          sessionId,
-          contextType: 'platform',
-          membershipId: membership.rows[0].membershipId,
-        });
-        await request.server.dbPool.query(
-          `INSERT INTO user_sessions
-          (id, context_type, tenant_id, user_id, identity_id, tenant_membership_id, platform_membership_id,
-           refresh_token_hash, is_active, expires_at, login_at, last_activity_at, updated_at, version, security_version)
-         VALUES ($1, 'platform', NULL, NULL, $2, NULL, $3, $4, true, NOW() + INTERVAL '14 days',
-                 NOW(), NOW(), NOW(), 1, 1)`,
-          [
-            sessionId,
-            token.sub,
-            membership.rows[0].membershipId,
-            request.server.jwtTokenService.hashTokenValue(refreshToken),
-          ],
-        );
-        const accessToken = request.server.jwtTokenService.createAccessToken({
-          userId: token.sub,
-          identityId: token.sub,
-          tenantId: null,
-          sessionId,
-          contextType: 'platform',
-          membershipId: membership.rows[0].membershipId,
-        });
-        return reply.send({
-          success: true,
-          contextType: 'platform',
-          tenantId: null,
-          accessToken,
-          refreshToken,
-          tokenType: 'bearer',
-        });
-      }
-      if (request.body.contextType !== 'tenant' || !request.body.tenantId)
-        throw new ValidationError('A tenant context is required.');
-      const account = await withTenantContext(
-        request.server.dbPool,
-        'app.current_tenant_id',
-        request.body.tenantId,
-        (client) =>
-          client.query<{ userId: string }>(
-            `SELECT u.id as "userId"
-           FROM users u
-           JOIN tenant_memberships m ON m.identity_id = u.identity_id AND m.tenant_id = u.tenant_id
-           WHERE u.identity_id = $1 AND u.tenant_id = $2 AND m.status = 'active' AND u.status = 'active' AND u.is_deleted = false
-           LIMIT 1`,
-            [token.sub, request.body.tenantId],
-          ),
-      );
-      if (account.rowCount !== 1) throw new ForbiddenError('Tenant membership is inactive or unavailable.');
-      const result = await request.server.authService.createSessionForUser(
-        request.body.tenantId,
-        account.rows[0].userId,
-      );
-      if (!result.success || !result.accessToken || !result.refreshToken || !result.session)
-        throw new UnauthorizedError('Unable to establish tenant context.');
-      return reply.send({
-        success: true,
-        contextType: 'tenant',
-        tenantId: request.body.tenantId,
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        session: sanitizeSession(result.session),
-        tokenType: 'bearer',
-      });
-    },
-  );
   fastify.get(
     '/auth/me',
     {
@@ -456,173 +324,11 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
   fastify.get(
-    '/auth/organizations',
-    {
-      schema: {
-        tags: ['Authentication'],
-        summary: 'List user organization memberships',
-        description: 'Returns all organizations the user has access to and the active organization.',
-        security: [{ bearerAuth: [] }],
-        response: {
-          200: toJsonSchema(
-            z.object({
-              success: z.boolean(),
-              organizations: z.array(
-                z.object({
-                  id: z.string().uuid(),
-                  tenantId: z.string().uuid(),
-                  code: z.string(),
-                  name: z.string(),
-                  status: z.string(),
-                  isDefault: z.boolean(),
-                }),
-              ),
-              activeOrganizationId: z.string().uuid().nullable(),
-              requiresOrganizationSelection: z.boolean(),
-            }),
-          ),
-          401: toJsonSchema(errorResponseSchema),
-        },
-      },
-      preHandler: requireAuth,
-    },
-    async (request) => {
-      if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication required.');
-      const memberships = await request.server.tenantMembershipService.resolveOrganizationMemberships(
-        request.tenantId,
-        request.user.id,
-      );
-      return {
-        success: true,
-        organizations: memberships.organizations,
-        activeOrganizationId: memberships.activeOrganizationId,
-        requiresOrganizationSelection: false,
-      };
-    },
-  );
-  fastify.post<{ Body: z.infer<typeof authSchemas.orgSelectRequest> }>(
-    '/auth/organizations/select',
-    {
-      schema: {
-        tags: ['Authentication'],
-        summary: 'Select active organization',
-        description: 'Switch the active organization for the current session.',
-        security: [{ bearerAuth: [] }],
-        body: toJsonSchema(authSchemas.orgSelectRequest),
-      },
-      preHandler: requireAuth,
-    },
-    async (request, reply) => {
-      if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication required.');
-      const body = authSchemas.orgSelectRequest.parse(request.body);
-      const requestedOrg = body.organizationId.trim();
-      await request.server.tenantMembershipService.resolveOrganizationMemberships(
-        request.tenantId,
-        request.user.id,
-        requestedOrg,
-      );
-      const result = await request.server.authService.createSessionForUser(
-        request.tenantId,
-        request.user.id,
-        requestedOrg,
-      );
-      if (!result.success || !result.user || !result.session)
-        throw new UnauthorizedError('Failed to create organization session.');
-      reply.code(200);
-      return {
-        success: true,
-        user: sanitizeUser(result.user),
-        session: sanitizeSession(result.session),
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        expiresAt: result.session.expiresAt,
-        tokenType: 'bearer',
-      };
-    },
-  );
-  fastify.post<{ Body: z.infer<typeof authSchemas.contextSelectRequest> }>(
-    '/auth/context/select',
-    {
-      schema: {
-        tags: ['Authentication'],
-        summary: 'Select working context (organization, branch, location)',
-        description: 'Establish a complete working context including organization, branch, and location.',
-        security: [{ bearerAuth: [] }],
-        body: toJsonSchema(authSchemas.contextSelectRequest),
-        response: {
-          200: toJsonSchema(authSchemas.contextSelectResponse),
-          400: toJsonSchema(errorResponseSchema),
-          401: toJsonSchema(errorResponseSchema),
-          403: toJsonSchema(errorResponseSchema),
-        },
-      },
-      preHandler: requireAuth,
-    },
-    async (request, reply) => {
-      if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication required.');
-      const body = authSchemas.contextSelectRequest.parse(request.body);
-      const organizationId = body.organizationId.trim();
-      const branchId = body.branchId.trim();
-      const locationId = body.locationId.trim();
-      const financialYearId = body.financialYearId?.trim() ?? null;
-      await request.server.tenantMembershipService.resolveOrganizationMemberships(
-        request.tenantId,
-        request.user.id,
-        organizationId,
-      );
-      const branch = await request.server.branchService.getAccessibleBranchByIdForUser(
-        request.tenantId,
-        request.user.id,
-        branchId,
-        organizationId,
-      );
-      if (!branch) throw new ForbiddenError('Branch is not available for the selected organization.');
-      if (financialYearId) {
-        const financialYearValid = await request.server.branchService.validateFinancialYear(
-          request.tenantId,
-          organizationId,
-          financialYearId,
-        );
-        if (!financialYearValid)
-          throw new ForbiddenError('Financial year is not available for the selected organization.');
-      }
-      const location = await request.server.locationService.getAccessibleLocationByIdForUser(
-        request.tenantId,
-        request.user.id,
-        locationId,
-        organizationId,
-      );
-      if (!location) throw new ForbiddenError('Location is not available for the selected organization.');
-      const result = await request.server.authService.createSessionForUser(
-        request.tenantId,
-        request.user.id,
-        organizationId,
-        location.id,
-        branch.id,
-        financialYearId,
-      );
-      if (!result.success || !result.user || !result.session)
-        throw new UnauthorizedError('Failed to establish the selected working context.');
-      reply.code(200);
-      return {
-        success: true,
-        user: sanitizeUser(result.user),
-        session: sanitizeSession(result.session),
-        branch,
-        location,
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        expiresAt: result.session.expiresAt,
-        tokenType: 'bearer',
-      };
-    },
-  );
-  fastify.get(
     '/auth/modules',
     {
       schema: {
         tags: ['Authentication'],
-        summary: 'List accessible modules for current organization',
+        summary: 'List accessible modules for current tenant',
         security: [{ bearerAuth: [] }],
         response: {
           200: toJsonSchema(authSchemas.modulesResponse),
@@ -634,12 +340,8 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request) => {
       if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication required.');
-      if (!request.user.organizationId) throw new ValidationError('An active organization is required.');
-      const modules = await request.server.moduleAccessService.listAccessibleModules(
-        request.tenantId,
-        request.user.organizationId,
-      );
-      return { success: true, organizationId: request.user.organizationId, modules };
+      const modules = await request.server.moduleAccessService.listAccessibleModules(request.tenantId);
+      return { success: true, tenantId: request.tenantId, modules };
     },
   );
   fastify.post<{ Params: ModuleCodeParams }>(
@@ -647,7 +349,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     {
       schema: {
         tags: ['Authentication'],
-        summary: 'Enable a module for the organization',
+        summary: 'Enable a module for the tenant',
         security: [{ bearerAuth: [] }],
         params: toJsonSchema(z.object({ code: z.string().min(1) })),
         response: {
@@ -660,16 +362,9 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       preHandler: [requireAuth, requirePermission('tenant.update')],
     },
     async (request) => {
-      if (!request.user || !request.tenantId || !request.user.organizationId)
-        throw new UnauthorizedError('Authentication and organization context are required.');
+      if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication required.');
       const moduleCode = request.params.code.trim();
-      const module = await request.server.moduleAccessService.setOrganizationModule(
-        request.tenantId,
-        request.user.organizationId,
-        moduleCode,
-        true,
-        request.user.id,
-      );
+      const module = await request.server.moduleAccessService.setTenantModule(request.tenantId, moduleCode, true, request.user.id);
       return { success: true, enabled: true, module };
     },
   );
@@ -678,7 +373,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     {
       schema: {
         tags: ['Authentication'],
-        summary: 'Disable a module for the organization',
+        summary: 'Disable a module for the tenant',
         security: [{ bearerAuth: [] }],
         params: toJsonSchema(z.object({ code: z.string().min(1) })),
         response: {
@@ -691,16 +386,9 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       preHandler: [requireAuth, requirePermission('tenant.update')],
     },
     async (request) => {
-      if (!request.user || !request.tenantId || !request.user.organizationId)
-        throw new UnauthorizedError('Authentication and organization context are required.');
+      if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication required.');
       const moduleCode = request.params.code.trim();
-      await request.server.moduleAccessService.setOrganizationModule(
-        request.tenantId,
-        request.user.organizationId,
-        moduleCode,
-        false,
-        request.user.id,
-      );
+      await request.server.moduleAccessService.setTenantModule(request.tenantId, moduleCode, false, request.user.id);
       return { success: true, enabled: false, moduleCode };
     },
   );

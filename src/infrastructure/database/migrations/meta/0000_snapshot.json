@@ -1,5 +1,5 @@
 {
-  "id": "38fb9558-4fcc-491d-9333-58add81c0074",
+  "id": "dbf8b1c7-00a8-42de-b77c-2f78dfded971",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -21,12 +21,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
         "code": {
           "name": "code",
           "type": "varchar(50)",
@@ -41,7 +35,7 @@
         },
         "status": {
           "name": "status",
-          "type": "org_status_enum",
+          "type": "branch_status_enum",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -216,7 +210,7 @@
           "name": "uq_head_office",
           "columns": [
             {
-              "expression": "organization_id",
+              "expression": "tenant_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -232,7 +226,7 @@
           "name": "uq_default_branch",
           "columns": [
             {
-              "expression": "organization_id",
+              "expression": "tenant_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -250,18 +244,13 @@
           "name": "branches_tenant_id_tenants_id_fk",
           "tableFrom": "branches",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "fk_branch_org_tenant": {
-          "name": "fk_branch_org_tenant",
-          "tableFrom": "branches",
-          "tableTo": "organizations",
-          "columnsFrom": ["organization_id", "tenant_id"],
-          "columnsTo": ["id", "tenant_id"],
-          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
@@ -272,6 +261,219 @@
         "check_branch_soft_delete": {
           "name": "check_branch_soft_delete",
           "value": "(((\"branches\".\"is_deleted\") = false AND (\"branches\".\"deleted_at\") IS NULL) OR ((\"branches\".\"is_deleted\") = true AND (\"branches\".\"deleted_at\") IS NOT NULL))"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.code_counters": {
+      "name": "code_counters",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_type": {
+          "name": "entity_type",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scope_key": {
+          "name": "scope_key",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_value": {
+          "name": "last_value",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "code_counters_tenant_id_tenants_id_fk": {
+          "name": "code_counters_tenant_id_tenants_id_fk",
+          "tableFrom": "code_counters",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "code_counters_pkey": {
+          "name": "code_counters_pkey",
+          "columns": [
+            "tenant_id",
+            "entity_type",
+            "scope_key"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.customers": {
+      "name": "customers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_by": {
+          "name": "deleted_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_deleted": {
+          "name": "is_deleted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {
+        "uq_customer_id_tenant": {
+          "name": "uq_customer_id_tenant",
+          "columns": [
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_customer_tenant_name": {
+          "name": "idx_customer_tenant_name",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"customers\".\"is_deleted\" = false",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "customers_tenant_id_tenants_id_fk": {
+          "name": "customers_tenant_id_tenants_id_fk",
+          "tableFrom": "customers",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "check_customer_soft_delete": {
+          "name": "check_customer_soft_delete",
+          "value": "(((\"customers\".\"is_deleted\") = false AND (\"customers\".\"deleted_at\") IS NULL) OR ((\"customers\".\"is_deleted\") = true AND (\"customers\".\"deleted_at\") IS NOT NULL))"
         }
       },
       "isRLSEnabled": false
@@ -293,11 +495,11 @@
           "primaryKey": false,
           "notNull": true
         },
-        "organization_id": {
-          "name": "organization_id",
+        "branch_id": {
+          "name": "branch_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "name": {
           "name": "name",
@@ -427,16 +629,31 @@
               "isExpression": false,
               "asc": true,
               "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"financial_years\".\"is_active\" = true AND \"financial_years\".\"is_deleted\" = false",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_financial_years_tenant_branch": {
+          "name": "idx_financial_years_tenant_branch",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
             },
             {
-              "expression": "organization_id",
+              "expression": "branch_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
-          "isUnique": true,
-          "where": "\"financial_years\".\"is_active\" = true AND \"financial_years\".\"is_deleted\" = false",
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -447,17 +664,27 @@
           "name": "financial_years_tenant_id_tenants_id_fk",
           "tableFrom": "financial_years",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "fk_fy_org_tenant": {
-          "name": "fk_fy_org_tenant",
+        "fk_financial_year_branch_tenant": {
+          "name": "fk_financial_year_branch_tenant",
           "tableFrom": "financial_years",
-          "tableTo": "organizations",
-          "columnsFrom": ["organization_id", "tenant_id"],
-          "columnsTo": ["id", "tenant_id"],
+          "tableTo": "branches",
+          "columnsFrom": [
+            "branch_id",
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tenant_id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -481,8 +708,8 @@
       },
       "isRLSEnabled": false
     },
-    "public.organizations": {
-      "name": "organizations",
+    "public.inventory_items": {
+      "name": "inventory_items",
       "schema": "",
       "columns": {
         "id": {
@@ -500,7 +727,7 @@
         },
         "code": {
           "name": "code",
-          "type": "varchar(50)",
+          "type": "varchar(100)",
           "primaryKey": false,
           "notNull": true
         },
@@ -510,82 +737,31 @@
           "primaryKey": false,
           "notNull": true
         },
-        "legal_name": {
-          "name": "legal_name",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "gst_no": {
-          "name": "gst_no",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "pan_no": {
-          "name": "pan_no",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cin_no": {
-          "name": "cin_no",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "email": {
-          "name": "email",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "phone": {
-          "name": "phone",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "website": {
-          "name": "website",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "base_currency": {
-          "name": "base_currency",
-          "type": "varchar(10)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'USD'"
-        },
-        "fiscal_calendar": {
-          "name": "fiscal_calendar",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'standard'"
-        },
-        "status": {
-          "name": "status",
-          "type": "org_status_enum",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'active'"
-        },
-        "is_default": {
-          "name": "is_default",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "remarks": {
-          "name": "remarks",
+        "description": {
+          "name": "description",
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "unit_of_measure": {
+          "name": "unit_of_measure",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sales_eligible": {
+          "name": "sales_eligible",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
         },
         "created_at": {
           "name": "created_at",
@@ -640,8 +816,155 @@
         }
       },
       "indexes": {
-        "uq_org_id_tenant": {
-          "name": "uq_org_id_tenant",
+        "uq_inventory_item_code": {
+          "name": "uq_inventory_item_code",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"inventory_items\".\"is_deleted\" = false",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_inventory_item_name": {
+          "name": "idx_inventory_item_name",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"inventory_items\".\"is_deleted\" = false",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "inventory_items_tenant_id_tenants_id_fk": {
+          "name": "inventory_items_tenant_id_tenants_id_fk",
+          "tableFrom": "inventory_items",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "check_inventory_item_soft_delete": {
+          "name": "check_inventory_item_soft_delete",
+          "value": "(((\"inventory_items\".\"is_deleted\") = false AND (\"inventory_items\".\"deleted_at\") IS NULL) OR ((\"inventory_items\".\"is_deleted\") = true AND (\"inventory_items\".\"deleted_at\") IS NOT NULL))"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.inventory_warehouses": {
+      "name": "inventory_warehouses",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {
+        "uq_inventory_warehouse_id_tenant": {
+          "name": "uq_inventory_warehouse_id_tenant",
           "columns": [
             {
               "expression": "id",
@@ -661,8 +984,8 @@
           "method": "btree",
           "with": {}
         },
-        "uq_tenant_org_code_active": {
-          "name": "uq_tenant_org_code_active",
+        "uq_inventory_warehouse_code": {
+          "name": "uq_inventory_warehouse_code",
           "columns": [
             {
               "expression": "tenant_id",
@@ -678,35 +1001,22 @@
             }
           ],
           "isUnique": true,
-          "where": "\"organizations\".\"is_deleted\" = false",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "uq_default_organization": {
-          "name": "uq_default_organization",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"organizations\".\"is_default\" = true AND \"organizations\".\"is_deleted\" = false",
           "concurrently": false,
           "method": "btree",
           "with": {}
         }
       },
       "foreignKeys": {
-        "organizations_tenant_id_tenants_id_fk": {
-          "name": "organizations_tenant_id_tenants_id_fk",
-          "tableFrom": "organizations",
+        "inventory_warehouses_tenant_id_tenants_id_fk": {
+          "name": "inventory_warehouses_tenant_id_tenants_id_fk",
+          "tableFrom": "inventory_warehouses",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -715,13 +1025,9 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
-        "check_org_soft_delete": {
-          "name": "check_org_soft_delete",
-          "value": "(((\"organizations\".\"is_deleted\") = false AND (\"organizations\".\"deleted_at\") IS NULL) OR ((\"organizations\".\"is_deleted\") = true AND (\"organizations\".\"deleted_at\") IS NOT NULL))"
-        },
-        "check_org_default_status": {
-          "name": "check_org_default_status",
-          "value": "NOT ((\"organizations\".\"is_default\") = true AND (\"organizations\".\"status\") = 'archived')"
+        "check_inventory_warehouse_status": {
+          "name": "check_inventory_warehouse_status",
+          "value": "\"inventory_warehouses\".\"status\" IN ('ACTIVE', 'INACTIVE')"
         }
       },
       "isRLSEnabled": false
@@ -796,7 +1102,9 @@
         "permissions_permission_key_unique": {
           "name": "permissions_permission_key_unique",
           "nullsNotDistinct": false,
-          "columns": ["permission_key"]
+          "columns": [
+            "permission_key"
+          ]
         }
       },
       "policies": {},
@@ -854,8 +1162,12 @@
           "name": "role_permissions_tenant_id_tenants_id_fk",
           "tableFrom": "role_permissions",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -863,8 +1175,12 @@
           "name": "role_permissions_permission_id_permissions_id_fk",
           "tableFrom": "role_permissions",
           "tableTo": "permissions",
-          "columnsFrom": ["permission_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "permission_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -872,8 +1188,14 @@
           "name": "fk_role_permissions_role",
           "tableFrom": "role_permissions",
           "tableTo": "roles",
-          "columnsFrom": ["role_id", "tenant_id"],
-          "columnsTo": ["id", "tenant_id"],
+          "columnsFrom": [
+            "role_id",
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tenant_id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -881,7 +1203,11 @@
       "compositePrimaryKeys": {
         "role_permissions_pkey": {
           "name": "role_permissions_pkey",
-          "columns": ["role_id", "permission_id", "tenant_id"]
+          "columns": [
+            "role_id",
+            "permission_id",
+            "tenant_id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -1062,8 +1388,12 @@
           "name": "roles_tenant_id_tenants_id_fk",
           "tableFrom": "roles",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1075,6 +1405,891 @@
         "check_role_soft_delete": {
           "name": "check_role_soft_delete",
           "value": "(((\"roles\".\"is_deleted\") = false AND (\"roles\".\"deleted_at\") IS NULL) OR ((\"roles\".\"is_deleted\") = true AND (\"roles\".\"deleted_at\") IS NOT NULL))"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.sales_order_items": {
+      "name": "sales_order_items",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "branch_id": {
+          "name": "branch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "financial_year_id": {
+          "name": "financial_year_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "order_id": {
+          "name": "order_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "item_id": {
+          "name": "item_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "line_number": {
+          "name": "line_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "numeric(18, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit_price": {
+          "name": "unit_price",
+          "type": "numeric(18, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit_of_measure": {
+          "name": "unit_of_measure",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_number": {
+          "name": "version_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {
+        "uq_sales_order_item_line": {
+          "name": "uq_sales_order_item_line",
+          "columns": [
+            {
+              "expression": "order_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "line_number",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "sales_order_items_tenant_id_tenants_id_fk": {
+          "name": "sales_order_items_tenant_id_tenants_id_fk",
+          "tableFrom": "sales_order_items",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fk_sales_order_item_order_context": {
+          "name": "fk_sales_order_item_order_context",
+          "tableFrom": "sales_order_items",
+          "tableTo": "sales_orders",
+          "columnsFrom": [
+            "order_id",
+            "tenant_id",
+            "branch_id",
+            "financial_year_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tenant_id",
+            "branch_id",
+            "financial_year_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sales_orders": {
+      "name": "sales_orders",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "branch_id": {
+          "name": "branch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "financial_year_id": {
+          "name": "financial_year_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "order_number": {
+          "name": "order_number",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quotation_id": {
+          "name": "quotation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "warehouse_id": {
+          "name": "warehouse_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reservation_status": {
+          "name": "reservation_status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'NOT_RESERVED'"
+        },
+        "status": {
+          "name": "status",
+          "type": "sales_order_status_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'DRAFT'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_by": {
+          "name": "deleted_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_deleted": {
+          "name": "is_deleted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "version_number": {
+          "name": "version_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {
+        "uq_sales_order_number": {
+          "name": "uq_sales_order_number",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "order_number",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "uq_sales_order_context": {
+          "name": "uq_sales_order_context",
+          "columns": [
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "branch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "financial_year_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "sales_orders_tenant_id_tenants_id_fk": {
+          "name": "sales_orders_tenant_id_tenants_id_fk",
+          "tableFrom": "sales_orders",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fk_sales_order_branch_tenant": {
+          "name": "fk_sales_order_branch_tenant",
+          "tableFrom": "sales_orders",
+          "tableTo": "branches",
+          "columnsFrom": [
+            "branch_id",
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tenant_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "fk_sales_order_fy_tenant": {
+          "name": "fk_sales_order_fy_tenant",
+          "tableFrom": "sales_orders",
+          "tableTo": "financial_years",
+          "columnsFrom": [
+            "financial_year_id",
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tenant_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "fk_sales_order_quotation_context": {
+          "name": "fk_sales_order_quotation_context",
+          "tableFrom": "sales_orders",
+          "tableTo": "sales_quotations",
+          "columnsFrom": [
+            "quotation_id",
+            "tenant_id",
+            "branch_id",
+            "financial_year_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tenant_id",
+            "branch_id",
+            "financial_year_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sales_quotation_items": {
+      "name": "sales_quotation_items",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "branch_id": {
+          "name": "branch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "financial_year_id": {
+          "name": "financial_year_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quotation_id": {
+          "name": "quotation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "item_id": {
+          "name": "item_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "line_number": {
+          "name": "line_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "numeric(18, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit_price": {
+          "name": "unit_price",
+          "type": "numeric(18, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit_of_measure": {
+          "name": "unit_of_measure",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_number": {
+          "name": "version_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {
+        "uq_sales_quote_item_line": {
+          "name": "uq_sales_quote_item_line",
+          "columns": [
+            {
+              "expression": "quotation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "line_number",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "sales_quotation_items_tenant_id_tenants_id_fk": {
+          "name": "sales_quotation_items_tenant_id_tenants_id_fk",
+          "tableFrom": "sales_quotation_items",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fk_sales_quote_item_quote": {
+          "name": "fk_sales_quote_item_quote",
+          "tableFrom": "sales_quotation_items",
+          "tableTo": "sales_quotations",
+          "columnsFrom": [
+            "quotation_id",
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tenant_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "check_sales_quote_item_quantity": {
+          "name": "check_sales_quote_item_quantity",
+          "value": "\"sales_quotation_items\".\"quantity\" > 0"
+        },
+        "check_sales_quote_item_price": {
+          "name": "check_sales_quote_item_price",
+          "value": "\"sales_quotation_items\".\"unit_price\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.sales_quotations": {
+      "name": "sales_quotations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "branch_id": {
+          "name": "branch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "financial_year_id": {
+          "name": "financial_year_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quotation_number": {
+          "name": "quotation_number",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quotation_date": {
+          "name": "quotation_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valid_until": {
+          "name": "valid_until",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "quotation_status_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'DRAFT'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_by": {
+          "name": "deleted_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_deleted": {
+          "name": "is_deleted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "version_number": {
+          "name": "version_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {
+        "uq_sales_quotation_number": {
+          "name": "uq_sales_quotation_number",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "quotation_number",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "uq_sales_quotation_id_tenant": {
+          "name": "uq_sales_quotation_id_tenant",
+          "columns": [
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "uq_sales_quotation_context": {
+          "name": "uq_sales_quotation_context",
+          "columns": [
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "branch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "financial_year_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_sales_quotation_list": {
+          "name": "idx_sales_quotation_list",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "quotation_number",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "sales_quotations_tenant_id_tenants_id_fk": {
+          "name": "sales_quotations_tenant_id_tenants_id_fk",
+          "tableFrom": "sales_quotations",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fk_sales_quotation_branch_tenant": {
+          "name": "fk_sales_quotation_branch_tenant",
+          "tableFrom": "sales_quotations",
+          "tableTo": "branches",
+          "columnsFrom": [
+            "branch_id",
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tenant_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "fk_sales_quotation_financial_year_tenant": {
+          "name": "fk_sales_quotation_financial_year_tenant",
+          "tableFrom": "sales_quotations",
+          "tableTo": "financial_years",
+          "columnsFrom": [
+            "financial_year_id",
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tenant_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "fk_sales_quotation_customer_tenant": {
+          "name": "fk_sales_quotation_customer_tenant",
+          "tableFrom": "sales_quotations",
+          "tableTo": "customers",
+          "columnsFrom": [
+            "customer_id",
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tenant_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "check_sales_quotation_dates": {
+          "name": "check_sales_quotation_dates",
+          "value": "\"sales_quotations\".\"valid_until\" >= \"sales_quotations\".\"quotation_date\""
         }
       },
       "isRLSEnabled": false
@@ -1169,8 +2384,12 @@
           "name": "tenant_modules_tenant_id_tenants_id_fk",
           "tableFrom": "tenant_modules",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1287,8 +2506,12 @@
           "name": "tenant_subscriptions_tenant_id_tenants_id_fk",
           "tableFrom": "tenant_subscriptions",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1521,8 +2744,12 @@
           "name": "user_branch_access_tenant_id_tenants_id_fk",
           "tableFrom": "user_branch_access",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1530,8 +2757,14 @@
           "name": "fk_ub_access_user",
           "tableFrom": "user_branch_access",
           "tableTo": "users",
-          "columnsFrom": ["user_id", "tenant_id"],
-          "columnsTo": ["id", "tenant_id"],
+          "columnsFrom": [
+            "user_id",
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tenant_id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1539,8 +2772,14 @@
           "name": "fk_ub_access_branch",
           "tableFrom": "user_branch_access",
           "tableTo": "branches",
-          "columnsFrom": ["branch_id", "tenant_id"],
-          "columnsTo": ["id", "tenant_id"],
+          "columnsFrom": [
+            "branch_id",
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tenant_id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1548,93 +2787,11 @@
       "compositePrimaryKeys": {
         "user_branch_access_pkey": {
           "name": "user_branch_access_pkey",
-          "columns": ["user_id", "branch_id", "tenant_id"]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.user_organization_access": {
-      "name": "user_organization_access",
-      "schema": "",
-      "columns": {
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "idx_user_organization_access_tenant_user": {
-          "name": "idx_user_organization_access_tenant_user",
           "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "user_organization_access_tenant_id_tenants_id_fk": {
-          "name": "user_organization_access_tenant_id_tenants_id_fk",
-          "tableFrom": "user_organization_access",
-          "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "fk_uo_access_user": {
-          "name": "fk_uo_access_user",
-          "tableFrom": "user_organization_access",
-          "tableTo": "users",
-          "columnsFrom": ["user_id", "tenant_id"],
-          "columnsTo": ["id", "tenant_id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "fk_uo_access_org": {
-          "name": "fk_uo_access_org",
-          "tableFrom": "user_organization_access",
-          "tableTo": "organizations",
-          "columnsFrom": ["organization_id", "tenant_id"],
-          "columnsTo": ["id", "tenant_id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "user_organization_access_pkey": {
-          "name": "user_organization_access_pkey",
-          "columns": ["user_id", "organization_id", "tenant_id"]
+            "user_id",
+            "branch_id",
+            "tenant_id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -1700,8 +2857,12 @@
           "name": "user_permissions_tenant_id_tenants_id_fk",
           "tableFrom": "user_permissions",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1709,8 +2870,12 @@
           "name": "user_permissions_permission_id_permissions_id_fk",
           "tableFrom": "user_permissions",
           "tableTo": "permissions",
-          "columnsFrom": ["permission_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "permission_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1718,8 +2883,14 @@
           "name": "fk_user_perms_user",
           "tableFrom": "user_permissions",
           "tableTo": "users",
-          "columnsFrom": ["user_id", "tenant_id"],
-          "columnsTo": ["id", "tenant_id"],
+          "columnsFrom": [
+            "user_id",
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tenant_id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1727,7 +2898,11 @@
       "compositePrimaryKeys": {
         "user_permissions_pkey": {
           "name": "user_permissions_pkey",
-          "columns": ["user_id", "permission_id", "tenant_id"]
+          "columns": [
+            "user_id",
+            "permission_id",
+            "tenant_id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -1786,8 +2961,12 @@
           "name": "user_roles_tenant_id_tenants_id_fk",
           "tableFrom": "user_roles",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1795,8 +2974,14 @@
           "name": "fk_user_roles_user",
           "tableFrom": "user_roles",
           "tableTo": "users",
-          "columnsFrom": ["user_id", "tenant_id"],
-          "columnsTo": ["id", "tenant_id"],
+          "columnsFrom": [
+            "user_id",
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tenant_id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1804,8 +2989,14 @@
           "name": "fk_user_roles_role",
           "tableFrom": "user_roles",
           "tableTo": "roles",
-          "columnsFrom": ["role_id", "tenant_id"],
-          "columnsTo": ["id", "tenant_id"],
+          "columnsFrom": [
+            "role_id",
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tenant_id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1813,7 +3004,11 @@
       "compositePrimaryKeys": {
         "user_roles_pkey": {
           "name": "user_roles_pkey",
-          "columns": ["user_id", "role_id", "tenant_id"]
+          "columns": [
+            "user_id",
+            "role_id",
+            "tenant_id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -1844,14 +3039,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "organization_id": {
-          "name": "organization_id",
+        "branch_id": {
+          "name": "branch_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
-        "branch_id": {
-          "name": "branch_id",
+        "financial_year_id": {
+          "name": "financial_year_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -1963,8 +3158,12 @@
           "name": "user_sessions_tenant_id_tenants_id_fk",
           "tableFrom": "user_sessions",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1972,17 +3171,14 @@
           "name": "fk_session_user_tenant",
           "tableFrom": "user_sessions",
           "tableTo": "users",
-          "columnsFrom": ["user_id", "tenant_id"],
-          "columnsTo": ["id", "tenant_id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "fk_session_org_tenant": {
-          "name": "fk_session_org_tenant",
-          "tableFrom": "user_sessions",
-          "tableTo": "organizations",
-          "columnsFrom": ["organization_id", "tenant_id"],
-          "columnsTo": ["id", "tenant_id"],
+          "columnsFrom": [
+            "user_id",
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tenant_id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1990,8 +3186,14 @@
           "name": "fk_session_branch_tenant",
           "tableFrom": "user_sessions",
           "tableTo": "branches",
-          "columnsFrom": ["branch_id", "tenant_id"],
-          "columnsTo": ["id", "tenant_id"],
+          "columnsFrom": [
+            "branch_id",
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tenant_id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2035,12 +3237,6 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
         },
         "default_branch_id": {
           "name": "default_branch_id",
@@ -2254,26 +3450,27 @@
           "name": "users_tenant_id_tenants_id_fk",
           "tableFrom": "users",
           "tableTo": "tenants",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "fk_user_org_tenant": {
-          "name": "fk_user_org_tenant",
-          "tableFrom": "users",
-          "tableTo": "organizations",
-          "columnsFrom": ["organization_id", "tenant_id"],
-          "columnsTo": ["id", "tenant_id"],
-          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "fk_user_branch_tenant": {
           "name": "fk_user_branch_tenant",
           "tableFrom": "users",
           "tableTo": "branches",
-          "columnsFrom": ["default_branch_id", "tenant_id"],
-          "columnsTo": ["id", "tenant_id"],
+          "columnsFrom": [
+            "default_branch_id",
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tenant_id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2295,40 +3492,97 @@
     }
   },
   "enums": {
+    "public.branch_status_enum": {
+      "name": "branch_status_enum",
+      "schema": "public",
+      "values": [
+        "active",
+        "inactive",
+        "archived"
+      ]
+    },
     "public.fy_status_enum": {
       "name": "fy_status_enum",
       "schema": "public",
-      "values": ["open", "closed", "locked"]
-    },
-    "public.org_status_enum": {
-      "name": "org_status_enum",
-      "schema": "public",
-      "values": ["active", "inactive", "archived"]
+      "values": [
+        "open",
+        "closed",
+        "locked"
+      ]
     },
     "public.permission_scope_enum": {
       "name": "permission_scope_enum",
       "schema": "public",
-      "values": ["own", "branch", "organization", "tenant", "global"]
+      "values": [
+        "own",
+        "branch",
+        "tenant",
+        "global"
+      ]
+    },
+    "public.quotation_status_enum": {
+      "name": "quotation_status_enum",
+      "schema": "public",
+      "values": [
+        "DRAFT",
+        "SENT",
+        "ACCEPTED",
+        "REJECTED",
+        "EXPIRED",
+        "CANCELLED"
+      ]
     },
     "public.reset_policy_enum": {
       "name": "reset_policy_enum",
       "schema": "public",
-      "values": ["financial_year", "calendar_year", "monthly", "never"]
+      "values": [
+        "financial_year",
+        "calendar_year",
+        "monthly",
+        "never"
+      ]
+    },
+    "public.sales_order_status_enum": {
+      "name": "sales_order_status_enum",
+      "schema": "public",
+      "values": [
+        "DRAFT",
+        "CONFIRMED",
+        "CANCELLED",
+        "CLOSED"
+      ]
     },
     "public.subscription_status_enum": {
       "name": "subscription_status_enum",
       "schema": "public",
-      "values": ["active", "past_due", "canceled", "trialing"]
+      "values": [
+        "active",
+        "past_due",
+        "canceled",
+        "trialing"
+      ]
     },
     "public.tenant_status_enum": {
       "name": "tenant_status_enum",
       "schema": "public",
-      "values": ["active", "suspended", "trial", "expired", "cancelled", "maintenance"]
+      "values": [
+        "active",
+        "suspended",
+        "trial",
+        "expired",
+        "cancelled",
+        "maintenance"
+      ]
     },
     "public.user_status_enum": {
       "name": "user_status_enum",
       "schema": "public",
-      "values": ["active", "inactive", "locked", "pending_verification"]
+      "values": [
+        "active",
+        "inactive",
+        "locked",
+        "pending_verification"
+      ]
     }
   },
   "schemas": {},

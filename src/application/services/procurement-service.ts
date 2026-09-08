@@ -18,7 +18,7 @@ export class ProcurementService {
       hasPermission(tenantId: string, userId: string, permission: ProcurementPermission): Promise<boolean>;
     },
     private readonly modules: {
-      isModuleEnabled(tenantId: string, organizationId: string, moduleCode: string): Promise<boolean>;
+      isModuleEnabled(tenantId: string, moduleCode: string): Promise<boolean>;
     },
     private readonly audit: AuditLogger,
     private readonly tx: { runInTransaction<T>(callback: () => Promise<T>): Promise<T> },
@@ -429,13 +429,12 @@ export class ProcurementService {
     if (!c.userId?.trim()) throw new UnauthorizedError();
     for (const [value, label] of [
       [c.tenantId, 'Tenant ID'],
-      [c.organizationId, 'Organization ID'],
       [c.branchId, 'Branch ID'],
       [c.financialYearId, 'Financial year ID'],
       [c.userId, 'User ID'],
     ] as const)
       this.id(value, label);
-    if (!(await this.modules.isModuleEnabled(c.tenantId, c.organizationId, PROCUREMENT_MODULE_CODE)))
+    if (!(await this.modules.isModuleEnabled(c.tenantId, PROCUREMENT_MODULE_CODE)))
       throw new ForbiddenError('Procurement module is not enabled.');
     if (!(await this.authorization.hasPermission(c.tenantId, c.userId, p)))
       throw new ForbiddenError('Insufficient Procurement permission.');

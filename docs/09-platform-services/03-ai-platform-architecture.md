@@ -132,7 +132,9 @@ Assistants may provide:
 
 Capabilities are individually enableable and must respect the user's actual authorization.
 
-An assistant must not reveal information merely because it can technically retrieve it. Retrieval must be security-trimmed to the requesting user's permitted tenant, organization, records, documents, and actions.
+An assistant must not reveal information merely because it can technically retrieve it. Retrieval must be security-trimmed to the requesting user's authenticated Tenant,
+permitted Branches where domain authorization requires them, records, documents,
+and actions.
 
 Generated actions must be explicit and validated by the authoritative business module before execution. High-impact actions may require confirmation or human approval.
 

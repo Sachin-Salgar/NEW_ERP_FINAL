@@ -1,7 +1,7 @@
 # Core Enterprise Modules
 
 **Status:** Current business-module architecture
-**Scope:** Organization, branch, identity, role, permission, and RBAC capabilities
+**Scope:** Tenant, branch, identity, role, permission, and RBAC capabilities
 
 ## Purpose
 
@@ -12,67 +12,66 @@ This document defines the functional responsibilities of the core enterprise mod
 The authoritative business-domain model for the ERP is:
 
 ```text
-Tenant
-  └── Organization
+Platform
+  └── Tenant
        ├── Legal / Business Identity
        ├── Tax Registrations
-       ├── Locations / Plants / Branches
+       ├── Branches
        ├── Users / Memberships
        └── Business Transactions
 ```
 
 This model preserves the separation between:
 
-- **Tenant** — data-isolation and security boundary.
-- **Organization** — legal/business company inside the tenant.
-- **Location / Plant / Branch** — business operation under the organization.
+- **Tenant** — ERP account, data-isolation, membership, and security boundary.
+- **Branch** — operational/statutory subdivision directly under the tenant.
 - **User** — ERP account identity associated with an authenticated identity.
-- **Membership** — the authorization bridge proving the user may operate within the tenant and organization.
-- **Location access** — the permission to operate within specific locations.
+- **Membership** — the authorization bridge proving the user belongs to the tenant.
+- **Branch access** — domain authorization to operate within a branch where required.
 
-A location is not a tenant. A tenant is not automatically equivalent to an organization. The RLS boundary remains tenant-scoped; organization and location metadata are business and authorization context within that boundary.
+Branch is not a tenant or RLS boundary. Tenant remains the RLS and authorization boundary.
 
-## 1. Organization Management
+## 1. Tenant Management
 
-The Organization Management Module provides the organizational foundation for the ERP and the tenant context in which business modules operate.
+The Tenant Management capability provides the account foundation for the ERP and the context in which business modules operate.
 
 ### Core responsibilities
-- Organization registration and profile management.
-- Organization status/lifecycle management.
-- Organization-level configuration and preferences.
-- Organization branding and regional settings.
+- Tenant registration and profile management.
+- Tenant status/lifecycle management.
+- Tenant-wide configuration and preferences.
+- Tenant branding and regional settings.
 - Tax and financial-year configuration.
 - Module activation/configuration.
 - Auditable administrative changes.
 
-Typical organization data includes legal/display name, registration and tax identifiers, industry/business category, contact information, default currency, language, and time zone.
+Typical tenant data includes legal/display name, registration and tax identifiers, industry/business category, contact information, default currency, language, and time zone.
 
 Lifecycle examples such as registration, configuration, active, suspended, and archived are illustrative; exact transitions are governed by implemented business rules.
 
-## 2. Branch / Location Management
+## 2. Branch Management
 
-A location, branch, or plant belongs to exactly one organization and provides operational context for business execution. The project documents treat location as a first-class operational dimension under the organization and distinct from the tenant boundary.
+A branch belongs directly to exactly one tenant and provides operational context for business execution. Warehouses and other physical locations remain bounded inventory concepts rather than architecture levels.
 
 ### Core responsibilities
-- Location profile and lifecycle management.
-- Location-specific operational configuration.
+- Branch profile and lifecycle management.
+- Branch-specific operational configuration.
 - Warehouse assignment.
 - Working-day and holiday configuration.
 - Local tax/financial settings where applicable.
-- Multi-location reporting and operational support.
-- User location access assignment and validation.
+- Multi-branch reporting and operational support.
+- User branch authorization and validation.
 
-Location settings may override organization defaults only where the applicable configuration contract permits it. A location is not a database-isolation boundary and does not replace tenant-scoped RLS.
+Branch settings may override tenant defaults only where the applicable configuration contract permits it. A branch is not a database-isolation boundary and does not replace tenant-scoped RLS.
 
 ## 3. User & Identity Management
 
 The User & Identity Management capability manages ERP user identities and account lifecycle in coordination with the centralized authentication and authorization architecture.
 
 ### Core responsibilities
-- User profile and organizational association.
+- User profile and tenant association.
 - Account lifecycle management.
 - User preferences.
-- Organization membership and location-access assignment.
+- Tenant membership and branch authorization assignment.
 - Login/security-event history where supported.
 - Integration with authorization, audit, notification, and workflow capabilities.
 
@@ -80,7 +79,7 @@ Authentication mechanisms are governed by the canonical backend authentication/s
 
 Sensitive authentication material shall be handled according to the security architecture and shall not be stored as ordinary profile data.
 
-A user may have memberships across organizations and permitted locations. Those memberships are evaluated in the resolved tenant and organization context before business operations execute.
+A normal application user belongs to one tenant. Tenant membership is established automatically at login, and branch authorization is evaluated only where a business operation requires branch distinction.
 
 ## 4. Role Management
 
@@ -90,13 +89,13 @@ Roles group responsibilities and permissions for manageable authorization admini
 - Create and maintain roles.
 - Assign permissions to roles.
 - Assign roles to users.
-- Support organization/location-scoped assignments where required.
+- Support tenant-scoped roles and branch authorization where required.
 - Support lifecycle and audit history.
 - Review role usage.
 
 Example role names are organizational conventions, not mandatory global roles.
 
-A role hierarchy does not imply unrestricted inheritance. Effective authorization must follow the canonical authorization rules and evaluate the active tenant, organization, and location context.
+A role hierarchy does not imply unrestricted inheritance. Effective authorization must follow the canonical authorization rules and evaluate the authenticated tenant and any required branch authorization.
 
 ## 5. Permission Management
 
@@ -121,8 +120,8 @@ RBAC is the primary role/permission model for business authorization unless an a
 Effective access may depend on:
 - User identity.
 - Assigned roles and permissions.
-- Organization/tenant context.
-- Location or plant scope.
+- Tenant context.
+- Branch scope.
 - Record ownership.
 - Business rules.
 - Workflow state.
@@ -138,13 +137,13 @@ User Authentication
       ↓
 Identity / Role Resolution
       ↓
-Organization Membership Resolution
+Tenant Membership Resolution
       ↓
-TenantContext + Active Organization
+TenantContext
       ↓
 Permission Evaluation
       ↓
-Location Access Resolution
+Branch Authorization Resolution
       ↓
 Business Authorization
       ↓
@@ -153,15 +152,15 @@ Authorized Operation
 Audit where required
 ```
 
-The exact implementation flow is governed by the backend authorization architecture. A user cannot access a location or organization unless the backend validates the membership and authorization state within the active tenant context.
+The exact implementation flow is governed by the backend authorization architecture. A user cannot access tenant data or a branch-scoped operation unless the backend validates membership and authorization state.
 
 ## 7. Module Visibility and Licensing
 
-The frontend may use organization configuration, enabled capabilities, and effective permissions to determine which modules and features to display.
+The frontend may use tenant configuration, enabled capabilities, and effective permissions to determine which modules and features to display.
 
 This does **not** replace backend authorization.
 
-A customer may be configured with only selected business capabilities/modules. The module architecture therefore supports capability-based enablement without requiring unrelated modules to be exposed to that organization.
+A tenant may be configured with only selected business capabilities/modules. The module architecture therefore supports capability-based enablement without requiring unrelated modules to be exposed to that tenant.
 
 ## 8. Data Ownership
 

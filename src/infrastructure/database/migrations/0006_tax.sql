@@ -18,7 +18,6 @@ SET client_min_messages = warning;
 CREATE TABLE public.tax_rules (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     code character varying(64) NOT NULL,
     name character varying(200) NOT NULL,
     rate numeric(9,4) NOT NULL,
@@ -55,17 +54,7 @@ ALTER TABLE ONLY public.tax_rules
 --
 
 ALTER TABLE ONLY public.tax_rules
-    ADD CONSTRAINT uq_tax_rule_code UNIQUE (tenant_id, organization_id, code);
-
-
---
-
-
--- Name: tax_rules fk_tax_rule_org; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tax_rules
-    ADD CONSTRAINT fk_tax_rule_org FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
+    ADD CONSTRAINT uq_tax_rule_code UNIQUE (tenant_id, code);
 
 
 --
@@ -101,7 +90,7 @@ CREATE POLICY tax_rules_tenant_policy ON public.tax_rules USING ((tenant_id = (c
 -- Name: idx_tax_rule_resolution; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_tax_rule_resolution ON public.tax_rules USING btree (tenant_id, organization_id, status, effective_from, effective_to);
+CREATE INDEX idx_tax_rule_resolution ON public.tax_rules USING btree (tenant_id, status, effective_from, effective_to);
 
 
 --

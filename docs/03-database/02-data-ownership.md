@@ -16,7 +16,7 @@ Owners handle:
 ## 3.16 Data Ownership Matrix
 | Business Entity Category | Owning Module | Typical Consumers |
 | :--- | :--- | :--- |
-| **Organization/Branch** | Platform Core | All Modules |
+| **Tenant/Branch** | Platform Core | All Modules |
 | **User/Role/Permission** | Identity (IAM) | All Modules |
 | **Customer** | Partner Mgmt | Sales, Accounts |
 | **Supplier** | Partner Mgmt | Purchase, Accounts |

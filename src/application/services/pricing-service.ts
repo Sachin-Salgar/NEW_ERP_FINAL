@@ -6,7 +6,6 @@ import type { PriceListRecord, PriceListRepository, PriceListStatus } from '../.
 import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../../domain/errors.js';
 export interface PricingContext {
   tenantId: string;
-  organizationId: string;
   branchId?: string;
   userId: string;
 }
@@ -54,13 +53,13 @@ export class PricingService {
   async get(c: PricingContext, id: string) {
     await this.authorize(c, 'sales.pricing.read');
     this.id(id);
-    const x = await this.repository.getById(c.tenantId, c.organizationId, id);
+    const x = await this.repository.getById(c.tenantId, id);
     if (!x) throw new NotFoundError('Price list not found.');
     return x;
   }
   async list(c: PricingContext) {
     await this.authorize(c, 'sales.pricing.read');
-    return this.repository.list(c.tenantId, c.organizationId);
+    return this.repository.list(c.tenantId);
   }
   async update(
     c: PricingContext,
@@ -136,11 +135,10 @@ export class PricingService {
     if (!c.userId?.trim()) throw new UnauthorizedError();
     for (const [v, l] of [
       [c.tenantId, 'Tenant ID'],
-      [c.organizationId, 'Organization ID'],
       [c.userId, 'User ID'],
     ] as const)
       this.id(v, l);
-    if (!(await this.modules.isModuleEnabled(c.tenantId, c.organizationId, 'sales')))
+    if (!(await this.modules.isModuleEnabled(c.tenantId, 'sales')))
       throw new ForbiddenError('Sales module is not enabled.');
     if (!(await this.auth.hasPermission(c.tenantId, c.userId, p)))
       throw new ForbiddenError('Insufficient pricing permission.');

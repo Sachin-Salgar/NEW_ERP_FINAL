@@ -5,7 +5,7 @@
 
 ## Decision
 
-Tax is an organization-scoped configuration capability. A rule has a code,
+Tax is a tenant-scoped configuration capability. A rule has a code,
 name, percentage rate, active state, and effective date range. Resolution is
 deterministic: exactly one active rule must cover the requested date; zero or
 multiple matches fail. Tax results are calculated by the Tax service and are

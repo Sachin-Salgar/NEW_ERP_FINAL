@@ -5,7 +5,7 @@ import type { TaxRepository, TaxRuleRecord } from '../../src/domain/contracts/ta
 import type { AuditLogger } from '../../src/application/contracts/audit.js';
 import { ForbiddenError, NotFoundError } from '../../src/domain/errors.js';
 
-const context = { tenantId: randomUUID(), organizationId: randomUUID(), userId: randomUUID() };
+const context = { tenantId: randomUUID(), userId: randomUUID() };
 const rule: TaxRuleRecord = {
   id: randomUUID(),
   ...context,
@@ -71,3 +71,4 @@ describe('TaxService', () => {
     await expect(missing.calculate(context, { amount: 10, asOf: '2026-09-05' })).rejects.toBeInstanceOf(NotFoundError);
   });
 });
+

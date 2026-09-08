@@ -31,7 +31,7 @@ This distinction is intentional. Provider credentials, production keys, deployme
 | IMP-009 | Unit of Work/transactions            | COMPLETED                        | None                                                          |
 | IMP-010 | RFC 7807                             | COMPLETED                        | None                                                          |
 | IMP-011 | Correlation IDs                      | COMPLETED                        | None                                                          |
-| IMP-012 | `organization_modules`               | COMPLETED                        | None                                                          |
+| IMP-012 | Tenant module entitlement            | COMPLETED                        | None                                                          |
 | IMP-013 | Pagination                           | COMPLETED                        | SQL/keyset optimization is future performance work            |
 | IMP-014 | Notification service                 | IMPLEMENTED — VALIDATION PENDING | Concrete provider/worker operation                            |
 | IMP-015 | File storage                         | IMPLEMENTED — VALIDATION PENDING | Concrete deployment provider                                  |
@@ -85,7 +85,7 @@ Existing Zod/JSON schemas remain the runtime validation boundary. Where Zod sche
 
 Reusable helpers now cover:
 
-- deterministic tenant/organization/branch/location/user identities
+- deterministic tenant/branch/user identities
 - tenant/auth headers
 - pagination inputs
 - error-code assertions
@@ -182,7 +182,7 @@ Docker/image publishing, external provider delivery, production key rotation, wo
 - Do not store verification/password-reset secrets in plaintext.
 - Do not invent destructive migration rollback SQL merely to claim reversibility.
 - Do not add blanket partitioning; IMP-029 remains evidence-driven under ADR-0023.
-- Do not encode organization-specific behavior in application code; configuration remains data.
+- Do not encode tenant-specific behavior in application code; configuration remains data.
 - Do not treat deployment/provider validation as missing source-code implementation.
 
 This document is the permanent item-by-item status record for IMP-001 through IMP-032. It records final implementation state without depending on temporary audit or backlog files.

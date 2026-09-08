@@ -42,7 +42,7 @@ The ERP platform provides common capabilities including:
 | **Audit Logging** | Immutable transaction logs | Business-critical operations |
 | **Notification** | User alerts, escalations | As required by workflows/modules |
 | **File Storage** | Document management | As required by modules |
-| **Configuration** | Organization settings | As required by modules |
+| **Configuration** | Tenant and branch settings | As required by modules |
 | **Scheduler** | Background jobs | As required by modules |
 | **Reporting Infrastructure** | Report engine, scheduling | As required by reporting features |
 | **Module Registration** | Module lifecycle management | Platform |
@@ -84,8 +84,7 @@ Business Logic API (REST)
     ├── Flutter Web Client
     ├── Flutter Mobile Client
     ├── Third-party Integration
-    ├── Mobile App (future)
-    └── Public API (future)
+    └── Third-party Integration
 ```
 
 All communication between clients and business logic flows through the REST API boundary. No client directly accesses the database.

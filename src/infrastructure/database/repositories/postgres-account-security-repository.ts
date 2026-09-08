@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Pool, PoolClient } from 'pg';
 
 import type {

@@ -23,7 +23,7 @@ export interface PlatformPermissionSeed {
   moduleCode: string;
   resource: string;
   action: string;
-  scope?: 'own' | 'branch' | 'organization' | 'tenant' | 'global';
+  scope?: 'own' | 'branch' | 'tenant' | 'global';
   permissionKey: string;
   displayName: string;
   description?: string | null;
@@ -42,19 +42,6 @@ export interface TenantBootstrapInput {
     locale?: string;
     status?: 'active' | 'suspended' | 'trial' | 'expired' | 'cancelled' | 'maintenance';
   };
-  organization: {
-    id?: string;
-    code?: string;
-    name: string;
-    legalName?: string | null;
-    email?: string | null;
-    phone?: string | null;
-    website?: string | null;
-    baseCurrency?: string;
-    fiscalCalendar?: string;
-    status?: 'active' | 'inactive' | 'archived';
-    isDefault?: boolean;
-  };
   branch: {
     id?: string;
     code?: string;
@@ -71,7 +58,6 @@ export interface TenantBootstrapInput {
     username: string;
     email: string;
     password: string;
-    organizationId?: string | null;
     defaultBranchId?: string | null;
   };
   role: {
@@ -94,7 +80,6 @@ export interface TenantBootstrapInput {
 
 export interface TenantBootstrapResult {
   tenantId: string;
-  organizationId: string;
   branchId: string;
   userId: string;
   roleId: string;

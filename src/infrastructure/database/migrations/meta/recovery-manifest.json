@@ -44,7 +44,7 @@
     "0008_platform_session_rls_empty_context": {
       "strategy": "forward-only-security",
       "destructiveDownAllowed": false,
-      "note": "Makes the user-session RLS context fail closed when tenant, organization, or location settings are unset instead of raising UUID cast errors during platform session validation. Recovery is forward-only or restore from backup."
+      "note": "Makes the user-session tenant RLS context fail closed when unset instead of raising UUID cast errors during platform session validation. Recovery is forward-only or restore from backup."
     }
   }
 }

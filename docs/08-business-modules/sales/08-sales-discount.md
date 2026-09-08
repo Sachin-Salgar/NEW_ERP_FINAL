@@ -17,10 +17,10 @@ snapshots. Exact table ownership, fields, types, percentages versus amounts,
 scope, effective periods, stacking, rounding, tax order, and deletion are
 **BUSINESS DECISION REQUIRED**.
 
-All transaction snapshots require tenant/org ownership, mandatory branch and
+All transaction snapshots require tenant ownership, mandatory branch and
 financial-year references, source-document linkage, canonical
 `version_number`/audit metadata, and immutability after finalization. The
-mandatory branch and financial-year references follow the organizational-
+mandatory branch and financial-year references follow the tenant-
 isolation standard; their business semantics remain **BUSINESS DECISION
 REQUIRED**.
 
@@ -38,18 +38,18 @@ publish/archive/approve operations. Candidate permissions are
 ## 4. Frontend, security, and tests
 
 Flutter renders backend-calculated discounts and exposes actions only for
-authorized users. Tests must cover unauthorized overrides, tenant/org
-isolation, RLS, rounding/stacking decisions, immutable snapshots, concurrency,
+authorized users. Tests must cover unauthorized overrides, tenant isolation, RLS,
+rounding/stacking decisions, immutable snapshots, concurrency,
 audit, rollback, and Workflow/Pricing boundary failures.
 
-Sales owns percentage-based, non-stacking, organization-scoped discount rules.
+Sales owns percentage-based, non-stacking, tenant-scoped discount rules.
 Rules are draft, published, or archived and are effective-dated. Workflow
 approval, tax ordering, and transaction snapshots remain integration boundaries.
 
 ## IMPLEMENTATION STATUS
 
 **IMPLEMENTED — BOUNDED FOUNDATION AND TRANSACTION SNAPSHOTS.** Published,
-effective-dated, organization-scoped percentage rules resolve deterministically
+effective-dated, tenant-scoped percentage rules resolve deterministically
 and do not stack. Quotation creation and draft updates persist the resolved
 discount percentage and amount; order and invoice conversion copies those
 snapshots. Workflow approval remains dependency-gated, and tax calculation stays

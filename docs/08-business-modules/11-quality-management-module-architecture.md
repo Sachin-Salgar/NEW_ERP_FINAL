@@ -28,11 +28,12 @@ The module may integrate with Procurement, Inventory, Manufacturing, Sales, CRM/
 - Quality records and quality decisions are owned by the Quality domain.
 - Other modules remain authoritative for their own business transactions.
 - The Quality module must not directly manipulate another module's internal persistence.
-- Workflows and quality criteria should be configurable where organization-specific policy requires it.
+- Workflows and quality criteria should be configurable where tenant-specific policy requires it.
 - Historical quality records must remain auditable and traceable.
 - Frontend visibility is not a security boundary; authorization is enforced through the central security architecture.
 - Cross-module integration uses established application contracts and events where appropriate; not every interaction must be asynchronous.
-- Tenant and organization isolation follows the central platform security and data-isolation architecture.
+- Tenant isolation follows the central platform security and data-isolation
+  architecture; Branch or site authorization is applied where the domain requires it.
 
 ## 4. Quality Planning and Specifications
 
@@ -47,7 +48,7 @@ A specification may contain:
 - Acceptance criteria
 - Effective dates
 - Approval status
-- Applicable organization/site scope
+- Applicable Tenant, Branch, or site scope
 
 Specifications are versioned. Historical inspections must retain the specification revision applicable when the inspection occurred.
 
@@ -175,7 +176,7 @@ Effectiveness Verification
 Closure
 ```
 
-Root-cause methods may include Five Whys, Fishbone, Pareto, Fault Tree, Failure Mode Analysis, and organization-specific methods.
+Root-cause methods may include Five Whys, Fishbone, Pareto, Fault Tree, Failure Mode Analysis, and tenant-specific methods.
 
 Actions may include an owner, target date, priority, resources, evidence, and completion status.
 
@@ -349,13 +350,17 @@ Events should represent meaningful business facts. They should be immutable and 
 
 Events are an integration mechanism, not a requirement that every module operation be asynchronous.
 
-## 17. Tenant and Organization Scope
+## 17. Tenant and Branch Scope
 
-Quality data is subject to the platform's tenant and organization isolation model.
+Quality data is subject to the platform's Tenant isolation model, with Branch or
+site authorization where required by the quality operation.
 
-Quality configuration may be scoped to applicable organization, company, branch, plant, site, laboratory, or other organizational boundaries established by the platform.
+Quality configuration may be scoped to the Tenant, applicable Branch, plant, site,
+laboratory, or other bounded domain structure established by the platform.
 
-Organization-specific standards, classifications, workflows, sampling rules, and quality policies should be represented as configuration/data where appropriate rather than hard-coded into the module.
+Tenant-specific standards, classifications, workflows, sampling rules, and quality
+policies should be represented as configuration/data where appropriate rather
+than hard-coded into the module.
 
 ## 18. Reporting
 
@@ -380,7 +385,9 @@ Exact report availability follows implemented capabilities and approved reportin
 
 The Quality module must operate within the ERP's modular-monolith deployment architecture.
 
-The architecture should support growth in organizations, sites, laboratories, inspectors, quality records, and analytical workloads without requiring business entities to be redesigned solely for scale.
+The architecture should support growth in Tenants, sites, laboratories, inspectors,
+quality records, and analytical workloads without requiring business entities to
+be redesigned solely for scale.
 
 Cloud, hybrid, or other deployment models are deployment decisions governed by the platform infrastructure architecture; this document does not mandate a particular infrastructure provider.
 
@@ -407,7 +414,7 @@ AI coding agents implementing Quality functionality shall:
 3. Never directly modify another module's internal persistence to implement a Quality feature.
 4. Never invent regulatory compliance, certification, provider, infrastructure, or policy requirements.
 5. Reuse established authentication, authorization, tenant isolation, workflow, file-storage, event, and API mechanisms.
-6. Keep organization-specific behavior configurable where the architecture establishes configuration as the correct boundary.
+6. Keep tenant-specific behavior configurable where the architecture establishes configuration as the correct boundary.
 7. Preserve historical quality records and auditability.
 8. **STOP and ask** when requirements conflict, ownership is unclear, or the required behavior is not established by the authoritative documentation.
 

@@ -33,7 +33,6 @@ export type ProcurementPermission = (typeof PROCUREMENT_PERMISSIONS)[keyof typeo
 
 export interface ProcurementContext {
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   userId: string;

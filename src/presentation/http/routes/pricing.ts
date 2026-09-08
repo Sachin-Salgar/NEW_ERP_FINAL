@@ -3,7 +3,6 @@ import { requireAuth, requirePermission } from '../middleware/auth.js';
 
 const context = (request: any) => ({
   tenantId: request.tenantId,
-  organizationId: request.user.organizationId,
   userId: request.user.id,
 });
 

@@ -42,7 +42,9 @@ Not every module must contain every directory. The implementation should reflect
 
 Examples include Dashboard, CRM, Sales, Purchasing, Inventory, Manufacturing, Finance, HR, Payroll, Reports, and Administration.
 
-The actual enabled module set is a product/organization decision and must not be inferred solely from this example list.
+The actual enabled module set is a Tenant entitlement decision represented by
+backend-provided `tenant_modules` state and must not be inferred solely from this
+example list.
 
 ## 3.5 Shared Components
 
@@ -73,20 +75,24 @@ Modules shall not directly depend on another module's internal implementation. C
 
 Module enablement/licensing and user authorization are separate concerns.
 
-The frontend may use backend-provided organization/module availability and user permissions to determine what the user may see and access. The frontend must not treat visibility as the security boundary; the backend independently enforces authorization.
+The frontend may use backend-provided Tenant module entitlement and user
+permissions to determine what the user may see and access. Branch-aware
+operations may additionally require Branch authorization. The frontend must not
+treat visibility as the security boundary; the backend independently enforces
+authorization.
 
 Illustrative flow:
 
 ```text
-User Authentication
+Authenticated Identity
         ↓
-Backend establishes organization/user context
+Automatic Tenant context from tenant membership
         ↓
-Frontend obtains available modules and permissions
+Frontend obtains Tenant module entitlements and permissions
         ↓
 Frontend presents authorized UI
         ↓
-Backend enforces authorization on every protected operation
+Backend enforces Tenant and Branch authorization on every protected operation
 ```
 
 ## 3.8 Future Extensions
