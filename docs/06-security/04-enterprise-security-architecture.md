@@ -74,7 +74,8 @@ Each applicable boundary requires appropriate authentication, authorization, tra
 
 ## 6. Identity and Access Management
 
-IAM establishes and manages digital identities. Supported identity mechanisms may include local credentials, enterprise directories, SSO, federation, and future approved identity providers.
+IAM establishes and manages digital identities through the authentication mechanisms
+approved for the ERP deployment.
 
 Federated authentication establishes identity; ERP authorization remains authoritative for ERP resources.
 
@@ -82,26 +83,22 @@ Identity lifecycle includes provisioning, verification, activation, role/access 
 
 ## 7. Authentication and Session Management
 
-Authentication establishes user identity. A successful authentication must not by itself grant unrestricted tenant access.
+Authentication establishes user identity and the user's single tenant context.
+Platform administration uses a distinct platform context.
 
 The canonical security sequence is:
 
 ```text
 Authenticate Identity
   ↓
-Load Tenant Memberships
-  ↓
-One eligible tenant → auto-select
-Multiple eligible tenants → explicit selection
-  ↓
-Validate membership
+Validate the user's tenant membership
   ↓
 Create tenant-scoped session
 ```
 
 Session controls include validation, expiration, renewal, forced logout, revocation, and reauthentication for sensitive operations where required.
 
-## 8. Tenant and Organization Isolation
+## 8. Tenant Isolation
 
 Tenant identity is an authorization and data-isolation concern derived from authenticated identity and validated tenant membership.
 
@@ -112,7 +109,7 @@ Deployment endpoint
   = where the ERP backend is located
 
 Tenant context
-  = which organization the authenticated user is authorized to operate in
+  = the tenant belonging to the authenticated application user
 ```
 
 ### SaaS
@@ -140,7 +137,8 @@ The following are not authoritative tenant sources:
 - arbitrary request headers;
 - client-supplied tenant IDs.
 
-The backend must validate any tenant-selection request against the authenticated user's memberships before establishing the active tenant.
+The backend establishes the tenant from authenticated identity and membership. The
+client does not select a tenant and tenant switching is not supported.
 
 ## 9. Authorization Framework
 
@@ -151,11 +149,10 @@ Authorization may consider:
 - authenticated identity;
 - active tenant;
 - tenant membership;
-- organization access;
 - roles;
 - permissions;
 - module enablement;
-- location/branch restrictions;
+- branch restrictions where the domain requires them;
 - resource ownership;
 - business rules.
 
@@ -217,9 +214,9 @@ Privileged database roles that can bypass RLS are administrative exceptions and 
 
 1. Authentication establishes identity.
 2. Tenant membership establishes eligible tenant access.
-3. Active tenant selection is permitted only from validated memberships.
-4. A single eligible tenant may be auto-selected.
-5. Multiple eligible tenants require explicit selection before tenant-scoped operations.
+3. The authenticated application user has exactly one tenant context.
+4. Normal login establishes that tenant automatically.
+5. Tenant switching and tenant context selection are not supported.
 6. Deployment URL/API endpoint is connectivity configuration, not tenant authorization.
 7. `TenantContext` comes from the trusted tenant-scoped session.
 8. Missing, invalid, expired, or unauthorized tenant context fails closed.
@@ -241,7 +238,7 @@ Sensitive data must be protected in transit and at rest according to classificat
 Security-sensitive events should be auditable, including:
 
 - authentication success/failure;
-- tenant selection/switch;
+- tenant authentication and session establishment;
 - authorization failures;
 - role/permission changes;
 - session revocation;

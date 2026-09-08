@@ -61,9 +61,9 @@ If an ADR conflicts with another authoritative document and the scope cannot be 
 | [0007](./0007-zero-downtime-migrations.md) | Zero-Downtime Migration Strategy | Approved | 2026-08-07 | Production database migrations |
 | [0008](./0008-event-contracts-versioning.md) | Event Contracts & Versioning | Approved | 2026-08-07 | Cross-module/integration event contract versioning |
 | [0009](./0009-token-refresh-rotation.md) | Token Strategy — Refresh Token Rotation | Approved | 2026-08-07 | Refresh-token lifecycle |
-| [0010](./0010-organization-module-access.md) | Organization Module Access Boundary | Approved | 2026-08-26 | Tenant entitlement, organization module enablement, and effective permission access |
-| [0011](./0011-organization-branch-location-context.md) | Organization, Branch, and Location Context Model | Approved | 2026-09-01 | Core enterprise context, business hierarchy, operational authorization, transaction scoping |
-| [0012](./0012-branch-access-representation.md) | Branch Access Representation | Approved | 2026-09-03 | Tenant-scoped user authorization for Branch records |
+| [0010](./0010-organization-module-access.md) | Organization Module Access Boundary | Superseded | 2026-08-26 | Superseded by ADR-0040; module access is tenant/branch-scoped without an organization hierarchy |
+| [0011](./0011-organization-branch-location-context.md) | Organization, Branch, and Location Context Model | Superseded | 2026-09-01 | Superseded by ADR-0040; Organization and Location are not current architecture |
+| [0012](./0012-branch-access-representation.md) | Branch Access Representation | Superseded | 2026-09-03 | Superseded by ADR-0040; branch is a tenant business subdivision, not a tenant boundary |
 | [0013](./0013-centralized-tls-managed-postgresql.md) | Centralized PostgreSQL Connection Policy for Managed Endpoints | Approved | 2026-09-03 | Centralized PostgreSQL connection configuration, endpoint selection, and transport security |
 | [0014](./0014-audit-logging-foundation.md) | Audit Logging Foundation | Approved | 2026-09-04 | Security, authorization, identity, and business audit records |
 | [0015](./0015-email-verification-password-recovery.md) | Email Verification and Password Recovery | Approved | 2026-09-04 | Local-account verification and password recovery |

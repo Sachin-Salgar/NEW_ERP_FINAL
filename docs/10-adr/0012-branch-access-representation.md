@@ -1,7 +1,7 @@
 # ADR-0012: Branch Access Representation
 
 **Date**: 2026-09-03  
-**Status**: Approved  
+**Status**: Superseded by ADR-0040
 **Approval Date**: 2026-09-03  
 **Approved By**: Project Owner  
 **Scope**: Tenant-scoped user authorization for Branch records
@@ -64,4 +64,3 @@ This decision is specific to `user_branch_access`. The schema and authorization 
 - [Organization, Branch, and Location Context Model](./0011-organization-branch-location-context.md)
 - [Organizational Isolation](../03-database/12-organizational-isolation.md)
 - [Backend Authentication and Authorization](../04-backend/07-authentication-and-authorization.md)
-

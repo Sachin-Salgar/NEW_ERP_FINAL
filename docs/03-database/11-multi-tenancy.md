@@ -34,9 +34,10 @@ Password verification
 Tenant-scoped session
 ```
 
-The lookup index contains no password and does not grant authorization. It only identifies candidate tenant user accounts. The authoritative user record is read through the tenant-scoped repository after the candidate tenant is known.
-
-A separate global tenant-membership model is not required for the current ERP architecture. Introducing one later requires a separate approved architectural decision.
+The lookup index contains no password and does not grant authorization. It identifies
+the authenticated user's single tenant account. The authoritative user record is read
+through the tenant-scoped repository after the tenant is known. Normal application
+login does not present a tenant selector and does not support tenant switching.
 
 ## 11.4 Request Lifecycle and Tenant Context
 
@@ -143,9 +144,11 @@ Automated tests must prove:
 
 ## 11.10 Architecture Boundary
 
-Business modules consume the platform TenantContext and must not implement their own tenant discovery or tenant isolation mechanism.
-
-Organization, branch, location, plant, role, and permission constraints are additional authorization dimensions within the active tenant and never replace tenant isolation.
+Business modules consume the platform TenantContext and must not implement their own
+tenant discovery or tenant isolation mechanism. Branch is the only business
+subdivision below Tenant in the current architecture. Branch constraints are
+additional authorization or data dimensions within the active tenant and never
+replace tenant isolation.
 
 ## Cross References
 

@@ -29,6 +29,27 @@ The ERP uses a **Layered Modular Monolith Architecture** with clear separation b
 
 The backend is a **single deployable application** containing independently bounded business modules. Module independence means strong ownership and dependency boundaries inside the monolith; it does **not** currently mean that each module is independently deployable.
 
+### Current tenancy hierarchy
+
+```text
+Platform
+  └── Tenant
+       ├── Branch
+       │    ├── Users
+       │    ├── Roles
+       │    └── Data
+       └── Branch
+            ├── Users
+            ├── Roles
+            └── Data
+```
+
+Platform is the system-level administration boundary. Tenant is the security and
+data-isolation boundary. A normal application user belongs to exactly one tenant;
+tenant switching and tenant context selection are not supported. Branch is a business
+subdivision inside a tenant and is not another security boundary. Organisation and
+Location are not current architecture levels.
+
 This layering ensures:
 - Independent evolution of each layer
 - Business logic isolation from presentation and persistence

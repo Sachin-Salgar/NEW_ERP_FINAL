@@ -12,7 +12,9 @@ Every protected request must establish:
 
 ## 7.2 Authentication Overview
 
-The ERP may support local credentials, MFA, SSO, federation, and other approved identity providers. Successful authentication establishes a tenant-scoped ERP user account.
+The current application authenticates an identity and establishes one tenant-scoped
+ERP user account. Platform administration uses a distinct platform authentication
+and authorization context.
 
 ## 7.3 Token Strategy
 
@@ -25,15 +27,15 @@ Client connects to configured ERP backend endpoint
   ↓
 Login identifier + password
   ↓
-Deployment-independent login lookup
+Identity and tenant-membership lookup
   ↓
-Candidate user_id + tenant_id
-  ↓
-Tenant-scoped users lookup
+Single tenant user account
   ↓
 Password verification
   ↓
-Exactly one active credential match
+Credential verification
+  ↓
+Automatic single-tenant establishment
   ↓
 Tenant-scoped Session
   ↓
@@ -56,15 +58,13 @@ The current ERP user account is tenant-scoped:
 users.tenant_id → tenants.id
 ```
 
-A deployment-independent `auth_login_identifiers` lookup maps login identifiers to candidate tenant user accounts. It contains no password and grants no authorization.
+A deployment-independent `auth_login_identifiers` lookup maps a login identifier to
+the user's single tenant account. It contains no password and grants no authorization.
 
 The authoritative password hash remains on the tenant-scoped `users` row. The backend reads that row only after it has a candidate tenant and establishes tenant-scoped database context.
 
-If exactly one candidate verifies successfully, that user's tenant becomes the active tenant for the session.
-
-If multiple active candidate accounts verify successfully, authentication fails closed rather than guessing the tenant.
-
-A separate global identity/membership system is not part of the current architecture. Adding one requires a new approved architectural decision.
+After credential verification, that user's tenant becomes the active tenant for the
+session. The client does not select a tenant, and tenant switching is not supported.
 
 ## 7.6 Deployment Endpoint vs Tenant Identity
 
@@ -87,26 +87,25 @@ The session contains or references at minimum:
 - user identity;
 - tenant identity;
 - session identity;
-- organization/location context where applicable;
+- branch context where applicable;
 - authorization information required by the application.
 
-## 7.8 Organization and Location Authorization
+## 7.8 Branch Authorization
 
-Organization, branch, and location are authorization dimensions inside the active tenant.
+Branch is a business subdivision inside the active tenant. It is an authorization or
+data dimension only when the domain operation requires branch-level distinction.
 
 ```text
 Tenant
   ↓
-Organization Access
-  ↓
-Location / Branch Access
+Branch Access (where required)
   ↓
 Role
   ↓
 Permission
 ```
 
-Selecting an organization or location must never change the tenant established by the authenticated session.
+Branch access must never change the tenant established by the authenticated session.
 
 ## 7.9 Authorization (RBAC)
 
@@ -115,17 +114,17 @@ The backend is the authoritative authorization boundary. Frontend navigation and
 Authorization may consider:
 
 - active tenant;
-- organization access;
 - role;
 - permission;
 - module enablement;
-- location/branch restrictions;
+- branch restrictions;
 - resource ownership;
 - business rules.
 
 ## 7.10 Module-Level Security
 
-Users may access a module only when the module is enabled for the active tenant/organization and the user is authorized for the operation.
+Users may access a module only when the module is enabled for the active tenant and
+the user is authorized for the operation.
 
 ## 7.11 Database Tenant Context
 
@@ -143,14 +142,16 @@ PostgreSQL RLS remains mandatory as the database isolation boundary.
 
 ## 7.12 Audit Requirements
 
-Security-sensitive events should be audited, including successful/failed authentication, session creation/revocation, organization/location selection, authorization failures, and security administration changes.
+Security-sensitive events should be audited, including successful/failed authentication,
+session creation/revocation, branch access decisions, authorization failures, and
+security administration changes.
 
 ## 7.13 Summary
 
 ### Granular security administration
 
-The active permission catalog is backend-owned and exposes lifecycle actions for organizations,
-locations, branches, and roles, plus role-permission grant/revoke, tenant-scoped session
+The active permission catalog is backend-owned and exposes lifecycle actions for
+branches and roles, plus role-permission grant/revoke, tenant-scoped session
 revocation, persisted tenant security policy read/update, and append-only audit-log read/export.
 Lifecycle deletion is a guarded soft-delete operation; system roles and records with protected
 dependents cannot be deleted. Tenant administration routes use explicit platform-scope permission
@@ -160,9 +161,9 @@ module/resource/action cells from the catalog and persists canonical permission 
 The canonical security-administration keys are `security.session.read`,
 `security.session.revoke`, `security.session.revoke_all`, `security.audit_log.read`,
 `security.audit_log.export`, `security.policy.read`, and `security.policy.update`.
-The canonical location keys are `organization.location.read`, `.create`, `.update`,
-`.delete`, `.activate`, and `.deactivate`; shorter aliases such as `session.read`,
-`audit.read`, or `location.read` are not registered. Tenant lifecycle uses the existing
+Branch-specific permission keys are defined only where a domain requires branch-level
+authorization; shorter aliases such as `session.read` or `audit.read` are not
+registered. Tenant lifecycle uses the existing
 `tenant_status_enum`: suspend moves an eligible tenant to `suspended`, reactivate returns
 it to `active`, deactivate soft-deletes it as `cancelled`, and activate restores a
 cancelled tenant. Invalid transitions are rejected and deletion is blocked when tenant

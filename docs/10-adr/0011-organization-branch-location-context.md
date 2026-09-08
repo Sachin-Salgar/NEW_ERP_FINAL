@@ -1,9 +1,9 @@
 # ADR-0011: Organization, Branch, and Location Context Model
 
 **Date**: 2026-09-01  
-**Status**: Approved  
+**Status**: Superseded by ADR-0040
 **Approval Date**: 2026-09-01  
-**Approved By**: Project Owner  
+**Approved By**: Project Owner
 **Scope**: Core enterprise context, business hierarchy, operational authorization, transaction scoping
 
 ## Context
