@@ -313,7 +313,7 @@ Deployment location determines how clients reach the backend. It does not determ
 - [Security Operations](./03-security-operations.md)
 - [Backend Authentication and Authorization](../04-backend/07-authentication-and-authorization.md)
 - [Multi-Tenant Architecture](../03-database/11-multi-tenancy.md)
-- [ADR-0006: Identity-Based Tenant Context and PostgreSQL RLS](../10-adr/0006-identity-based-tenant-context.md)
+- [ADR-0040: Platform, Tenant, and Branch Architecture](../10-adr/0040-platform-identity-membership-and-context.md)
 
 ## Maintenance Rules
 

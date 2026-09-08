@@ -19,7 +19,14 @@
 
 The system is a **layered modular monolith** with Flutter clients, REST API, backend services, repositories/data access, and PostgreSQL.
 
-Identity and membership context follows **ADR-0040: Platform Identity, Membership, and Context Architecture**, with compatible tenant/RLS details from ADR-0006. Credential verification resolves one identity and its memberships before context is granted; a sole active tenant membership may be safely defaulted, while multiple memberships and platform context require explicit server-validated context selection. Deployment hostname, frontend URL, client-supplied tenant ID, and deployment configuration are not tenant authorities.
+The current architecture follows **ADR-0040: Platform, Tenant, and Branch
+Architecture**. The platform is the system administration boundary; Tenant is the
+security, authorization, data-isolation, and PostgreSQL RLS boundary; Branch is the
+only business subdivision below Tenant. A normal application user belongs to exactly
+one tenant and normal login establishes that tenant automatically. Tenant selection,
+tenant switching, and multi-tenant user context selection are not supported.
+Deployment hostname, frontend URL, client-supplied tenant ID, and deployment
+configuration are not tenant authorities.
 
 PostgreSQL RLS remains the database isolation boundary, with trusted server-side tenant context established transaction-locally.
 
@@ -27,7 +34,11 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 
 ## 2. Current checkpoint
 
-**Current phase:** ADR-0040 platform identity, independent memberships, context authorization, RLS/procedure boundaries, audit atomicity, bootstrap, and tenant administration are implemented and validated in separate flows. The focused platform-administrator proof confirms the operator bootstrap and separate platform-login authorization path, while the primary one-login membership-discovery/context-selection flow remains incomplete. The broader browser navigation matrix remains a known validation residual caused by a Flutter teardown assertion after navigation assertions completed. Live-client authentication and deployment-seed hardening remain open audit items until focused validation is recorded.
+**Current phase:** The repository is reconciling implementation residue with the
+approved Platform → Tenant → Branch architecture. Retained tenant authentication,
+platform administration, branch authorization, RLS, and audit foundations remain
+roadmap items; identity-wide discovery, context-selection, and multi-membership
+implementation are deferred for governed migration and are not current architecture.
 
 ### Validation evidence captured
 
@@ -44,16 +55,12 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 ### Implemented
 
 - Production Flutter Web login against deployed backend/database.
-- Single credential login UI with post-login tenant/platform membership context selection still required by ADR-0040; tenant working-context changes follow after context establishment.
+- Single credential login establishes the authenticated user's single tenant and routes to Dashboard; any existing context-selection implementation is residue pending governed migration.
 - Platform administrator operator bootstrap (`scripts/platform-admin.ts`) and separate platform-session authorization are proven; the custom tenant seed does not create a platform administrator.
-- Identity-based tenant discovery and tenant-scoped authentication/session context.
+- Tenant-scoped authentication/session context derived from trusted server state.
 - TenantContext and PostgreSQL transaction-local tenant context infrastructure.
 - PostgreSQL RLS integration coverage for tenant isolation/rollback/pool context behavior.
-- Organization, branch/location, and user administration backend/API surfaces.
-- Server-generated immutable Organization and Branch codes with explicit branch/location hierarchy validation.
-- Organization → Branch → Location working context is implemented as the canonical active context tuple: `tenantId`, `organizationId`, `branchId`, `locationId`.
-- User defaults are persisted as `users.organization_id`, `users.default_branch_id`, and `users.default_location_id` with no separate `default_organization_id` field.
-- Branch and Location are implemented as sibling operational contexts under Organization; neither is a child of the other.
+- Branch and user administration backend/API surfaces; organization/location records remain domain implementation residue and are not architecture levels.
 - Flutter organization, branch, user, role, permission, dashboard, and authentication surfaces.
 - Backend RBAC and permission enforcement.
 - Flutter permission state, permission-aware navigation and route guards.

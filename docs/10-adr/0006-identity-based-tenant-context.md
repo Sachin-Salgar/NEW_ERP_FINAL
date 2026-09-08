@@ -1,10 +1,17 @@
 # ADR-0006: Identity-Based Tenant Context and PostgreSQL RLS
 
 **Date**: 2026-08-27  
-**Status**: Approved  
-**Approval Date**: 2026-08-27  
+**Status**: Superseded by ADR-0040
+**Approval Date**: 2026-08-27
 **Approved By**: Project Owner  
 **Scope**: Authentication, tenant context, tenant isolation, web/mobile clients, SaaS and on-premises deployments
+
+> **Historical record:** This ADR preserves the earlier tenant-resolution decision and
+> rationale. It is not current implementation authority. ADR-0040 supersedes this ADR
+> for identity, authentication context, sessions, platform administration, and tenant
+> membership behavior. The current architecture is Platform → Tenant → Branch; normal
+> users belong to exactly one tenant, login establishes that tenant automatically, and
+> tenant selection/switching is not supported.
 
 ## Context
 
@@ -116,23 +123,11 @@ The effective request context contains at minimum:
 
 A client cannot change tenant context by modifying a request header, URL, query parameter, local storage value, or body field.
 
-## Organization and Location Context
+## Organization and Location Context (Historical)
 
-Organization, branch, and location remain authorization dimensions inside the active tenant.
-
-```text
-Authenticated User
-  ↓
-Active Tenant
-  ↓
-Organization Access
-  ↓
-Location / Branch Access
-  ↓
-Business Authorization
-```
-
-Organization or location selection must never change the tenant established by the authenticated session.
+The organization and location context described in this superseded ADR is retained only
+to preserve decision history. It is not part of the current architecture and must not be
+implemented as an authorization, membership, working-context, or login hierarchy.
 
 ## PostgreSQL RLS
 

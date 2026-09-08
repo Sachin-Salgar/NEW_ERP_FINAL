@@ -154,7 +154,7 @@ replace tenant isolation.
 
 - [Backend Authentication and Authorization](../04-backend/07-authentication-and-authorization.md)
 - [Enterprise Security Architecture](../06-security/04-enterprise-security-architecture.md)
-- [ADR-0006: Identity-Based Tenant Context and PostgreSQL RLS](../10-adr/0006-identity-based-tenant-context.md)
+- [ADR-0040: Platform, Tenant, and Branch Architecture](../10-adr/0040-platform-identity-membership-and-context.md)
 # Sales quotation tenancy
 
 Sales quotation and quotation-item records are tenant-owned and

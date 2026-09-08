@@ -193,4 +193,4 @@ Deployment location is a connectivity concern, not a tenant-authorization mechan
 
 - `docs/03-database/11-multi-tenancy.md`
 - `docs/06-security/04-enterprise-security-architecture.md`
-- `docs/10-adr/0006-identity-based-tenant-context.md`
+- `docs/10-adr/0040-platform-identity-membership-and-context.md`

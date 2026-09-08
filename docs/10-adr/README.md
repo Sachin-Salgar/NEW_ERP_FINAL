@@ -57,7 +57,7 @@ If an ADR conflicts with another authoritative document and the scope cannot be 
 | ID | Title | Status | Date | Scope |
 |----|-------|--------|------|-------|
 | [0005](./0005-uuid-version-standard.md) | UUID Version Standard | Approved | 2026-08-07 | UUID primary identifier generation |
-| [0006](./0006-identity-based-tenant-context.md) | Identity-Based Tenant Context and PostgreSQL RLS | Approved | 2026-08-27 | Authentication, tenant context, tenant isolation, web/mobile clients, SaaS and on-premises deployments |
+| [0006](./0006-identity-based-tenant-context.md) | Identity-Based Tenant Context and PostgreSQL RLS | Superseded | 2026-08-27 | Historical tenant-resolution decision; superseded by ADR-0040 |
 | [0007](./0007-zero-downtime-migrations.md) | Zero-Downtime Migration Strategy | Approved | 2026-08-07 | Production database migrations |
 | [0008](./0008-event-contracts-versioning.md) | Event Contracts & Versioning | Approved | 2026-08-07 | Cross-module/integration event contract versioning |
 | [0009](./0009-token-refresh-rotation.md) | Token Strategy — Refresh Token Rotation | Approved | 2026-08-07 | Refresh-token lifecycle |
