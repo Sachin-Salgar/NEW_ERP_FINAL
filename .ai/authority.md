@@ -76,6 +76,30 @@ Platform Permission
 Dedicated Platform Executor / Approved Procedure
 ```
 
+### ADR-0040 proof boundary
+
+The approved operator bootstrap is `npm exec tsx scripts/platform-admin.ts bootstrap <email>`.
+It creates the first identity, local credential, active platform membership, protected
+`platform_owner` role assignment, and platform audit event. The custom tenant seed does
+not create a platform administrator; it creates tenant users and tenant memberships.
+Platform recovery is the separate operator-only `recover` command.
+
+ADR-0040 requires one credential login to resolve one global identity and return its active
+tenant/platform memberships before context is granted. A sole tenant membership may be
+defaulted; multiple tenant memberships and platform context require explicit,
+server-validated context selection. The current implementation is not yet conforming:
+`/auth/login` creates a tenant session directly, `/auth/platform-login` is a separate
+platform-only login path, and `/auth/me` is guarded by tenant-only `requireAuth`.
+The Flutter login screen calls only `/auth/login`, always redirects to `/dashboard`, and
+does not discover or select platform/tenant memberships. The `/platform` screen exists,
+but its route is protected through tenant permission state and is not a complete platform
+context acquisition flow.
+
+For proof work, distinguish the tested platform path from ADR-conforming one-login
+behavior. Source/test evidence may prove identity, credential, platform membership, role,
+platform session, and platform authorization independently, but must not be reported as
+proof of the required unified login/context flow.
+
 ## Document status
 
 - `Approved` ADR: authoritative for its stated scope.

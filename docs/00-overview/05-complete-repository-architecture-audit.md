@@ -41,6 +41,89 @@ These are implementation, context, and operational gaps rather than a reason to 
 
 ADR-0040 is approved and later than ADR-0006. It supersedes the tenant-only identity/session model within its stated scope and requires one identity with independent tenant and platform memberships. It also requires login to return memberships without granting context, followed by explicit server-validated context selection (with a single active tenant membership eligible for a safe default). The current implementation still creates a tenant session directly from `/auth/login` and exposes a separate `/auth/platform-login`; this is an implementation gap, not an alternate interpretation of ADR-0040.
 
+## ADR-0040 focused identity/context proof
+
+### Requirements used as acceptance criteria
+
+- One globally unique identity owns the credential and may have independent tenant and platform memberships.
+- Tenant membership is the authority for tenant context; platform membership is the authority for platform context.
+- Tenant and platform roles are separate permission domains.
+- One credential login resolves the identity and returns active membership metadata before granting context.
+- A sole active tenant membership may be safely defaulted; multiple memberships require explicit context selection.
+- Platform context is never inferred from tenant membership and requires explicit server-validated selection.
+- Context selection creates a context-bound session and tokens; authorization derives context from the validated session, not client tenant IDs.
+- Tenant APIs use tenant session/membership authorization and RLS; platform APIs use platform session/membership/permission checks and the dedicated platform procedure boundary.
+- After a tenant context is established, the tenant client lands on Dashboard. Platform landing is the platform administration surface only after a valid platform context exists.
+
+### Platform administrator provisioning and data proof
+
+The first platform administrator is **not** created by a migration, `seed-custom-tenant.ts`,
+application startup, or HTTP endpoint. The operational path is:
+
+```text
+npm exec tsx scripts/platform-admin.ts bootstrap <email>
+  → identities + identity_credentials
+  → auth_login_identifiers
+  → platform_memberships
+  → platform_owner role assignment
+  → platform audit event
+```
+
+The command requires operator-provided bootstrap secret and password environment values,
+uses an advisory lock and one-time state, and refuses a second active platform bootstrap.
+`recover` is a separate operator action. The custom tenant seed creates tenant projections,
+tenant memberships, users, roles, and credentials; it does **not** create a platform
+administrator. A platform administrator may also have tenant memberships because the
+identity and membership domains are independent, but the current seed/test fixtures do
+not prove that combined case.
+
+The platform-only backend path is proven separately by `zero-state-platform-acceptance`:
+bootstrap CLI → `/auth/platform-login` → platform JWT/session → `requirePlatformContext`
+→ platform membership/permission validation → platform API authorization. The platform
+path does not require a tenant membership. Platform APIs reject tenant-context tokens,
+and tenant business APIs reject platform-context tokens in the acceptance test.
+
+### Actual login/context implementation versus ADR
+
+| Scenario | Login UI | Identity resolved | Memberships discovered | Context resolved | Redirect | Authorization | Status |
+|---|---|---|---|---|---|---|---|
+| Tenant User | Same login screen → `/auth/login` | Tenant account lookup resolves identity through legacy tenant candidates | Tenant account only; no identity-wide membership response | Tenant session is created directly; org/branch/location defaults load afterward | `/dashboard` | Tenant `requireAuth`, permissions, and RLS | **PARTIALLY VERIFIED** |
+| Tenant Admin | Same login screen → `/auth/login` | Same tenant account path | Tenant account only | Tenant session direct; working context can switch post-login | `/dashboard` | Tenant RBAC and RLS tested | **PARTIALLY VERIFIED** |
+| Multi-Tenant User | Same login screen exists | **NOT VERIFIED** as one global identity; current service iterates tenant candidates and fails on multiple valid matches | **NOT IMPLEMENTED** as ADR membership discovery response | No tenant/platform context chooser in primary login flow | No proven selection redirect | No proven selected-membership session | **NOT IMPLEMENTED** |
+| Platform Admin | Login screen does not call platform login; backend exposes separate `/auth/platform-login` | Platform endpoint resolves identity and active platform membership | Platform membership is queried only by that endpoint | Platform session is created directly by platform login or `/auth/context` | Frontend does not select `/platform`; backend platform authorization is proven separately | `requirePlatformContext` plus platform role/permission checks | **PARTIALLY VERIFIED** |
+| Platform + Tenant | No unified UI path | Independent memberships exist in schema, but combined login discovery is not exposed | **NOT IMPLEMENTED** in primary login response | No explicit platform-vs-tenant context choice in frontend | No proven context-specific redirect | Separate backend contexts work independently; combined case is unproven | **NOT VERIFIED** |
+
+### Frontend trace
+
+The actual client chain is:
+
+```text
+LoginScreen._submit
+ → AuthService.login
+ → POST /auth/login
+ → _storeSession(tenant session)
+ → load organization/branch/location/modules/permissions
+ → /dashboard
+```
+
+`ApiClient` adds the stored bearer token to requests. The profile context menu can switch
+organization/branch/location through `/auth/context/select`, but that is post-login
+working context inside an already-selected tenant and is not ADR-0040 membership context
+selection. The `/platform` route and administration screen exist, but no frontend method
+calls `/auth/platform-login`, `/auth/context` with `contextType: platform`, or a unified
+membership discovery endpoint. Therefore platform UI capability is present without a
+complete platform-context acquisition and redirect flow.
+
+### Backend contract proof
+
+`/auth/login` returns a tenant user/session and organization metadata, not identity-wide
+tenant/platform membership metadata. `/auth/platform-login` returns a platform token and
+platform context but is a separate endpoint. `/auth/context` can create tenant or
+platform sessions from an existing token, while `/auth/context/select` only selects
+organization/branch/location and is guarded by tenant `requireAuth`. `/auth/me` is also
+tenant-only and returns only the sanitized tenant user projection. This is insufficient
+for a conforming one-login membership discovery UI.
+
 ## Architecture intent → implementation → tests → UI → deployment
 
 | Rule | Intended architecture | Implementation evidence | Test evidence | UI evidence | Deployment evidence | Status |
@@ -55,7 +138,7 @@ ADR-0040 is approved and later than ADR-0006. It supersedes the tenant-only iden
 
 ### Local database verification
 
-`npm run db:diagnose` confirmed that `.env.local` is present and loaded, `TEST_DATABASE_URL` reaches `newerp_test` as `newerp_test_runner`, and local PostgreSQL 17 is accepting connections. The `.env.local` `DATABASE_URL` credential for `erp_app` does not match the current role password (`28P01`); this is separate from the integration path, which uses the configured local administrative `PG*` connection for migrations/security setup and the provisioned integration application password. No database or role was created by this audit.
+`npm run db:diagnose` confirmed that `.env.local` is present and loaded, `DATABASE_URL` reaches `newerp` as `erp_app`, `TEST_DATABASE_URL` reaches `newerp_test` as `newerp_test_runner`, and local PostgreSQL 17 is accepting both connections. The prior `28P01` result was caused by the earlier stale local application credential and incorrect administrative setup path; it is now resolved without exposing the credential. No database or role was created by this audit.
 
 ## `.ai` audit
 

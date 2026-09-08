@@ -5,7 +5,7 @@ import { promisify } from 'node:util';
 import { afterAll, describe, expect, it } from 'vitest';
 import { Pool } from 'pg';
 
-import { parseAppConfig, resolveDatabaseUrl } from '../../src/config/schema.js';
+import { parseAppConfig } from '../../src/config/schema.js';
 import { createApplication } from '../../src/presentation/http/app.js';
 import { runMigrations } from '../../src/infrastructure/database/migrate.js';
 import { PostgresPlatformRepository } from '../../src/infrastructure/database/repositories/postgres-platform-repository.js';
@@ -13,9 +13,10 @@ import { PlatformBootstrapService } from '../../src/application/services/platfor
 import { UnitOfWork } from '../../src/infrastructure/database/unit-of-work.js';
 import { PostgresAuditLogger } from '../../src/infrastructure/audit/postgres-audit-logger.js';
 import { v7 as uuidV7 } from 'uuid';
+import { resolveIntegrationAdminDatabaseUrl } from './database.js';
 
 const execFileAsync = promisify(execFile);
-const adminUrl = resolveDatabaseUrl(process.env, { forTest: false });
+const adminUrl = resolveIntegrationAdminDatabaseUrl();
 
 describe('fresh zero-state platform acceptance', () => {
   let databaseName: string | undefined;

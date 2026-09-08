@@ -27,7 +27,7 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 
 ## 2. Current checkpoint
 
-**Current phase:** ADR-0040 platform identity, independent memberships, context authorization, RLS/procedure boundaries, audit atomicity, bootstrap, and tenant administration are implemented and validated in separate flows. The primary one-login membership-discovery/context-selection flow remains incomplete. The broader browser navigation matrix remains a known validation residual caused by a Flutter teardown assertion after navigation assertions completed. Live-client authentication and deployment-seed hardening remain open audit items until focused validation is recorded.
+**Current phase:** ADR-0040 platform identity, independent memberships, context authorization, RLS/procedure boundaries, audit atomicity, bootstrap, and tenant administration are implemented and validated in separate flows. The focused platform-administrator proof confirms the operator bootstrap and separate platform-login authorization path, while the primary one-login membership-discovery/context-selection flow remains incomplete. The broader browser navigation matrix remains a known validation residual caused by a Flutter teardown assertion after navigation assertions completed. Live-client authentication and deployment-seed hardening remain open audit items until focused validation is recorded.
 
 ### Validation evidence captured
 
@@ -37,12 +37,15 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 - This CI run validates the repository-controlled test environment; it does not use or depend on Vercel/Render production deployment configuration.
 - Remaining browser validation item: the broader authenticated browser navigation matrix is a **KNOWN VALIDATION RESIDUAL**; run `33948006417` fails after navigation assertions with `FocusManager was used after being disposed` during Flutter teardown.
 - ADR-0040 fresh zero-state acceptance passed against a temporary local PostgreSQL database: all migrations from zero, production bootstrap CLI, platform and tenant HTTP authentication/context, tenant isolation, platform-to-tenant separation, membership revocation, audit attribution, and audit-failure rollback.
+- Focused ADR-0040 proof on `audit/strict-architecture-proof-20260908`: `npx vitest run --config vitest.integration.config.ts tests/integration/authentication-flow.test.ts tests/integration/authorization-flow.test.ts tests/integration/phase2-platform-security.test.ts tests/integration/zero-state-platform-acceptance.test.ts tests/integration/tenant-rls.test.ts tests/integration/custom-tenant-seed.test.ts --reporter=basic` → **6 files / 9 tests passed**. The zero-state test now resolves its temporary database through the administrative integration configuration rather than application `DATABASE_URL`.
+- `npm run typecheck`, `npm run lint -- --no-fix`, `python tools/ai/validate_ai_workflow.py`, `python tools/ai/repository_scanner.py`, `npm run db:diagnose`, and `git diff --check` passed for this proof run.
 - Machine-derived permission inventory passed with zero catalog-only or missing enforcement references.
 
 ### Implemented
 
 - Production Flutter Web login against deployed backend/database.
 - Single credential login UI with post-login tenant/platform membership context selection still required by ADR-0040; tenant working-context changes follow after context establishment.
+- Platform administrator operator bootstrap (`scripts/platform-admin.ts`) and separate platform-session authorization are proven; the custom tenant seed does not create a platform administrator.
 - Identity-based tenant discovery and tenant-scoped authentication/session context.
 - TenantContext and PostgreSQL transaction-local tenant context infrastructure.
 - PostgreSQL RLS integration coverage for tenant isolation/rollback/pool context behavior.
