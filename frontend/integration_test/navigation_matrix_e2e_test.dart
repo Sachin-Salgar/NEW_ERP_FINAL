@@ -163,7 +163,8 @@ void main() {
       await _waitFor(tester, find.text('Branch information'));
       expect(find.text('E2E Main Branch'), findsWidgets);
 
-      await _browserBack(tester, '/settings/branches/details/$_branchId');
+      await _browserBack(tester, '/settings/branches');
+      expect(find.text('Branches'), findsWidgets);
       expect(find.text('E2E Main Branch'), findsWidgets);
 
       await _logout(tester);
