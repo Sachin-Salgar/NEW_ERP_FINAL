@@ -22,11 +22,6 @@ export class AuthenticationService {
     this.lockoutMinutes = options.lockoutMinutes ?? 15;
   }
 
-  /**
-   * Authenticate without deployment/host tenant resolution.
-   * The identity lookup returns candidate tenant accounts; password verification then occurs
-   * against each candidate through the tenant-scoped repository/RLS path.
-   */
   private isUserLocked(user: { lockedUntil?: Date | string | null }): boolean {
     if (!user.lockedUntil) {
       return false;
@@ -82,92 +77,52 @@ export class AuthenticationService {
     return { success: false, reason: 'INVALID_CREDENTIALS', failureTenantId: tenantId, failureUserId: userId };
   }
 
-  async authenticate(
-    identifierOrTenantId: string,
-    passwordOrIdentifier: string,
-    maybePassword?: string,
-  ): Promise<AuthenticationResult> {
-    let requestedTenantId: string | null = null;
-    let identifier: string;
-    let password: string;
-
-    if (maybePassword !== undefined) {
-      requestedTenantId = identifierOrTenantId;
-      identifier = passwordOrIdentifier;
-      password = maybePassword;
-    } else {
-      identifier = identifierOrTenantId;
-      password = passwordOrIdentifier;
-    }
-
+  async authenticate(identifier: string, password: string): Promise<AuthenticationResult> {
     let matchedUser: Awaited<ReturnType<AuthenticationRepository['findById']>> = null;
     let matchedTenantId: string | null = null;
 
-    if (requestedTenantId) {
-      const user = await this.authenticationRepository.findByTenantAndIdentifier(requestedTenantId, identifier);
-      if (user && user.status === 'active') {
-        if (this.isUserLocked(user)) {
-          return { success: false, reason: 'ACCOUNT_LOCKED' };
-        }
+    const candidates = await this.authenticationRepository.findLoginCandidates(identifier);
+    if (candidates.length === 0) {
+      return { success: false, reason: 'INVALID_CREDENTIALS' };
+    }
 
-        const validPassword = await this.passwordHasher.verify(password, user.passwordHash);
-        if (validPassword) {
-          if (this.authenticationRepository.resetFailedLoginState) {
-            await this.authenticationRepository.resetFailedLoginState(requestedTenantId, user.id);
-          }
-          matchedUser = user;
-          matchedTenantId = requestedTenantId;
-        } else {
-          const failedResult = await this.handleFailedAuthentication(requestedTenantId, user.id);
-          if (failedResult) {
-            return failedResult;
-          }
-        }
+    const uniqueCandidates = [
+      ...new Map(candidates.map((candidate) => [`${candidate.tenantId}:${candidate.userId}`, candidate])).values(),
+    ];
+
+    for (const candidate of uniqueCandidates) {
+      if (!candidate.tenantId || !candidate.userId) {
+        continue;
       }
-    } else {
-      const candidates = await this.authenticationRepository.findLoginCandidates(identifier);
-      if (candidates.length === 0) {
+
+      const user = await this.authenticationRepository.findById(candidate.tenantId, candidate.userId);
+      if (!user || user.status !== 'active') {
+        continue;
+      }
+
+      if (this.isUserLocked(user)) {
+        return { success: false, reason: 'ACCOUNT_LOCKED' };
+      }
+
+      const validPassword = await this.passwordHasher.verify(password, user.passwordHash);
+      if (!validPassword) {
+        const failedResult = await this.handleFailedAuthentication(candidate.tenantId, user.id);
+        if (failedResult) {
+          return failedResult;
+        }
+        continue;
+      }
+
+      if (this.authenticationRepository.resetFailedLoginState) {
+        await this.authenticationRepository.resetFailedLoginState(candidate.tenantId, user.id);
+      }
+
+      if (matchedUser) {
         return { success: false, reason: 'INVALID_CREDENTIALS' };
       }
 
-      const uniqueCandidates = [
-        ...new Map(candidates.map((candidate) => [`${candidate.tenantId}:${candidate.userId}`, candidate])).values(),
-      ];
-
-      for (const candidate of uniqueCandidates) {
-        if (!candidate.tenantId || !candidate.userId) {
-          continue;
-        }
-
-        const user = await this.authenticationRepository.findById(candidate.tenantId, candidate.userId);
-        if (!user || user.status !== 'active') {
-          continue;
-        }
-
-        if (this.isUserLocked(user)) {
-          return { success: false, reason: 'ACCOUNT_LOCKED' };
-        }
-
-        const validPassword = await this.passwordHasher.verify(password, user.passwordHash);
-        if (!validPassword) {
-          const failedResult = await this.handleFailedAuthentication(candidate.tenantId, user.id);
-          if (failedResult) {
-            return failedResult;
-          }
-          continue;
-        }
-
-        if (this.authenticationRepository.resetFailedLoginState) {
-          await this.authenticationRepository.resetFailedLoginState(candidate.tenantId, user.id);
-        }
-
-        if (matchedUser) {
-          return { success: false, reason: 'INVALID_CREDENTIALS' };
-        }
-
-        matchedUser = user;
-        matchedTenantId = candidate.tenantId;
-      }
+      matchedUser = user;
+      matchedTenantId = candidate.tenantId;
     }
 
     if (!matchedUser || !matchedTenantId) {

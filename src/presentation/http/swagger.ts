@@ -26,8 +26,6 @@ export function schemaForRoute(method: string, url: string) {
     schema.body = toJsonSchema(authSchemas.refreshRequest);
   else if (method === 'POST' && normalizedUrl === '/auth/organizations/select')
     schema.body = toJsonSchema(authSchemas.orgSelectRequest);
-  else if (method === 'POST' && normalizedUrl === '/auth/context/select')
-    schema.body = toJsonSchema(authSchemas.contextSelectRequest);
   else if (method === 'POST' && normalizedUrl === '/organizations')
     schema.body = toJsonSchema(enterpriseSchemas.createOrganizationRequest);
   else if (method === 'PATCH' && normalizedUrl === '/organizations/:id')
@@ -308,18 +306,6 @@ export const authSchemas = {
     expiresAt: z.string().datetime(),
     tokenType: z.string().describe('Always "bearer"'),
     tenant: z.object({ id: z.string().uuid() }),
-    organizations: z.array(
-      z.object({
-        id: z.string().uuid(),
-        tenantId: z.string().uuid(),
-        code: z.string(),
-        name: z.string(),
-        status: z.string(),
-        isDefault: z.boolean(),
-      }),
-    ),
-    activeOrganizationId: z.string().uuid().nullable(),
-    requiresOrganizationSelection: z.boolean(),
   }),
   registerRequest: z.object({
     username: z.string().min(3).max(150),
@@ -390,61 +376,6 @@ export const authSchemas = {
       isActive: z.boolean(),
       expiresAt: z.string().datetime(),
       loginAt: z.string().datetime(),
-    }),
-    accessToken: z.string(),
-    refreshToken: z.string(),
-    expiresAt: z.string().datetime(),
-    tokenType: z.string().describe('Always "bearer"'),
-  }),
-  contextSelectRequest: z.object({
-    organizationId: z.string().uuid(),
-    branchId: z.string().uuid(),
-    locationId: z.string().uuid(),
-    financialYearId: z.string().uuid().optional(),
-  }),
-  contextSelectResponse: z.object({
-    success: z.boolean().describe('Always true'),
-    user: z.object({
-      id: z.string().uuid(),
-      tenantId: z.string().uuid(),
-      organizationId: z.string().uuid().nullable(),
-      activeLocationId: z.string().uuid().nullable(),
-      defaultLocationId: z.string().uuid().nullable(),
-      defaultBranchId: z.string().uuid().nullable(),
-      username: z.string(),
-      email: z.string().email(),
-      status: z.string(),
-    }),
-    session: z.object({
-      id: z.string().uuid(),
-      tenantId: z.string().uuid(),
-      userId: z.string().uuid(),
-      organizationId: z.string().uuid().nullable(),
-      locationId: z.string().uuid().nullable(),
-      branchId: z.string().uuid().nullable(),
-      isActive: z.boolean(),
-      expiresAt: z.string().datetime(),
-      loginAt: z.string().datetime(),
-    }),
-    branch: z.object({
-      id: z.string().uuid(),
-      tenantId: z.string().uuid(),
-      organizationId: z.string().uuid(),
-      code: z.string(),
-      name: z.string(),
-      status: z.string(),
-      isHeadOffice: z.boolean(),
-      isDefault: z.boolean(),
-    }),
-    location: z.object({
-      id: z.string().uuid(),
-      tenantId: z.string().uuid(),
-      organizationId: z.string().uuid(),
-      code: z.string(),
-      name: z.string(),
-      description: z.string().nullable(),
-      status: z.string(),
-      isDefault: z.boolean(),
     }),
     accessToken: z.string(),
     refreshToken: z.string(),

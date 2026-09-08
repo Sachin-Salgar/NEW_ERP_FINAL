@@ -291,7 +291,7 @@ describe('Phase 2 platform security services', () => {
     const repository = new FakeAuthRepository();
     const service = new AuthenticationService(repository, new BcryptPasswordHasher());
 
-    const authResult = await service.authenticate('tenant-1', 'admin', 'Password123!');
+    const authResult = await service.authenticate('admin', 'Password123!');
     expect(authResult.success).toBe(true);
     expect(authResult.session?.userId).toBe('user-1');
     const user = await service.validateSession('session-1', 'tenant-1');

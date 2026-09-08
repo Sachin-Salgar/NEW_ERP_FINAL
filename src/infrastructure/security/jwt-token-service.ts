@@ -39,7 +39,7 @@ export class JwtTokenService implements TokenService {
     const expiresInSeconds = input.expiresInSeconds ?? 60 * 60;
     const payload: Omit<AccessTokenClaims, 'iat' | 'exp'> & { iat?: number; exp?: number } = {
       sub: input.identityId ?? input.userId,
-      tenantId: input.tenantId as string,
+      tenantId: input.tenantId,
       sessionId: input.sessionId,
       contextType: input.contextType ?? 'tenant',
       membershipId: input.membershipId,
@@ -67,7 +67,7 @@ export class JwtTokenService implements TokenService {
     const expiresInSeconds = input.expiresInSeconds ?? 60 * 60 * 24 * 14;
     const payload: Omit<RefreshTokenClaims, 'iat' | 'exp'> & { iat?: number; exp?: number } = {
       sub: input.identityId ?? input.userId,
-      tenantId: input.tenantId as string,
+      tenantId: input.tenantId,
       sessionId: input.sessionId,
       contextType: input.contextType ?? 'tenant',
       membershipId: input.membershipId,
@@ -145,7 +145,10 @@ export class JwtTokenService implements TokenService {
       sub: String(decodedPayload.sub),
       tenantId: decodedPayload.tenantId as string,
       sessionId: String(decodedPayload.sessionId),
-      contextType: decodedPayload.contextType === 'platform' ? 'platform' : 'tenant',
+      contextType:
+        decodedPayload.contextType === 'platform'
+          ? 'platform'
+          : 'tenant',
       membershipId: typeof decodedPayload.membershipId === 'string' ? decodedPayload.membershipId : undefined,
       tokenType: decodedPayload.tokenType as 'access' | 'refresh',
       iss: String(decodedPayload.iss ?? ''),

@@ -127,6 +127,11 @@ describe('fresh zero-state platform acceptance', () => {
     });
     expect(platformLogin.statusCode, platformLogin.body).toBe(200);
     const platformToken = platformLogin.json().accessToken as string;
+    const normalLoginWithPlatformCredentials = await request('POST', '/api/v1/auth/login', undefined, {
+      identifier: email,
+      password,
+    });
+    expect(normalLoginWithPlatformCredentials.statusCode, normalLoginWithPlatformCredentials.body).toBe(401);
 
     const suffix = Date.now();
     const createTenant = (name: string, user: string) =>
@@ -161,7 +166,7 @@ describe('fresh zero-state platform acceptance', () => {
     expect(
       (await request('POST', '/api/v1/auth/context', tenantToken, { contextType: 'tenant', tenantId: tenantB }))
         .statusCode,
-    ).toBe(403);
+    ).toBe(404);
     expect((await request('GET', '/api/v1/platform/tenants', tenantToken)).statusCode).toBe(403);
     for (const path of [
       '/api/v1/platform/members',
@@ -178,12 +183,7 @@ describe('fresh zero-state platform acceptance', () => {
     expect((await request('GET', '/api/v1/inventory/items', platformToken)).statusCode).not.toBe(200);
     expect((await request('GET', '/api/v1/sales/reports/document-summary', platformToken)).statusCode).not.toBe(200);
     expect((await request('GET', '/api/v1/purchases', platformToken)).statusCode).not.toBe(200);
-    const tenantAContext = await request('POST', '/api/v1/auth/context', tenantToken, {
-      contextType: 'tenant',
-      tenantId: tenantA,
-    });
-    expect(tenantAContext.statusCode).toBe(200);
-    const tenantAToken = tenantAContext.json().accessToken as string;
+    const tenantAToken = tenantToken;
     const organizationId = tenantLogin.json().user.organizationId as string;
     const customer = await request('POST', '/api/v1/customers', tenantAToken, {
       name: `Customer ${suffix}`,

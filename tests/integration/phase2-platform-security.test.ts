@@ -148,7 +148,6 @@ describe('Phase 2 platform and identity foundation', () => {
     );
 
     const authResult = await authService.authenticate(
-      result.tenantId,
       tenantInput.administrator.username,
       tenantInput.administrator.password,
     );

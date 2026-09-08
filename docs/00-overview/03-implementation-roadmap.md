@@ -3,8 +3,8 @@
 **Status:** Living implementation roadmap  
 **Authority:** Architecture documents and Approved ADRs define the intended system; this document records what is actually implemented and what remains to be validated or built.
 
-**Last reconciled:** 2026-09-06
-**Branch:** `main`
+**Last reconciled:** 2026-09-08
+**Branch:** `audit/strict-architecture-proof-20260908`
 
 ## Status definitions
 
@@ -86,11 +86,11 @@ implementation are deferred for governed migration and are not current architect
 | Area                                       | Status                               | Current implementation / remaining work                                                                                                                                            |
 | ------------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Tenant data boundary                       | **COMPLETED**                        | Tenant-scoped model and PostgreSQL RLS architecture implemented.                                                                                                                   |
-| Identity-based tenant discovery            | **PARTIAL**                          | Identity and membership tables plus context validation exist, but the primary login endpoint still creates a tenant session directly instead of returning memberships for explicit context selection. |
-| Tenant-scoped session                      | **IMPLEMENTED — VALIDATION PENDING** | Context-bound sessions and token lifecycle exist; integration with ADR-0040's one-login membership discovery remains pending.                                                     |
+| Identity-based tenant discovery            | **DEFERRED / RETIRED**               | Legacy identity/membership tables remain for later cleanup, but active backend login no longer discovers or exposes tenant contexts.                                                                       |
+| Tenant-scoped session                      | **COMPLETED**                        | Normal login resolves exactly one active tenant server-side, fails closed on ambiguity/no match, and issues a tenant-bound session and JWT.                                                               |
 | TenantContext                              | **IMPLEMENTED — VALIDATION PENDING** | Server derives tenant from authenticated session; DB helper establishes transaction-local context.                                                                                 |
 | PostgreSQL RLS                             | **COMPLETED**                        | Integration coverage proves tested tenant visibility/write isolation, rollback and pooled-connection context isolation.                                                            |
-| Legacy host/deployment TenantResolver      | **DEFERRED / RETIRED**               | Replaced by identity-based tenant discovery; do not reintroduce it.                                                                                                                |
+| Legacy host/deployment TenantResolver      | **DEFERRED / RETIRED**               | Tenant authority remains server-established from the authenticated tenant account; do not reintroduce host or client tenant resolution.                                           |
 | Login/session frontend                     | **IMPLEMENTED — VALIDATION PENDING** | Flutter authentication/session restoration exists; CI now proves admin and limited-user browser login/dashboard flows. Full browser navigation/session-restoration matrix remains. |
 | Cross-deployment tenancy verification      | **PENDING**                          | Deployment-independent architecture exists, but required representative cross-deployment verification is not yet evidenced.                                                        |
 | Ambiguous multi-tenant credential handling | **IMPLEMENTED**                      | Fail-closed behavior is covered by tests.                                                                                                                                          |

@@ -76,7 +76,7 @@ export interface CreateSessionInput {
 
 export interface AccessTokenClaims {
   sub: string;
-  tenantId: string;
+  tenantId: string | null;
   sessionId: string;
   contextType?: AuthenticationContextType;
   membershipId?: string;
@@ -88,7 +88,7 @@ export interface AccessTokenClaims {
 
 export interface RefreshTokenClaims {
   sub: string;
-  tenantId: string;
+  tenantId: string | null;
   sessionId: string;
   contextType?: AuthenticationContextType;
   membershipId?: string;

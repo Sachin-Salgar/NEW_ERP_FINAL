@@ -173,7 +173,8 @@ export class RotatingJwtTokenService implements TokenService {
     if (
       typeof decodedPayload === 'string' ||
       !decodedPayload.sub ||
-      !decodedPayload.tenantId ||
+      (decodedPayload.contextType !== 'platform' &&
+        !decodedPayload.tenantId) ||
       !decodedPayload.sessionId ||
       decodedPayload.tokenType !== expectedType
     ) {
@@ -182,9 +183,12 @@ export class RotatingJwtTokenService implements TokenService {
 
     return {
       sub: String(decodedPayload.sub),
-      tenantId: decodedPayload.tenantId as string,
+      tenantId: (decodedPayload.tenantId as string | null) ?? null,
       sessionId: String(decodedPayload.sessionId),
-      contextType: decodedPayload.contextType === 'platform' ? 'platform' : 'tenant',
+      contextType:
+        decodedPayload.contextType === 'platform'
+          ? 'platform'
+          : 'tenant',
       membershipId: typeof decodedPayload.membershipId === 'string' ? decodedPayload.membershipId : undefined,
       tokenType: expectedType,
       iss: String(decodedPayload.iss ?? ''),

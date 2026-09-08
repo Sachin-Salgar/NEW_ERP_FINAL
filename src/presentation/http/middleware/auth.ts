@@ -100,7 +100,7 @@ export function requirePlatformContext(permissionKey?: string) {
     const token = getBearerToken(request);
     if (!token) throw new UnauthorizedError('Authentication token is required.');
     const claims = request.server.jwtTokenService.verifyAccessToken(token);
-    if (claims.contextType !== 'platform') throw new ForbiddenError('Platform context is required.');
+    if (claims.contextType !== 'platform' || !claims.sub) throw new ForbiddenError('Platform context is required.');
     const context = await request.server.platformAuthorizationService.validateContext(claims.sessionId, claims.sub);
     if (!context) throw new UnauthorizedError('Platform session is invalid or expired.');
     if (
