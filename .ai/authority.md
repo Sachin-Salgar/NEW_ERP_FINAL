@@ -112,6 +112,17 @@ Database infrastructure is developer-owned. AI agents must never create, modify,
 
 A database connection failure is NOT permission to create another database, create another user, change credentials, or switch to Docker PostgreSQL.
 
+## Local PostgreSQL access contract
+
+- Local PostgreSQL credentials are supplied through the uncommitted `.env.local`; never commit it or copy its values into `.ai`, logs, tests, or documentation.
+- Inspect the repository configuration loader before diagnosing access. `DATABASE_URL` is the application connection, while `TEST_DATABASE_URL` is the explicit integration-test target.
+- Integration setup requires an administrative connection for migrations and security bootstrap. Locally it may use the existing `PGHOST`, `PGPORT`, `PGUSER`, and `PGPASSWORD` variables; CI supplies its own administrative `DATABASE_URL` and test credentials.
+- Integration security-role setup uses `ADR0040_SECURITY_ROLE_PASSWORD` when explicitly configured, otherwise its documented test-only fallback; the application pool receives that provisioned role password, not an unverified application URL password.
+- The integration application pool uses the repository-provisioned `erp_app` role after setup. Platform operations use the separately provisioned platform executor boundary.
+- Do not invent credentials, switch databases, weaken PostgreSQL authentication, or provision roles/databases. Use the repository configuration path and `npm run db:diagnose` for sanitized diagnostics.
+- Before reporting authentication failure, confirm `.env.local` loading, identify whether `DATABASE_URL` or `TEST_DATABASE_URL` was used, verify PostgreSQL availability, run migrations/security setup when required, and rerun the targeted test. Never print passwords or full connection strings.
+- CI and production credentials are independent from developer credentials and must never be copied into local configuration or `.ai`.
+
 ## PostgreSQL role / RLS testing trust boundary
 
 Database administrative/setup connections and application/RLS connections are separate trust levels:

@@ -435,6 +435,18 @@ async function main() {
         tenantId,
         administratorUser!.id,
       ]);
+      await client.query(
+        `UPDATE identity_credentials c
+         SET secret_hash = $1, password_changed_at = NOW(), updated_at = NOW()
+         FROM users u
+         WHERE u.tenant_id = $2 AND u.id = $3 AND c.identity_id = u.identity_id
+           AND c.provider = 'local' AND c.credential_type = 'password'`,
+        [administratorPasswordHash, tenantId, administratorUser!.id],
+      );
+      await client.query(
+        'UPDATE users SET failed_login_count = 0, locked_until = NULL WHERE tenant_id = $1 AND id = $2',
+        [tenantId, administratorUser!.id],
+      );
     });
 
     async function ensureUser(
@@ -481,6 +493,18 @@ async function main() {
           tenantId,
           user.id,
         ]);
+        await client.query(
+          `UPDATE identity_credentials c
+           SET secret_hash = $1, password_changed_at = NOW(), updated_at = NOW()
+           FROM users u
+           WHERE u.tenant_id = $2 AND u.id = $3 AND c.identity_id = u.identity_id
+             AND c.provider = 'local' AND c.credential_type = 'password'`,
+          [passwordHash, tenantId, user.id],
+        );
+        await client.query('UPDATE users SET failed_login_count = 0, locked_until = NULL WHERE tenant_id = $1 AND id = $2', [
+          tenantId,
+          user.id,
+        ]);
       });
 
       return user;
@@ -517,6 +541,12 @@ async function main() {
         await client.query('DELETE FROM user_roles WHERE tenant_id = $1 AND user_id = $2', [tenantId, user.id]);
       }
     });
+
+    for (const user of [administratorUser, admin]) {
+      if (!(await repository.assignRoleToUser(tenantId, user.id, tenantAdminRole.id))) {
+        throw new Error(`Failed to assign Tenant Administrator role to ${user.username}.`);
+      }
+    }
 
     const allOrgIds = [organizationId, trimill.id];
     const accessByOrganization = [

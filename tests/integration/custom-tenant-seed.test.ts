@@ -44,10 +44,8 @@ describe('custom tenant seed vertical slice', () => {
       CUSTOM_TENANT_USER_PASSWORD: tenantUserPassword,
       CUSTOM_TENANT_MANAGER_PASSWORD: managerPassword,
     };
-    const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-
     for (let run = 0; run < 3; run += 1) {
-      await execFileAsync(npmCommand, ['run', 'seed:custom-tenant'], {
+      await execFileAsync(process.execPath, ['node_modules/tsx/dist/cli.mjs', 'scripts/seed-custom-tenant.ts'], {
         cwd: process.cwd(),
         env: seedEnvironment,
         maxBuffer: 2 * 1024 * 1024,
@@ -122,9 +120,9 @@ describe('custom tenant seed vertical slice', () => {
       url: '/api/v1/auth/register',
       headers: { authorization: `Bearer ${loginBody.accessToken}` },
       payload: {
-        username: `seed-check-${Date.now()}`,
-        email: `seed-check-${Date.now()}@example.com`,
-        password: randomBytes(24).toString('base64url'),
+        username: `seed-check-${randomBytes(8).toString('hex')}`,
+        email: `seed-check-${randomBytes(8).toString('hex')}@example.com`,
+        password: 'SeedCheckPassword123!',
       },
     });
     expect(authorizedOperation.statusCode).toBe(201);

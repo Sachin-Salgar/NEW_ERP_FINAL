@@ -51,6 +51,12 @@ AI workflow files in `.ai/` explain **how an AI coding assistant should navigate
 12. Tenant context is established from authenticated identity, validated tenant membership, and a tenant-scoped session; platform context is established independently from platform membership and a platform-scoped session.
 13. PostgreSQL RLS remains mandatory for tenant-owned data.
 
+### Local database workflow
+
+Local PostgreSQL credentials live in the uncommitted `.env.local` and must never be committed or copied into `.ai`. Agents must inspect the loader in `src/config/schema.ts` and integration setup before diagnosing access. `DATABASE_URL` is the application database; `TEST_DATABASE_URL` is the explicit integration-test database. Integration setup uses local `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD` administrative variables when present, while CI provides separate workflow credentials. Use `npm run db:diagnose` for sanitized source, endpoint, role, password-presence, and connectivity diagnostics. Never print passwords or full URLs, invent credentials, weaken PostgreSQL authentication, or make production depend on local credentials.
+
+Required order: read this contract; inspect configuration loading; confirm `.env.local` exists without exposing contents; determine sanitized effective configuration; verify connectivity; run migrations and security/bootstrap; run the targeted integration test; only then report a database authentication failure.
+
 ## Implementation-progress authority
 
 `docs/00-overview/03-implementation-roadmap.md` is the authoritative project-state document for what has been implemented, what is being refactored, and what must be done next.

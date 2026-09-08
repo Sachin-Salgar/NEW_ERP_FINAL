@@ -5,18 +5,15 @@ import { Pool } from 'pg';
 
 import { resolveDatabaseUrl } from '../../src/config/schema.js';
 import { runMigrations } from '../../src/infrastructure/database/migrate.js';
+import { resolveIntegrationAdminDatabaseUrl } from './database.js';
 
 dotenv.config({ path: '.env.local' });
 
 beforeAll(async () => {
   if (process.env.SKIP_INTEGRATION_MIGRATIONS === 'true') return;
-  const adminUrl = resolveDatabaseUrl(process.env);
   const testUrl = resolveDatabaseUrl(process.env, { forTest: true });
-  const admin = new URL(adminUrl);
-  const target = new URL(testUrl);
-  admin.pathname = target.pathname;
-  const targetAdminUrl = admin.toString();
-  const setupRole = target.username;
+  const targetAdminUrl = resolveIntegrationAdminDatabaseUrl();
+  const setupRole = new URL(testUrl).username;
   await runMigrations(targetAdminUrl, 'disable');
 
   const pool = new Pool({ connectionString: targetAdminUrl, ssl: false });
