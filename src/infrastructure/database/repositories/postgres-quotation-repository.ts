@@ -59,7 +59,7 @@ export class PostgresQuotationRepository implements QuotationRepository {
       t,
       async (c) => {
         const vals: any[] = [t, q.branchId, q.financialYearId],
-          f = ['tenant_id=$1', '=$2', 'branch_id=$3', 'financial_year_id=$4', 'is_deleted=false'];
+          f = ['tenant_id=$1', 'branch_id=$2', 'financial_year_id=$3', 'is_deleted=false'];
         if (q.search) {
           vals.push(`%${q.search}%`);
           f.push(
@@ -157,7 +157,7 @@ export class PostgresQuotationRepository implements QuotationRepository {
   }
   private async map(c: any, r: any): Promise<QuotationRecord> {
     const items = await c.query(
-      `SELECT id,item_id AS "itemId",item_code AS "itemCode",line_number AS "lineNumber",description,quantity,unit_price AS "unitPrice",unit_of_measure AS "unitOfMeasure",discount_percentage AS "discountPercentage",discount_amount AS "discountAmount",line_total AS "lineTotal",price_list_id AS "priceListId",discount_rule_id AS "discountRuleId",created_at AS "createdAt",created_by AS "createdBy",updated_at AS "updatedAt",updated_by AS "updatedBy",version_number AS "versionNumber" FROM sales_quotation_items WHERE quotation_id=$1 AND tenant_id=$2 AND tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 ORDER BY line_number`,
+      `SELECT id,item_id AS "itemId",item_code AS "itemCode",line_number AS "lineNumber",description,quantity,unit_price AS "unitPrice",unit_of_measure AS "unitOfMeasure",discount_percentage AS "discountPercentage",discount_amount AS "discountAmount",line_total AS "lineTotal",price_list_id AS "priceListId",discount_rule_id AS "discountRuleId",created_at AS "createdAt",created_by AS "createdBy",updated_at AS "updatedAt",version_number AS "versionNumber" FROM sales_quotation_items WHERE quotation_id=$1 AND tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4 ORDER BY line_number`,
       [r.id, r.tenantId, r.branchId, r.financialYearId],
     );
     return {

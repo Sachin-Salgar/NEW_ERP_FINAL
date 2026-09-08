@@ -39,10 +39,9 @@ export class PostgresDiscountRepository implements DiscountRuleRepository {
         const result = await client.query(
           `INSERT INTO sales_discount_rules
         (tenant_id,code,name,percentage,effective_from,effective_to,created_by)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING ${C}`,
+        VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING ${C}`,
           [
             input.tenantId,
-            input.branchId,
             input.code,
             input.name,
             input.percentage,
@@ -53,11 +52,11 @@ export class PostgresDiscountRepository implements DiscountRuleRepository {
         );
         return mapRule(result.rows[0]);
       },
-      { branchId: input.branchId, userId: input.actorUserId },
+      { userId: input.actorUserId },
     ) as Promise<DiscountRuleRecord>;
   }
 
-  async list(tenantId: string, branchId: string): Promise<DiscountRuleRecord[]> {
+  async list(tenantId: string, _branchId?: string): Promise<DiscountRuleRecord[]> {
     return withTenantContext(
       this.pool,
       this.tenantContextKey,
@@ -65,28 +64,28 @@ export class PostgresDiscountRepository implements DiscountRuleRepository {
       async (client) => {
         const result = await client.query(
           `SELECT ${C} FROM sales_discount_rules
-        WHERE tenant_id=$1 AND tenant_id=$2 ORDER BY code`,
-          [tenantId, branchId],
+        WHERE tenant_id=$1 ORDER BY code`,
+        [tenantId],
         );
         return result.rows.map(mapRule);
       },
-      { branchId },
+      {},
     ) as Promise<DiscountRuleRecord[]>;
   }
 
-  async get(tenantId: string, branchId: string, id: string): Promise<DiscountRuleRecord | null> {
+  async get(tenantId: string, _branchId: string, id: string): Promise<DiscountRuleRecord | null> {
     return withTenantContext(
       this.pool,
       this.tenantContextKey,
       tenantId,
       async (client) => {
         const result = await client.query(
-          `SELECT ${C} FROM sales_discount_rules WHERE tenant_id=$1 AND tenant_id=$2 AND id=$3`,
-          [tenantId, branchId, id],
+          `SELECT ${C} FROM sales_discount_rules WHERE tenant_id=$1 AND id=$2`,
+          [tenantId, id],
         );
         return result.rows[0] ? mapRule(result.rows[0]) : null;
       },
-      { branchId },
+      {},
     );
   }
 

@@ -130,6 +130,8 @@ function moduleCodeForPermission(permissionKey: string): string {
       return 'security';
     case 'customer':
       return 'crm';
+    case 'tax':
+      return 'sales';
     case 'sales':
       return 'sales';
     default:

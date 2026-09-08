@@ -17,16 +17,16 @@ export class PostgresDeliveryRepository implements DeliveryRepository {
       i.tenantId,
       async (c) => {
         const existing = await c.query(
-          `SELECT ${C} FROM sales_deliveries WHERE tenant_id=$1 AND tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4 AND (idempotency_key=$5 OR sales_order_id=$6)`,
-          [i.tenantId, i.branchId, i.branchId, i.financialYearId, i.idempotencyKey, i.salesOrderId],
+          `SELECT ${C} FROM sales_deliveries WHERE tenant_id=$1 AND branch_id=$2 AND financial_year_id=$3 AND (idempotency_key=$4 OR sales_order_id=$5)`,
+          [i.tenantId, i.branchId, i.financialYearId, i.idempotencyKey, i.salesOrderId],
         );
         if (existing.rows[0]) {
           if (!i.allowReplay) throw new ValidationError('Unable to create a delivery with the supplied request.');
           return this.map(c, existing.rows[0]);
         }
         const order = await c.query(
-          `SELECT id,customer_id AS "customerId",warehouse_id AS "warehouseId",status FROM sales_orders WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND is_deleted=false`,
-          [i.salesOrderId, i.tenantId, i.branchId, i.branchId, i.financialYearId],
+          `SELECT id,customer_id AS "customerId",warehouse_id AS "warehouseId",status FROM sales_orders WHERE id=$1 AND tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4 AND is_deleted=false`,
+          [i.salesOrderId, i.tenantId, i.branchId, i.financialYearId],
         );
         if (!order.rows[0] || order.rows[0].status !== 'CONFIRMED')
           throw new ValidationError('Only a confirmed Sales Order in the active context can create a delivery.');
@@ -69,8 +69,8 @@ export class PostgresDeliveryRepository implements DeliveryRepository {
       this.key,
       t,
       async (c) => {
-        const v: any[] = [t, q.branchId, q.branchId, q.financialYearId],
-          f = ['tenant_id=$1', '=$2', 'branch_id=$3', 'financial_year_id=$4'];
+        const v: any[] = [t, q.branchId, q.financialYearId],
+          f = ['tenant_id=$1', 'branch_id=$2', 'financial_year_id=$3'];
         if (q.search) {
           v.push(`%${q.search}%`);
           f.push(`(delivery_number ILIKE $${v.length} OR status::text ILIKE $${v.length})`);
@@ -93,7 +93,7 @@ export class PostgresDeliveryRepository implements DeliveryRepository {
   async update(i: any) {
     return this.mutate(
       i,
-      `UPDATE sales_deliveries SET notes=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND tenant_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND status='DRAFT' AND version_number=$8 RETURNING ${C}`,
+      `UPDATE sales_deliveries SET notes=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND id=$6 AND status='DRAFT' AND version_number=$7 RETURNING ${C}`,
       [
         i.notes,
         i.actorUserId,
@@ -108,8 +108,8 @@ export class PostgresDeliveryRepository implements DeliveryRepository {
   async attachReservationReferences(i: any) {
     return this.mutate(
       i,
-      `UPDATE sales_deliveries SET updated_at=now(),updated_by=$1,version_number=version_number+1 WHERE tenant_id=$2 AND tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND id=$6 AND status='DRAFT' RETURNING ${C}`,
-      [i.actorUserId, i.tenantId, i.branchId, i.branchId, i.financialYearId, i.deliveryId],
+      `UPDATE sales_deliveries SET updated_at=now(),updated_by=$1,version_number=version_number+1 WHERE tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4 AND id=$5 AND status='DRAFT' RETURNING ${C}`,
+      [i.actorUserId, i.tenantId, i.branchId, i.financialYearId, i.deliveryId],
     ).then(async (delivery) => {
       if (!delivery) return null;
       for (const ref of i.references)
@@ -124,13 +124,13 @@ export class PostgresDeliveryRepository implements DeliveryRepository {
             ),
           { userId: i.actorUserId },
         );
-      return this.getById(i.tenantId, i.branchId, i.branchId, i.financialYearId, i.deliveryId);
+      return this.getById(i.tenantId, i.branchId, i.financialYearId, i.deliveryId);
     });
   }
   async transition(i: any) {
     return this.mutate(
       i,
-      `UPDATE sales_deliveries SET status=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND tenant_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND version_number=$8 RETURNING ${C}`,
+      `UPDATE sales_deliveries SET status=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND id=$6 AND version_number=$7 RETURNING ${C}`,
       [
         i.status,
         i.actorUserId,
@@ -156,7 +156,7 @@ export class PostgresDeliveryRepository implements DeliveryRepository {
   }
   private async getOn(c: any, t: string, b: string, fy: string, id: string) {
     const r = await c.query(
-      `SELECT ${C} FROM sales_deliveries WHERE tenant_id=$1 AND tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4 AND id=$5`,
+      `SELECT ${C} FROM sales_deliveries WHERE tenant_id=$1 AND branch_id=$2 AND financial_year_id=$3 AND id=$4`,
       [t, b, fy, id],
     );
     return r.rows[0] ? this.map(c, r.rows[0]) : null;

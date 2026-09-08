@@ -16,21 +16,21 @@ export class PostgresOrderRepository implements OrderRepository {
       i.tenantId,
       async (c) => {
         const q = await c.query(
-          `SELECT id,customer_id AS "customerId",branch_id AS "branchId",financial_year_id AS "financialYearId",subtotal,discount_total AS "discountTotal",total FROM sales_quotations WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND status='ACCEPTED' AND is_deleted=false`,
-          [i.quotationId, i.tenantId, i.branchId, i.branchId, i.financialYearId],
+          `SELECT id,customer_id AS "customerId",branch_id AS "branchId",financial_year_id AS "financialYearId",subtotal,discount_total AS "discountTotal",total FROM sales_quotations WHERE id=$1 AND tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4 AND status='ACCEPTED' AND is_deleted=false`,
+          [i.quotationId, i.tenantId, i.branchId, i.financialYearId],
         );
         if (!q.rows[0])
           throw new ValidationError('Only an accepted quotation in the active context can create an order.');
         const warehouse = await c.query(
-          `SELECT id FROM inventory_warehouses WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3 AND status='ACTIVE'`,
+          `SELECT id FROM inventory_warehouses WHERE id=$1 AND tenant_id=$2 AND status='ACTIVE'`,
           [i.warehouseId, i.tenantId, i.branchId],
         );
         if (!warehouse.rows[0]) throw new ValidationError('An active warehouse in the tenant is required.');
         const sourceItems = await c.query(
           `SELECT item_id AS "itemId" FROM sales_quotation_items
-           WHERE quotation_id=$1 AND tenant_id=$2 AND tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5
+           WHERE quotation_id=$1 AND tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4
            ORDER BY line_number`,
-          [i.quotationId, i.tenantId, i.branchId, i.branchId, i.financialYearId],
+          [i.quotationId, i.tenantId, i.branchId, i.financialYearId],
         );
         if (!sourceItems.rows.length || sourceItems.rows.some((line: any) => !line.itemId))
           throw new ValidationError('Every new Sales Order line requires an Item Master item.');
@@ -55,8 +55,8 @@ export class PostgresOrderRepository implements OrderRepository {
           ],
         );
         await c.query(
-          `INSERT INTO sales_order_items(tenant_id,branch_id,financial_year_id,order_id,item_id,item_code,line_number,description,quantity,unit_price,unit_of_measure,discount_percentage,discount_amount,line_total,price_list_id,discount_rule_id,created_by,updated_by) SELECT tenant_id,branch_id,financial_year_id,$1,item_id,item_code,line_number,description,quantity,unit_price,unit_of_measure,discount_percentage,discount_amount,line_total,price_list_id,discount_rule_id,$2,$2 FROM sales_quotation_items WHERE quotation_id=$3 AND tenant_id=$4 AND tenant_id=$5 AND branch_id=$6 AND financial_year_id=$7`,
-          [r.rows[0].id, i.actorUserId, i.quotationId, i.tenantId, i.branchId, i.branchId, i.financialYearId],
+          `INSERT INTO sales_order_items(tenant_id,branch_id,financial_year_id,order_id,item_id,item_code,line_number,description,quantity,unit_price,unit_of_measure,discount_percentage,discount_amount,line_total,price_list_id,discount_rule_id,created_by,updated_by) SELECT tenant_id,branch_id,financial_year_id,$1,item_id,item_code,line_number,description,quantity,unit_price,unit_of_measure,discount_percentage,discount_amount,line_total,price_list_id,discount_rule_id,$2,$2 FROM sales_quotation_items WHERE quotation_id=$3 AND tenant_id=$4 AND branch_id=$5 AND financial_year_id=$6`,
+          [r.rows[0].id, i.actorUserId, i.quotationId, i.tenantId, i.branchId, i.financialYearId],
         );
         return this.map(c, r.rows[0]);
       },
@@ -72,8 +72,8 @@ export class PostgresOrderRepository implements OrderRepository {
       this.key,
       t,
       async (c) => {
-        const v = [t, q.branchId, q.branchId, q.financialYearId] as any[],
-          f = ['tenant_id=$1', '=$2', 'branch_id=$3', 'financial_year_id=$4', 'is_deleted=false'];
+        const v = [t, q.branchId, q.financialYearId] as any[],
+          f = ['tenant_id=$1', 'branch_id=$2', 'financial_year_id=$3', 'is_deleted=false'];
         if (q.search) {
           v.push(`%${q.search}%`);
           f.push(`(order_number ILIKE $${v.length} OR status::text ILIKE $${v.length})`);
@@ -100,7 +100,7 @@ export class PostgresOrderRepository implements OrderRepository {
       i.tenantId,
       async (c) => {
         const r = await c.query(
-          `UPDATE sales_orders SET notes=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND tenant_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND status='DRAFT' AND is_deleted=false AND version_number=$8 RETURNING ${C}`,
+          `UPDATE sales_orders SET notes=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND id=$6 AND status='DRAFT' AND is_deleted=false AND version_number=$7 RETURNING ${C}`,
           [
             i.notes,
             i.actorUserId,
@@ -119,7 +119,7 @@ export class PostgresOrderRepository implements OrderRepository {
   async transition(i: any) {
     return this.mutate(
       i,
-      `UPDATE sales_orders SET status=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND tenant_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND is_deleted=false AND version_number=$8 RETURNING ${C}`,
+      `UPDATE sales_orders SET status=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND id=$6 AND is_deleted=false AND version_number=$7 RETURNING ${C}`,
       [
         i.status,
         i.actorUserId,
@@ -135,16 +135,16 @@ export class PostgresOrderRepository implements OrderRepository {
     return this.mutate(
       i,
       `UPDATE sales_orders SET reservation_status=$1,updated_at=now(),updated_by=$2,version_number=version_number+1
-       WHERE tenant_id=$3 AND tenant_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND is_deleted=false
+       WHERE tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND id=$6 AND is_deleted=false
        RETURNING ${C}`,
-      [i.reservationStatus, i.actorUserId, i.tenantId, i.branchId, i.branchId, i.financialYearId, i.orderId],
+      [i.reservationStatus, i.actorUserId, i.tenantId, i.branchId, i.financialYearId, i.orderId],
     );
   }
   async softDelete(i: any) {
     return this.mutate(
       i,
-      `UPDATE sales_orders SET is_deleted=true,deleted_at=now(),deleted_by=$1,updated_at=now(),updated_by=$1,version_number=version_number+1 WHERE tenant_id=$2 AND tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND id=$6 AND status='DRAFT' AND is_deleted=false RETURNING ${C}`,
-      [i.actorUserId, i.tenantId, i.branchId, i.branchId, i.financialYearId, i.orderId],
+      `UPDATE sales_orders SET is_deleted=true,deleted_at=now(),deleted_by=$1,updated_at=now(),updated_by=$1,version_number=version_number+1 WHERE tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4 AND id=$5 AND status='DRAFT' AND is_deleted=false RETURNING ${C}`,
+      [i.actorUserId, i.tenantId, i.branchId, i.financialYearId, i.orderId],
     );
   }
   private async mutate(i: any, sql: string, v: any[]) {
@@ -161,7 +161,7 @@ export class PostgresOrderRepository implements OrderRepository {
   }
   private async getOn(c: any, t: string, b: string, fy: string, id: string) {
     const r = await c.query(
-      `SELECT ${C} FROM sales_orders WHERE tenant_id=$1 AND tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4 AND id=$5 AND is_deleted=false`,
+      `SELECT ${C} FROM sales_orders WHERE tenant_id=$1 AND branch_id=$2 AND financial_year_id=$3 AND id=$4 AND is_deleted=false`,
       [t, b, fy, id],
     );
     return r.rows[0] ? this.map(c, r.rows[0]) : null;

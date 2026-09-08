@@ -30,7 +30,7 @@ export class PostgresSalesReportingRepository implements SalesReportRepository {
   ) {}
 
   async listDocumentSummary(
-    context: { tenantId: string; branchId: string; branchId: string; financialYearId: string },
+    context: { tenantId: string; branchId: string; financialYearId: string },
     input: { page: number; pageSize: number; order: 'asc' | 'desc'; search?: string },
   ): Promise<{ items: SalesDocumentSummary[]; total: number }> {
     return withTenantContext(
@@ -38,8 +38,8 @@ export class PostgresSalesReportingRepository implements SalesReportRepository {
       this.tenantContextKey,
       context.tenantId,
       async (client) => {
-        const filters = ['tenant_id = $1', ' = $2', 'branch_id = $3', 'financial_year_id = $4'];
-        const values: unknown[] = [context.tenantId, context.branchId, context.branchId, context.financialYearId];
+        const filters = ['tenant_id = $1', 'branch_id = $2', 'financial_year_id = $3'];
+        const values: unknown[] = [context.tenantId, context.branchId, context.financialYearId];
         if (input.search?.trim()) {
           values.push(`%${input.search.trim()}%`);
           filters.push(`document_number ILIKE $${values.length}`);
@@ -73,7 +73,7 @@ export class PostgresSalesReportingRepository implements SalesReportRepository {
         const rows = await client.query<SummaryRow>(
           `SELECT ${SUMMARY_COLUMNS} FROM (
           SELECT 'QUOTATION'::text AS document_type, id AS document_id, quotation_number AS document_number,
-                 status::text, customer_id, created_at, version AS version_number,
+                 status::text, customer_id, created_at, version_number,
                  tenant_id,  branch_id, financial_year_id
           FROM sales_quotations WHERE is_deleted=false
           UNION ALL

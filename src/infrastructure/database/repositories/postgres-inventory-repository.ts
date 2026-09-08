@@ -38,21 +38,21 @@ export class PostgresInventoryRepository implements InventoryRepository {
     name: string;
     actorUserId: string;
   }) {
-    return this.withTenant(input.tenantId, input.branchId, input.actorUserId, async (client) => {
+    return this.withTenant(input.tenantId, input.actorUserId, async (client) => {
       const result = await client.query(
         `INSERT INTO inventory_warehouses
           (tenant_id,  code, name, created_by, updated_by)
-         VALUES ($1,$2,$3,$4,$5,$5) RETURNING ${warehouseColumns}`,
-        [input.tenantId, input.branchId, input.code, input.name, input.actorUserId],
+         VALUES ($1,$2,$3,$4,$4) RETURNING ${warehouseColumns}`,
+        [input.tenantId, input.code, input.name, input.actorUserId],
       );
       return this.mapWarehouse(result.rows[0]);
     });
   }
 
-  async listWarehouses(tenantId: string, branchId: string, page: number, pageSize: number, search?: string) {
-    return this.withTenant(tenantId, branchId, undefined, async (client) => {
-      const values: unknown[] = [tenantId, branchId];
-      const filters = ['tenant_id=$1', '=$2'];
+  async listWarehouses(tenantId: string, page: number, pageSize: number, search?: string) {
+    return this.withTenant(tenantId, undefined, async (client) => {
+      const values: unknown[] = [tenantId];
+      const filters = ['tenant_id=$1'];
       if (search) {
         values.push(`%${search}%`);
         filters.push(`(code ILIKE $${values.length} OR name ILIKE $${values.length})`);
@@ -79,17 +79,16 @@ export class PostgresInventoryRepository implements InventoryRepository {
     expectedVersion: number;
     actorUserId: string;
   }) {
-    return this.withTenant(input.tenantId, input.branchId, input.actorUserId, async (client) => {
+    return this.withTenant(input.tenantId, input.actorUserId, async (client) => {
       const result = await client.query(
         `UPDATE inventory_warehouses SET name=$1,status=$2,updated_at=now(),updated_by=$3,version=version+1
-         WHERE tenant_id=$4 AND tenant_id=$5 AND id=$6 AND version=$7
+         WHERE tenant_id=$4 AND id=$5 AND version=$6
          RETURNING ${warehouseColumns}`,
         [
           input.name,
           input.status,
           input.actorUserId,
           input.tenantId,
-          input.branchId,
           input.warehouseId,
           input.expectedVersion,
         ],
@@ -522,7 +521,7 @@ export class PostgresInventoryRepository implements InventoryRepository {
     userId: string | undefined,
     callback: (client: PoolClient) => Promise<T>,
   ) {
-    return withTenantContext(this.pool, this.tenantContextKey, tenantId, callback, { branchId, userId });
+    return withTenantContext(this.pool, this.tenantContextKey, tenantId, callback, { userId });
   }
   private mapWarehouse(row: Record<string, unknown>): WarehouseRecord {
     return {

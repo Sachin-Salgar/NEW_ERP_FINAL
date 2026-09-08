@@ -16,16 +16,16 @@ export class PostgresCreditNoteRepository implements CreditNoteRepository {
       i.tenantId,
       async (c) => {
         const e = await c.query(
-          `SELECT ${C} FROM sales_credit_notes WHERE tenant_id=$1 AND tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4 AND (idempotency_key=$5 OR return_id=$6)`,
-          [i.tenantId, i.branchId, i.branchId, i.financialYearId, i.idempotencyKey, i.returnId],
+          `SELECT ${C} FROM sales_credit_notes WHERE tenant_id=$1 AND branch_id=$2 AND financial_year_id=$3 AND (idempotency_key=$4 OR return_id=$5)`,
+          [i.tenantId, i.branchId, i.financialYearId, i.idempotencyKey, i.returnId],
         );
         if (e.rows[0]) {
           if (!i.allowReplay) throw new ValidationError('Unable to create a Credit Note with the supplied request.');
           return this.map(c, e.rows[0]);
         }
         const ret = await c.query(
-          `SELECT id,invoice_id AS "invoiceId",customer_id AS "customerId",status FROM sales_returns WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5`,
-          [i.returnId, i.tenantId, i.branchId, i.branchId, i.financialYearId],
+          `SELECT id,invoice_id AS "invoiceId",customer_id AS "customerId",status FROM sales_returns WHERE id=$1 AND tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4`,
+          [i.returnId, i.tenantId, i.branchId, i.financialYearId],
         );
         if (!ret.rows[0] || ret.rows[0].status !== 'PROCESSED')
           throw new ValidationError('Only a processed Sales Return in the active context can create a Credit Note.');
@@ -66,8 +66,8 @@ export class PostgresCreditNoteRepository implements CreditNoteRepository {
       this.key,
       t,
       async (c) => {
-        const v: any[] = [t, q.branchId, q.branchId, q.financialYearId],
-          f = ['tenant_id=$1', '=$2', 'branch_id=$3', 'financial_year_id=$4'];
+        const v: any[] = [t, q.branchId, q.financialYearId],
+          f = ['tenant_id=$1', 'branch_id=$2', 'financial_year_id=$3'];
         if (q.search) {
           v.push(`%${q.search}%`);
           f.push(`(credit_note_number ILIKE $${v.length} OR status::text ILIKE $${v.length})`);
@@ -90,7 +90,7 @@ export class PostgresCreditNoteRepository implements CreditNoteRepository {
   async update(i: any) {
     return this.mutate(
       i,
-      `UPDATE sales_credit_notes SET notes=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND tenant_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND status='DRAFT' AND version_number=$8 RETURNING ${C}`,
+      `UPDATE sales_credit_notes SET notes=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND id=$6 AND status='DRAFT' AND version_number=$7 RETURNING ${C}`,
       [
         i.notes,
         i.actorUserId,
@@ -105,7 +105,7 @@ export class PostgresCreditNoteRepository implements CreditNoteRepository {
   async transition(i: any) {
     return this.mutate(
       i,
-      `UPDATE sales_credit_notes SET status=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND tenant_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND version_number=$8 RETURNING ${C}`,
+      `UPDATE sales_credit_notes SET status=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND id=$6 AND version_number=$7 RETURNING ${C}`,
       [
         i.status,
         i.actorUserId,
@@ -120,8 +120,8 @@ export class PostgresCreditNoteRepository implements CreditNoteRepository {
   async updateFinanceStatus(i: any) {
     return this.mutate(
       i,
-      `UPDATE sales_credit_notes SET finance_status='POSTED',finance_reference=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND tenant_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND status='DRAFT' RETURNING ${C}`,
-      [i.financeReference, i.actorUserId, i.tenantId, i.branchId, i.branchId, i.financialYearId, i.creditNoteId],
+      `UPDATE sales_credit_notes SET finance_status='POSTED',finance_reference=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND id=$6 AND status='DRAFT' RETURNING ${C}`,
+      [i.financeReference, i.actorUserId, i.tenantId, i.branchId, i.financialYearId, i.creditNoteId],
     );
   }
   private async mutate(i: any, s: string, v: any[]) {
@@ -138,7 +138,7 @@ export class PostgresCreditNoteRepository implements CreditNoteRepository {
   }
   private async getOn(c: any, t: string, b: string, fy: string, id: string) {
     const r = await c.query(
-      `SELECT ${C} FROM sales_credit_notes WHERE tenant_id=$1 AND tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4 AND id=$5`,
+      `SELECT ${C} FROM sales_credit_notes WHERE tenant_id=$1 AND branch_id=$2 AND financial_year_id=$3 AND id=$4`,
       [t, b, fy, id],
     );
     return r.rows[0] ? this.map(c, r.rows[0]) : null;

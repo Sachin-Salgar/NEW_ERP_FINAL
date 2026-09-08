@@ -969,7 +969,22 @@ export class PostgresPlatformRepository
         `INSERT INTO user_sessions (
           id, tenant_id, user_id, branch_id, financial_year_id, access_token_id, refresh_token_hash, device,
           user_agent, ip_address, is_active, expires_at
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,true,$11)
+        ) VALUES (
+          $1,$2,$3,$4,
+          COALESCE(
+            $5,
+            (
+              SELECT id
+                FROM financial_years
+               WHERE tenant_id = $2
+                 AND is_deleted = false
+                 AND is_active = true
+                 AND status = 'open'
+                 AND is_locked = false
+            )
+          ),
+          $6,$7,$8,$9,$10,true,$11
+        )
         RETURNING id, tenant_id as "tenantId", user_id as "userId",
                   branch_id as "branchId", financial_year_id as "financialYearId", access_token_id as "accessTokenId", is_active as "isActive", expires_at as "expiresAt",
                    login_at as "loginAt", last_activity_at as "lastActivityAt", revoked_at as "revokedAt", logout_at as "logoutAt"`,
@@ -1323,6 +1338,21 @@ export class PostgresPlatformRepository
           input.branch.timezone ?? 'UTC',
         ],
       );
+      if (input.initialFinancialYear) {
+        await client.query(
+          `INSERT INTO financial_years (tenant_id,branch_id,name,start_date,end_date,status,is_active)
+           VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+          [
+            tenantId,
+            branchId,
+            input.initialFinancialYear.name,
+            input.initialFinancialYear.startDate,
+            input.initialFinancialYear.endDate,
+            input.initialFinancialYear.status ?? 'open',
+            input.initialFinancialYear.isActive ?? true,
+          ],
+        );
+      }
       await client.query(
         "INSERT INTO users (id,tenant_id,default_branch_id,username,email,password_hash,status) VALUES ($1,$2,$3,$4,$5,$6,'active')",
         [

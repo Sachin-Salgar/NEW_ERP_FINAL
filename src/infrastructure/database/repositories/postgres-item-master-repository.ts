@@ -47,11 +47,10 @@ export class PostgresItemMasterRepository implements ItemRepository {
         const result = await client.query(
           `INSERT INTO inventory_items
           (tenant_id,  code, name, description, unit_of_measure, sales_eligible, created_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)
          RETURNING ${ITEM_COLUMNS}`,
           [
             input.tenantId,
-            input.branchId,
             input.code,
             input.name,
             input.description,
@@ -62,11 +61,11 @@ export class PostgresItemMasterRepository implements ItemRepository {
         );
         return this.mapRow(result.rows[0]);
       },
-      { branchId: input.branchId, userId: input.actorUserId },
+      { userId: input.actorUserId },
     );
   }
 
-  async getById(tenantId: string, branchId: string, itemId: string): Promise<ItemRecord | null> {
+  async getById(tenantId: string, itemId: string): Promise<ItemRecord | null> {
     return withTenantContext(
       this.pool,
       this.tenantContextKey,
@@ -74,12 +73,12 @@ export class PostgresItemMasterRepository implements ItemRepository {
       async (client) => {
         const result = await client.query(
           `SELECT ${ITEM_COLUMNS} FROM inventory_items
-          WHERE tenant_id = $1 AND tenant_id = $2 AND id = $3 AND is_deleted = false`,
-          [tenantId, branchId, itemId],
+          WHERE tenant_id = $1 AND id = $2 AND is_deleted = false`,
+          [tenantId, itemId],
         );
         return result.rows[0] ? this.mapRow(result.rows[0]) : null;
       },
-      { branchId },
+      {},
     );
   }
 
@@ -89,8 +88,8 @@ export class PostgresItemMasterRepository implements ItemRepository {
       this.tenantContextKey,
       tenantId,
       async (client) => {
-        const values: unknown[] = [tenantId, query.branchId];
-        const filters = ['tenant_id = $1', ' = $2', 'is_deleted = false'];
+        const values: unknown[] = [tenantId];
+        const filters = ['tenant_id = $1', 'is_deleted = false'];
         if (query.search) {
           values.push(`%${query.search}%`);
           filters.push(`(code ILIKE $${values.length} OR name ILIKE $${values.length})`);
@@ -110,7 +109,7 @@ export class PostgresItemMasterRepository implements ItemRepository {
         );
         return { items: result.rows.map((row) => this.mapRow(row)), total: Number(count.rows[0]?.count ?? 0) };
       },
-      { branchId: query.branchId },
+      {},
     );
   }
 
@@ -126,12 +125,11 @@ export class PostgresItemMasterRepository implements ItemRepository {
   }): Promise<ItemRecord | null> {
     return this.mutate(
       input.tenantId,
-      input.branchId,
       input.actorUserId,
       `UPDATE inventory_items
           SET name=$1, description=$2, unit_of_measure=$3, sales_eligible=$4,
               updated_at=NOW(), updated_by=$5, version=version+1
-        WHERE tenant_id=$6 AND tenant_id=$7 AND id=$8 AND is_deleted=false AND version=$9
+        WHERE tenant_id=$6 AND id=$7 AND is_deleted=false AND version=$8
         RETURNING ${ITEM_COLUMNS}`,
       [
         input.name,
@@ -140,7 +138,6 @@ export class PostgresItemMasterRepository implements ItemRepository {
         input.salesEligible,
         input.actorUserId,
         input.tenantId,
-        input.branchId,
         input.itemId,
         input.expectedVersion,
       ],
@@ -155,13 +152,12 @@ export class PostgresItemMasterRepository implements ItemRepository {
   }): Promise<ItemRecord | null> {
     return this.mutate(
       input.tenantId,
-      input.branchId,
       input.actorUserId,
       `UPDATE inventory_items
           SET is_deleted=true, deleted_at=NOW(), deleted_by=$1, updated_at=NOW(), updated_by=$1, version=version+1
-        WHERE tenant_id=$2 AND tenant_id=$3 AND id=$4 AND is_deleted=false AND version=$5
+        WHERE tenant_id=$2 AND id=$3 AND is_deleted=false AND version=$4
         RETURNING ${ITEM_COLUMNS}`,
-      [input.actorUserId, input.tenantId, input.branchId, input.itemId, input.expectedVersion],
+      [input.actorUserId, input.tenantId, input.itemId, input.expectedVersion],
     );
   }
 
@@ -179,7 +175,7 @@ export class PostgresItemMasterRepository implements ItemRepository {
         const result = await client.query(query, values);
         return result.rows[0] ? this.mapRow(result.rows[0]) : null;
       },
-      { branchId, userId: actorUserId },
+      { userId: actorUserId },
     );
   }
 

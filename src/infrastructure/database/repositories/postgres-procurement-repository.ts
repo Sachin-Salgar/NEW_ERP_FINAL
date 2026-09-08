@@ -114,7 +114,14 @@ export class PostgresProcurementRepository implements ProcurementRepository {
     return this.list(c, 'procurement_suppliers', page, pageSize, 'name');
   }
   async getSupplier(c: ProcurementContext, id: string) {
-    return this.get(c, 'procurement_suppliers', id);
+    return this.run(c, async (db) =>
+      (
+        await db.query(
+          `SELECT * FROM procurement_suppliers WHERE id=$1 AND tenant_id=$2 AND is_deleted=false`,
+          [id, c.tenantId],
+        )
+      ).rows[0] ?? null,
+    );
   }
   async updateSupplier(c: ProcurementContext & { id: string; name: string; email?: string; expectedVersion: number }) {
     return this.update(c, 'procurement_suppliers', c.id, c.expectedVersion, 'name=$5,email=$6', [

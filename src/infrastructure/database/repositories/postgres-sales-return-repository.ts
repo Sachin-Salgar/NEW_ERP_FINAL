@@ -16,24 +16,24 @@ export class PostgresSalesReturnRepository implements SalesReturnRepository {
       i.tenantId,
       async (c) => {
         const e = await c.query(
-          `SELECT ${C} FROM sales_returns WHERE tenant_id=$1 AND tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4 AND (idempotency_key=$5 OR invoice_id=$6)`,
-          [i.tenantId, i.branchId, i.branchId, i.financialYearId, i.idempotencyKey, i.invoiceId],
+          `SELECT ${C} FROM sales_returns WHERE tenant_id=$1 AND branch_id=$2 AND financial_year_id=$3 AND (idempotency_key=$4 OR invoice_id=$5)`,
+          [i.tenantId, i.branchId, i.financialYearId, i.idempotencyKey, i.invoiceId],
         );
         if (e.rows[0]) {
           if (!i.allowReplay) throw new ValidationError('Unable to create a Sales Return with the supplied request.');
           return this.map(c, e.rows[0]);
         }
         const inv = await c.query(
-          `SELECT i.id,i.delivery_id AS "deliveryId",i.customer_id AS "customerId",i.status,d.warehouse_id AS "warehouseId" FROM sales_invoices i JOIN sales_deliveries d ON d.id=i.delivery_id AND d.tenant_id=i.tenant_id WHERE i.id=$1 AND i.tenant_id=$2 AND i.branch_id =$3 AND i.branch_id=$4 AND i.financial_year_id=$5`,
-          [i.invoiceId, i.tenantId, i.branchId, i.branchId, i.financialYearId],
+          `SELECT i.id,i.delivery_id AS "deliveryId",i.customer_id AS "customerId",i.status,d.warehouse_id AS "warehouseId" FROM sales_invoices i JOIN sales_deliveries d ON d.id=i.delivery_id AND d.tenant_id=i.tenant_id WHERE i.id=$1 AND i.tenant_id=$2 AND i.branch_id =$3 AND i.financial_year_id=$4`,
+          [i.invoiceId, i.tenantId, i.branchId, i.financialYearId],
         );
         if (!inv.rows[0] || inv.rows[0].status !== 'ISSUED')
           throw new ValidationError('Only an issued invoice in the active context can create a Sales Return.');
         if (!inv.rows[0].warehouseId)
           throw new ValidationError('The source delivery has no Inventory warehouse context.');
         const source = await c.query(
-          `SELECT i.id,i.line_number AS "lineNumber",d.item_id AS "itemId",description,i.quantity,i.unit_price AS "unitPrice",i.unit_of_measure AS "unitOfMeasure" FROM sales_invoice_items i JOIN sales_delivery_items d ON d.id=i.delivery_item_id AND d.tenant_id=i.tenant_id WHERE i.invoice_id=$1 AND i.tenant_id=$2 AND i.branch_id =$3 AND i.branch_id=$4 AND i.financial_year_id=$5 ORDER BY i.line_number`,
-          [i.invoiceId, i.tenantId, i.branchId, i.branchId, i.financialYearId],
+          `SELECT i.id,i.line_number AS "lineNumber",d.item_id AS "itemId",description,i.quantity,i.unit_price AS "unitPrice",i.unit_of_measure AS "unitOfMeasure" FROM sales_invoice_items i JOIN sales_delivery_items d ON d.id=i.delivery_item_id AND d.tenant_id=i.tenant_id WHERE i.invoice_id=$1 AND i.tenant_id=$2 AND i.branch_id =$3 AND i.financial_year_id=$4 ORDER BY i.line_number`,
+          [i.invoiceId, i.tenantId, i.branchId, i.financialYearId],
         );
         const requested = new Map(
           (i.items ?? source.rows.map((x: any) => ({ invoiceItemId: x.id, quantity: Number(x.quantity) }))).map(
@@ -105,8 +105,8 @@ export class PostgresSalesReturnRepository implements SalesReturnRepository {
       this.key,
       t,
       async (c) => {
-        const v: any[] = [t, q.branchId, q.branchId, q.financialYearId],
-          f = ['tenant_id=$1', '=$2', 'branch_id=$3', 'financial_year_id=$4'];
+        const v: any[] = [t, q.branchId, q.financialYearId],
+          f = ['tenant_id=$1', 'branch_id=$2', 'financial_year_id=$3'];
         if (q.search) {
           v.push(`%${q.search}%`);
           f.push(`(return_number ILIKE $${v.length} OR status::text ILIKE $${v.length})`);
@@ -129,7 +129,7 @@ export class PostgresSalesReturnRepository implements SalesReturnRepository {
   async update(i: any) {
     return this.mutate(
       i,
-      `UPDATE sales_returns SET notes=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND tenant_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND status='REQUESTED' AND version_number=$8 RETURNING ${C}`,
+      `UPDATE sales_returns SET notes=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND id=$6 AND status='REQUESTED' AND version_number=$7 RETURNING ${C}`,
       [
         i.notes,
         i.actorUserId,
@@ -144,7 +144,7 @@ export class PostgresSalesReturnRepository implements SalesReturnRepository {
   async transition(i: any) {
     return this.mutate(
       i,
-      `UPDATE sales_returns SET status=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND tenant_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND version_number=$8 RETURNING ${C}`,
+      `UPDATE sales_returns SET status=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND id=$6 AND version_number=$7 RETURNING ${C}`,
       [
         i.status,
         i.actorUserId,
@@ -159,8 +159,8 @@ export class PostgresSalesReturnRepository implements SalesReturnRepository {
   async process(i: any) {
     return this.mutate(
       i,
-      `UPDATE sales_returns SET status='PROCESSED',inventory_status='COMPLETED',updated_at=now(),updated_by=$1,version_number=version_number+1 WHERE tenant_id=$2 AND tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND id=$6 AND status='APPROVED' AND inventory_status='NOT_CONNECTED' AND version_number=$7 RETURNING ${C}`,
-      [i.actorUserId, i.tenantId, i.branchId, i.branchId, i.financialYearId, i.returnId, i.expectedVersion],
+      `UPDATE sales_returns SET status='PROCESSED',inventory_status='COMPLETED',updated_at=now(),updated_by=$1,version_number=version_number+1 WHERE tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4 AND id=$5 AND status='APPROVED' AND inventory_status='NOT_CONNECTED' AND version_number=$6 RETURNING ${C}`,
+      [i.actorUserId, i.tenantId, i.branchId, i.financialYearId, i.returnId, i.expectedVersion],
     );
   }
   private async mutate(i: any, s: string, v: any[]) {
@@ -177,7 +177,7 @@ export class PostgresSalesReturnRepository implements SalesReturnRepository {
   }
   private async getOn(c: any, t: string, b: string, fy: string, id: string) {
     const r = await c.query(
-      `SELECT ${C} FROM sales_returns WHERE tenant_id=$1 AND tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4 AND id=$5`,
+      `SELECT ${C} FROM sales_returns WHERE tenant_id=$1 AND branch_id=$2 AND financial_year_id=$3 AND id=$4`,
       [t, b, fy, id],
     );
     return r.rows[0] ? this.map(c, r.rows[0]) : null;

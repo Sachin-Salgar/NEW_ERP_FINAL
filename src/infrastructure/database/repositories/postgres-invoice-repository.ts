@@ -17,16 +17,16 @@ export class PostgresInvoiceRepository implements InvoiceRepository {
       i.tenantId,
       async (c) => {
         const existing = await c.query(
-          `SELECT ${C} FROM sales_invoices WHERE tenant_id=$1 AND tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4 AND (idempotency_key=$5 OR delivery_id=$6)`,
-          [i.tenantId, i.branchId, i.branchId, i.financialYearId, i.idempotencyKey, i.deliveryId],
+          `SELECT ${C} FROM sales_invoices WHERE tenant_id=$1 AND branch_id=$2 AND financial_year_id=$3 AND (idempotency_key=$4 OR delivery_id=$5)`,
+          [i.tenantId, i.branchId, i.financialYearId, i.idempotencyKey, i.deliveryId],
         );
         if (existing.rows[0]) {
           if (!i.allowReplay) throw new ValidationError('Unable to create an invoice with the supplied request.');
           return this.map(c, existing.rows[0]);
         }
         const delivery = await c.query(
-          `SELECT d.id,d.sales_order_id AS "salesOrderId",d.customer_id AS "customerId",d.status,o.subtotal,o.discount_total AS "discountTotal",o.total FROM sales_deliveries d JOIN sales_orders o ON o.id=d.sales_order_id AND o.tenant_id=d.tenant_id WHERE d.id=$1 AND d.tenant_id=$2 AND d.branch_id =$3 AND d.branch_id=$4 AND d.financial_year_id=$5`,
-          [i.deliveryId, i.tenantId, i.branchId, i.branchId, i.financialYearId],
+          `SELECT d.id,d.sales_order_id AS "salesOrderId",d.customer_id AS "customerId",d.status,o.subtotal,o.discount_total AS "discountTotal",o.total FROM sales_deliveries d JOIN sales_orders o ON o.id=d.sales_order_id AND o.tenant_id=d.tenant_id WHERE d.id=$1 AND d.tenant_id=$2 AND d.branch_id =$3 AND d.financial_year_id=$4`,
+          [i.deliveryId, i.tenantId, i.branchId, i.financialYearId],
         );
         if (!delivery.rows[0] || delivery.rows[0].status !== 'COMPLETED')
           throw new ValidationError('Only a completed Delivery in the active context can create an invoice.');
@@ -81,8 +81,8 @@ export class PostgresInvoiceRepository implements InvoiceRepository {
       this.key,
       t,
       async (c) => {
-        const v: any[] = [t, q.branchId, q.branchId, q.financialYearId],
-          f = ['tenant_id=$1', '=$2', 'branch_id=$3', 'financial_year_id=$4'];
+        const v: any[] = [t, q.branchId, q.financialYearId],
+          f = ['tenant_id=$1', 'branch_id=$2', 'financial_year_id=$3'];
         if (q.search) {
           v.push(`%${q.search}%`);
           f.push(`(invoice_number ILIKE $${v.length} OR status::text ILIKE $${v.length})`);
@@ -105,7 +105,7 @@ export class PostgresInvoiceRepository implements InvoiceRepository {
   async update(i: any) {
     return this.mutate(
       i,
-      `UPDATE sales_invoices SET notes=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND tenant_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND status='DRAFT' AND version_number=$8 RETURNING ${C}`,
+      `UPDATE sales_invoices SET notes=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND id=$6 AND status='DRAFT' AND version_number=$7 RETURNING ${C}`,
       [
         i.notes,
         i.actorUserId,
@@ -120,7 +120,7 @@ export class PostgresInvoiceRepository implements InvoiceRepository {
   async transition(i: any) {
     return this.mutate(
       i,
-      `UPDATE sales_invoices SET status=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND tenant_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND version_number=$8 RETURNING ${C}`,
+      `UPDATE sales_invoices SET status=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND id=$6 AND version_number=$7 RETURNING ${C}`,
       [
         i.status,
         i.actorUserId,
@@ -135,7 +135,7 @@ export class PostgresInvoiceRepository implements InvoiceRepository {
   async updateTaxSnapshot(i: any) {
     return this.mutate(
       i,
-      `UPDATE sales_invoices SET tax_status='CALCULATED',tax_reference=$1,tax_rate=$2,taxable_amount=$3,tax_amount=$4,updated_at=now(),updated_by=$5,version_number=version_number+1 WHERE tenant_id=$6 AND tenant_id=$7 AND branch_id=$8 AND financial_year_id=$9 AND id=$10 AND status='DRAFT' RETURNING ${C}`,
+      `UPDATE sales_invoices SET tax_status='CALCULATED',tax_reference=$1,tax_rate=$2,taxable_amount=$3,tax_amount=$4,updated_at=now(),updated_by=$5,version_number=version_number+1 WHERE tenant_id=$6 AND branch_id=$7 AND financial_year_id=$8 AND id=$9 AND status='DRAFT' RETURNING ${C}`,
       [
         i.taxReference,
         i.taxRate,
@@ -152,8 +152,8 @@ export class PostgresInvoiceRepository implements InvoiceRepository {
   async updateFinanceStatus(i: any) {
     return this.mutate(
       i,
-      `UPDATE sales_invoices SET finance_status='POSTED',finance_reference=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND tenant_id=$4 AND branch_id=$5 AND financial_year_id=$6 AND id=$7 AND status='DRAFT' RETURNING ${C}`,
-      [i.financeReference, i.actorUserId, i.tenantId, i.branchId, i.branchId, i.financialYearId, i.invoiceId],
+      `UPDATE sales_invoices SET finance_status='POSTED',finance_reference=$1,updated_at=now(),updated_by=$2,version_number=version_number+1 WHERE tenant_id=$3 AND branch_id=$4 AND financial_year_id=$5 AND id=$6 AND status='DRAFT' RETURNING ${C}`,
+      [i.financeReference, i.actorUserId, i.tenantId, i.branchId, i.financialYearId, i.invoiceId],
     );
   }
   private async mutate(i: any, sql: string, v: any[]) {
@@ -170,7 +170,7 @@ export class PostgresInvoiceRepository implements InvoiceRepository {
   }
   private async getOn(c: any, t: string, b: string, fy: string, id: string) {
     const r = await c.query(
-      `SELECT ${C} FROM sales_invoices WHERE tenant_id=$1 AND tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4 AND id=$5`,
+      `SELECT ${C} FROM sales_invoices WHERE tenant_id=$1 AND branch_id=$2 AND financial_year_id=$3 AND id=$4`,
       [t, b, fy, id],
     );
     return r.rows[0] ? this.map(c, r.rows[0]) : null;

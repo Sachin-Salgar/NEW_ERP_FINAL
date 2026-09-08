@@ -624,6 +624,7 @@ export const salesQuotationSchemas = {
     quotationDate: z.string().date(),
     validUntil: z.string().date(),
     notes: z.string().nullable().optional(),
+    expectedVersion: z.number().int().positive(),
     items: z
       .array(
         z.object({
