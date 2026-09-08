@@ -4,9 +4,9 @@
 
 ## 16.1 Introduction
 
-The dashboard is a primary workspace presented after authentication. It provides relevant business information, pending tasks, alerts, reports, and operational metrics appropriate to the user's responsibilities and organization context.
+The dashboard is a primary workspace presented after authentication. It provides relevant business information, pending tasks, alerts, reports, and operational metrics appropriate to the user's responsibilities and tenant context.
 
-The dashboard may adapt to the user's authorized capabilities, organization configuration, and enabled modules. Client-side visibility is a presentation concern; backend authorization remains authoritative.
+The dashboard may adapt to the user's authorized capabilities, tenant configuration, and enabled modules. Client-side visibility is a presentation concern; backend authorization remains authoritative.
 
 ## 16.2 Objectives
 
@@ -28,7 +28,7 @@ Dashboards should be:
 - Data-driven.
 - Consistent with the design system.
 
-Displayed information must respect the user's organization context and authorized access. The frontend must not be treated as the security boundary.
+Displayed information must respect the user's tenant context and authorized access. The frontend must not be treated as the security boundary.
 
 ## 16.4 Dashboard Components
 
@@ -103,7 +103,7 @@ Users may be allowed to customize, where the product feature supports it:
 - Favorite reports.
 - Quick actions.
 
-Persisted personalization should be scoped to the appropriate user and organization context.
+Persisted personalization should be scoped to the appropriate user and tenant context.
 
 ## 16.9 Performance
 

@@ -69,7 +69,7 @@ Every job shall include:
 - Job Identifier.
 - Job Type.
 - Payload.
-- Organization/Tenant Context where applicable.
+- Tenant Context and Branch association where applicable.
 - Priority.
 - Status.
 - Retry Count.

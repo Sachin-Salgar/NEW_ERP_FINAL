@@ -27,8 +27,8 @@ The ERP architecture is driven by five primary objectives:
 | Objective | Description |
 |-----------|-------------|
 | **Unified Business Platform** | Single platform managing all business operations (Sales, Purchase, Inventory, Manufacturing, Accounting, HR, Payroll, Assets, CRM, Reporting) |
-| **Modular Licensing** | Organizations subscribe only to required modules; interface adapts dynamically |
-| **Multi-Tenant Platform** | Multiple organizations use the same instance with complete logical data isolation |
+| **Modular Licensing** | Tenants subscribe only to required modules; interface adapts dynamically |
+| **Multi-Tenant Platform** | Multiple Tenants use the same instance with complete logical data isolation |
 | **Cross-Platform Operation** | Consistent experience across Windows Desktop, Android, Web, with future iOS/macOS/Linux support |
 | **Long-Term Maintainability** | New modules added without modifying core; consistent standards; minimal technical debt |
 

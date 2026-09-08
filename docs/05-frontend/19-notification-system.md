@@ -8,7 +8,7 @@ Notifications keep users informed about important business events, approvals, de
 
 The frontend shall provide a consistent notification experience while integrating with the backend notification framework. Notification generation and authoritative notification state remain backend responsibilities.
 
-Notifications should be timely, relevant, actionable, and appropriately scoped to the user and organization context.
+Notifications should be timely, relevant, actionable, and appropriately scoped to the user and tenant context.
 
 ## 19.2 Objectives
 

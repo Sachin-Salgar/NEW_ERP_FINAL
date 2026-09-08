@@ -10,10 +10,10 @@ Sales transaction-facing lines reference Item Master through a nullable
 delivery rows remain unchanged when no authoritative item identity exists;
 they are not backfilled by inference. New order conversion requires every
 source line to have an active, sales-eligible Item Master item in the active
-organization.
+tenant.
 
-Sales Orders carry an organization-owned Inventory `warehouse_id`. New order
-conversion requires an active warehouse in the authenticated organization.
+Sales Orders carry a tenant-owned Inventory `warehouse_id`. New order
+conversion requires an active warehouse in the authenticated tenant.
 Warehouse and item identity are copied to order lines as immutable transaction
 references. Sales does not calculate stock or write Inventory persistence.
 

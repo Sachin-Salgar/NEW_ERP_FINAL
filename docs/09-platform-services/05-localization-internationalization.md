@@ -74,7 +74,7 @@ Regional settings may include:
 - Measurement system.
 - Locale.
 
-Inheritance from tenant/organization configuration must follow the configuration framework's explicit precedence rules.
+Inheritance from tenant configuration must follow the configuration framework's explicit precedence rules.
 
 ## Integration
 

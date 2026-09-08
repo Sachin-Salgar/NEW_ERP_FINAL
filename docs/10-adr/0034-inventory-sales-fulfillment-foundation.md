@@ -2,7 +2,7 @@
 
 **Status:** Approved for the bounded implementation milestone  
 **Date:** 2026-09-05  
-**Scope:** Organization-scoped Inventory warehouse, stock, reservation, fulfillment, and return contracts used by Sales.
+**Scope:** Tenant-scoped Inventory warehouse, stock, reservation, fulfillment, and return contracts used by Sales.
 
 ## Context
 
@@ -12,11 +12,11 @@ does not yet define the minimum operational semantics for these integrations.
 
 ## Decision
 
-1. Warehouses are tenant-owned records belonging to exactly one organization.
+1. Warehouses are tenant-owned records belonging to exactly one Tenant.
 2. Warehouses have explicit `ACTIVE` and `INACTIVE` states. Inactive warehouses
    cannot receive stock, create reservations, fulfill reservations, or process
    returns.
-3. The bounded stock balance is keyed by tenant, organization, warehouse, and
+3. The bounded stock balance is keyed by tenant, warehouse, and
    item. Item Master remains the owner of item identity and base unit of measure.
 4. Stock exposes `on_hand`, `reserved`, and `available`, where
    `available = on_hand - reserved`. `on_hand` and `reserved` are never
@@ -35,7 +35,7 @@ does not yet define the minimum operational semantics for these integrations.
 11. Reservation and fulfillment operations execute in a database transaction
     with row locking. Retries with the same source/operation key return the
     existing result and do not duplicate state changes.
-12. Transaction-facing reservations preserve the authenticated organization,
+12. Transaction-facing reservations preserve the authenticated Tenant,
     branch, and financial-year context. Tenant authority comes only from the
     authenticated server context.
 

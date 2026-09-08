@@ -7,13 +7,13 @@
 
 All contracts are provider-neutral application ports or approved domain events.
 No Sales implementation may query or mutate another module's private tables.
-Every request carries authenticated tenant context, authorized organization
-context, actor/session identity where applicable, correlation ID, source
+Every request carries authenticated Tenant context, Branch authorization where
+applicable, actor/session identity where applicable, correlation ID, source
 document ID/version, and an idempotency key for retriable mutations.
 
 | Boundary | Sales responsibility | Owning module responsibility | Required contract/output | Status |
 |---|---|---|---|---|
-| CRM/Customer | validate/reference customer and permitted contact context | customer master and relationship ownership | tenant/org-safe customer lookup and status | Existing Customer contract must be published |
+| CRM/Customer | validate/reference customer and permitted contact context | customer master and relationship ownership | tenant-safe customer lookup and status | Existing Customer contract must be published |
 | Inventory | request availability/reservation/fulfillment/disposition | item master, stock, warehouse, movement, reservation | typed reservation, delivery, return, failure, and idempotency results | Item/warehouse references and order reservation activation implemented under ADR-0034/0035; delivery/return effects remain gated |
 | Finance | submit invoice/credit-note accounting consequence | posting, AR, receipts, balances, credit | accepted/rejected posting reference and status | Contract required |
 | Tax | submit taxable lines/context | tax rules, exemptions, components, calculation authority | immutable tax result/version and failure reason | Contract required |
@@ -30,8 +30,8 @@ outbox/job semantics, idempotency, correlation, replay handling, and
 reconciliation states. Exact sync/async choice is **BUSINESS DECISION REQUIRED**
 per contract.
 
-Provider callbacks/events must be authenticated, tenant-bound, organization
-validated, version-checked, idempotent, and audited. Sales must never trust
+Provider callbacks/events must be authenticated, tenant-bound, Branch-authorized
+where applicable, version-checked, idempotent, and audited. Sales must never trust
 client-supplied tenant IDs or provider references without ownership validation.
 
 ## Explicit prohibitions
@@ -46,8 +46,8 @@ Workflow, Notifications, and Documents. Provider implementations remain
 
 ## IMPLEMENTATION STATUS
 
-The bounded Inventory provider is implemented with authenticated, organization-
-scoped APIs and typed application operations for receipt, reservation, release,
+The bounded Inventory provider is implemented with authenticated, Tenant-scoped
+APIs and typed application operations for receipt, reservation, release,
 fulfillment, and return. Sales remains prohibited from direct Inventory SQL.
 New quotation lines may persist an Item Master reference, new order conversion
 requires Item Master identity and an active warehouse, and Sales invokes the

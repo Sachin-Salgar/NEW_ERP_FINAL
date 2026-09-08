@@ -14,7 +14,10 @@ The Enterprise ERP System is designed as a modern, modular, scalable, and enterp
 
 The ERP is implemented as a **modular monolith**: business capabilities are organized into logical modules within one backend application and operate on a common platform and database architecture. Modules have explicit boundaries and contracts, but are not independently deployed services in the current architecture.
 
-The platform is designed around the principle that organizations should only use and pay for the functionality they require, with the ability to enable or disable modules through configuration without requiring modifications to the application.
+The platform is designed around the principle that Tenants should only use and
+pay for the functionality they require, with the ability to enable or disable
+modules through `tenant_modules` without requiring modifications to the
+application.
 
 ---
 

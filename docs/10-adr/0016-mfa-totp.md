@@ -22,7 +22,8 @@ Implement optional TOTP-based MFA with explicit enrollment, challenge, recovery,
 6. Apply rate limiting and bounded failed-attempt handling to MFA challenges.
 7. Support policy levels such as optional and required for selected users/roles without weakening tenant authorization.
 8. Recovery/reset of MFA must require an authenticated high-assurance flow or explicitly governed administrator action and must be audited.
-9. MFA state is part of authentication state and must not bypass existing tenant, organization, branch, location, or permission checks.
+9. MFA state is part of authentication state and must not bypass existing Tenant,
+   Branch, domain, or permission checks.
 
 ## Rationale
 

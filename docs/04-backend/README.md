@@ -80,7 +80,7 @@ The backend is responsible for:
 - **Calculations:** Stock calculations, tax computation, financial postings, and other domain calculations.
 - **Workflows:** Approval chains and business processes.
 - **Validation:** Request, business, and domain constraint validation as applicable.
-- **Security:** Authentication, authorization, tenant/organization isolation, and required security controls.
+- **Security:** Authentication, authorization, tenant isolation, and required security controls.
 - **Audit:** Producing authoritative audit records where required by the security/database architecture.
 - **Integration:** Coordinating with the database, platform capabilities, and external integrations.
 
@@ -102,7 +102,8 @@ CPU-intensive workloads such as large report generation, complex optimization, m
 - Justified read-only cross-module access is permitted under the database architecture, particularly for approved reporting/read-model use cases.
 - Internal module interaction uses published application/service interfaces and events where appropriate.
 - REST APIs are the external communication interface for clients and integrations.
-- Module enablement/licensing for an organization is separate from user authorization within that organization.
+- Module enablement/licensing for a Tenant is separate from user authorization
+  within that Tenant and any required Branch authorization.
 
 ## Related Documentation
 

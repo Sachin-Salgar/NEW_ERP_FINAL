@@ -7,7 +7,7 @@
 ## Decision
 
 Sales Deliveries are created only from a `CONFIRMED` Sales Order in the active
-tenant, organization, branch, and financial-year context. Creation snapshots
+tenant, branch, and financial-year context. Creation snapshots
 the order customer and all order lines. A delivery is unique per order and
 context; repeated creation with the same idempotency key returns the existing
 delivery.
@@ -21,7 +21,7 @@ Sales does not reserve stock, pick, issue, or mutate Inventory records because
 no published Inventory provider contract exists in the repository. Those
 operations remain an explicit integration boundary.
 
-Delivery numbers use the existing tenant/organization `code_counters`
+Delivery numbers use the existing tenant `code_counters`
 sequence. All mutations require the authenticated session context and an
 expected version for optimistic concurrency.
 
@@ -30,4 +30,4 @@ expected version for optimistic concurrency.
 The initial slice provides auditable, tenant-safe delivery traceability and
 prevents duplicate deliveries without claiming Inventory success. Inventory
 integration can be added through a provider contract without changing Sales
-ownership or the persisted organizational context.
+ownership or the persisted Tenant/Branch context.

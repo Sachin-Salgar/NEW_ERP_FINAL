@@ -39,7 +39,7 @@ The application may manage several categories of state.
 - Authentication/session context.
 - Current user context.
 - Theme.
-- Organization and branch context.
+- Tenant context and branch authorization state.
 - Frontend representation of permissions/availability.
 
 **Screen State**
@@ -68,7 +68,7 @@ Frontend state is not the authoritative system of record for ERP business data.
 
 A module should expose the state needed by its own screens without directly depending on another module's private state implementation.
 
-Shared state is appropriate for genuinely shared platform/application concerns such as authentication context, theme, organization context, and service registrations.
+Shared state is appropriate for genuinely shared platform/application concerns such as authentication context, theme, tenant context, and service registrations.
 
 GetIt is used for dependency registration and lookup where the implementation requires service-level dependencies rather than widget-scoped state.
 

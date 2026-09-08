@@ -3,7 +3,7 @@
 ## 23.3 Defense in Depth
 Security is enforced at multiple layers: Network -> IAM -> App Logic -> Database RLS.
 
-The tenant model is a single shared PostgreSQL database with tenant isolation enforced by PostgreSQL RLS. The database is not split by plant or location. Multiple organizations and locations operate within the same shared database, with tenant and organization context resolved on the server before any tenant-scoped transaction begins.
+The tenant model is a single shared PostgreSQL database with tenant isolation enforced by PostgreSQL RLS. Branch is the only business subdivision below Tenant; inventory warehouses and other domain-specific physical locations are modeled only where the business domain requires them.
 
 ### Tenant Resolution and Transaction Ordering
 ```text
@@ -11,9 +11,9 @@ Authenticated identity
   ↓
 Tenant-scoped session / authenticated user context
   ↓
-Authorized organization / branch / location membership
+Tenant membership and branch authorization where required
   ↓
-Resolved tenant + organization + branch + location context
+Resolved tenant context with domain-specific branch authorization
   ↓
 TenantContext
   ↓
@@ -24,7 +24,7 @@ SET LOCAL app.current_tenant_id
 PostgreSQL RLS
 ```
 
-This ordering is mandatory. Tenant authority comes from the authenticated session and backend-validated user membership. Client-supplied `tenant_id`, `organization_id`, `branch_id`, or `location_id` values do not become the security boundary. The backend validates the full context tuple before it becomes active and fails closed when a combination is invalid.
+This ordering is mandatory. Tenant authority comes from the authenticated session and backend-validated user membership. Client-supplied tenant or branch identifiers do not become the security boundary. The backend validates branch authorization only for operations whose domain requires it and fails closed when authorization is invalid.
 
 ## 23.7 Encryption
 - **In Transit**: Mandatory TLS 1.3 for all database connections.
@@ -43,16 +43,14 @@ Passwords must **never** be stored in the database. Use `argon2id` or `bcrypt` h
 - No shared accounts.
 - Audit logging enabled for all `SUPERUSER` actions.
 
-## 23.14 Tenant, Organization, Branch, and Location Context
+## 23.14 Tenant and Branch Context
 The project architecture requires the following domain boundaries:
 
 - **Tenant**: primary security and data-isolation boundary.
-- **Organization**: legal/business entity within the tenant.
-- **Branch**: operational business unit under the organization.
-- **Location**: physical operating site or plant under the organization.
-- **Membership**: user-to-tenant or user-to-organization authorization relationship.
-- **Branch access** and **Location access**: user permission to operate within specific operational contexts.
+- **Branch**: operational/statutory subdivision directly under the tenant.
+- **Membership**: user-to-tenant authorization relationship.
+- **Branch access**: application/domain authorization for operations that require a branch.
 
-Branch and Location are siblings under Organization. They are not parent/child and are not interchangeable. The effective working context is the complete tuple `tenantId + organizationId + branchId + locationId`. A user changing working context remains within the same tenant unless the backend explicitly resolves a different authorized tenant-scoped session. The backend is authoritative for authorization and context switching; a failed switch preserves the previous valid context.
+Branch is not a tenant or RLS boundary. A branch-aware operation remains within the authenticated tenant, and backend authorization is authoritative.
 
-No default tenant, fallback tenant, or hardcoded tenant identifier is permitted for standard business operations. Recovery from a missing or invalid tenant context must fail closed. The migration `0006-default-location-context.sql` adds persisted default location support using `users.default_location_id` and retains a tenant-safe relationship for authorization.
+No default tenant, fallback tenant, or hardcoded tenant identifier is permitted for standard business operations. Recovery from a missing or invalid tenant context must fail closed.

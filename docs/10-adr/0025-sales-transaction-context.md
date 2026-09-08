@@ -6,25 +6,24 @@
 
 ## Problem
 
-The approved organizational-isolation standard requires transactional records
-to retain tenant, organization, branch, and financial-year ownership. Existing
-sessions already carried the authenticated tenant, organization, branch, and
-location context, but did not carry a financial year. Sales quotations
+The approved tenant-isolation standard requires transactional records
+to retain tenant, branch, and financial-year ownership. Existing
+sessions already carried the authenticated tenant and branch context, but did not
+carry a financial year. Sales quotations
 therefore could not persist the complete authorized transaction context.
 
 ## Decision
 
 The authenticated session carries an optional `financial_year_id` alongside its
-existing organization, branch, and location context.
+existing tenant and branch context.
 
 - The tenant remains established only by authenticated identity.
-- Organization and branch remain server-validated working context.
-- A context-selection request must name an organization, authorized branch,
-  authorized location, and financial year.
+- Branch remains server-validated working context.
+- A context-selection request must name an authorized branch and financial year.
 - The selected financial year must belong to the active tenant and
-  organization, be non-deleted, active, open, and unlocked.
-- When a new organization session is created without an explicit financial
-  year, the database resolves the organization's single active, open, unlocked
+  tenant, be non-deleted, active, open, and unlocked.
+- When a new tenant session is created without an explicit financial
+  year, the database resolves the tenant's single active, open, unlocked
   financial year. The existing unique active-year constraint makes this
   deterministic; no date-based or first-row selection is allowed.
 - Sales quotation creation requires the session's branch and financial-year
@@ -50,9 +49,9 @@ cross-tenant branch or financial-year references.
 
 ## Consequences
 
-Sales quotations become fully attributable to the required organizational
+Sales quotations become fully attributable to the required tenant/branch
 hierarchy. Existing quotation rows are backfilled only from explicit
-organization defaults; rows without such evidence are preserved and remain a
+tenant defaults; rows without such evidence are preserved and remain a
 visible data-remediation residual rather than receiving invented ownership.
 Other transactional Sales capabilities must consume the same session context
 and must not introduce duplicate context resolution.

@@ -4,9 +4,9 @@
 **Date:** 2026-09-05
 
 Sales owns the initial pricing capability until an authoritative Pricing module
-exists. A price list is organization-scoped, optionally branch-scoped, and
+exists. A price list is tenant-scoped, optionally branch-scoped, and
 contains effective-dated item prices. Only `PUBLISHED` lists are eligible.
-The most specific applicable list (branch, then organization) wins; ties are
+The most specific applicable list (branch, then tenant) wins; ties are
 rejected rather than selected arbitrarily. Customer and Inventory item-master
 integration remain explicit future boundaries.
 

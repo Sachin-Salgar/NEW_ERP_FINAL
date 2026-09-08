@@ -12,8 +12,9 @@ The authoritative ERP definition remains under `docs/` according to the governan
 
 For identity, tenancy, platform administration, deployment boundary, and RLS work, the
 approved decision is `docs/10-adr/0040-platform-identity-membership-and-context.md`.
-ADR-0006, ADR-0011, and ADR-0012 are superseded historical decisions and must not guide
-current implementation.
+ADR-0006 is a superseded historical decision and must not guide current implementation.
+ADR-0010, ADR-0011, and ADR-0012 are current approved architecture decisions for
+Tenant module entitlement, Tenant/Branch context, and Branch access representation.
 
 AI workflow files in `.ai/` explain **how an AI coding assistant should navigate, reason about, implement, and validate changes in the repository**.
 

@@ -120,7 +120,7 @@ Each event shall define:
 - Event Name.
 - Event Version.
 - Event Timestamp.
-- Organization/Tenant Context where applicable.
+- Tenant Context and Branch association where applicable.
 - Event Payload.
 - Correlation Identifier where applicable.
 

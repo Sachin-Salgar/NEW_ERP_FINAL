@@ -5,6 +5,9 @@
 tenant/platform context, authorization, PostgreSQL/RLS, Flutter, seed data, and
 validation.
 
+**Document status:** Historical audit snapshot. Its residue findings describe the
+repository state at the time of the audit and are not current implementation guidance.
+
 ## Executive summary
 
 **Overall status: RED — authoritative guidance required cleanup and implementation

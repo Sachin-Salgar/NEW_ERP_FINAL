@@ -1,66 +1,100 @@
-# ADR-0012: Branch Access Representation
+# ADR-0012 — Branch Access Representation
 
-**Date**: 2026-09-03  
-**Status**: Superseded by ADR-0040
-**Approval Date**: 2026-09-03  
-**Approved By**: Project Owner  
-**Scope**: Tenant-scoped user authorization for Branch records
+- **Status:** Approved
+- **Date:** 2026-09-08
+- **Scope:** Tenant-scoped application authorization for Branch records
 
 ## Context
 
-The ERP must represent Branch authorization consistently with the current database model and PostgreSQL tenant-isolation boundary. The `user_branch_access` table is an access-assignment relation, while activation state is not part of that relation's schema.
+Branch is the operational, statutory, business, or reporting subdivision
+inside a Tenant:
 
-The current schema and migrations define `user_branch_access` with only `tenant_id`, `user_id`, and `branch_id`. This differs intentionally from `user_location_access`, which has its own schema and includes `is_active`.
+```text
+Platform
+  └── Tenant
+       └── Branch
+```
+
+Tenant remains the identity, ownership, authorization, data-isolation, and
+PostgreSQL RLS boundary. Branch access is an application/domain authorization
+dimension within that boundary. Branch access must never be interpreted as a
+second Tenant, database, or RLS context.
 
 ## Decision
 
-Branch authorization is represented by the existence of a tenant-scoped access row in `user_branch_access` for the `(user_id, branch_id)` pair.
+Branch access is represented by a tenant-scoped authorization relationship
+between the authenticated user and the requested Branch. The relationship
+must establish that:
 
-The following constraints remain mandatory for every branch-access operation:
+1. the authenticated user belongs to the Tenant through `tenant_memberships`;
+2. the requested Branch belongs to the authenticated Tenant;
+3. the access relationship identifies the authenticated user and requested
+   Branch; and
+4. the Branch satisfies the current Branch lifecycle and requested domain
+   operation rules when those checks are required by the domain contract.
 
-- the access row and Branch belong to the same tenant;
-- the access row identifies the authenticated user;
-- the access row identifies the requested Branch; and
-- the Branch is valid for any requested Organization context and active-record checks required by the repository.
+The repository representation is a tenant-safe user-to-Branch access
+assignment. Its exact persistence columns and constraints are defined by the
+current schema and migrations; authorization code must not invent lifecycle
+fields or infer access from unrelated domain tables.
 
-`user_branch_access` has no `is_active` field. Repository queries must not filter Branch access using `user_branch_access.is_active`.
+Branch authorization is evaluated only after automatic Tenant context has been
+established. A client-supplied Branch identifier can select the subject of a
+domain operation, but cannot select or change Tenant context.
 
-This decision is specific to `user_branch_access`. The schema and authorization behavior of `user_location_access` must not be generalized from or substituted for the Branch access model.
+## Authorization flow
 
-## Rationale
+```text
+Authenticated identity
+  ↓
+tenant_memberships
+  ↓
+Automatic Tenant context
+  ↓
+Tenant authorization
+  ↓
+Tenant-scoped Branch access relationship
+  ↓
+Branch-aware application operation
+  ↓
+Tenant transaction and PostgreSQL RLS
+```
 
-- It matches the actual current schema and migration history.
-- Access-row existence provides an unambiguous tenant/user/Branch authorization check.
-- Tenant and relationship constraints preserve the PostgreSQL RLS and application authorization boundaries.
-- Keeping Branch and Location access decisions separate avoids imposing a field or lifecycle that the corresponding table does not define.
+Every tenant-scoped query remains protected by `tenant_id` and PostgreSQL RLS.
+Branch access adds application/domain authorization; it does not replace the
+tenant predicate, establish a database session context, or create a new RLS
+policy boundary.
 
-## Alternatives Considered
+## Non-goals and boundaries
 
-1. **Add or assume `is_active` on Branch access rows** — rejected because the current schema and migrations do not define that field.
-2. **Treat Branch access as Organization access** — rejected because Branch authorization is a distinct operational authorization boundary.
-3. **Generalize Location access columns and behavior to Branch access** — rejected because the two access tables intentionally have different schemas.
+- There is no Organization hierarchy above Branch.
+- There is no generic Location hierarchy or Location access model in the
+  platform context architecture.
+- Inventory warehouses, storage locations, bins, and similar physical
+  structures remain owned by their bounded business domain.
+- There is no Tenant selector or switching flow for normal application users.
+- Frontend branch state is presentation state only; backend authorization is
+  authoritative.
 
 ## Consequences
 
-### Positive
+- Branch access is explicit, tenant-safe, and auditable.
+- Revoking Branch access removes or disables the approved access relationship
+  according to the current domain contract.
+- Cross-Tenant Branch access is rejected before the business operation.
+- Branch-aware operations remain subject to Tenant membership, permission
+  checks, and PostgreSQL RLS.
+- Domain modules may require Branch access without making Branch an isolation
+  boundary.
 
-- Repository queries remain aligned with the database contract.
-- Branch authorization remains tenant-safe and explicitly user- and Branch-scoped.
-- Schema differences between Branch and Location access remain visible and intentional.
+## Validation
 
-### Negative
+Validation must prove:
 
-- Revoking Branch access requires removing the access row or using an authorization mechanism defined by a future approved decision; this ADR does not introduce an activation lifecycle.
-- Callers must validate Organization/Branch relationships separately when an Organization context is supplied.
-
-## Implementation Notes
-
-- Use the composite tenant/user/Branch relationship defined by the schema and migrations.
-- Do not add `is_active` predicates to `user_branch_access` queries.
-- Commit `ab542df` is implementation evidence for this decision, not part of the architectural rule.
-
-## Related Documents
-
-- [Organization, Branch, and Location Context Model](./0011-organization-branch-location-context.md)
-- [Organizational Isolation](../03-database/12-organizational-isolation.md)
-- [Backend Authentication and Authorization](../04-backend/07-authentication-and-authorization.md)
+- a user with valid Tenant membership can access only permitted Branches;
+- a user cannot access a Branch belonging to another Tenant;
+- missing or revoked Branch access is denied;
+- Branch identifiers cannot override Tenant context;
+- PostgreSQL RLS still prevents cross-Tenant reads and writes;
+- unrelated inventory/storage location concepts are not used as platform
+  authentication or authorization context.

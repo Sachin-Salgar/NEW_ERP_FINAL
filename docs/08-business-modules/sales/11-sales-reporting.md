@@ -20,7 +20,7 @@ metrics must identify whether Sales, Finance, Inventory, Tax, or Reporting is
 authoritative.
 
 No report may mutate Sales records. Report queries must be tenant-scoped,
-organization-authorized, RLS-protected where backed by tenant data, and
+Branch-authorized where required, RLS-protected where backed by tenant data, and
 deterministically ordered.
 
 ## 3. API/frontend/test requirements
@@ -32,7 +32,7 @@ pagination, filters, exports, and asynchronous job behavior.
 Flutter reporting screens require loading/empty/error/filter/pagination/export
 states and permission-aware navigation. Backend remains authoritative.
 
-Tests must cover authentication, report permission, tenant/org isolation,
+Tests must cover authentication, report permission, tenant isolation,
 cross-tenant GET/LIST, deterministic results, stale/freshness behavior,
 provider failure, audit/access logging, and non-mutation.
 
@@ -42,6 +42,6 @@ provider failure, audit/access logging, and non-mutation.
 
 The document-summary read model is implemented under ADR-0033 for Sales-owned
 Quotation, Order, Delivery, Invoice, Return, and Credit Note facts and the
-authenticated tenant/organization/branch/financial-year context. Cross-module
+authenticated tenant/branch/financial-year context. Cross-module
 measures, exports, freshness guarantees, and BI ownership remain
 **DEPENDENCY-GATED**.

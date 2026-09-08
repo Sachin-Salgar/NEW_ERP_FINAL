@@ -5,7 +5,6 @@
 CREATE TABLE module_name.entity_name (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     tenant_id UUID NOT NULL,
-    organization_id UUID NOT NULL,
     code VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
@@ -27,7 +26,6 @@ CREATE TABLE module_name.entity_name (
 CREATE TABLE module_name.transaction_header (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     tenant_id UUID NOT NULL,
-    organization_id UUID NOT NULL,
     branch_id UUID NOT NULL,
     financial_year_id UUID NOT NULL,
     document_number VARCHAR(50) NOT NULL,
@@ -36,6 +34,6 @@ CREATE TABLE module_name.transaction_header (
     version_number INTEGER DEFAULT 1,
     -- Audit columns ...
     
-    CONSTRAINT uk_transaction_doc_no UNIQUE (tenant_id, organization_id, document_number)
+    CONSTRAINT uk_transaction_doc_no UNIQUE (tenant_id, document_number)
 );
 ```

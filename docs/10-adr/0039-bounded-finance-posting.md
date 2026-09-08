@@ -6,7 +6,7 @@
 ## Decision
 
 Finance owns the minimal receivable posting record required by Sales. A posting
-is scoped to tenant, organization, branch, and financial year and stores document
+is scoped to tenant, branch, and financial year and stores document
 type, document identity, immutable amount, reference, and an idempotency key.
 Invoice issuance creates an `INVOICE` posting; credit-note issuance creates a
 `CREDIT_NOTE` adjustment. Repeated requests return the existing posting and never

@@ -158,6 +158,6 @@ replace tenant isolation.
 # Sales quotation tenancy
 
 Sales quotation and quotation-item records are tenant-owned and
-organization-owned. They use tenant-safe composite foreign keys, transaction
+branch-aware. They use tenant-safe foreign keys, transaction
 local `app.current_tenant_id`, RLS and FORCE RLS, and retain soft-deleted
 records. See the current-phase [Sales Quotation Management specification](../08-business-modules/sales/01-sales-quotation.md).

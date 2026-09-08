@@ -46,7 +46,7 @@ Consumers may cache JWKS for a bounded period. Unknown `kid` may trigger one bou
 
 ## Deployment Configuration
 
-Key material is deployment configuration, not organization-specific application code or tenant data. A deployment must provide the active key and any verification-only public keys through an approved secret/configuration mechanism.
+Key material is deployment configuration, not tenant-specific application code or tenant data. A deployment must provide the active key and any verification-only public keys through an approved secret/configuration mechanism.
 
 A production deployment must not generate an ephemeral signing key at process startup because that would invalidate tokens across restarts and replicas.
 

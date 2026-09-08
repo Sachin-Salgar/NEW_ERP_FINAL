@@ -61,8 +61,8 @@ implementation are deferred for governed migration and are not current architect
 - Tenant-scoped authentication/session context derived from trusted server state.
 - TenantContext and PostgreSQL transaction-local tenant context infrastructure.
 - PostgreSQL RLS integration coverage for tenant isolation/rollback/pool context behavior.
-- Branch and user administration backend/API surfaces; Organization/Location records remain legacy schema residue and are not seeded or used as active architecture levels.
-- Flutter organization, branch, user, role, permission, dashboard, and authentication surfaces.
+- Branch and user administration backend/API surfaces under the Platform → Tenant → Branch architecture.
+- Flutter tenant, branch, user, role, permission, dashboard, and authentication surfaces.
 - Backend RBAC and permission enforcement.
 - Flutter permission state, permission-aware navigation and route guards.
 - Module enablement enforcement.
@@ -74,7 +74,7 @@ implementation are deferred for governed migration and are not current architect
 - Deterministic Postgres-backed CI environment for backend integration and Flutter Web E2E login/dashboard validation.
 - Customer foundation and HTTP API vertical slice, including tenant-scoped persistence, RLS, authorization, soft delete, audit, pagination, validation, and dedicated API integration coverage.
 - Customer Flutter frontend vertical slice, including CRM navigation, permission/module-aware routing, authenticated CRUD screens, server-side search/pagination, soft-delete confirmation, and focused service/routing tests.
-- Bounded Purchase module backend and Flutter navigation vertical slice, including supplier soft-delete, requisition/order lifecycle actions, receipt-to-Inventory integration, purchase permissions/module registration, tenant/organization RLS, optimistic versioning, and migration recovery governance.
+- Bounded Purchase module backend and Flutter navigation vertical slice, including supplier soft-delete, requisition/order lifecycle actions, receipt-to-Inventory integration, purchase permissions/module registration, tenant RLS, optimistic versioning, and migration recovery governance.
 
 ### Remaining work and residuals
 
@@ -102,11 +102,11 @@ implementation are deferred for governed migration and are not current architect
 | ------------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Authentication                              | **COMPLETED**                          | Backend authentication, token/session handling, security tests, and admin/limited-user browser E2E pass in CI.                                                                                     |
 | Session management / refresh / logout       | **COMPLETED**                          | Rotation, replay detection, invalidation, logout, and lifecycle tests pass; browser matrix teardown remains a validation residual.                                                                 |
-| Organization selection                      | **DEFERRED / RETIRED**                 | Not part of the approved Platform → Tenant → Branch architecture; active seed/bootstrap paths no longer create or select organizations.                                                           |
+| Tenant selection                            | **DEFERRED / RETIRED**                 | Normal users do not select or switch tenants; the authenticated session establishes tenant context automatically.                                                                                 |
 | Branch selection                            | **IMPLEMENTED — VALIDATION PENDING**   | Branch is the only business subdivision below Tenant; branch defaults/access remain the supported working-context contract.                                                                        |
-| Location selection                          | **DEFERRED / RETIRED**                 | Not part of the approved architecture; active seed/bootstrap paths no longer create or select generic locations.                                                                                 |
-| Active tenant/branch context                | **IMPLEMENTED — VALIDATION PENDING**   | Active fixture/bootstrap context is tenant-scoped with branch access; legacy organization/location columns remain compatibility residue pending governed cleanup.                                 |
-| Organization administration                 | **DEFERRED / RETIRED**                 | No longer an active architecture or seed/bootstrap target.                                                                                                                                        |
+| Generic location selection                  | **DEFERRED / RETIRED**                 | Generic Location is not an architecture level; domain-specific physical locations remain owned by their bounded module where applicable.                                                           |
+| Active tenant/branch context                | **IMPLEMENTED — VALIDATION PENDING**   | Active fixture/bootstrap context is tenant-scoped with branch access.                                                                                                                               |
+| Tenant administration                       | **COMPLETED**                          | Tenant lifecycle and membership administration are the active platform boundary.                                                                                                                     |
 | Branch administration                       | **COMPLETED**                          | Backend lifecycle operations, Flutter module, integration coverage, and CI validation exist.                                                                                                       |
 | User administration                         | **COMPLETED**                          | Backend administration and Flutter list/create/edit/details/access surfaces are covered by tests and CI.                                                                                           |
 | User → role assignment                      | **COMPLETED**                          | Backend endpoints and Flutter assignment UI are covered by tests and CI.                                                                                                                           |
@@ -199,7 +199,7 @@ resolution is implemented for quotation creation and draft updates, with
 immutable snapshots copied through order and invoice conversion. The Inventory
 provider is
 implemented. Under approved ADR-0035, new Sales quotation lines can carry Item
-Master identity, order conversion requires an active organization warehouse and
+Master identity, order conversion requires an active tenant-owned warehouse and
 item identity, and confirmed orders expose an idempotent reservation operation
 through the typed Inventory boundary. Historical rows remain nullable and are
 not backfilled. Delivery fulfillment is now activated through the typed
@@ -207,15 +207,15 @@ Inventory boundary: delivery creation requires order reservations, copies
 item/warehouse identity, and delivery completion fulfills all source
 reservations idempotently. Sales Return processing now invokes Inventory
 return-to-stock under ADR-0037 with deterministic idempotency and transaction
-rollback. An organization-scoped
+rollback. An inventory-bounded
 Item Master vertical slice is now implemented under the Inventory boundary with
 RLS/FORCE RLS, permission/module gating, audit/versioning, optimistic concurrency,
 and authenticated API coverage. The bounded Inventory foundation now persists
-organization-owned warehouses, stock balances, reservations, fulfillment issues,
+tenant-owned warehouses, stock balances, reservations, fulfillment issues,
 receipts, and return movements under ADR-0034. Sales transaction item/warehouse
 references are now additive in the order contract; delivery and return
 orchestration are connected for new Inventory-backed records. The bounded Tax foundation is implemented under
-ADR-0038 with organization-scoped deterministic rules, authenticated API
+ADR-0038 with tenant-scoped deterministic rules, authenticated API
 administration, RLS/FORCE RLS, and invoice tax snapshots. The bounded Finance
 posting foundation is implemented under ADR-0039 with idempotent invoice and
 credit-note postings, RLS/FORCE RLS, and Sales references. Workflow, Documents,
@@ -234,7 +234,7 @@ or weakened.
 
 Implementation evidence: backend unit and integration suites pass,
 including quotation HTTP authentication coverage and restricted-role
-PostgreSQL tenant/organization isolation, soft-delete, rollback, search, and
+PostgreSQL tenant isolation, soft-delete, rollback, search, and
 RLS/FORCE RLS validation. Backend typecheck, lint, build, migration-recovery
 verification, production dependency audit, Flutter analyzer, full Flutter
 tests, focused Sales route/service tests, and Flutter Web build pass. Full

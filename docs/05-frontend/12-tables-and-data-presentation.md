@@ -40,7 +40,7 @@ Search functionality may include:
 - Saved filters.
 - Search history where useful.
 
-Search behavior shall remain predictable and must respect organization/tenant scope and authorization.
+Search behavior shall remain predictable and must respect tenant scope and authorization.
 
 ## 12.5 Filtering
 

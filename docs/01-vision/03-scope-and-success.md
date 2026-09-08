@@ -51,7 +51,7 @@ The ERP is intended for organizations requiring structured management of busines
 The ERP platform shall include infrastructure for:
 
 - **Authentication & Authorization**: User login, role-based access control, permission enforcement
-- **Organization Management**: Multi-tenant organization, branch, and user management
+- **Tenant and Branch Administration**: Tenant membership, Branch administration, and user management
 - **Module Management**: Module registration, licensing enforcement, feature availability
 - **Subscription Management**: License tracking, module entitlements
 - **Audit Logging**: Immutable audit trails for compliance and forensics
@@ -59,7 +59,7 @@ The ERP platform shall include infrastructure for:
 - **Document Management**: File storage, versioning, retrieval
 - **Notification Services**: User notifications, alerts, escalations
 - **Reporting Infrastructure**: Report engine, standard reports, custom reporting capability
-- **Configuration Management**: Organization settings, system configuration
+- **Configuration Management**: Tenant configuration, Branch configuration where required, and system configuration
 - **API Gateway**: Request routing, validation, rate limiting (architecture level)
 
 ### In-Scope: Business Modules
@@ -118,7 +118,7 @@ At minimum, the ERP platform shall support:
 - User authentication and login
 - Role-based access control
 - Permission management
-- Organization-level user administration
+- Tenant-level user administration with Branch authorization where required
 - User profile management
 
 ### Data Management
@@ -148,7 +148,7 @@ At minimum, the ERP platform shall support:
 ### Administration
 - System configuration
 - Module enablement/disablement
-- Organization settings
+- Tenant settings and Branch settings where the owning domain requires them
 - Backup and recovery procedures
 
 ---
@@ -243,7 +243,7 @@ The project shall be considered architecturally successful when:
 - ✓ No circular dependencies between modules
 
 ### Configuration & Licensing
-- ✓ Organizations can enable or disable modules through configuration
+- ✓ Tenants can enable or disable modules through `tenant_modules`
 - ✓ Module licensing enforced at API, UI, and job levels
 - ✓ User interfaces automatically reflect licensed modules
 - ✓ Unlicensed modules are inaccessible to users and systems
@@ -274,8 +274,8 @@ The project shall be considered architecturally successful when:
 - ✓ Documentation remains current and authoritative
 
 ### Multi-Tenancy
-- ✓ Organizations have complete data isolation
-- ✓ No organization can access another organization's data
+- ✓ Tenants have complete data isolation
+- ✓ No tenant can access another tenant's data
 - ✓ Queries filter by tenant at the database level
 - ✓ Multi-tenancy is enforced by architecture, not trust
 

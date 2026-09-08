@@ -52,7 +52,10 @@ The client must not use the API endpoint as evidence of tenant authorization.
 
 ## 9.5 Authentication and Tenant Session
 
-The frontend integrates with backend authentication to supply credentials/tokens, handle session failures, restore sessions, request tenant selection when needed, display the active tenant, and send authenticated requests.
+The frontend integrates with backend authentication to supply credentials/tokens,
+handle session failures, restore sessions, display the server-established Tenant,
+and send authenticated requests. Normal operation does not request or switch
+Tenant context.
 
 The frontend is not the authority for tenant identity. Tenant access is established by authenticated identity and server-validated tenant membership.
 
@@ -61,20 +64,19 @@ The frontend is not the authority for tenant identity. Tenant access is establis
 ```text
 Configured Backend Endpoint
       ↓
-Login
+Identity and Login
       ↓
 Backend Authentication
       ↓
-Tenant Memberships
+Tenant Membership
       ↓
-One tenant → continue
-Multiple tenants → show tenant selector
+Automatic Tenant Context
       ↓
-Backend validates selection
+Tenant Authorization
       ↓
-Tenant-scoped Session
+Branch Authorization where required
       ↓
-Authenticated API requests
+Tenant-scoped Session and API requests
 ```
 
 The frontend must not require hostname-based tenant discovery or deployment-specific tenant mapping.
@@ -91,9 +93,11 @@ The endpoint identifies the backend deployment only. It does not identify or aut
 
 ### 9.5.3 Flutter Security Responsibilities
 
-Flutter is not the security authority for tenant identity, tenant membership, organization authorization, role/permission evaluation, database RLS, or transaction tenant context.
+Flutter is not the security authority for Tenant identity, Tenant membership,
+Tenant or Branch authorization, role/permission evaluation, database RLS, or
+transaction Tenant context.
 
-Flutter may store the backend endpoint, authenticate, display backend-returned tenant memberships, request an authorized tenant selection, display the active tenant, and send authenticated requests.
+Flutter may store the backend endpoint, authenticate, display the server-established Tenant context, and send authenticated requests. The backend remains the authority for tenant membership and authorization.
 
 Flutter must not invent or override tenant identity, treat a URL/local value/header as proof of tenant authorization, bypass backend membership validation, connect directly to PostgreSQL, or assume UI visibility implies authorization.
 
@@ -119,16 +123,15 @@ State Update
 UI Refresh
 ```
 
-The frontend may maintain a local representation of the active tenant for display and navigation, but the backend remains authoritative.
+The frontend may maintain a local representation of the server-established Tenant context for display and navigation, but the backend remains authoritative.
 
 ## 9.6.1 Frontend Session States
 
 The frontend may represent:
 - Unauthenticated.
 - Authenticating.
-- Authenticated, tenant selection required.
 - Authenticated with active tenant.
-- Authenticated with active location.
+- Authenticated with active branch context where the domain requires it.
 - Unauthorized tenant.
 - Session expired.
 
@@ -158,7 +161,7 @@ ERP Backend
 PostgreSQL
 ```
 
-PostgreSQL must never be directly exposed to the mobile application. Mobile uses the same authentication, tenant membership, tenant selection, authorization, session, and API contract as web.
+PostgreSQL must never be directly exposed to the mobile application. Mobile uses the same authentication, tenant-membership, authorization, session, and API contract as web without a tenant-selection flow.
 
 ## 9.11 Summary
 

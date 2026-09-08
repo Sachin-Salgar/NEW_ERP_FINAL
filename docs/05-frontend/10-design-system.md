@@ -98,7 +98,7 @@ The frontend may support:
 - Dark Theme.
 - System Theme.
 
-Theme support shall follow the capabilities and requirements established by the implemented design system. User theme preferences, when persisted, shall remain scoped to the appropriate user and organization context.
+Theme support shall follow the capabilities and requirements established by the implemented design system. User theme preferences, when persisted, shall remain scoped to the appropriate user and tenant context.
 
 ## 10.10 Component Reuse
 

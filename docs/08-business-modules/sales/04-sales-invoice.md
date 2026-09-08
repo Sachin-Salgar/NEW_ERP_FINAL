@@ -14,7 +14,7 @@ owns authoritative tax calculation. Sales must not write Finance or Tax tables.
 
 ### Header: `sales_invoices`
 
-Candidate fields: UUIDv7 `id`, tenant/org IDs, mandatory branch and financial
+Candidate fields: UUIDv7 `id`, tenant ID, mandatory branch and financial
 year IDs, `invoice_number`, customer ID, sales order ID, delivery ID, invoice
 date, currency, payment terms, due date, tax calculation reference, total
 snapshots, status, `version_number`, canonical audit metadata, and approved
@@ -22,7 +22,7 @@ reversal/cancellation metadata.
 
 ### Detail: `sales_invoice_items`
 
-Candidate fields: UUIDv7 `id`, tenant/org IDs, mandatory branch and financial
+Candidate fields: UUIDv7 `id`, tenant ID, mandatory branch and financial
 year references, `invoice_id`, source order or delivery item reference, line
 number, description snapshot, quantity, unit, unit price, discount snapshot,
 tax snapshot, line totals, and canonical audit columns.
@@ -55,7 +55,7 @@ routing, module enablement, and permissions.
 
 Use tenant-local transactions, RLS/FORCE RLS, immutable issued records,
 version conflicts, audit, rollback, and restricted-role PostgreSQL tests.
-HTTP tests must cover cross-tenant and cross-organization GET/LIST/PATCH/DELETE
+HTTP tests must cover cross-tenant and unauthorized-Branch GET/LIST/PATCH/DELETE
 and finalized-document mutation rejection.
 
 ## 5. Integration boundary

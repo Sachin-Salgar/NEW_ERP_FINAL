@@ -8,7 +8,7 @@ Navigation is the primary mechanism through which users move between dashboards,
 
 The navigation architecture shall provide a consistent, predictable, accessible, and efficient experience while supporting the modular ERP architecture.
 
-Navigation may adapt to the authenticated user's organization context, enabled modules, roles, and permissions. These client-side navigation decisions are for user experience; backend authorization remains authoritative.
+Navigation may adapt to the authenticated user's tenant context, enabled modules, roles, and permissions. These client-side navigation decisions are for user experience; backend authorization remains authoritative.
 
 ## 7.2 Objectives
 
@@ -62,7 +62,7 @@ The primary navigation may include:
 - User Profile.
 - Notifications.
 
-Only capabilities appropriate to the current organization and user should be presented as available. Hiding a navigation item is not a security control.
+Only capabilities appropriate to the current tenant and user should be presented as available. Hiding a navigation item is not a security control.
 
 ## 7.6 Dynamic Navigation
 
@@ -71,7 +71,7 @@ A typical navigation-loading flow is:
 ```text
 Authenticate User
       ↓
-Load Organization Context
+Load authenticated Tenant Context
       ↓
 Load Enabled Modules / Capabilities
       ↓
@@ -130,7 +130,7 @@ Examples include:
 - Stock Report.
 - Payroll Approval.
 
-Favorites shall be associated with the appropriate user and organization context so that they do not expose or reference inaccessible capabilities.
+Favorites shall be associated with the appropriate user and tenant context so that they do not expose or reference inaccessible capabilities.
 
 ## 7.10 Breadcrumb Navigation
 

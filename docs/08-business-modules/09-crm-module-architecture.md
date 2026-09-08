@@ -29,7 +29,8 @@ The CRM module may provide:
 - Customer service and case management where this capability is enabled
 - CRM analytics and customer intelligence
 
-Organizations may enable only the capabilities applicable to their deployment, subject to the platform's module/capability configuration model.
+Tenants may enable only the capabilities applicable to their deployment, subject
+to the platform's module/capability configuration model.
 
 ## 4. Customer Lifecycle
 
@@ -128,15 +129,15 @@ Contacts and customer organizations are separate concepts and may have their own
 
 ### Customer HTTP API foundation
 
-The initial Customer API exposes only the organization-scoped Customer foundation:
+The initial Customer API exposes the tenant-scoped Customer foundation:
 
-- `POST /api/v1/customers` with `organizationId` and `name`
+- `POST /api/v1/customers` with `name`; tenant identity comes from the authenticated session
 - `GET /api/v1/customers` with the standard `page`, `page_size`, `sort`, `order`, and `search` query contract
 - `GET /api/v1/customers/:id`
 - `PATCH /api/v1/customers/:id` with `name`
 - `DELETE /api/v1/customers/:id` for soft deletion
 
-All endpoints require authentication, the corresponding `customer.*` permission, and CRM module enablement for the active organization. Tenant identity is derived from the authenticated session; the request cannot reassign a Customer to another tenant or organization. Normal reads exclude soft-deleted Customers.
+All endpoints require authentication, the corresponding `customer.*` permission, and CRM module enablement for the authenticated tenant. Tenant identity is derived from the authenticated session; the request cannot reassign a Customer to another tenant. Normal reads exclude soft-deleted Customers.
 
 ### Relationships
 
@@ -349,8 +350,8 @@ Authorization is enforced by the backend. Frontend hiding of CRM menus, records,
 
 CRM access shall respect:
 
-- Tenant/organization scope
-- Branch/organizational scope where applicable
+- Tenant scope
+- Branch scope where applicable
 - User permissions
 - Role-based access
 - Record-level restrictions where required
@@ -358,11 +359,11 @@ CRM access shall respect:
 
 Customer and communication data shall not be exposed merely because it is available to another CRM screen or integration.
 
-## 16. Tenant and Organization Scope
+## 16. Tenant Scope
 
-CRM shall operate within the platform's tenant and organization model.
+CRM shall operate within the platform's tenant model, with branch scope where required.
 
-Organization-specific configuration such as lifecycle stages, lead sources, assignment rules, scoring, and campaign categories shall be represented as configuration/data where the architecture permits rather than hard-coded into module logic.
+Tenant-specific configuration such as lifecycle stages, lead sources, assignment rules, scoring, and campaign categories shall be represented as configuration/data where the architecture permits rather than hard-coded into module logic.
 
 ## 17. Auditability and History
 
@@ -405,7 +406,7 @@ Typical CRM reports include:
 - Customer-service cases
 - CRM executive dashboard
 
-Reports must respect authorization and tenant/organization scope.
+Reports must respect authorization and tenant scope.
 
 ## 21. Future Extensions
 
@@ -430,7 +431,7 @@ The AI must:
 - Keep CRM as a logical module within the modular monolith unless an explicit architecture decision changes that.
 - Reuse established platform services instead of creating duplicate authentication, authorization, notification, audit, workflow, or file-storage systems.
 - Keep other modules' authoritative data within their owning boundaries.
-- Treat configuration as data where the architecture requires organization-specific behavior.
+- Treat configuration as data where the architecture requires tenant-specific behavior.
 - Avoid inventing external providers or integrations.
 - Avoid inventing regulatory, tax, SLA, retention, or security requirements.
 - Preserve historical CRM records where required for auditability.

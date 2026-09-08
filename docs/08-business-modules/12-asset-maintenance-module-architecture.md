@@ -48,7 +48,9 @@ An asset may include:
 - Ownership classification
 - Configurable additional attributes
 
-Supported ownership classifications include owned, leased, rented, customer-owned, vendor-owned, and shared assets where required by the organization.
+Supported ownership classifications include owned, leased, rented, customer-owned,
+vendor-owned, and shared assets where required by the Tenant or owning business
+contract.
 
 Asset records may reference controlled documents such as manuals, drawings, schematics, installation guides, maintenance procedures, safety instructions, certificates, and warranty documents. Document storage and versioning use the established document/file-storage boundary rather than a separate module-specific storage mechanism.
 
@@ -56,11 +58,14 @@ Asset activation should validate configured uniqueness and required-data rules, 
 
 ## 4. Asset Hierarchy and Location
 
-Assets may be organized using configurable relationships such as:
+Assets are Tenant-owned records. Where the business operation requires it, an
+asset may be associated with a Branch and may also reference legitimate physical
+or operational structures:
 
-Organization → Business Unit → Plant → Area → Production Line → Machine → Subassembly → Component
+Tenant → Branch (where applicable) → Plant → Area → Production Line → Machine → Subassembly → Component
 
-Organizations may define additional hierarchy levels.
+Additional hierarchy levels are domain configuration, not generic platform
+security or context levels.
 
 Location structures may include country, region, state, city, campus, plant, building, floor, room, production area, warehouse, vehicle, or other configured locations.
 
@@ -313,7 +318,7 @@ Not every module interaction is required to be event-driven. Synchronous applica
 
 Asset Maintenance follows the central security architecture.
 
-It must support the applicable centralized authorization model, tenant/organization isolation, auditability, and segregation-of-duties requirements.
+It must support the applicable centralized authorization model, tenant isolation, auditability, and segregation-of-duties requirements.
 
 Asset-level or plant-level permissions may be implemented as domain authorization rules where required, but they do not replace centralized authentication or authorization architecture.
 
@@ -321,7 +326,7 @@ Contractor and external-user access must use established identity and authorizat
 
 Operational history, asset movement, work-order execution, warranty claims, approvals, and other records requiring traceability must remain auditable.
 
-## 20. Configuration and Organization Variability
+## 20. Configuration and Tenant Variability
 
 The following are configuration/data concerns rather than universal hard-coded assumptions:
 
@@ -340,11 +345,12 @@ The following are configuration/data concerns rather than universal hard-coded a
 - Identification mechanisms
 - Quality/compliance requirements
 
-The module must not hard-code organization-specific policies as universal ERP behavior.
+The module must not hard-code tenant-specific policies as universal ERP behavior.
 
 ## 21. Scalability and Deployment
 
-The architecture must support the platform's multi-organization and multi-site requirements without requiring a separate implementation for each organization.
+The architecture must support the platform's multi-Tenant and multi-site
+requirements without requiring a separate implementation for each Tenant.
 
 Large asset populations, multiple plants/sites, distributed maintenance teams, and high-volume telemetry may require appropriate infrastructure and integration architecture, but specific cloud, edge, IoT, GIS, or orchestration technologies are deployment decisions and are not mandated by this module document.
 

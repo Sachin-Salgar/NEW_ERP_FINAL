@@ -11,9 +11,9 @@ The conversion preserves the quotation link and snapshots its customer and
 items. Orders use the lifecycle `DRAFT -> CONFIRMED -> CANCELLED`; `CLOSED`
 is available for delivery compatibility. No inventory reservation is performed
 in this slice; future reservation uses an owner-neutral provider boundary.
-Order numbers are server-generated with the tenant/organization `code_counters`
-sequence and are collision-safe. Tenant, organization, branch, and financial
-year ownership are immutable. Orders use canonical audit, optimistic versioning,
+Order numbers are server-generated with the tenant `code_counters`
+sequence and are collision-safe. Tenant, branch, and financial-year ownership
+are immutable. Orders use canonical audit, optimistic versioning,
 and draft-only soft deletion consistent with quotations.
 
 ## Consequences

@@ -230,11 +230,11 @@ Applicable controls include:
 - Segregation of duties
 - Electronic signatures where required and actually implemented
 - Immutable/auditable decision history
-- Tenant and organization isolation
+- Tenant isolation, with Branch authorization where required
 
 Workflow configuration itself requires authorization. A user must not be able to alter an approval or policy definition merely because they can execute a workflow.
 
-## 15. Tenant and Organization Scope
+## 15. Tenant and Branch Scope
 
 Workflow definitions, rules, approval matrices, SLAs, assignment policies, and other configurable behavior must respect the ERP's tenant and organization model.
 

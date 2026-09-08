@@ -34,7 +34,7 @@ The audit follows the current security documentation, approved ADRs, and governa
 ### Authorization
 
 - Backend authorization is enforced independently of Flutter visibility.
-- Permission middleware checks authentication, active organization context, module enablement, and effective permission.
+- Permission middleware checks authentication, tenant context, module enablement, and effective permission.
 - Module access is evaluated server-side.
 - Self-access exceptions are explicit in `requirePermissionOrSelf` rather than being implied by frontend behavior.
 
@@ -106,10 +106,10 @@ The implementation is aligned with the current security architecture for the ins
 | Area | Classification | Evidence / limitation |
 |---|---|---|
 | Authentication, RS256/JWKS, legacy algorithm bounds, session and refresh replay controls | PASS | Source inspection, unit/integration coverage, and CI validation |
-| RBAC, module enablement, organization scope, authenticated tenant authority | PASS | Route/service middleware, authorization tests, and Postgres CI |
+| RBAC, module enablement, tenant scope, authenticated tenant authority | PASS | Route/service middleware, authorization tests, and Postgres CI |
 | PostgreSQL RLS, FORCE RLS, tenant-aware constraints, non-superuser/NOBYPASSRLS validation | PASS | Migration inspection, RLS integration tests, and Postgres CI |
 | Secrets and cryptography | PASS WITH DEPLOYMENT-ONLY ITEMS | AES-256-GCM, password/token hashing, fail-closed production placeholders, and tests; production key rotation remains operational |
-| API validation, errors, pagination, tenant and organization boundaries | PASS | Unit/integration tests and route inspection |
+| API validation, errors, pagination, tenant boundaries | PASS | Unit/integration tests and route inspection |
 | Audit, outbox, notifications, worker tenant scope | PASS WITH DEPLOYMENT-ONLY ITEMS | Repository abstractions and tests exist; worker supervision/retention/monitoring remain operational |
 | Dependency/container/CI security | PASS | `npm audit` clean, Backend CI Docker/Trivy passed; published-image registry/runtime evidence remains deployment-specific |
 | Browser Matrix E2E | VALIDATION GAP | Isolated Flutter teardown assertion after test completion; no functional/security blocker evidenced |

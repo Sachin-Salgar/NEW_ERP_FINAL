@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The Enterprise Configuration Framework provides the platform-level mechanism for adapting ERP behavior through governed configuration rather than source-code customization. It supports tenant, organization, branch, department, user, module, workflow, policy, integration, and other approved configuration scopes.
+The Enterprise Configuration Framework provides the platform-level mechanism for adapting ERP behavior through governed configuration rather than source-code customization. It supports Platform defaults, Tenant configuration, Branch configuration where legitimately required, department, user, module, workflow, policy, integration, and other approved configuration scopes.
 
 Module-specific configuration remains defined by the owning module; this document defines the shared configuration framework, hierarchy, runtime behavior, governance, and APIs.
 
@@ -18,7 +18,7 @@ Module-specific configuration remains defined by the owning module; this documen
 The framework may support:
 
 - System/platform configuration.
-- Tenant and organization configuration.
+- Tenant-specific configuration.
 - Branch/department configuration.
 - Module configuration.
 - Workflow and approval configuration.
@@ -40,8 +40,6 @@ A permitted hierarchy may be:
 Platform
   ↓
 Tenant
-  ↓
-Organization
   ↓
 Branch
   ↓
@@ -130,4 +128,4 @@ AI-assisted implementation must:
 
 ## Summary
 
-The Enterprise Configuration Framework enables controlled organization-specific behavior while preserving a single ERP codebase, centralized governance, module ownership, security, and upgradeability.
+The Enterprise Configuration Framework enables controlled tenant-specific behavior while preserving a single ERP codebase, centralized governance, module ownership, security, and upgradeability.

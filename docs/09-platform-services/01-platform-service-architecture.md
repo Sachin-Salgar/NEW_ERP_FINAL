@@ -86,7 +86,7 @@ The framework can provide adapters for channels such as:
 
 The architecture does not imply that every channel or provider is implemented in every deployment.
 
-Organizations may enable or disable supported channels according to configuration and available integrations.
+Tenants may enable or disable supported channels according to configuration and available integrations.
 
 ### 3.5 Notification Lifecycle
 
@@ -106,7 +106,7 @@ The framework may support configurable preferences including:
 - Immediate alerts
 - Digest/daily summary preferences
 
-Organization-level defaults may be provided where appropriate. Security and mandatory operational notifications must not be bypassed merely through user preference settings.
+Tenant-level defaults may be provided where appropriate. Security and mandatory operational notifications must not be bypassed merely through user preference settings.
 
 ### 3.7 Templates
 
@@ -171,7 +171,7 @@ Document metadata may include:
 
 - Document identifier
 - Document type
-- Organization/tenant
+- Tenant
 - Branch where applicable
 - Related module
 - Related transaction/entity
@@ -267,7 +267,7 @@ Monitoring is operational visibility; it does not transfer ownership of the unde
 5. Events may be used where they provide an appropriate integration boundary; the architecture does not require every operation to be event-driven.
 6. External providers are integrations, not implicit product dependencies.
 7. Tenant isolation and authorization are mandatory and follow the central security architecture.
-8. Configuration that varies by organization should be represented as configuration/data rather than hard-coded assumptions.
+8. Configuration that varies by Tenant should be represented as configuration/data rather than hard-coded assumptions.
 
 ## 7. AI and Automation Boundary
 

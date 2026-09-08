@@ -15,7 +15,7 @@ Sales unless a published contract exists.
 
 ### Header: `sales_deliveries`
 
-Required candidates: UUIDv7 `id`, `tenant_id`, `organization_id`, mandatory
+Required candidates: UUIDv7 `id`, `tenant_id`, mandatory
 `branch_id`, `financial_year_id`, `warehouse_id`, `delivery_number`, `sales_order_id`, `customer_id`,
 delivery date, priority, shipping method, carrier/tracking references, status,
 `version_number`, canonical `created_at`, `created_by`, `updated_at`,
@@ -23,7 +23,7 @@ delivery date, priority, shipping method, carrier/tracking references, status,
 
 ### Detail: `sales_delivery_items`
 
-Required candidates: UUIDv7 `id`, tenant/org IDs, mandatory branch and
+Required candidates: UUIDv7 `id`, tenant ID, mandatory branch and
 financial-year references, `delivery_id`, `order_item_id`, Item Master `item_id`,
 Inventory `reservation_id`, line number, ordered
 quantity snapshot, delivered quantity, unit of measure, and canonical audit
@@ -32,8 +32,8 @@ columns.
 Exact types, requiredness, address structure, priority values, carrier fields,
 financial-year relationship semantics, and whether a delivery may be deleted
 are bounded for the initial slice by ADR-0027. The mandatory branch and financial-year
-references follow the organizational-isolation standard; their business
-semantics remain unresolved. Composite tenant/org foreign keys, unique line
+references follow the tenant-isolation standard; their business
+semantics remain unresolved. Tenant foreign keys, unique line
 numbers, and orphan prevention are mandatory.
 
 ## 3. Lifecycle and rules
@@ -62,9 +62,10 @@ Flutter requires list/create/detail/edit-if-approved screens, lifecycle
 actions, loading/empty/error/pagination/search/filter states, route metadata,
 module guards, and permission-aware controls.
 
-Use tenant-local transactions, RLS/FORCE RLS, server-side organization
-authorization, and restricted-role tests. HTTP tests must cover cross-tenant
-and cross-organization GET/LIST/PATCH/DELETE, invalid transitions, quantity
+Use tenant-local transactions, RLS/FORCE RLS, server-side Tenant
+authorization, Branch authorization where required, and restricted-role tests.
+HTTP tests must cover cross-tenant and unauthorized-Branch GET/LIST/PATCH/DELETE,
+invalid transitions, quantity
 and duplicate prevention, concurrent updates, audit, rollback, and Inventory
 contract failures.
 

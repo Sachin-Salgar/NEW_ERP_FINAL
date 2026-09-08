@@ -12,12 +12,12 @@ financial posting and customer balance.
 
 ## 2. Entities and database design
 
-Candidate header `sales_credit_notes`: UUIDv7 ID, tenant/org IDs, mandatory
+Candidate header `sales_credit_notes`: UUIDv7 ID, tenant ID, mandatory
 branch/financial-year IDs, credit-note number, customer ID, invoice ID,
 return ID, date, currency, reason, tax reference, totals, status,
 `version_number`, and canonical audit metadata.
 
-Candidate detail `sales_credit_note_items`: UUIDv7 ID, tenant/org IDs, mandatory
+Candidate detail `sales_credit_note_items`: UUIDv7 ID, tenant ID, mandatory
 branch and financial-year references, credit-note ID, source invoice/return item
 reference, line number, quantity, unit, amount, discount/tax snapshots, and
 canonical audit columns.
@@ -47,7 +47,7 @@ Flutter requires list/create/detail/edit-draft screens, lifecycle controls,
 server-authoritative totals/status, loading/empty/error/pagination/filter
 states, routing, module enablement, and permission-aware actions.
 
-Tests must cover source linkage, tenant/org isolation at HTTP and RLS levels,
+Tests must cover source linkage, tenant isolation at HTTP and RLS levels,
 immutable finalized documents, duplicate/over-credit prevention, concurrency,
 audit, rollback, and Finance/Tax/Workflow/Document failures.
 

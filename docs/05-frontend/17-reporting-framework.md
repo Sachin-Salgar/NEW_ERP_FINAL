@@ -57,8 +57,8 @@ The actual structure shall follow the report's business purpose and presentation
 
 Reports may support filters such as:
 - Date Range.
-- Organization Context.
-- Branch.
+- Tenant context established by the authenticated session.
+- Branch context where the report is branch-scoped and the domain contract requires it.
 - Department.
 - Customer.
 - Supplier.
@@ -77,7 +77,7 @@ Report export may support formats such as:
 
 Supported formats are implementation/product decisions and shall not be assumed to exist for every report.
 
-Exports containing business data must respect the same authorization and organization/tenant boundaries as the underlying report.
+Exports containing business data must respect the same authorization and tenant boundaries as the underlying report.
 
 ## 17.7 Scheduled Reports
 
@@ -96,7 +96,7 @@ The frontend should provide appropriate progress, completion, and failure states
 
 ## 17.9 Security
 
-Report access is governed by the backend's authentication, authorization, organization/tenant isolation, and applicable module/capability rules.
+Report access is governed by the backend's authentication, authorization, tenant isolation, and applicable module/capability rules.
 
 The frontend may hide unavailable reports for usability, but hiding a report is not a security control.
 
