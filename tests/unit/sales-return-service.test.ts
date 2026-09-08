@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+﻿import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { SalesReturnService, type SalesReturnContext } from '../../src/application/services/sales-return-service.js';
 import type { AuditLogger } from '../../src/application/contracts/audit.js';
@@ -7,7 +7,6 @@ import { ValidationError } from '../../src/domain/errors.js';
 
 const context: SalesReturnContext = {
   tenantId: randomUUID(),
-  organizationId: randomUUID(),
   branchId: randomUUID(),
   financialYearId: randomUUID(),
   userId: randomUUID(),
@@ -166,7 +165,6 @@ describe('SalesReturnService', () => {
         return {
           id: randomUUID(),
           tenantId: context.tenantId,
-          organizationId: context.organizationId,
           branchId: context.branchId,
           financialYearId: context.financialYearId,
           warehouseId: request.warehouseId,
@@ -198,3 +196,4 @@ describe('SalesReturnService', () => {
     expect(audit.actions).toContain('sales_return.processed');
   });
 });
+

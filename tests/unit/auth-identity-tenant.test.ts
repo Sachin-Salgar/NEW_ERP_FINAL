@@ -1,11 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 
 import { AuthenticationService } from '../../src/application/services/authentication-service.js';
 
 const user = (tenantId: string, userId: string) => ({
   id: userId,
   tenantId,
-  organizationId: 'org-1',
   defaultBranchId: null,
   username: 'alice',
   email: 'alice@example.com',
@@ -50,14 +49,11 @@ describe('identity-based tenant authentication', () => {
       findById: vi.fn(async (tenantId: string, userId: string) => ({
         ...user(tenantId, userId),
         defaultBranchId: 'branch-1',
-        defaultLocationId: 'location-1',
       })),
       createSession: vi.fn(async (input: any) => ({
         id: input.id,
         tenantId: input.tenantId,
         userId: input.userId,
-        organizationId: input.organizationId,
-        locationId: input.locationId,
         branchId: input.branchId,
         isActive: true,
         expiresAt: input.expiresAt,
@@ -103,8 +99,6 @@ describe('identity-based tenant authentication', () => {
         id: 'session-1',
         tenantId: 'tenant-1',
         userId: 'user-1',
-        organizationId: 'org-1',
-        locationId: 'location-1',
         branchId: 'branch-session',
         financialYearId: 'fy-session',
         isActive: true,

@@ -10,7 +10,6 @@ import type { FinancePostingPort } from '../../domain/contracts/sales-dependenci
 
 export interface InvoiceContext {
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   userId: string;
@@ -76,7 +75,6 @@ export class InvoiceService {
     this.validateId(id, 'Invoice ID');
     const invoice = await this.repository.getById(
       context.tenantId,
-      context.organizationId,
       context.branchId,
       context.financialYearId,
       id,
@@ -91,7 +89,6 @@ export class InvoiceService {
     await this.authorize(context, INVOICE_PERMISSIONS.read);
     return this.repository.list(context.tenantId, {
       ...input,
-      organizationId: context.organizationId,
       branchId: context.branchId,
       financialYearId: context.financialYearId,
     });
@@ -189,13 +186,12 @@ export class InvoiceService {
     if (!context.userId?.trim()) throw new UnauthorizedError();
     for (const [value, label] of [
       [context.tenantId, 'Tenant ID'],
-      [context.organizationId, 'Organization ID'],
       [context.branchId, 'Branch ID'],
       [context.financialYearId, 'Financial Year ID'],
       [context.userId, 'User ID'],
     ] as const)
       this.validateId(value, label);
-    if (!(await this.moduleAccessService.isModuleEnabled(context.tenantId, context.organizationId, 'sales')))
+    if (!(await this.moduleAccessService.isModuleEnabled(context.tenantId, 'sales')))
       throw new ForbiddenError('Sales module is not enabled.');
     if (!(await this.authorizationService.hasPermission(context.tenantId, context.userId, permission)))
       throw new ForbiddenError('Insufficient invoice permission.');

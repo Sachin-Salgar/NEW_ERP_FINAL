@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+﻿import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Fastify from 'fastify';
 
 import authRoutes from '../../src/presentation/http/routes/auth.js';
@@ -24,18 +24,10 @@ async function buildAuthApp() {
     isTest: true,
     isProduction: false,
   } as any);
-  app.decorate('tenantMembershipService', {
-    resolveOrganizationMemberships: vi.fn(async () => ({
-      organizations: [
-        { id: 'org-1', tenantId: 'tenant-1', code: 'ORG1', name: 'Org 1', status: 'active', isDefault: true },
-      ],
-    })),
-  } as any);
   app.decorate('authService', {
     validateSession: vi.fn(async () => ({
       id: 'user-1',
       tenantId: 'tenant-1',
-      organizationId: 'org-1',
       defaultBranchId: null,
       username: 'alice',
       email: 'alice@example.com',
@@ -64,31 +56,32 @@ async function buildAuthApp() {
   return app;
 }
 
-describe('retired context-selection endpoints', () => {
+describe('retired tenant context-selection endpoints', () => {
   let app: Awaited<ReturnType<typeof buildAuthApp>>;
 
   beforeEach(async () => {
     app = await buildAuthApp();
   });
 
-  it('does not expose organization discovery', async () => {
+  it('does not expose tenant discovery', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/api/v1/auth/organizations',
+      url: '/api/v1/auth/tenants',
       headers: { authorization: 'Bearer valid-session-t1' },
     });
 
     expect(response.statusCode).toBe(404);
   });
 
-  it('retires organization selection instead of creating a session or tokens', async () => {
+  it('does not expose tenant selection instead of creating a session or tokens', async () => {
     const response = await app.inject({
       method: 'POST',
-      url: '/api/v1/auth/organizations/select',
+      url: '/api/v1/auth/tenants/select',
       headers: { authorization: 'Bearer valid-session-t1' },
-      payload: { organizationId: 'org-1' },
+      payload: { tenantId: 'tenant-1' },
     });
 
     expect(response.statusCode).toBe(404);
   });
 });
+

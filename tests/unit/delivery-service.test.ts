@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+﻿import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { DeliveryService, type DeliveryContext } from '../../src/application/services/delivery-service.js';
 import type { AuditLogger } from '../../src/application/contracts/audit.js';
@@ -7,7 +7,6 @@ import { ValidationError } from '../../src/domain/errors.js';
 
 const context: DeliveryContext = {
   tenantId: randomUUID(),
-  organizationId: randomUUID(),
   branchId: randomUUID(),
   financialYearId: randomUUID(),
   userId: randomUUID(),
@@ -168,7 +167,6 @@ describe('DeliveryService', () => {
           {
             id: randomUUID(),
             tenantId: context.tenantId,
-            organizationId: context.organizationId,
             branchId: context.branchId,
             financialYearId: context.financialYearId,
             itemId: repository.value.items[0].itemId!,
@@ -199,3 +197,4 @@ describe('DeliveryService', () => {
     expect(audit.actions).toEqual(['delivery.created']);
   });
 });
+

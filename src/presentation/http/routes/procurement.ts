@@ -5,11 +5,10 @@ import { ValidationError } from '../../../domain/errors.js';
 import { requestParam } from '../request-input.js';
 
 function ctx(r: FastifyRequest) {
-  if (!r.tenantId || !r.user?.organizationId || !r.user.branchId || !r.user.financialYearId)
-    throw new ValidationError('Authenticated organization, branch, and financial-year context is required.');
+  if (!r.tenantId || !r.user?.tenantId || !r.user.branchId || !r.user.financialYearId)
+    throw new ValidationError('Authenticated tenant, branch, and financial-year context is required.');
   return {
     tenantId: r.tenantId,
-    organizationId: r.user.organizationId,
     branchId: r.user.branchId,
     financialYearId: r.user.financialYearId,
     userId: r.user.id,

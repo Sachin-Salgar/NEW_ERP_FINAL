@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 
 import { paginate, parsePaginationQuery } from '../../src/presentation/http/pagination.js';
 
@@ -48,3 +48,4 @@ describe('API pagination', () => {
     ).toThrow('Unsupported sort field: id');
   });
 });
+

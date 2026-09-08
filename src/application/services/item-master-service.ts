@@ -13,7 +13,6 @@ import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } fro
 
 export interface ItemMasterContext {
   tenantId: string;
-  organizationId: string;
   userId: string;
 }
 
@@ -61,7 +60,7 @@ export class ItemMasterService {
   async get(context: ItemMasterContext, itemId: string): Promise<ItemRecord> {
     await this.authorize(context, ITEM_MASTER_PERMISSIONS.read);
     const id = this.validateId(itemId, 'Item ID');
-    const item = await this.repository.getById(context.tenantId, context.organizationId, id);
+    const item = await this.repository.getById(context.tenantId, id);
     if (!item) throw new NotFoundError('Item not found.');
     return item;
   }
@@ -79,7 +78,6 @@ export class ItemMasterService {
     }
     return this.repository.list(context.tenantId, {
       ...input,
-      organizationId: context.organizationId,
       page,
       pageSize,
       order: input.order ?? 'asc',
@@ -162,11 +160,10 @@ export class ItemMasterService {
     if (
       !(await this.moduleAccessService.isModuleEnabled(
         context.tenantId,
-        context.organizationId,
         ITEM_MASTER_MODULE_CODE,
       ))
     ) {
-      throw new ForbiddenError('Inventory module is not enabled for this organization.');
+      throw new ForbiddenError('Inventory module is not enabled for this tenant.');
     }
     if (!(await this.authorizationService.hasPermission(context.tenantId, context.userId, permission))) {
       throw new ForbiddenError('Insufficient permission for Item Master operation.');
@@ -176,7 +173,6 @@ export class ItemMasterService {
   private validateContext(context: ItemMasterContext): void {
     if (!context.userId?.trim()) throw new UnauthorizedError();
     this.validateId(context.tenantId, 'Tenant ID');
-    this.validateId(context.organizationId, 'Organization ID');
     this.validateId(context.userId, 'User ID');
   }
 

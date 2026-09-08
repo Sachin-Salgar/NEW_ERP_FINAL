@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 
 import { MfaService } from '../../src/application/services/mfa-service.js';
 import type { MfaRepository, MfaSecretProtector, TotpProvider } from '../../src/application/contracts/mfa.js';
@@ -78,3 +78,4 @@ describe('MfaService', () => {
     expect(repository.disableMfa).toHaveBeenCalledWith('tenant-1', 'user-1');
   });
 });
+

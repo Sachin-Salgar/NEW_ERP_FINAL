@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { requireAuth, requirePermission } from '../middleware/auth.js';
-const c = (r: any) => ({ tenantId: r.tenantId, organizationId: r.user.organizationId, userId: r.user.id });
+const c = (r: any) => ({ tenantId: r.tenantId, userId: r.user.id });
 const x: FastifyPluginAsync = async (f) => {
   f.get(
     '/sales/discount-rules/resolve',

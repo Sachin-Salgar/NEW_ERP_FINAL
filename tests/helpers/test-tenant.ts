@@ -1,4 +1,4 @@
-import { v7 as uuidV7 } from 'uuid';
+﻿import { v7 as uuidV7 } from 'uuid';
 
 export function createTenantBootstrapInput(overrides: Record<string, unknown> = {}) {
   const suffix = uuidV7();
@@ -11,11 +11,6 @@ export function createTenantBootstrapInput(overrides: Record<string, unknown> = 
       timezone: 'UTC',
       currency: 'USD',
       locale: 'en_US',
-    },
-    organization: {
-      code: `TEST${suffix}`.slice(0, 18),
-      name: `Test Organization ${suffix}`,
-      fiscalCalendar: 'standard',
     },
     branch: {
       code: `BR-${suffix}`.slice(0, 15),

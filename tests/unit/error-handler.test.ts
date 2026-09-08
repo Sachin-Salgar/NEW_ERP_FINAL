@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 
 import { buildErrorHandler } from '../../src/infrastructure/http/error-handler.js';
 import { NotFoundError } from '../../src/domain/errors.js';
@@ -81,3 +81,4 @@ describe('error handler', () => {
     );
   });
 });
+

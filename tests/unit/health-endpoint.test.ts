@@ -1,4 +1,4 @@
-import Fastify from 'fastify';
+﻿import Fastify from 'fastify';
 import { describe, expect, it } from 'vitest';
 
 import healthRoutes from '../../src/presentation/http/routes/health.js';
@@ -57,3 +57,4 @@ describe('health endpoints', () => {
     }
   });
 });
+

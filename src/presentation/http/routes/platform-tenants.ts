@@ -37,7 +37,6 @@ const platformTenantRoutes: FastifyPluginAsync = async (fastify) => {
       subdomain: string;
       slug: string;
       administrator: { username: string; email: string; password: string };
-      organization: { name: string };
       branch: { name: string };
       role?: { code?: string; name?: string };
     };
@@ -51,7 +50,6 @@ const platformTenantRoutes: FastifyPluginAsync = async (fastify) => {
         slug: body.slug,
         status: 'active',
       },
-      organization: { name: body.organization.name, isDefault: true },
       branch: { name: body.branch.name, isDefault: true, isHeadOffice: true },
       administrator: {
         username: body.administrator.username,

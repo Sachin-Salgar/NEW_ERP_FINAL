@@ -4,7 +4,6 @@ export const SALES_REPORTING_PERMISSIONS = {
 
 export interface SalesReportContext {
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   userId: string;

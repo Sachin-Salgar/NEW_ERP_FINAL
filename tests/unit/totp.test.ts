@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 
 import { Rfc6238TotpProvider, generateTotp } from '../../src/infrastructure/security/totp.js';
 
@@ -27,3 +27,4 @@ describe('RFC 6238 TOTP', () => {
     expect(provider.verify(RFC_6238_SHA1_SECRET, '12345')).toBe(false);
   });
 });
+

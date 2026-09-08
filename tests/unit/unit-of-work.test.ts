@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 
 import { UnitOfWork } from '../../src/infrastructure/database/unit-of-work.js';
 
@@ -86,3 +86,4 @@ describe('UnitOfWork', () => {
     expect(() => uow.getClient()).toThrow('no active transaction');
   });
 });
+

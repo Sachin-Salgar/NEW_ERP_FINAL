@@ -24,18 +24,10 @@ export function schemaForRoute(method: string, url: string) {
   else if (method === 'POST' && normalizedUrl === '/auth/login') schema.body = toJsonSchema(authSchemas.loginRequest);
   else if (method === 'POST' && normalizedUrl === '/auth/refresh')
     schema.body = toJsonSchema(authSchemas.refreshRequest);
-  else if (method === 'POST' && normalizedUrl === '/organizations')
-    schema.body = toJsonSchema(enterpriseSchemas.createOrganizationRequest);
-  else if (method === 'PATCH' && normalizedUrl === '/organizations/:id')
-    schema.body = toJsonSchema(enterpriseSchemas.createOrganizationRequest.partial());
   else if (method === 'POST' && normalizedUrl.endsWith('/branches'))
     schema.body = toJsonSchema(enterpriseSchemas.createBranchRequest);
-  else if (method === 'PATCH' && normalizedUrl.match(/^\/organizations\/:organizationId\/branches\/:branchId$/))
+  else if (method === 'PATCH' && normalizedUrl === '/branches/:id')
     schema.body = toJsonSchema(enterpriseSchemas.createBranchRequest.partial());
-  else if (method === 'POST' && normalizedUrl === '/locations')
-    schema.body = toJsonSchema(locationSchemas.createLocationRequest);
-  else if (method === 'PATCH' && normalizedUrl === '/locations/:id')
-    schema.body = toJsonSchema(locationSchemas.createLocationRequest.partial());
   else if (method === 'POST' && normalizedUrl === '/rbac/roles')
     schema.body = toJsonSchema(rbacSchemas.createRoleRequest);
   else if (method === 'PATCH' && normalizedUrl === '/rbac/roles/:roleId')
@@ -53,7 +45,6 @@ export function schemaForRoute(method: string, url: string) {
       z.object({
         username: z.string().min(1).optional(),
         email: z.string().email().optional(),
-        organizationId: z.string().nullable().optional(),
         defaultBranchId: z.string().nullable().optional(),
         status: z.enum(['active', 'inactive', 'locked', 'pending_verification']).optional(),
       }),
@@ -280,9 +271,6 @@ export const authSchemas = {
     user: z.object({
       id: z.string().uuid(),
       tenantId: z.string().uuid(),
-      organizationId: z.string().uuid().nullable(),
-      activeLocationId: z.string().uuid().nullable(),
-      defaultLocationId: z.string().uuid().nullable(),
       defaultBranchId: z.string().uuid().nullable(),
       username: z.string(),
       email: z.string().email(),
@@ -292,8 +280,6 @@ export const authSchemas = {
       id: z.string().uuid(),
       tenantId: z.string().uuid(),
       userId: z.string().uuid(),
-      organizationId: z.string().uuid().nullable(),
-      locationId: z.string().uuid().nullable(),
       branchId: z.string().uuid().nullable(),
       isActive: z.boolean(),
       expiresAt: z.string().datetime(),
@@ -309,9 +295,7 @@ export const authSchemas = {
     username: z.string().min(3).max(150),
     email: z.string().email(),
     password: z.string().min(8).max(128),
-    organizationId: z.string().uuid().optional(),
     defaultBranchId: z.string().uuid().optional(),
-    defaultLocationId: z.string().uuid().optional(),
     roleCode: z.string().min(1).max(50).optional(),
   }),
   refreshRequest: z.object({
@@ -325,9 +309,6 @@ export const authSchemas = {
     user: z.object({
       id: z.string().uuid(),
       tenantId: z.string().uuid(),
-      organizationId: z.string().uuid().nullable(),
-      activeLocationId: z.string().uuid().nullable(),
-      defaultLocationId: z.string().uuid().nullable(),
       defaultBranchId: z.string().uuid().nullable(),
       username: z.string(),
       email: z.string().email(),
@@ -339,9 +320,6 @@ export const authSchemas = {
     user: z.object({
       id: z.string().uuid(),
       tenantId: z.string().uuid(),
-      organizationId: z.string().uuid().nullable(),
-      activeLocationId: z.string().uuid().nullable(),
-      defaultLocationId: z.string().uuid().nullable(),
       defaultBranchId: z.string().uuid().nullable(),
       username: z.string(),
       email: z.string().email(),
@@ -350,7 +328,7 @@ export const authSchemas = {
   }),
   modulesResponse: z.object({
     success: z.boolean().describe('Always true'),
-    organizationId: z.string().uuid(),
+    tenantId: z.string().uuid(),
     modules: z.array(
       z.object({
         id: z.string().uuid(),
@@ -399,8 +377,8 @@ export const authSchemas = {
     capabilities: z.object({
       apiVersion: z.string(),
       tenantSelection: z.boolean(),
-      multiOrganization: z.boolean(),
-      workingContextSelection: z.boolean(),
+      platformAdministration: z.boolean(),
+      branchAccess: z.boolean(),
     }),
   }),
 };
@@ -467,7 +445,7 @@ export const rbacSchemas = {
     moduleCode: z.string(),
     resource: z.string(),
     action: z.string(),
-    scope: z.enum(['own', 'branch', 'organization', 'tenant', 'global']),
+    scope: z.enum(['own', 'branch', 'tenant', 'global']),
     permissionKey: z.string(),
     displayName: z.string(),
     description: z.string().nullable(),
@@ -484,7 +462,7 @@ export const rbacSchemas = {
         moduleCode: z.string(),
         resource: z.string(),
         action: z.string(),
-        scope: z.enum(['own', 'branch', 'organization', 'tenant', 'global']),
+        scope: z.enum(['own', 'branch', 'tenant', 'global']),
         permissionKey: z.string(),
         displayName: z.string(),
         description: z.string().nullable(),
@@ -516,7 +494,7 @@ export const rbacSchemas = {
         moduleCode: z.string(),
         resource: z.string(),
         action: z.string(),
-        scope: z.enum(['own', 'branch', 'organization', 'tenant', 'global']),
+        scope: z.enum(['own', 'branch', 'tenant', 'global']),
         permissionKey: z.string(),
         displayName: z.string(),
         description: z.string().nullable(),
@@ -530,46 +508,9 @@ export const rbacSchemas = {
 };
 
 export const enterpriseSchemas = {
-  organization: z.object({
-    id: z.string().uuid(),
-    tenantId: z.string().uuid(),
-    code: z.string(),
-    name: z.string(),
-    legalName: z.string().nullable(),
-    gstNo: z.string().nullable(),
-    panNo: z.string().nullable(),
-    cinNo: z.string().nullable(),
-    email: z.string().nullable(),
-    phone: z.string().nullable(),
-    website: z.string().nullable(),
-    baseCurrency: z.string(),
-    fiscalCalendar: z.string(),
-    status: z.enum(['active', 'inactive', 'archived']),
-    isDefault: z.boolean(),
-    remarks: z.string().nullable(),
-    createdAt: z.string().datetime().nullable(),
-    updatedAt: z.string().datetime().nullable(),
-  }),
-  createOrganizationRequest: z.object({
-    code: z.string().min(1).max(50).optional(),
-    name: z.string().min(1).max(255),
-    legalName: z.string().max(255).nullable().optional(),
-    gstNo: z.string().max(50).nullable().optional(),
-    panNo: z.string().max(50).nullable().optional(),
-    cinNo: z.string().max(50).nullable().optional(),
-    email: z.string().email().nullable().optional(),
-    phone: z.string().max(50).nullable().optional(),
-    website: z.string().max(255).nullable().optional(),
-    baseCurrency: z.string().length(3).optional(),
-    fiscalCalendar: z.string().max(50).optional(),
-    status: z.enum(['active', 'inactive', 'archived']).optional(),
-    isDefault: z.boolean().optional(),
-    remarks: z.string().nullable().optional(),
-  }),
   branch: z.object({
     id: z.string().uuid(),
     tenantId: z.string().uuid(),
-    organizationId: z.string().uuid(),
     code: z.string(),
     name: z.string(),
     status: z.enum(['active', 'inactive', 'archived']),
@@ -608,7 +549,7 @@ export const enterpriseSchemas = {
 export const customerSchemas = {
   customer: z.object({
     id: z.string().uuid(),
-    organizationId: z.string().uuid(),
+    tenantId: z.string().uuid(),
     name: z.string().min(1).max(255),
     createdAt: z.string().datetime(),
     createdBy: z.string().uuid().nullable(),
@@ -620,7 +561,6 @@ export const customerSchemas = {
     version: z.number().int().positive(),
   }),
   createRequest: z.object({
-    organizationId: z.string().uuid(),
     name: z.string().trim().min(1).max(255),
   }),
   updateRequest: z.object({
@@ -640,7 +580,6 @@ export const salesQuotationSchemas = {
   quotation: z.object({
     id: z.string().uuid(),
     tenantId: z.string().uuid(),
-    organizationId: z.string().uuid(),
     quotationNumber: z.string(),
     customerId: z.string().uuid(),
     quotationDate: z.string().date(),
@@ -701,43 +640,6 @@ export const salesQuotationSchemas = {
   }),
 };
 
-export const locationSchemas = {
-  location: z.object({
-    id: z.string().uuid(),
-    tenantId: z.string().uuid(),
-    organizationId: z.string().uuid(),
-    code: z.string(),
-    name: z.string(),
-    description: z.string().nullable(),
-    status: z.enum(['active', 'inactive', 'archived']),
-    isDefault: z.boolean(),
-    addressLine1: z.string().nullable(),
-    addressLine2: z.string().nullable(),
-    city: z.string().nullable(),
-    state: z.string().nullable(),
-    country: z.string().nullable(),
-    postalCode: z.string().nullable(),
-    timezone: z.string(),
-    createdAt: z.string().datetime().nullable(),
-    updatedAt: z.string().datetime().nullable(),
-  }),
-  createLocationRequest: z.object({
-    code: z.string().min(1).max(50).optional(),
-    organizationId: z.string().uuid().optional(),
-    name: z.string().min(1).max(255),
-    description: z.string().nullable().optional(),
-    status: z.enum(['active', 'inactive', 'archived']).optional(),
-    isDefault: z.boolean().optional(),
-    addressLine1: z.string().nullable().optional(),
-    addressLine2: z.string().nullable().optional(),
-    city: z.string().max(100).nullable().optional(),
-    state: z.string().max(100).nullable().optional(),
-    country: z.string().max(100).nullable().optional(),
-    postalCode: z.string().max(20).nullable().optional(),
-    timezone: z.string().optional(),
-  }),
-};
-
 export async function setupSwagger(app: FastifyInstance) {
   // @ts-expect-error - Fastify v5 types don't properly support callback-based plugins, but runtime works
   await app.register(fastifySwagger, {
@@ -765,7 +667,6 @@ export async function setupSwagger(app: FastifyInstance) {
           ...Object.fromEntries(Object.entries(healthSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
           ...Object.fromEntries(Object.entries(rbacSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
           ...Object.fromEntries(Object.entries(enterpriseSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
-          ...Object.fromEntries(Object.entries(locationSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
           ...Object.fromEntries(Object.entries(customerSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
           ...Object.fromEntries(Object.entries(salesQuotationSchemas).map(([k, v]) => [k, toJsonSchema(v)])),
         },
@@ -776,8 +677,7 @@ export async function setupSwagger(app: FastifyInstance) {
         { name: 'Authentication', description: 'Authentication and session management' },
         { name: 'Health', description: 'System health and readiness checks' },
         { name: 'RBAC', description: 'Role-based access control' },
-        { name: 'Enterprise', description: 'Organization and branch management' },
-        { name: 'Locations', description: 'Location management' },
+        { name: 'Branches', description: 'Tenant-scoped branch management' },
         { name: 'Customers', description: 'Customer management' },
         { name: 'Sales Quotations', description: 'Sales quotation management' },
       ],

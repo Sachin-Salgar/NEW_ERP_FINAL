@@ -31,7 +31,7 @@ export interface PlatformBootstrapRepository {
       moduleCode: string;
       resource: string;
       action: string;
-      scope?: 'own' | 'branch' | 'organization' | 'tenant' | 'global';
+      scope?: 'own' | 'branch' | 'tenant' | 'tenant' | 'global';
       permissionKey: string;
       displayName: string;
       description?: string | null;
@@ -51,9 +51,7 @@ export interface UserAccountRecord {
   id: string;
   identityId?: string;
   tenantId: string;
-  organizationId?: string | null;
   defaultBranchId?: string | null;
-  defaultLocationId?: string | null;
   username: string;
   email: string;
   passwordHash: string;
@@ -87,9 +85,7 @@ export interface SessionRepository {
 export interface UserRegistrationRecord {
   id: string;
   tenantId: string;
-  organizationId?: string | null;
   defaultBranchId?: string | null;
-  defaultLocationId?: string | null;
   username: string;
   email: string;
   status: string;
@@ -110,15 +106,12 @@ export interface UserRegistrationRepository {
   createUser(input: {
     id?: string;
     tenantId: string;
-    organizationId?: string | null;
     defaultBranchId?: string | null;
-    defaultLocationId?: string | null;
     username: string;
     email: string;
     passwordHash: string;
     status?: string;
   }): Promise<UserRegistrationRecord>;
-  assignUserToOrganization(tenantId: string, userId: string, organizationId: string): Promise<boolean>;
   assignUserRole(tenantId: string, userId: string, roleId: string): Promise<void>;
 }
 
@@ -181,7 +174,6 @@ export interface CustomerRepository {
 export interface ItemRecord {
   id: string;
   tenantId: string;
-  organizationId: string;
   code: string;
   name: string;
   description: string | null;
@@ -199,7 +191,6 @@ export interface ItemRecord {
 }
 
 export interface ItemListQuery {
-  organizationId: string;
   page: number;
   pageSize: number;
   order?: 'asc' | 'desc';
@@ -209,7 +200,6 @@ export interface ItemListQuery {
 export interface ItemRepository {
   create(input: {
     tenantId: string;
-    organizationId: string;
     code: string;
     name: string;
     description: string | null;
@@ -217,11 +207,10 @@ export interface ItemRepository {
     salesEligible: boolean;
     actorUserId: string;
   }): Promise<ItemRecord>;
-  getById(tenantId: string, organizationId: string, itemId: string): Promise<ItemRecord | null>;
+  getById(tenantId: string, itemId: string): Promise<ItemRecord | null>;
   list(tenantId: string, query: ItemListQuery): Promise<{ items: ItemRecord[]; total: number }>;
   update(input: {
     tenantId: string;
-    organizationId: string;
     itemId: string;
     name: string;
     description: string | null;
@@ -232,7 +221,6 @@ export interface ItemRepository {
   }): Promise<ItemRecord | null>;
   softDelete(input: {
     tenantId: string;
-    organizationId: string;
     itemId: string;
     expectedVersion: number;
     actorUserId: string;
@@ -244,7 +232,6 @@ import type { MovementType, ReservationStatus, WarehouseStatus } from './invento
 export interface WarehouseRecord {
   id: string;
   tenantId: string;
-  organizationId: string;
   code: string;
   name: string;
   status: WarehouseStatus;
@@ -258,7 +245,6 @@ export interface WarehouseRecord {
 export interface InventoryStockRecord {
   id: string;
   tenantId: string;
-  organizationId: string;
   warehouseId: string;
   itemId: string;
   onHandQuantity: number;
@@ -270,7 +256,6 @@ export interface InventoryStockRecord {
 export interface InventoryReservationRecord {
   id: string;
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   warehouseId: string;
@@ -290,7 +275,6 @@ export interface InventoryReservationRecord {
 export interface InventoryMovementRecord {
   id: string;
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   warehouseId: string;
@@ -307,21 +291,18 @@ export interface InventoryMovementRecord {
 export interface InventoryRepository {
   createWarehouse(input: {
     tenantId: string;
-    organizationId: string;
     code: string;
     name: string;
     actorUserId: string;
   }): Promise<WarehouseRecord>;
   listWarehouses(
     tenantId: string,
-    organizationId: string,
     page: number,
     pageSize: number,
     search?: string,
   ): Promise<{ items: WarehouseRecord[]; total: number }>;
   updateWarehouse(input: {
     tenantId: string;
-    organizationId: string;
     warehouseId: string;
     name: string;
     status: WarehouseStatus;
@@ -330,7 +311,6 @@ export interface InventoryRepository {
   }): Promise<WarehouseRecord | null>;
   listStock(
     tenantId: string,
-    organizationId: string,
     page: number,
     pageSize: number,
     warehouseId?: string,
@@ -338,7 +318,6 @@ export interface InventoryRepository {
   ): Promise<{ items: InventoryStockRecord[]; total: number }>;
   receiveStock(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     warehouseId: string;
@@ -351,7 +330,6 @@ export interface InventoryRepository {
   }): Promise<InventoryStockRecord>;
   reserveStock(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     warehouseId: string;
@@ -364,14 +342,12 @@ export interface InventoryRepository {
   }): Promise<InventoryReservationRecord>;
   listReservations(input: {
     tenantId: string;
-    organizationId: string;
     page: number;
     pageSize: number;
     status?: ReservationStatus;
   }): Promise<{ items: InventoryReservationRecord[]; total: number }>;
   listReservationsBySource(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     sourceType: string;
@@ -379,7 +355,6 @@ export interface InventoryRepository {
   }): Promise<InventoryReservationRecord[]>;
   fulfillReservationsBySource(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     sourceType: string;
@@ -389,7 +364,6 @@ export interface InventoryRepository {
   }): Promise<InventoryReservationRecord[]>;
   releaseReservation(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     reservationId: string;
@@ -398,7 +372,6 @@ export interface InventoryRepository {
   }): Promise<InventoryReservationRecord>;
   fulfillReservation(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     reservationId: string;
@@ -407,7 +380,6 @@ export interface InventoryRepository {
   }): Promise<InventoryReservationRecord>;
   returnStock(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     warehouseId: string;
@@ -440,7 +412,6 @@ export interface QuotationItemRecord extends QuotationItemInput {
 export interface QuotationRecord {
   id: string;
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   quotationNumber: string;
@@ -465,7 +436,6 @@ export interface QuotationRecord {
 export interface QuotationRepository {
   create(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     customerId: string;
@@ -480,7 +450,6 @@ export interface QuotationRepository {
   }): Promise<QuotationRecord>;
   getById(
     tenantId: string,
-    organizationId: string,
     branchId: string,
     financialYearId: string,
     id: string,
@@ -488,7 +457,6 @@ export interface QuotationRepository {
   list(
     tenantId: string,
     q: {
-      organizationId: string;
       branchId: string;
       financialYearId: string;
       page: number;
@@ -499,7 +467,6 @@ export interface QuotationRepository {
   ): Promise<{ items: QuotationRecord[]; total: number }>;
   update(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     quotationId: string;
@@ -516,7 +483,6 @@ export interface QuotationRepository {
   }): Promise<QuotationRecord | null>;
   transition(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     quotationId: string;
@@ -526,7 +492,6 @@ export interface QuotationRepository {
   }): Promise<QuotationRecord | null>;
   softDelete(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     quotationId: string;
@@ -538,7 +503,6 @@ export interface OrderItemRecord extends QuotationItemRecord {}
 export interface OrderRecord {
   id: string;
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   orderNumber: string;
@@ -564,7 +528,6 @@ export interface OrderRecord {
 export interface OrderRepository {
   create(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     quotationId: string;
@@ -576,7 +539,6 @@ export interface OrderRepository {
   }): Promise<OrderRecord>;
   getById(
     tenantId: string,
-    organizationId: string,
     branchId: string,
     financialYearId: string,
     id: string,
@@ -584,7 +546,6 @@ export interface OrderRepository {
   list(
     tenantId: string,
     q: {
-      organizationId: string;
       branchId: string;
       financialYearId: string;
       page: number;
@@ -595,7 +556,6 @@ export interface OrderRepository {
   ): Promise<{ items: OrderRecord[]; total: number }>;
   update(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     orderId: string;
@@ -605,7 +565,6 @@ export interface OrderRepository {
   }): Promise<OrderRecord | null>;
   transition(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     orderId: string;
@@ -615,7 +574,6 @@ export interface OrderRepository {
   }): Promise<OrderRecord | null>;
   updateReservationStatus?(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     orderId: string;
@@ -624,7 +582,6 @@ export interface OrderRepository {
   }): Promise<OrderRecord | null>;
   softDelete(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     orderId: string;
@@ -645,7 +602,6 @@ export interface DeliveryItemRecord {
 export interface DeliveryRecord {
   id: string;
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   deliveryNumber: string;
@@ -665,7 +621,6 @@ export interface DeliveryRecord {
 export interface DeliveryRepository {
   attachReservationReferences?(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     deliveryId: string;
@@ -674,7 +629,6 @@ export interface DeliveryRepository {
   }): Promise<DeliveryRecord | null>;
   create(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     salesOrderId: string;
@@ -685,7 +639,6 @@ export interface DeliveryRepository {
   }): Promise<DeliveryRecord>;
   getById(
     tenantId: string,
-    organizationId: string,
     branchId: string,
     financialYearId: string,
     id: string,
@@ -693,7 +646,6 @@ export interface DeliveryRepository {
   list(
     tenantId: string,
     q: {
-      organizationId: string;
       branchId: string;
       financialYearId: string;
       page: number;
@@ -704,7 +656,6 @@ export interface DeliveryRepository {
   ): Promise<{ items: DeliveryRecord[]; total: number }>;
   update(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     deliveryId: string;
@@ -714,7 +665,6 @@ export interface DeliveryRepository {
   }): Promise<DeliveryRecord | null>;
   transition(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     deliveryId: string;
@@ -742,7 +692,6 @@ export interface InvoiceItemRecord {
 export interface InvoiceRecord {
   id: string;
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   invoiceNumber: string;
@@ -772,7 +721,6 @@ export interface InvoiceRecord {
 export interface InvoiceRepository {
   create(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     deliveryId: string;
@@ -783,7 +731,6 @@ export interface InvoiceRepository {
   }): Promise<InvoiceRecord>;
   getById(
     tenantId: string,
-    organizationId: string,
     branchId: string,
     financialYearId: string,
     id: string,
@@ -791,7 +738,6 @@ export interface InvoiceRepository {
   list(
     tenantId: string,
     q: {
-      organizationId: string;
       branchId: string;
       financialYearId: string;
       page: number;
@@ -802,7 +748,6 @@ export interface InvoiceRepository {
   ): Promise<{ items: InvoiceRecord[]; total: number }>;
   update(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     invoiceId: string;
@@ -812,7 +757,6 @@ export interface InvoiceRepository {
   }): Promise<InvoiceRecord | null>;
   transition(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     invoiceId: string;
@@ -822,7 +766,6 @@ export interface InvoiceRepository {
   }): Promise<InvoiceRecord | null>;
   updateTaxSnapshot?(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     invoiceId: string;
@@ -834,7 +777,6 @@ export interface InvoiceRepository {
   }): Promise<InvoiceRecord | null>;
   updateFinanceStatus?(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     invoiceId: string;
@@ -857,7 +799,6 @@ export interface SalesReturnItemRecord {
 export interface SalesReturnRecord {
   id: string;
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   returnNumber: string;
@@ -880,7 +821,6 @@ export interface SalesReturnRecord {
 export interface SalesReturnRepository {
   create(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     invoiceId: string;
@@ -892,7 +832,6 @@ export interface SalesReturnRepository {
   }): Promise<SalesReturnRecord>;
   getById(
     tenantId: string,
-    organizationId: string,
     branchId: string,
     financialYearId: string,
     id: string,
@@ -900,7 +839,6 @@ export interface SalesReturnRepository {
   list(
     tenantId: string,
     q: {
-      organizationId: string;
       branchId: string;
       financialYearId: string;
       page: number;
@@ -911,7 +849,6 @@ export interface SalesReturnRepository {
   ): Promise<{ items: SalesReturnRecord[]; total: number }>;
   update(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     returnId: string;
@@ -921,7 +858,6 @@ export interface SalesReturnRepository {
   }): Promise<SalesReturnRecord | null>;
   transition(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     returnId: string;
@@ -931,7 +867,6 @@ export interface SalesReturnRepository {
   }): Promise<SalesReturnRecord | null>;
   process(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     returnId: string;
@@ -953,7 +888,6 @@ export interface CreditNoteItemRecord {
 export interface CreditNoteRecord {
   id: string;
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   creditNoteNumber: string;
@@ -976,7 +910,6 @@ export interface CreditNoteRecord {
 export interface CreditNoteRepository {
   create(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     returnId: string;
@@ -987,7 +920,6 @@ export interface CreditNoteRepository {
   }): Promise<CreditNoteRecord>;
   getById(
     tenantId: string,
-    organizationId: string,
     branchId: string,
     financialYearId: string,
     id: string,
@@ -995,7 +927,6 @@ export interface CreditNoteRepository {
   list(
     tenantId: string,
     q: {
-      organizationId: string;
       branchId: string;
       financialYearId: string;
       page: number;
@@ -1006,7 +937,6 @@ export interface CreditNoteRepository {
   ): Promise<{ items: CreditNoteRecord[]; total: number }>;
   update(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     creditNoteId: string;
@@ -1016,7 +946,6 @@ export interface CreditNoteRepository {
   }): Promise<CreditNoteRecord | null>;
   transition(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     creditNoteId: string;
@@ -1026,7 +955,6 @@ export interface CreditNoteRepository {
   }): Promise<CreditNoteRecord | null>;
   updateFinanceStatus?(input: {
     tenantId: string;
-    organizationId: string;
     branchId: string;
     financialYearId: string;
     creditNoteId: string;
@@ -1035,33 +963,9 @@ export interface CreditNoteRepository {
   }): Promise<CreditNoteRecord | null>;
 }
 
-export interface OrganizationRecord {
-  id: string;
-  tenantId: string;
-  code: string;
-  name: string;
-  legalName?: string | null;
-  gstNo?: string | null;
-  panNo?: string | null;
-  cinNo?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  website?: string | null;
-  baseCurrency: string;
-  fiscalCalendar: string;
-  status: 'active' | 'inactive' | 'archived';
-  isDefault: boolean;
-  remarks?: string | null;
-  createdAt?: Date | string | null;
-  updatedAt?: Date | string | null;
-  deletedAt?: Date | string | null;
-  isDeleted?: boolean;
-}
-
 export interface BranchRecord {
   id: string;
   tenantId: string;
-  organizationId: string;
   code: string;
   name: string;
   status: 'active' | 'inactive' | 'archived';
@@ -1082,35 +986,10 @@ export interface BranchRecord {
   isDeleted?: boolean;
 }
 
-export interface LocationRecord {
-  id: string;
-  tenantId: string;
-  organizationId: string;
-  code: string;
-  name: string;
-  description?: string | null;
-  status: 'active' | 'inactive' | 'archived';
-  isDefault: boolean;
-  addressLine1?: string | null;
-  addressLine2?: string | null;
-  city?: string | null;
-  state?: string | null;
-  country?: string | null;
-  postalCode?: string | null;
-  timezone: string;
-  remarks?: string | null;
-  createdAt?: Date | string | null;
-  updatedAt?: Date | string | null;
-  deletedAt?: Date | string | null;
-  isDeleted?: boolean;
-}
-
 export interface UserAdminRecord {
   id: string;
   tenantId: string;
-  organizationId?: string | null;
   defaultBranchId?: string | null;
-  defaultLocationId?: string | null;
   username: string;
   email: string;
   status: string;
@@ -1120,79 +999,19 @@ export interface UserAdminRecord {
   isDeleted?: boolean;
 }
 
-export interface UserOrganizationAccessRecord {
-  id: string;
-  tenantId: string;
-  code: string;
-  name: string;
-  status: 'active' | 'inactive' | 'archived';
-  isDefault: boolean;
-}
-
 export interface UserBranchAccessRecord {
   id: string;
   tenantId: string;
-  organizationId: string;
-  organizationName: string;
   code: string;
   name: string;
   status: string;
 }
 
 export interface CoreEnterpriseRepository {
-  validateFinancialYear(tenantId: string, organizationId: string, financialYearId: string): Promise<boolean>;
-  generateOrganizationCode(tenantId: string): Promise<string>;
-  createOrganization(
-    tenantId: string,
-    input: {
-      code?: string | null;
-      name: string;
-      legalName?: string | null;
-      gstNo?: string | null;
-      panNo?: string | null;
-      cinNo?: string | null;
-      email?: string | null;
-      phone?: string | null;
-      website?: string | null;
-      baseCurrency?: string;
-      fiscalCalendar?: string;
-      status?: 'active' | 'inactive' | 'archived';
-      isDefault?: boolean;
-      remarks?: string | null;
-    },
-  ): Promise<OrganizationRecord>;
-  listOrganizations(tenantId: string): Promise<OrganizationRecord[]>;
-  getOrganizationById(tenantId: string, organizationId: string): Promise<OrganizationRecord | null>;
-  updateOrganization(
-    tenantId: string,
-    organizationId: string,
-    changes: Partial<
-      Pick<
-        OrganizationRecord,
-        | 'code'
-        | 'name'
-        | 'legalName'
-        | 'gstNo'
-        | 'panNo'
-        | 'cinNo'
-        | 'email'
-        | 'phone'
-        | 'website'
-        | 'baseCurrency'
-        | 'fiscalCalendar'
-        | 'status'
-        | 'isDefault'
-        | 'remarks'
-      >
-    >,
-  ): Promise<OrganizationRecord | null>;
-  deactivateOrganization(tenantId: string, organizationId: string): Promise<boolean>;
-  activateOrganization(tenantId: string, organizationId: string): Promise<boolean>;
-  deleteOrganization(tenantId: string, organizationId: string): Promise<boolean>;
-  generateBranchCode(tenantId: string, organizationId: string): Promise<string>;
+  validateFinancialYear(tenantId: string, financialYearId: string): Promise<boolean>;
+  generateBranchCode(tenantId: string): Promise<string>;
   createBranch(
     tenantId: string,
-    organizationId: string,
     input: {
       code?: string | null;
       name: string;
@@ -1210,28 +1029,24 @@ export interface CoreEnterpriseRepository {
       remarks?: string | null;
     },
   ): Promise<BranchRecord>;
-  listBranches(tenantId: string, organizationId: string): Promise<BranchRecord[]>;
+  listBranches(tenantId: string): Promise<BranchRecord[]>;
   listAccessibleBranchesForUser(
     tenantId: string,
     userId: string,
-    organizationId?: string | null,
   ): Promise<BranchRecord[]>;
-  getBranchById(tenantId: string, organizationId: string, branchId: string): Promise<BranchRecord | null>;
+  getBranchById(tenantId: string, branchId: string): Promise<BranchRecord | null>;
   getAccessibleBranchByIdForUser(
     tenantId: string,
     userId: string,
     branchId: string,
-    organizationId?: string | null,
   ): Promise<BranchRecord | null>;
   validateBranchAccess(
     tenantId: string,
     userId: string,
     branchId: string,
-    organizationId?: string | null,
   ): Promise<boolean>;
   updateBranch(
     tenantId: string,
-    organizationId: string,
     branchId: string,
     changes: Partial<
       Pick<
@@ -1253,75 +1068,11 @@ export interface CoreEnterpriseRepository {
       >
     >,
   ): Promise<BranchRecord | null>;
-  deactivateBranch(tenantId: string, organizationId: string, branchId: string): Promise<boolean>;
-  activateBranch(tenantId: string, organizationId: string, branchId: string): Promise<boolean>;
-  deleteBranch(tenantId: string, organizationId: string, branchId: string): Promise<boolean>;
-  generateLocationCode(tenantId: string, organizationId: string): Promise<string>;
-  createLocation(
-    tenantId: string,
-    organizationId: string,
-    input: {
-      code: string;
-      name: string;
-      description?: string | null;
-      status?: 'active' | 'inactive' | 'archived';
-      isDefault?: boolean;
-      addressLine1?: string | null;
-      addressLine2?: string | null;
-      city?: string | null;
-      state?: string | null;
-      country?: string | null;
-      postalCode?: string | null;
-      timezone?: string;
-    },
-  ): Promise<LocationRecord>;
-  listLocations(tenantId: string, organizationId: string): Promise<LocationRecord[]>;
-  listAccessibleLocationsForUser(
-    tenantId: string,
-    userId: string,
-    organizationId?: string | null,
-  ): Promise<LocationRecord[]>;
-  getLocationById(tenantId: string, organizationId: string, locationId: string): Promise<LocationRecord | null>;
-  getAccessibleLocationByIdForUser(
-    tenantId: string,
-    userId: string,
-    locationId: string,
-    organizationId?: string | null,
-  ): Promise<LocationRecord | null>;
-  validateLocationAccess(
-    tenantId: string,
-    userId: string,
-    locationId: string,
-    organizationId?: string | null,
-  ): Promise<boolean>;
-  updateLocation(
-    tenantId: string,
-    organizationId: string,
-    locationId: string,
-    changes: Partial<
-      Pick<
-        LocationRecord,
-        | 'code'
-        | 'name'
-        | 'description'
-        | 'status'
-        | 'isDefault'
-        | 'addressLine1'
-        | 'addressLine2'
-        | 'city'
-        | 'state'
-        | 'country'
-        | 'postalCode'
-        | 'timezone'
-      >
-    >,
-  ): Promise<LocationRecord | null>;
-  deactivateLocation(tenantId: string, organizationId: string, locationId: string): Promise<boolean>;
-  activateLocation(tenantId: string, organizationId: string, locationId: string): Promise<boolean>;
-  deleteLocation(tenantId: string, organizationId: string, locationId: string): Promise<boolean>;
+  deactivateBranch(tenantId: string, branchId: string): Promise<boolean>;
+  activateBranch(tenantId: string, branchId: string): Promise<boolean>;
+  deleteBranch(tenantId: string, branchId: string): Promise<boolean>;
   listUsers(tenantId: string): Promise<UserAdminRecord[]>;
   getUserById(tenantId: string, userId: string): Promise<UserAdminRecord | null>;
-  listUserOrganizationAccess(tenantId: string, userId: string): Promise<UserOrganizationAccessRecord[]>;
   listUserBranchAccess(tenantId: string, userId: string): Promise<UserBranchAccessRecord[]>;
   updateUser(
     tenantId: string,
@@ -1329,13 +1080,11 @@ export interface CoreEnterpriseRepository {
     changes: Partial<
       Pick<
         UserAdminRecord,
-        'username' | 'email' | 'organizationId' | 'defaultBranchId' | 'defaultLocationId' | 'status'
+        'username' | 'email' | 'defaultBranchId' | 'status'
       >
     >,
   ): Promise<UserAdminRecord | null>;
-  assignUserToOrganization(tenantId: string, userId: string, organizationId: string): Promise<boolean>;
   assignUserToBranch(tenantId: string, userId: string, branchId: string): Promise<boolean>;
-  revokeUserOrganizationAccess(tenantId: string, userId: string, organizationId: string): Promise<boolean>;
   revokeUserBranchAccess(tenantId: string, userId: string, branchId: string): Promise<boolean>;
   activateUser(tenantId: string, userId: string): Promise<boolean>;
   deactivateUser(tenantId: string, userId: string): Promise<boolean>;
@@ -1408,7 +1157,7 @@ export interface AuthorizationRepository {
       moduleCode: string;
       resource: string;
       action: string;
-      scope: 'own' | 'branch' | 'organization' | 'tenant' | 'global';
+      scope: 'own' | 'branch' | 'tenant' | 'tenant' | 'global';
       permissionKey: string;
       displayName: string;
       description?: string | null;

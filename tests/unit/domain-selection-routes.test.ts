@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+﻿import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Fastify from 'fastify';
 
 import branchRoutes from '../../src/presentation/http/routes/branch.js';
@@ -45,19 +45,13 @@ describe('domain selection routes', () => {
     app = await buildApp();
   });
 
-  it('returns a tenant-scoped branch without creating an authentication session or tokens', async () => {
+  it('does not expose a branch-selection workflow', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/branches/branch-1/select',
       headers: { authorization: 'Bearer token' },
     });
 
-    expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({
-      success: true,
-      branch: { id: 'branch-1', tenantId: 'tenant-1', name: 'Branch 1' },
-    });
-    expect(response.json()).not.toHaveProperty('accessToken');
-    expect(response.json()).not.toHaveProperty('session');
+    expect(response.statusCode).toBe(404);
   });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 import type { PoolClient } from 'pg';
 
 import { UnitOfWork } from '../../src/infrastructure/database/unit-of-work.js';
@@ -47,3 +47,4 @@ describe('transaction context and tenant RLS boundary', () => {
     expect(mock.query).toHaveBeenCalledWith('ROLLBACK');
   });
 });
+

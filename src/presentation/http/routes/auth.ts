@@ -16,9 +16,7 @@ const registerRequestJsonSchema = {
     username: { type: 'string', minLength: 3, maxLength: 150 },
     email: { type: 'string', format: 'email' },
     password: { type: 'string', minLength: 8, maxLength: 128 },
-    organizationId: { type: 'string', format: 'uuid' },
     defaultBranchId: { type: 'string', format: 'uuid' },
-    defaultLocationId: { type: 'string', format: 'uuid' },
     roleCode: { type: 'string', minLength: 1, maxLength: 50 },
   },
 } as const;
@@ -33,9 +31,6 @@ const loginRequestJsonSchema = {
 const sanitizeUser = (user: {
   id: string;
   tenantId: string;
-  organizationId?: string | null;
-  activeLocationId?: string | null;
-  defaultLocationId?: string | null;
   defaultBranchId?: string | null;
   username: string;
   email: string;
@@ -43,9 +38,6 @@ const sanitizeUser = (user: {
 }) => ({
   id: user.id,
   tenantId: user.tenantId,
-  organizationId: user.organizationId ?? null,
-  activeLocationId: user.activeLocationId ?? null,
-  defaultLocationId: user.defaultLocationId ?? null,
   defaultBranchId: user.defaultBranchId ?? null,
   username: user.username,
   email: user.email,
@@ -55,8 +47,6 @@ const sanitizeSession = (session: {
   id: string;
   tenantId: string;
   userId: string;
-  organizationId?: string | null;
-  locationId?: string | null;
   branchId?: string | null;
   financialYearId?: string | null;
   isActive: boolean;
@@ -66,8 +56,6 @@ const sanitizeSession = (session: {
   id: session.id,
   tenantId: session.tenantId,
   userId: session.userId,
-  organizationId: session.organizationId ?? null,
-  locationId: session.locationId ?? null,
   branchId: session.branchId ?? null,
   financialYearId: session.financialYearId ?? null,
   isActive: session.isActive,
@@ -186,9 +174,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         username: body.username,
         email: body.email,
         password: body.password,
-        organizationId: body.organizationId ?? request.user.organizationId ?? null,
         defaultBranchId: body.defaultBranchId ?? request.user.defaultBranchId ?? null,
-        defaultLocationId: body.defaultLocationId ?? request.user.defaultLocationId ?? null,
         roleCode: body.roleCode ?? 'member',
       });
       reply.code(201);
@@ -355,7 +341,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     async (request) => {
       if (!request.user || !request.tenantId) throw new UnauthorizedError('Authentication required.');
       const modules = await request.server.moduleAccessService.listAccessibleModules(request.tenantId);
-      return { success: true, modules };
+      return { success: true, tenantId: request.tenantId, modules };
     },
   );
   fastify.post<{ Params: ModuleCodeParams }>(

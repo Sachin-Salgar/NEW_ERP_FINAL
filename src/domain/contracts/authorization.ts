@@ -1,4 +1,4 @@
-export type PermissionScope = 'own' | 'branch' | 'organization' | 'tenant' | 'global';
+export type PermissionScope = 'own' | 'branch' | 'tenant' | 'global';
 
 export interface PermissionDescriptor {
   id: string;
@@ -28,7 +28,6 @@ export interface RoleDescriptor {
 export interface UserPermissionContext {
   tenantId: string;
   userId: string;
-  organizationId?: string | null;
   branchId?: string | null;
 }
 

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../src/infrastructure/database/tenant-context.js', () => ({
   withTenantContext: async (
@@ -55,3 +55,4 @@ describe('ModuleAccessService', () => {
     ).resolves.toBeNull();
   });
 });
+

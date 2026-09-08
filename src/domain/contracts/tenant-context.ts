@@ -2,12 +2,9 @@ export interface TenantContext {
   tenantId: string;
   identityId?: string | null;
   userId?: string | null;
-  organizationId?: string | null;
-  activeOrganizationId?: string | null;
-  activeLocationId?: string | null;
   roleIds?: string[];
   permissionKeys?: string[];
-  locationAccess?: string[];
+  branchAccess?: string[];
   sessionId?: string | null;
   resolvedAt?: Date | string | null;
 }

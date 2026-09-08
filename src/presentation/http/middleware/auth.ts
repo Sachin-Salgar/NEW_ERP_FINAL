@@ -4,7 +4,6 @@ import { ForbiddenError, UnauthorizedError } from '../../../domain/errors.js';
 import type { AuthenticationService } from '../../../application/services/authentication-service.js';
 import type { AuthorizationService } from '../../../application/services/authorization-service.js';
 import type { ModuleAccessService } from '../../../application/services/module-access-service.js';
-import type { TenantMembershipService } from '../../../application/services/tenant-membership-service.js';
 import type { UserRegistrationService } from '../../../application/services/user-registration-service.js';
 import type { AccountSecurityService } from '../../../application/services/account-security-service.js';
 import type { MfaService } from '../../../application/services/mfa-service.js';
@@ -41,7 +40,6 @@ declare module 'fastify' {
     moduleAccessService: ModuleAccessService;
     registrationService: UserRegistrationService;
     jwtTokenService: JwtTokenService;
-    tenantMembershipService: TenantMembershipService;
     accountSecurityService: AccountSecurityService;
     mfaService: MfaService;
     auditLogger: AuditLogger;

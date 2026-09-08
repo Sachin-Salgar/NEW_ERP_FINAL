@@ -133,7 +133,7 @@ export class CustomerService {
       context.tenantId,
       CUSTOMER_MODULE_CODE,
     );
-    if (!moduleEnabled) throw new ForbiddenError('Customer module is not enabled for this organization.');
+    if (!moduleEnabled) throw new ForbiddenError('Customer module is not enabled for this tenant.');
     if (!(await this.authorizationService.hasPermission(context.tenantId, context.userId, permission))) {
       throw new ForbiddenError('Insufficient permission for Customer operation.');
     }

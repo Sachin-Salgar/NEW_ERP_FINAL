@@ -1,4 +1,4 @@
-import dotenv from 'dotenv';
+﻿import dotenv from 'dotenv';
 import fs from 'node:fs';
 import { beforeAll } from 'vitest';
 import { Pool } from 'pg';
@@ -48,3 +48,4 @@ beforeAll(async () => {
     return app.toString();
   })();
 });
+

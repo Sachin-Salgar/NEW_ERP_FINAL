@@ -1,4 +1,4 @@
-import Fastify from 'fastify';
+﻿import Fastify from 'fastify';
 import { describe, expect, it } from 'vitest';
 
 import { schemaForRoute } from '../../src/presentation/http/swagger.js';
@@ -75,3 +75,4 @@ describe('route request validation', () => {
     }
   });
 });
+

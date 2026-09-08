@@ -49,7 +49,7 @@ describe('operational worker and outbox database boundaries', () => {
         currency: 'USD',
         locale: 'en_US',
       },
-      organization: { code: `${name.slice(0, 3)}${suffix}`, name: `${name} Org` },
+      Tenant: { code: `${name.slice(0, 3)}${suffix}`, name: `${name} Tenant` },
       branch: { code: `${name.slice(0, 3)}${suffix}`, name: `${name} Branch` },
       administrator: {
         username: `${name.toLowerCase()}-${suffix}`,
@@ -183,3 +183,4 @@ describe('operational worker and outbox database boundaries', () => {
     expect(forceRls.rows.every((row) => row.relforcerowsecurity)).toBe(true);
   });
 });
+

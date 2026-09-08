@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+﻿import { randomUUID } from 'node:crypto';
 
 import { describe, expect, it } from 'vitest';
 
@@ -9,7 +9,6 @@ import { ForbiddenError, NotFoundError, ValidationError } from '../../src/domain
 
 const context = {
   tenantId: randomUUID(),
-  organizationId: randomUUID(),
   userId: randomUUID(),
 };
 
@@ -17,7 +16,6 @@ function record(overrides: Partial<CustomerRecord> = {}): CustomerRecord {
   return {
     id: randomUUID(),
     tenantId: context.tenantId,
-    organizationId: context.organizationId,
     name: 'Acme',
     createdAt: new Date(),
     createdBy: context.userId,
@@ -105,3 +103,4 @@ describe('CustomerService', () => {
     await expect(service.softDelete(context, randomUUID())).rejects.toBeInstanceOf(NotFoundError);
   });
 });
+

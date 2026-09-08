@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 
 import { PostgresQueryPerformanceMonitor } from '../../src/infrastructure/database/query-performance-monitor.js';
 
@@ -61,3 +61,4 @@ describe('PostgresQueryPerformanceMonitor', () => {
     expect(snapshot.unavailableReason).toBe('insufficient-permission');
   });
 });
+

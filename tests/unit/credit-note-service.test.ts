@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+﻿import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { CreditNoteService, type CreditNoteContext } from '../../src/application/services/credit-note-service.js';
 import type { AuditLogger } from '../../src/application/contracts/audit.js';
@@ -7,7 +7,6 @@ import { ValidationError } from '../../src/domain/errors.js';
 
 const context: CreditNoteContext = {
   tenantId: randomUUID(),
-  organizationId: randomUUID(),
   branchId: randomUUID(),
   financialYearId: randomUUID(),
   userId: randomUUID(),
@@ -90,3 +89,4 @@ describe('CreditNoteService', () => {
     );
   });
 });
+

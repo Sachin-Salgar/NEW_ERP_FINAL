@@ -42,10 +42,6 @@ class ApiClient {
     if (accessToken != null) {
       headers['Authorization'] = ['Bearer', accessToken].join(' ');
     }
-    if (auth.currentTenantId != null && auth.currentTenantId!.isNotEmpty) {
-      headers['x-tenant-id'] = auth.currentTenantId!;
-    }
-
     http.Response response = await fn(headers).timeout(timeout);
     if (response.statusCode == 401) {
       final refreshed = await auth.tryRefresh();
@@ -53,9 +49,6 @@ class ApiClient {
         final newToken = auth.accessToken;
         if (newToken != null) {
           headers['Authorization'] = ['Bearer', newToken].join(' ');
-          if (auth.currentTenantId != null && auth.currentTenantId!.isNotEmpty) {
-            headers['x-tenant-id'] = auth.currentTenantId!;
-          }
           response = await fn(headers).timeout(timeout);
         }
       }

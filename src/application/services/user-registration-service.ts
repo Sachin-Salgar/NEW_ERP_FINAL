@@ -57,7 +57,6 @@ export class UserRegistrationService {
     }
 
     const defaultRoleCode = input.roleCode ?? 'member';
-    const targetOrganizationId = input.organizationId ?? actor.organizationId ?? null;
     const passwordHash = await this.passwordHasher.hash(password);
 
     const register = async (): Promise<UserRegistrationRecord> => {
@@ -73,7 +72,6 @@ export class UserRegistrationService {
       const user = await this.repository.createUser({
         id: uuidV7(),
         tenantId,
-        organizationId: targetOrganizationId,
         defaultBranchId: input.defaultBranchId ?? actor.defaultBranchId ?? null,
         username,
         email,
@@ -81,15 +79,11 @@ export class UserRegistrationService {
         status: 'active',
       });
 
-      if (targetOrganizationId) {
-        await this.repository.assignUserToOrganization(tenantId, user.id, targetOrganizationId);
-      }
       await this.repository.assignUserRole(tenantId, user.id, role.id);
 
       return {
         id: user.id,
         tenantId: user.tenantId,
-        organizationId: user.organizationId,
         defaultBranchId: user.defaultBranchId,
         username: user.username,
         email: user.email,

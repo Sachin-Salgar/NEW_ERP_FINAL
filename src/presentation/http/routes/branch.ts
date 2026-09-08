@@ -14,8 +14,8 @@ const branchRoutes: FastifyPluginAsync = async (fastify) => {
     return { success: true, branches };
   });
 
-  fastify.post<{ Params: BranchIdParams }>(
-    '/branches/:id/select',
+  fastify.get<{ Params: BranchIdParams }>(
+    '/branches/:id',
     { preHandler: [requireAuth, requirePermission('branch.read')] },
     async (request) => {
       if (!request.tenantId || !request.user) throw new ValidationError('Authenticated tenant context is required.');

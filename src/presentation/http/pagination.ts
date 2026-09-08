@@ -170,33 +170,9 @@ function getListConfig(routePath: string):
       },
     };
   }
-  if (/\/organizations$/.test(normalized)) {
-    return {
-      key: 'organizations',
-      searchable: [(item) => item.code, (item) => item.name, (item) => item.legalName],
-      sortable: {
-        code: (item) => item.code,
-        name: (item) => item.name,
-        status: (item) => item.status,
-        createdAt: (item) => item.createdAt,
-      },
-    };
-  }
-  if (/\/organizations\/[^/]+\/branches$|\/branches$/.test(normalized)) {
+  if (/\/branches$/.test(normalized)) {
     return {
       key: 'branches',
-      searchable: [(item) => item.code, (item) => item.name, (item) => item.city, (item) => item.state],
-      sortable: {
-        code: (item) => item.code,
-        name: (item) => item.name,
-        city: (item) => item.city,
-        createdAt: (item) => item.createdAt,
-      },
-    };
-  }
-  if (/\/locations$/.test(normalized)) {
-    return {
-      key: 'locations',
       searchable: [(item) => item.code, (item) => item.name, (item) => item.city, (item) => item.state],
       sortable: {
         code: (item) => item.code,

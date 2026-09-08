@@ -48,7 +48,7 @@ export class TaxService {
 
   async list(c: TaxContext) {
     await this.authorize(c, 'tax.configuration.read');
-    return this.repository.list(c.tenantId, c.organizationId);
+    return this.repository.list(c.tenantId);
   }
 
   async update(
@@ -107,11 +107,10 @@ export class TaxService {
     if (!c.userId?.trim()) throw new UnauthorizedError();
     for (const [value, label] of [
       [c.tenantId, 'Tenant ID'],
-      [c.organizationId, 'Organization ID'],
       [c.userId, 'User ID'],
     ] as const)
       this.id(value, label);
-    if (!(await this.modules.isModuleEnabled(c.tenantId, c.organizationId, 'sales')))
+    if (!(await this.modules.isModuleEnabled(c.tenantId, 'sales')))
       throw new ForbiddenError('Sales module is not enabled.');
     if (!(await this.auth.hasPermission(c.tenantId, c.userId, permission)))
       throw new ForbiddenError('Insufficient tax permission.');

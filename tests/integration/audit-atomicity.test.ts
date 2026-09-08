@@ -1,4 +1,4 @@
-import dotenv from 'dotenv';
+﻿import dotenv from 'dotenv';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Pool } from 'pg';
 
@@ -75,3 +75,4 @@ describe('security mutation audit atomicity', () => {
     expect(row.rows[0].name).toBe(originalName);
   });
 });
+

@@ -12,7 +12,6 @@ import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } fro
 import type { FinancePostingPort } from '../../domain/contracts/sales-dependencies.js';
 export interface CreditNoteContext {
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   userId: string;
@@ -70,7 +69,7 @@ export class CreditNoteService {
   async get(c: CreditNoteContext, id: string) {
     await this.authorize(c, CREDIT_NOTE_PERMISSIONS.read);
     this.id(id, 'Credit Note ID');
-    const v = await this.repository.getById(c.tenantId, c.organizationId, c.branchId, c.financialYearId, id);
+    const v = await this.repository.getById(c.tenantId, c.branchId, c.financialYearId, id);
     if (!v) throw new NotFoundError('Credit Note not found.');
     return v;
   }
@@ -78,7 +77,6 @@ export class CreditNoteService {
     await this.authorize(c, CREDIT_NOTE_PERMISSIONS.read);
     return this.repository.list(c.tenantId, {
       ...input,
-      organizationId: c.organizationId,
       branchId: c.branchId,
       financialYearId: c.financialYearId,
     });
@@ -153,13 +151,12 @@ export class CreditNoteService {
     if (!c.userId?.trim()) throw new UnauthorizedError();
     for (const [v, l] of [
       [c.tenantId, 'Tenant ID'],
-      [c.organizationId, 'Organization ID'],
       [c.branchId, 'Branch ID'],
       [c.financialYearId, 'Financial Year ID'],
       [c.userId, 'User ID'],
     ] as const)
       this.id(v, l);
-    if (!(await this.modules.isModuleEnabled(c.tenantId, c.organizationId, 'sales')))
+    if (!(await this.modules.isModuleEnabled(c.tenantId, 'sales')))
       throw new ForbiddenError('Sales module is not enabled.');
     if (!(await this.auth.hasPermission(c.tenantId, c.userId, p)))
       throw new ForbiddenError('Insufficient Credit Note permission.');

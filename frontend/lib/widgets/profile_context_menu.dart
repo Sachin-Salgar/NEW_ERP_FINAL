@@ -5,8 +5,8 @@ import '../core/auth/auth_service.dart';
 import '../routing/app_router_delegate.dart';
 import '../themes/theme_controller.dart';
 
-/// Profile menu containing user profile actions and working-context switches.
-/// Tenant is never selectable here; it is fixed by authentication.
+/// Profile menu containing user profile actions.
+/// Tenant context is established by the authenticated backend session.
 class ProfileContextMenu extends StatelessWidget {
   const ProfileContextMenu({super.key});
 
@@ -27,7 +27,7 @@ class ProfileContextMenu extends StatelessWidget {
                 .toString();
         final email = (user['email'] ?? '').toString();
         return PopupMenuButton<String>(
-          tooltip: 'Profile and working context',
+          tooltip: 'Profile',
           offset: const Offset(0, 48),
           onSelected: (value) async {
             if (value == 'theme') {

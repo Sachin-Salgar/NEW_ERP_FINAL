@@ -122,7 +122,6 @@ export class TenantAdministrationService {
       const protectedData = await client.query(
         `SELECT
            (SELECT COUNT(*) FROM users WHERE tenant_id = $1 AND is_deleted = false) AS users,
-           (SELECT COUNT(*) FROM organizations WHERE tenant_id = $1 AND is_deleted = false) AS organizations,
            (SELECT COUNT(*) FROM branches WHERE tenant_id = $1 AND is_deleted = false) AS branches,
            (SELECT COUNT(*) FROM audit_events WHERE tenant_id = $1) AS audit_events`,
         [tenantId],
@@ -130,7 +129,6 @@ export class TenantAdministrationService {
       const counts = protectedData.rows[0];
       if (
         Number(counts.users) > 0 ||
-        Number(counts.organizations) > 0 ||
         Number(counts.branches) > 0 ||
         Number(counts.audit_events) > 0
       ) {

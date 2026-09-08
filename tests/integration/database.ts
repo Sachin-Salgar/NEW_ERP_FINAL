@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+﻿import { Pool } from 'pg';
 
 import { resolveDatabaseUrl } from '../../src/config/schema.js';
 
@@ -31,3 +31,4 @@ export function createIntegrationAdminPool(): Pool {
 export function createIntegrationApplicationPool(): Pool {
   return new Pool({ connectionString: resolveIntegrationApplicationDatabaseUrl(), ssl: false });
 }
+

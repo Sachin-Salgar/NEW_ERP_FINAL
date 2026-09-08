@@ -18,7 +18,6 @@ import {
 
 export interface QuotationContext {
   tenantId: string;
-  organizationId: string;
   branchId: string;
   financialYearId: string;
   userId: string;
@@ -86,7 +85,6 @@ export class QuotationService {
     await this.authorize(c, QUOTATION_PERMISSIONS.read);
     if (input.search && input.search.length > 100) throw new ValidationError('Search must be 100 characters or fewer.');
     return this.repository.list(c.tenantId, {
-      organizationId: c.organizationId,
       branchId: c.branchId,
       financialYearId: c.financialYearId,
       ...input,
@@ -95,7 +93,7 @@ export class QuotationService {
   async get(c: QuotationContext, id: string) {
     await this.authorize(c, QUOTATION_PERMISSIONS.read);
     this.id(id, 'Quotation ID');
-    const q = await this.repository.getById(c.tenantId, c.organizationId, c.branchId, c.financialYearId, id);
+    const q = await this.repository.getById(c.tenantId, c.branchId, c.financialYearId, id);
     if (!q) throw new NotFoundError('Quotation not found.');
     return q;
   }
@@ -151,7 +149,7 @@ export class QuotationService {
     await this.authorize(c, QUOTATION_PERMISSIONS.delete);
     this.id(id, 'Quotation ID');
     return this.tx.runInTransaction(async () => {
-      const current = await this.repository.getById(c.tenantId, c.organizationId, c.branchId, c.financialYearId, id);
+      const current = await this.repository.getById(c.tenantId, c.branchId, c.financialYearId, id);
       if (!current) throw new NotFoundError('Quotation not found.');
       if (current.status !== 'DRAFT') throw new ValidationError('Only draft quotations can be deleted.');
       const q = await this.repository.softDelete({ ...c, quotationId: id, actorUserId: c.userId });
@@ -192,7 +190,7 @@ export class QuotationService {
     soft: boolean,
   ): Promise<QuotationRecord> {
     return this.tx.runInTransaction(async () => {
-      const current = await this.repository.getById(c.tenantId, c.organizationId, c.branchId, c.financialYearId, id);
+      const current = await this.repository.getById(c.tenantId, c.branchId, c.financialYearId, id);
       if (!current) throw new NotFoundError('Quotation not found.');
       if (!transitions[current.status].includes(status))
         throw new ValidationError(`Quotation cannot transition from ${current.status} to ${status}.`);
@@ -217,11 +215,10 @@ export class QuotationService {
   private async authorize(c: QuotationContext, p: QuotationPermission) {
     if (!c.userId?.trim()) throw new UnauthorizedError();
     this.id(c.tenantId, 'Tenant ID');
-    this.id(c.organizationId, 'Organization ID');
     this.id(c.branchId, 'Branch ID');
     this.id(c.financialYearId, 'Financial Year ID');
     this.id(c.userId, 'User ID');
-    if (!(await this.modules.isModuleEnabled(c.tenantId, c.organizationId, SALES_MODULE_CODE)))
+    if (!(await this.modules.isModuleEnabled(c.tenantId, SALES_MODULE_CODE)))
       throw new ForbiddenError('Sales module is not enabled.');
     if (!(await this.auth.hasPermission(c.tenantId, c.userId, p)))
       throw new ForbiddenError('Insufficient quotation permission.');

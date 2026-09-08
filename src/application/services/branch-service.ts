@@ -10,17 +10,9 @@ export class BranchService {
     }
   }
 
-  private requireContext(tenantId: string, organizationId: string): void {
-    this.requireTenant(tenantId);
-    if (!organizationId?.trim()) {
-      throw new ValidationError('Organization context is required for branch operations.');
-    }
-  }
-
   async listAccessibleBranchesForUser(
     tenantId: string,
     userId: string,
-    organizationId?: string | null,
   ): Promise<BranchRecord[]> {
     this.requireTenant(tenantId);
     const normalizedUserId = (userId ?? '').trim();
@@ -28,18 +20,17 @@ export class BranchService {
       throw new ValidationError('User identity is required to list accessible branches.');
     }
 
-    return this.repository.listAccessibleBranchesForUser(tenantId, normalizedUserId, organizationId ?? null);
+    return this.repository.listAccessibleBranchesForUser(tenantId, normalizedUserId);
   }
 
   async listTenantBranchesForUser(tenantId: string, userId: string): Promise<BranchRecord[]> {
-    return this.listAccessibleBranchesForUser(tenantId, userId, null);
+    return this.listAccessibleBranchesForUser(tenantId, userId);
   }
 
   async getAccessibleBranchByIdForUser(
     tenantId: string,
     userId: string,
     branchId: string,
-    organizationId?: string | null,
   ): Promise<BranchRecord | null> {
     this.requireTenant(tenantId);
     const normalizedUserId = (userId ?? '').trim();
@@ -52,23 +43,17 @@ export class BranchService {
       throw new ValidationError('Branch ID is required.');
     }
 
-    return this.repository.getAccessibleBranchByIdForUser(
-      tenantId,
-      normalizedUserId,
-      normalizedBranchId,
-      organizationId ?? null,
-    );
+    return this.repository.getAccessibleBranchByIdForUser(tenantId, normalizedUserId, normalizedBranchId);
   }
 
   async getTenantBranchByIdForUser(tenantId: string, userId: string, branchId: string): Promise<BranchRecord | null> {
-    return this.getAccessibleBranchByIdForUser(tenantId, userId, branchId, null);
+    return this.getAccessibleBranchByIdForUser(tenantId, userId, branchId);
   }
 
   async validateBranchAccess(
     tenantId: string,
     userId: string,
     branchId: string,
-    organizationId?: string | null,
   ): Promise<boolean> {
     this.requireTenant(tenantId);
     const normalizedUserId = (userId ?? '').trim();
@@ -76,20 +61,20 @@ export class BranchService {
     if (!normalizedUserId || !normalizedBranchId) {
       return false;
     }
-    return this.repository.validateBranchAccess(tenantId, normalizedUserId, normalizedBranchId, organizationId ?? null);
+    return this.repository.validateBranchAccess(tenantId, normalizedUserId, normalizedBranchId);
   }
 
-  async getBranchById(tenantId: string, organizationId: string, branchId: string): Promise<BranchRecord | null> {
-    this.requireContext(tenantId, organizationId);
+  async getBranchById(tenantId: string, branchId: string): Promise<BranchRecord | null> {
+    this.requireTenant(tenantId);
     const normalizedId = (branchId ?? '').trim();
     if (!normalizedId) {
       throw new ValidationError('Branch ID is required.');
     }
-    return this.repository.getBranchById(tenantId, organizationId, normalizedId);
+    return this.repository.getBranchById(tenantId, normalizedId);
   }
 
-  async validateFinancialYear(tenantId: string, organizationId: string, financialYearId: string): Promise<boolean> {
-    if (!tenantId?.trim() || !organizationId?.trim() || !financialYearId?.trim()) return false;
-    return this.repository.validateFinancialYear(tenantId, organizationId, financialYearId);
+  async validateFinancialYear(tenantId: string, financialYearId: string): Promise<boolean> {
+    if (!tenantId?.trim() || !financialYearId?.trim()) return false;
+    return this.repository.validateFinancialYear(tenantId, financialYearId);
   }
 }

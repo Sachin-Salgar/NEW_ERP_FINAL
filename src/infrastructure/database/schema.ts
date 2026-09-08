@@ -35,7 +35,7 @@ export const subscriptionStatusEnum = pgEnum('subscription_status_enum', [
 
 export const userStatusEnum = pgEnum('user_status_enum', ['active', 'inactive', 'locked', 'pending_verification']);
 
-export const orgStatusEnum = pgEnum('org_status_enum', ['active', 'inactive', 'archived']);
+export const branchStatusEnum = pgEnum('branch_status_enum', ['active', 'inactive', 'archived']);
 
 export const fyStatusEnum = pgEnum('fy_status_enum', ['open', 'closed', 'locked']);
 export const quotationStatusEnum = pgEnum('quotation_status_enum', [
@@ -172,7 +172,7 @@ export const branches = pgTable(
       .references(() => tenants.id, { onDelete: 'cascade' }),
     code: varchar('code', { length: 50 }).notNull(),
     name: varchar('name', { length: 255 }).notNull(),
-    status: orgStatusEnum('status').notNull().default('active'),
+    status: branchStatusEnum('status').notNull().default('active'),
     isHeadOffice: boolean('is_head_office').notNull().default(false),
     isDefault: boolean('is_default').notNull().default(false),
     addressLine1: text('address_line1'),

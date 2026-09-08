@@ -148,8 +148,6 @@ export class AuthenticationService {
       tenantId: resolvedTenantId,
       userId: user.id,
       identityId: user.identityId,
-      organizationId: user.organizationId ?? null,
-      locationId: user.defaultLocationId ?? null,
       branchId: user.defaultBranchId ?? null,
       accessTokenId: null,
       expiresAt: sessionExpiresAt,
@@ -175,9 +173,7 @@ export class AuthenticationService {
         id: user.id,
         identityId: user.identityId,
         tenantId: user.tenantId,
-        organizationId: user.organizationId,
         branchId: user.defaultBranchId ?? null,
-        defaultLocationId: user.defaultLocationId ?? null,
         defaultBranchId: user.defaultBranchId,
         username: user.username,
         email: user.email,
@@ -211,10 +207,7 @@ export class AuthenticationService {
     return {
       id: user.id,
       tenantId: user.tenantId,
-      organizationId: session.organizationId ?? null,
       branchId: session.branchId ?? null,
-      activeLocationId: session.locationId ?? null,
-      defaultLocationId: user.defaultLocationId ?? null,
       defaultBranchId: user.defaultBranchId,
       financialYearId: session.financialYearId ?? null,
       username: user.username,
@@ -231,8 +224,6 @@ export class AuthenticationService {
 export const createAuthenticatedUser = (user: {
   id: string;
   tenantId: string;
-  organizationId?: string | null;
-  defaultLocationId?: string | null;
   defaultBranchId?: string | null;
   username: string;
   email: string;

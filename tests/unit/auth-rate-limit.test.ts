@@ -1,4 +1,4 @@
-import Fastify from 'fastify';
+﻿import Fastify from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import { describe, expect, it } from 'vitest';
 
@@ -50,3 +50,4 @@ describe('authentication rate limiting', () => {
     }
   });
 });
+

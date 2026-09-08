@@ -18,7 +18,7 @@ export class InventoryService {
       hasPermission(tenantId: string, userId: string, permission: InventoryPermission): Promise<boolean>;
     },
     private readonly modules: {
-      isModuleEnabled(tenantId: string, organizationId: string, moduleCode: string): Promise<boolean>;
+      isModuleEnabled(tenantId: string, moduleCode: string): Promise<boolean>;
     },
     private readonly audit: AuditLogger,
     private readonly tx: { runInTransaction<T>(callback: () => Promise<T>): Promise<T> },
@@ -43,7 +43,6 @@ export class InventoryService {
     this.page(page, pageSize);
     return this.repository.listWarehouses(
       context.tenantId,
-      context.organizationId,
       page,
       pageSize,
       input.search?.trim() || undefined,
@@ -81,7 +80,6 @@ export class InventoryService {
     if (input.itemId) this.id(input.itemId, 'Item ID');
     return this.repository.listStock(
       context.tenantId,
-      context.organizationId,
       page,
       pageSize,
       input.warehouseId,
@@ -181,7 +179,7 @@ export class InventoryService {
   }
   private async authorize(c: InventoryContext, permission: InventoryPermission) {
     this.validateContext(c);
-    if (!(await this.modules.isModuleEnabled(c.tenantId, c.organizationId, INVENTORY_MODULE_CODE)))
+    if (!(await this.modules.isModuleEnabled(c.tenantId, INVENTORY_MODULE_CODE)))
       throw new ForbiddenError('Inventory module is not enabled.');
     if (!(await this.authorization.hasPermission(c.tenantId, c.userId, permission)))
       throw new ForbiddenError('Insufficient Inventory permission.');
@@ -190,7 +188,6 @@ export class InventoryService {
     if (!c.userId?.trim()) throw new UnauthorizedError();
     for (const [v, l] of [
       [c.tenantId, 'Tenant ID'],
-      [c.organizationId, 'Organization ID'],
       [c.branchId, 'Branch ID'],
       [c.financialYearId, 'Financial Year ID'],
       [c.userId, 'User ID'],

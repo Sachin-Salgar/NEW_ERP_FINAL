@@ -11,7 +11,6 @@ const tenantAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
       subdomain: string;
       slug: string;
       administrator: { username: string; email: string; password: string };
-      organization: { name: string };
       branch: { name: string };
       role?: { code?: string; name?: string };
     };
@@ -29,7 +28,6 @@ const tenantAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
         slug: body.slug,
         status: 'active',
       },
-      organization: { name: body.organization.name, isDefault: true },
       branch: { name: body.branch.name, isDefault: true, isHeadOffice: true },
       administrator: {
         username: body.administrator.username,
@@ -47,7 +45,6 @@ const tenantAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
     return {
       success: true,
       tenantId: result.tenantId,
-      organizationId: result.organizationId,
       branchId: result.branchId,
       userId: result.userId,
       roleId: result.roleId,

@@ -11,14 +11,13 @@ const routes: FastifyPluginAsync = async (fastify) => {
     },
     async (request) => {
       const user = request.user;
-      if (!user?.organizationId || !user.branchId || !user.financialYearId) {
-        throw new ForbiddenError('An active organization, branch, and financial year are required.');
+      if (!user?.tenantId || !user.branchId || !user.financialYearId) {
+        throw new ForbiddenError('An active tenant, branch, and financial year are required.');
       }
       const page = parsePaginationQuery(request.query);
       const result = await fastify.salesReportingService.listDocumentSummary(
         {
           tenantId: request.tenantId!,
-          organizationId: user.organizationId,
           branchId: user.branchId,
           financialYearId: user.financialYearId,
           userId: user.id,

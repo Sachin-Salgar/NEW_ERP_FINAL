@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 
 import { AesGcmSecretProtector } from '../../src/infrastructure/security/aes-secret-protector.js';
 
@@ -22,3 +22,4 @@ describe('AesGcmSecretProtector', () => {
     );
   });
 });
+

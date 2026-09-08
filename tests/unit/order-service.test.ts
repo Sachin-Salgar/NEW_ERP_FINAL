@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+﻿import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
 import { OrderService, type OrderContext } from '../../src/application/services/order-service.js';
@@ -8,7 +8,6 @@ import { ForbiddenError, ValidationError } from '../../src/domain/errors.js';
 
 const context: OrderContext = {
   tenantId: randomUUID(),
-  organizationId: randomUUID(),
   branchId: randomUUID(),
   financialYearId: randomUUID(),
   userId: randomUUID(),
@@ -119,3 +118,4 @@ describe('OrderService', () => {
     ).rejects.toBeInstanceOf(ForbiddenError);
   });
 });
+

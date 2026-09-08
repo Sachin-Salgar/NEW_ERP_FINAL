@@ -6,7 +6,6 @@ import type { OrderRecord } from '../../../domain/contracts/repositories.js';
 function ctx(r: any) {
   return {
     tenantId: r.tenantId,
-    organizationId: r.user.organizationId,
     branchId: r.user.branchId ?? r.user.defaultBranchId,
     financialYearId: r.user.financialYearId,
     userId: r.user.id,

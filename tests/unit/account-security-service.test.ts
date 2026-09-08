@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 
 import { AccountSecurityService } from '../../src/application/services/account-security-service.js';
 import type {
@@ -81,3 +81,4 @@ describe('AccountSecurityService', () => {
     );
   });
 });
+

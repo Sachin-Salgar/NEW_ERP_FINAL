@@ -18,7 +18,6 @@ SET client_min_messages = warning;
 CREATE TABLE public.customers (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     name character varying(255) NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     created_by uuid,
@@ -50,7 +49,7 @@ ALTER TABLE ONLY public.customers
 -- Name: idx_customer_tenant_org_name; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_customer_tenant_org_name ON public.customers USING btree (tenant_id, organization_id, name, id) WHERE (is_deleted = false);
+CREATE INDEX idx_customer_tenant_org_name ON public.customers USING btree (tenant_id, name, id) WHERE (is_deleted = false);
 
 
 --
@@ -60,16 +59,6 @@ CREATE INDEX idx_customer_tenant_org_name ON public.customers USING btree (tenan
 --
 
 CREATE UNIQUE INDEX uq_customer_id_tenant ON public.customers USING btree (id, tenant_id);
-
-
---
-
-
--- Name: customers fk_customer_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.customers
-    ADD CONSTRAINT fk_customer_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id) ON DELETE RESTRICT;
 
 
 --

@@ -104,7 +104,7 @@ Finder _routeContentFinder(String route) {
 }
 
 Future<void> _logout(WidgetTester tester) async {
-  await tester.tap(find.byTooltip('Profile and working context'));
+  await tester.tap(find.byTooltip('Profile'));
   await _settle(tester);
   await tester.tap(find.text('Logout').last);
   await _settle(tester);

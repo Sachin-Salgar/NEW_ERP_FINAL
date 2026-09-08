@@ -135,7 +135,6 @@ CREATE TYPE public.quotation_status_enum AS ENUM (
 CREATE TABLE public.sales_credit_note_items (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     financial_year_id uuid NOT NULL,
     credit_note_id uuid NOT NULL,
@@ -165,7 +164,6 @@ ALTER TABLE ONLY public.sales_credit_note_items FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.sales_credit_notes (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     financial_year_id uuid NOT NULL,
     credit_note_number character varying(50) NOT NULL,
@@ -199,7 +197,6 @@ ALTER TABLE ONLY public.sales_credit_notes FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.sales_deliveries (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     financial_year_id uuid NOT NULL,
     delivery_number character varying(50) NOT NULL,
@@ -228,7 +225,6 @@ ALTER TABLE ONLY public.sales_deliveries FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.sales_delivery_items (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     financial_year_id uuid NOT NULL,
     delivery_id uuid NOT NULL,
@@ -256,7 +252,6 @@ ALTER TABLE ONLY public.sales_delivery_items FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.sales_discount_rules (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     code character varying(64) NOT NULL,
     name character varying(200) NOT NULL,
     percentage numeric(5,2) NOT NULL,
@@ -283,7 +278,6 @@ ALTER TABLE ONLY public.sales_discount_rules FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.sales_invoice_items (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     financial_year_id uuid NOT NULL,
     invoice_id uuid NOT NULL,
@@ -318,7 +312,6 @@ ALTER TABLE ONLY public.sales_invoice_items FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.sales_invoices (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     financial_year_id uuid NOT NULL,
     invoice_number character varying(50) NOT NULL,
@@ -360,7 +353,6 @@ ALTER TABLE ONLY public.sales_invoices FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.sales_order_items (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     financial_year_id uuid NOT NULL,
     order_id uuid NOT NULL,
@@ -397,7 +389,6 @@ ALTER TABLE ONLY public.sales_order_items FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.sales_orders (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     financial_year_id uuid NOT NULL,
     order_number character varying(50) NOT NULL,
@@ -434,7 +425,6 @@ ALTER TABLE ONLY public.sales_orders FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.sales_price_list_items (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     price_list_id uuid NOT NULL,
     item_code character varying(128) NOT NULL,
     unit_of_measure character varying(50) NOT NULL,
@@ -462,7 +452,6 @@ ALTER TABLE ONLY public.sales_price_list_items FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.sales_price_lists (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     branch_id uuid,
     code character varying(64) NOT NULL,
     name character varying(200) NOT NULL,
@@ -490,7 +479,6 @@ ALTER TABLE ONLY public.sales_price_lists FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.sales_quotation_items (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     quotation_id uuid NOT NULL,
     line_number integer NOT NULL,
     description character varying(500) NOT NULL,
@@ -527,7 +515,6 @@ ALTER TABLE ONLY public.sales_quotation_items FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.sales_quotations (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     quotation_number character varying(50) NOT NULL,
     customer_id uuid NOT NULL,
     quotation_date date NOT NULL,
@@ -563,7 +550,6 @@ ALTER TABLE ONLY public.sales_quotations FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.sales_return_items (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     financial_year_id uuid NOT NULL,
     return_id uuid NOT NULL,
@@ -592,7 +578,6 @@ ALTER TABLE ONLY public.sales_return_items FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.sales_returns (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
-    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     financial_year_id uuid NOT NULL,
     return_number character varying(50) NOT NULL,
@@ -624,7 +609,7 @@ ALTER TABLE ONLY public.sales_returns FORCE ROW LEVEL SECURITY;
 -- Name: uq_sales_credit_note_context; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_sales_credit_note_context ON public.sales_credit_notes USING btree (id, organization_id, tenant_id, branch_id, financial_year_id);
+CREATE UNIQUE INDEX uq_sales_credit_note_context ON public.sales_credit_notes USING btree (id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -642,7 +627,7 @@ CREATE UNIQUE INDEX uq_sales_credit_note_id_tenant ON public.sales_credit_notes 
 -- Name: uq_sales_credit_note_number; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_sales_credit_note_number ON public.sales_credit_notes USING btree (tenant_id, organization_id, credit_note_number);
+CREATE UNIQUE INDEX uq_sales_credit_note_number ON public.sales_credit_notes USING btree (tenant_id, credit_note_number);
 
 
 --
@@ -651,7 +636,7 @@ CREATE UNIQUE INDEX uq_sales_credit_note_number ON public.sales_credit_notes USI
 -- Name: uq_sales_delivery_context; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_sales_delivery_context ON public.sales_deliveries USING btree (id, organization_id, tenant_id, branch_id, financial_year_id);
+CREATE UNIQUE INDEX uq_sales_delivery_context ON public.sales_deliveries USING btree (id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -687,7 +672,7 @@ CREATE UNIQUE INDEX uq_sales_delivery_item_reservation ON public.sales_delivery_
 -- Name: uq_sales_invoice_context; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_sales_invoice_context ON public.sales_invoices USING btree (id, organization_id, tenant_id, branch_id, financial_year_id);
+CREATE UNIQUE INDEX uq_sales_invoice_context ON public.sales_invoices USING btree (id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -705,7 +690,7 @@ CREATE UNIQUE INDEX uq_sales_invoice_id_tenant ON public.sales_invoices USING bt
 -- Name: uq_sales_invoice_number; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_sales_invoice_number ON public.sales_invoices USING btree (tenant_id, organization_id, invoice_number);
+CREATE UNIQUE INDEX uq_sales_invoice_number ON public.sales_invoices USING btree (tenant_id, invoice_number);
 
 
 --
@@ -714,7 +699,7 @@ CREATE UNIQUE INDEX uq_sales_invoice_number ON public.sales_invoices USING btree
 -- Name: uq_sales_order_context; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_sales_order_context ON public.sales_orders USING btree (id, organization_id, tenant_id, branch_id, financial_year_id);
+CREATE UNIQUE INDEX uq_sales_order_context ON public.sales_orders USING btree (id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -741,7 +726,7 @@ CREATE UNIQUE INDEX uq_sales_order_item_id_tenant ON public.sales_order_items US
 -- Name: uq_sales_order_number; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_sales_order_number ON public.sales_orders USING btree (tenant_id, organization_id, order_number);
+CREATE UNIQUE INDEX uq_sales_order_number ON public.sales_orders USING btree (tenant_id, order_number);
 
 
 --
@@ -759,7 +744,7 @@ CREATE UNIQUE INDEX uq_sales_order_warehouse_fk ON public.sales_orders USING btr
 -- Name: uq_sales_price_list_context; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_sales_price_list_context ON public.sales_price_lists USING btree (id, organization_id, tenant_id);
+CREATE UNIQUE INDEX uq_sales_price_list_context ON public.sales_price_lists USING btree (id, tenant_id);
 
 
 --
@@ -768,7 +753,7 @@ CREATE UNIQUE INDEX uq_sales_price_list_context ON public.sales_price_lists USIN
 -- Name: uq_sales_quotation_context; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_sales_quotation_context ON public.sales_quotations USING btree (id, organization_id, tenant_id, branch_id, financial_year_id);
+CREATE UNIQUE INDEX uq_sales_quotation_context ON public.sales_quotations USING btree (id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -795,7 +780,7 @@ CREATE UNIQUE INDEX uq_sales_quotation_item_id_tenant ON public.sales_quotation_
 -- Name: uq_sales_quotation_number; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_sales_quotation_number ON public.sales_quotations USING btree (tenant_id, organization_id, quotation_number);
+CREATE UNIQUE INDEX uq_sales_quotation_number ON public.sales_quotations USING btree (tenant_id, quotation_number);
 
 
 --
@@ -804,7 +789,7 @@ CREATE UNIQUE INDEX uq_sales_quotation_number ON public.sales_quotations USING b
 -- Name: uq_sales_quotation_org_tenant; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_sales_quotation_org_tenant ON public.sales_quotations USING btree (id, organization_id, tenant_id);
+CREATE UNIQUE INDEX uq_sales_quotation_org_tenant ON public.sales_quotations USING btree (id, tenant_id);
 
 
 --
@@ -813,7 +798,7 @@ CREATE UNIQUE INDEX uq_sales_quotation_org_tenant ON public.sales_quotations USI
 -- Name: uq_sales_return_context; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_sales_return_context ON public.sales_returns USING btree (id, organization_id, tenant_id, branch_id, financial_year_id);
+CREATE UNIQUE INDEX uq_sales_return_context ON public.sales_returns USING btree (id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -840,7 +825,7 @@ CREATE UNIQUE INDEX uq_sales_return_item_id_tenant ON public.sales_return_items 
 -- Name: uq_sales_return_number; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_sales_return_number ON public.sales_returns USING btree (tenant_id, organization_id, return_number);
+CREATE UNIQUE INDEX uq_sales_return_number ON public.sales_returns USING btree (tenant_id, return_number);
 
 
 --
@@ -1018,7 +1003,7 @@ ALTER TABLE ONLY public.sales_credit_note_items
 --
 
 ALTER TABLE ONLY public.sales_credit_notes
-    ADD CONSTRAINT uq_sales_credit_note_key UNIQUE (idempotency_key, organization_id, tenant_id, branch_id, financial_year_id);
+    ADD CONSTRAINT uq_sales_credit_note_key UNIQUE (idempotency_key, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -1028,7 +1013,7 @@ ALTER TABLE ONLY public.sales_credit_notes
 --
 
 ALTER TABLE ONLY public.sales_credit_notes
-    ADD CONSTRAINT uq_sales_credit_note_return_context UNIQUE (return_id, organization_id, tenant_id, branch_id, financial_year_id);
+    ADD CONSTRAINT uq_sales_credit_note_return_context UNIQUE (return_id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -1038,7 +1023,7 @@ ALTER TABLE ONLY public.sales_credit_notes
 --
 
 ALTER TABLE ONLY public.sales_deliveries
-    ADD CONSTRAINT uq_sales_delivery_context_key UNIQUE (idempotency_key, organization_id, tenant_id, branch_id, financial_year_id);
+    ADD CONSTRAINT uq_sales_delivery_context_key UNIQUE (idempotency_key, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -1048,7 +1033,7 @@ ALTER TABLE ONLY public.sales_deliveries
 --
 
 ALTER TABLE ONLY public.sales_deliveries
-    ADD CONSTRAINT uq_sales_delivery_context_order UNIQUE (sales_order_id, organization_id, tenant_id, branch_id, financial_year_id);
+    ADD CONSTRAINT uq_sales_delivery_context_order UNIQUE (sales_order_id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -1068,7 +1053,7 @@ ALTER TABLE ONLY public.sales_delivery_items
 --
 
 ALTER TABLE ONLY public.sales_discount_rules
-    ADD CONSTRAINT uq_sales_discount_code UNIQUE (tenant_id, organization_id, code);
+    ADD CONSTRAINT uq_sales_discount_code UNIQUE (tenant_id, code);
 
 
 --
@@ -1078,7 +1063,7 @@ ALTER TABLE ONLY public.sales_discount_rules
 --
 
 ALTER TABLE ONLY public.sales_invoices
-    ADD CONSTRAINT uq_sales_invoice_delivery_context UNIQUE (delivery_id, organization_id, tenant_id, branch_id, financial_year_id);
+    ADD CONSTRAINT uq_sales_invoice_delivery_context UNIQUE (delivery_id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -1098,7 +1083,7 @@ ALTER TABLE ONLY public.sales_invoice_items
 --
 
 ALTER TABLE ONLY public.sales_invoices
-    ADD CONSTRAINT uq_sales_invoice_key UNIQUE (idempotency_key, organization_id, tenant_id, branch_id, financial_year_id);
+    ADD CONSTRAINT uq_sales_invoice_key UNIQUE (idempotency_key, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -1128,7 +1113,7 @@ ALTER TABLE ONLY public.sales_price_list_items
 --
 
 ALTER TABLE ONLY public.sales_price_lists
-    ADD CONSTRAINT uq_sales_price_list_code UNIQUE (tenant_id, organization_id, code);
+    ADD CONSTRAINT uq_sales_price_list_code UNIQUE (tenant_id, code);
 
 
 --
@@ -1148,7 +1133,7 @@ ALTER TABLE ONLY public.sales_quotation_items
 --
 
 ALTER TABLE ONLY public.sales_returns
-    ADD CONSTRAINT uq_sales_return_invoice_context UNIQUE (invoice_id, organization_id, tenant_id, branch_id, financial_year_id);
+    ADD CONSTRAINT uq_sales_return_invoice_context UNIQUE (invoice_id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -1168,7 +1153,7 @@ ALTER TABLE ONLY public.sales_return_items
 --
 
 ALTER TABLE ONLY public.sales_returns
-    ADD CONSTRAINT uq_sales_return_key UNIQUE (idempotency_key, organization_id, tenant_id, branch_id, financial_year_id);
+    ADD CONSTRAINT uq_sales_return_key UNIQUE (idempotency_key, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -1217,7 +1202,7 @@ ALTER TABLE ONLY public.sales_credit_notes
 --
 
 ALTER TABLE ONLY public.sales_credit_notes
-    ADD CONSTRAINT fk_sales_credit_note_invoice_context FOREIGN KEY (invoice_id, organization_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_invoices(id, organization_id, tenant_id, branch_id, financial_year_id);
+    ADD CONSTRAINT fk_sales_credit_note_invoice_context FOREIGN KEY (invoice_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_invoices(id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -1227,17 +1212,7 @@ ALTER TABLE ONLY public.sales_credit_notes
 --
 
 ALTER TABLE ONLY public.sales_credit_note_items
-    ADD CONSTRAINT fk_sales_credit_note_item_context FOREIGN KEY (credit_note_id, organization_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_credit_notes(id, organization_id, tenant_id, branch_id, financial_year_id) ON DELETE CASCADE;
-
-
---
-
-
--- Name: sales_credit_notes fk_sales_credit_note_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sales_credit_notes
-    ADD CONSTRAINT fk_sales_credit_note_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
+    ADD CONSTRAINT fk_sales_credit_note_item_context FOREIGN KEY (credit_note_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_credit_notes(id, tenant_id, branch_id, financial_year_id) ON DELETE CASCADE;
 
 
 --
@@ -1247,7 +1222,7 @@ ALTER TABLE ONLY public.sales_credit_notes
 --
 
 ALTER TABLE ONLY public.sales_credit_notes
-    ADD CONSTRAINT fk_sales_credit_note_return_context FOREIGN KEY (return_id, organization_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_returns(id, organization_id, tenant_id, branch_id, financial_year_id);
+    ADD CONSTRAINT fk_sales_credit_note_return_context FOREIGN KEY (return_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_returns(id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -1287,7 +1262,7 @@ ALTER TABLE ONLY public.sales_deliveries
 --
 
 ALTER TABLE ONLY public.sales_delivery_items
-    ADD CONSTRAINT fk_sales_delivery_item_context FOREIGN KEY (delivery_id, organization_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_deliveries(id, organization_id, tenant_id, branch_id, financial_year_id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_sales_delivery_item_context FOREIGN KEY (delivery_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_deliveries(id, tenant_id, branch_id, financial_year_id) ON DELETE CASCADE;
 
 
 --
@@ -1297,27 +1272,7 @@ ALTER TABLE ONLY public.sales_delivery_items
 --
 
 ALTER TABLE ONLY public.sales_deliveries
-    ADD CONSTRAINT fk_sales_delivery_order_context FOREIGN KEY (sales_order_id, organization_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_orders(id, organization_id, tenant_id, branch_id, financial_year_id);
-
-
---
-
-
--- Name: sales_deliveries fk_sales_delivery_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sales_deliveries
-    ADD CONSTRAINT fk_sales_delivery_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
-
-
---
-
-
--- Name: sales_discount_rules fk_sales_discount_org; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sales_discount_rules
-    ADD CONSTRAINT fk_sales_discount_org FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
+    ADD CONSTRAINT fk_sales_delivery_order_context FOREIGN KEY (sales_order_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_orders(id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -1347,7 +1302,7 @@ ALTER TABLE ONLY public.sales_invoices
 --
 
 ALTER TABLE ONLY public.sales_invoices
-    ADD CONSTRAINT fk_sales_invoice_delivery_context FOREIGN KEY (delivery_id, organization_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_deliveries(id, organization_id, tenant_id, branch_id, financial_year_id);
+    ADD CONSTRAINT fk_sales_invoice_delivery_context FOREIGN KEY (delivery_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_deliveries(id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -1367,17 +1322,7 @@ ALTER TABLE ONLY public.sales_invoices
 --
 
 ALTER TABLE ONLY public.sales_invoice_items
-    ADD CONSTRAINT fk_sales_invoice_item_context FOREIGN KEY (invoice_id, organization_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_invoices(id, organization_id, tenant_id, branch_id, financial_year_id) ON DELETE CASCADE;
-
-
---
-
-
--- Name: sales_invoices fk_sales_invoice_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sales_invoices
-    ADD CONSTRAINT fk_sales_invoice_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
+    ADD CONSTRAINT fk_sales_invoice_item_context FOREIGN KEY (invoice_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_invoices(id, tenant_id, branch_id, financial_year_id) ON DELETE CASCADE;
 
 
 --
@@ -1437,17 +1382,7 @@ ALTER TABLE ONLY public.sales_order_items
 --
 
 ALTER TABLE ONLY public.sales_order_items
-    ADD CONSTRAINT fk_sales_order_item_order_context FOREIGN KEY (order_id, organization_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_orders(id, organization_id, tenant_id, branch_id, financial_year_id) ON DELETE CASCADE;
-
-
---
-
-
--- Name: sales_orders fk_sales_order_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sales_orders
-    ADD CONSTRAINT fk_sales_order_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
+    ADD CONSTRAINT fk_sales_order_item_order_context FOREIGN KEY (order_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_orders(id, tenant_id, branch_id, financial_year_id) ON DELETE CASCADE;
 
 
 --
@@ -1457,7 +1392,7 @@ ALTER TABLE ONLY public.sales_orders
 --
 
 ALTER TABLE ONLY public.sales_orders
-    ADD CONSTRAINT fk_sales_order_quotation_context FOREIGN KEY (quotation_id, organization_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_quotations(id, organization_id, tenant_id, branch_id, financial_year_id);
+    ADD CONSTRAINT fk_sales_order_quotation_context FOREIGN KEY (quotation_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_quotations(id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -1467,7 +1402,7 @@ ALTER TABLE ONLY public.sales_orders
 --
 
 ALTER TABLE ONLY public.sales_price_list_items
-    ADD CONSTRAINT fk_sales_price_item_list FOREIGN KEY (price_list_id, organization_id, tenant_id) REFERENCES public.sales_price_lists(id, organization_id, tenant_id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_sales_price_item_list FOREIGN KEY (price_list_id, tenant_id) REFERENCES public.sales_price_lists(id, tenant_id) ON DELETE CASCADE;
 
 
 --
@@ -1478,16 +1413,6 @@ ALTER TABLE ONLY public.sales_price_list_items
 
 ALTER TABLE ONLY public.sales_price_lists
     ADD CONSTRAINT fk_sales_price_list_branch FOREIGN KEY (branch_id, tenant_id) REFERENCES public.branches(id, tenant_id);
-
-
---
-
-
--- Name: sales_price_lists fk_sales_price_list_org; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sales_price_lists
-    ADD CONSTRAINT fk_sales_price_list_org FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
 
 
 --
@@ -1543,26 +1468,6 @@ ALTER TABLE ONLY public.sales_quotation_items
 --
 
 
--- Name: sales_quotations fk_sales_quotation_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sales_quotations
-    ADD CONSTRAINT fk_sales_quotation_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
-
-
---
-
-
--- Name: sales_quotation_items fk_sales_quote_item_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sales_quotation_items
-    ADD CONSTRAINT fk_sales_quote_item_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
-
-
---
-
-
 -- Name: sales_quotation_items fk_sales_quote_item_quote; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1577,7 +1482,7 @@ ALTER TABLE ONLY public.sales_quotation_items
 --
 
 ALTER TABLE ONLY public.sales_quotation_items
-    ADD CONSTRAINT fk_sales_quote_item_quote_org_tenant FOREIGN KEY (quotation_id, organization_id, tenant_id) REFERENCES public.sales_quotations(id, organization_id, tenant_id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_sales_quote_item_quote_org_tenant FOREIGN KEY (quotation_id, tenant_id) REFERENCES public.sales_quotations(id, tenant_id) ON DELETE CASCADE;
 
 
 --
@@ -1607,7 +1512,7 @@ ALTER TABLE ONLY public.sales_returns
 --
 
 ALTER TABLE ONLY public.sales_returns
-    ADD CONSTRAINT fk_sales_return_delivery_context FOREIGN KEY (delivery_id, organization_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_deliveries(id, organization_id, tenant_id, branch_id, financial_year_id);
+    ADD CONSTRAINT fk_sales_return_delivery_context FOREIGN KEY (delivery_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_deliveries(id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -1627,7 +1532,7 @@ ALTER TABLE ONLY public.sales_returns
 --
 
 ALTER TABLE ONLY public.sales_returns
-    ADD CONSTRAINT fk_sales_return_invoice_context FOREIGN KEY (invoice_id, organization_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_invoices(id, organization_id, tenant_id, branch_id, financial_year_id);
+    ADD CONSTRAINT fk_sales_return_invoice_context FOREIGN KEY (invoice_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_invoices(id, tenant_id, branch_id, financial_year_id);
 
 
 --
@@ -1637,17 +1542,7 @@ ALTER TABLE ONLY public.sales_returns
 --
 
 ALTER TABLE ONLY public.sales_return_items
-    ADD CONSTRAINT fk_sales_return_item_context FOREIGN KEY (return_id, organization_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_returns(id, organization_id, tenant_id, branch_id, financial_year_id) ON DELETE CASCADE;
-
-
---
-
-
--- Name: sales_returns fk_sales_return_org_tenant; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sales_returns
-    ADD CONSTRAINT fk_sales_return_org_tenant FOREIGN KEY (organization_id, tenant_id) REFERENCES public.organizations(id, tenant_id);
+    ADD CONSTRAINT fk_sales_return_item_context FOREIGN KEY (return_id, tenant_id, branch_id, financial_year_id) REFERENCES public.sales_returns(id, tenant_id, branch_id, financial_year_id) ON DELETE CASCADE;
 
 
 --
@@ -2061,7 +1956,7 @@ CREATE POLICY sales_returns_tenant_policy ON public.sales_returns USING ((tenant
 -- Name: idx_sales_credit_note_list; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_sales_credit_note_list ON public.sales_credit_notes USING btree (tenant_id, organization_id, branch_id, financial_year_id, credit_note_number);
+CREATE INDEX idx_sales_credit_note_list ON public.sales_credit_notes USING btree (tenant_id, branch_id, financial_year_id, credit_note_number);
 
 
 --
@@ -2070,7 +1965,7 @@ CREATE INDEX idx_sales_credit_note_list ON public.sales_credit_notes USING btree
 -- Name: idx_sales_delivery_list; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_sales_delivery_list ON public.sales_deliveries USING btree (tenant_id, organization_id, branch_id, financial_year_id, delivery_number);
+CREATE INDEX idx_sales_delivery_list ON public.sales_deliveries USING btree (tenant_id, branch_id, financial_year_id, delivery_number);
 
 
 --
@@ -2079,7 +1974,7 @@ CREATE INDEX idx_sales_delivery_list ON public.sales_deliveries USING btree (ten
 -- Name: idx_sales_invoice_list; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_sales_invoice_list ON public.sales_invoices USING btree (tenant_id, organization_id, branch_id, financial_year_id, invoice_number);
+CREATE INDEX idx_sales_invoice_list ON public.sales_invoices USING btree (tenant_id, branch_id, financial_year_id, invoice_number);
 
 
 --
@@ -2088,7 +1983,7 @@ CREATE INDEX idx_sales_invoice_list ON public.sales_invoices USING btree (tenant
 -- Name: idx_sales_order_list; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_sales_order_list ON public.sales_orders USING btree (tenant_id, organization_id, order_number, id) WHERE (is_deleted = false);
+CREATE INDEX idx_sales_order_list ON public.sales_orders USING btree (tenant_id, order_number, id) WHERE (is_deleted = false);
 
 
 --
@@ -2097,7 +1992,7 @@ CREATE INDEX idx_sales_order_list ON public.sales_orders USING btree (tenant_id,
 -- Name: idx_sales_order_warehouse; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_sales_order_warehouse ON public.sales_orders USING btree (tenant_id, organization_id, warehouse_id);
+CREATE INDEX idx_sales_order_warehouse ON public.sales_orders USING btree (tenant_id, warehouse_id);
 
 
 --
@@ -2106,7 +2001,7 @@ CREATE INDEX idx_sales_order_warehouse ON public.sales_orders USING btree (tenan
 -- Name: idx_sales_price_item_lookup; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_sales_price_item_lookup ON public.sales_price_list_items USING btree (tenant_id, organization_id, item_code, unit_of_measure, effective_from);
+CREATE INDEX idx_sales_price_item_lookup ON public.sales_price_list_items USING btree (tenant_id, item_code, unit_of_measure, effective_from);
 
 
 --
@@ -2115,7 +2010,7 @@ CREATE INDEX idx_sales_price_item_lookup ON public.sales_price_list_items USING 
 -- Name: idx_sales_price_list_scope; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_sales_price_list_scope ON public.sales_price_lists USING btree (tenant_id, organization_id, branch_id, status, effective_from);
+CREATE INDEX idx_sales_price_list_scope ON public.sales_price_lists USING btree (tenant_id, branch_id, status, effective_from);
 
 
 --
@@ -2124,7 +2019,7 @@ CREATE INDEX idx_sales_price_list_scope ON public.sales_price_lists USING btree 
 -- Name: idx_sales_quotation_list; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_sales_quotation_list ON public.sales_quotations USING btree (tenant_id, organization_id, quotation_number, id) WHERE (is_deleted = false);
+CREATE INDEX idx_sales_quotation_list ON public.sales_quotations USING btree (tenant_id, quotation_number, id) WHERE (is_deleted = false);
 
 
 --
@@ -2133,4 +2028,4 @@ CREATE INDEX idx_sales_quotation_list ON public.sales_quotations USING btree (te
 -- Name: idx_sales_return_list; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_sales_return_list ON public.sales_returns USING btree (tenant_id, organization_id, branch_id, financial_year_id, return_number);
+CREATE INDEX idx_sales_return_list ON public.sales_returns USING btree (tenant_id, branch_id, financial_year_id, return_number);
