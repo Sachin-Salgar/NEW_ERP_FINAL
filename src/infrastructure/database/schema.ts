@@ -499,7 +499,7 @@ export const users = pgTable(
       .references(() => tenants.id, { onDelete: 'cascade' }),
     defaultBranchId: uuid('default_branch_id'),
     username: varchar('username', { length: 150 }).notNull(),
-    // The PostgreSQL `citext` extension is created in the migration and is required by V1.1.0.
+    // The PostgreSQL `citext` extension is created in the migration.
     // Drizzle does not expose a native `citext` column builder in this version, so the app schema
     // uses `varchar` while the migration preserves the database-level `CITEXT` type.
     email: varchar('email', { length: 255 }).notNull(),

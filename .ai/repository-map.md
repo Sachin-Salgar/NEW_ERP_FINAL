@@ -7,7 +7,6 @@
 | `docs/` | Authoritative ERP architecture and governance | Primary source of truth |
 | `.ai/` | AI workflow/navigation artifacts | Workflow guidance, not ERP authority |
 | `.github/` | GitHub/Copilot integration | AI tooling configuration |
-| `Version 1.1.0` | Repository-level version/reference artifact | Inspect only when relevant |
 | `README.md` | Repository entry point | Context only |
 | `LICENSE` | Licensing | Do not use as ERP design authority |
 

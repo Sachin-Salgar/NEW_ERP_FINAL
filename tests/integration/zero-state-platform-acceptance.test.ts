@@ -186,7 +186,6 @@ describe('fresh zero-state platform acceptance', () => {
     const tenantId = tenantLogin.json().user.tenantId as string;
     const customer = await request('POST', '/api/v1/customers', tenantAToken, {
       name: `Customer ${suffix}`,
-      tenantId,
     });
     expect(customer.statusCode).toBe(201);
     const headerSpoof = await app.inject({

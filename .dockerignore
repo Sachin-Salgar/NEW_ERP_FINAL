@@ -10,7 +10,6 @@ coverage
 *.log
 npm-debug.log*
 frontend
-Version 1.1.0
 docs
 tests
 scripts
