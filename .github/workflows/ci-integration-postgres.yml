@@ -68,7 +68,8 @@ jobs:
         run: |
           set -euo pipefail
           psql -h localhost -p "${CI_POSTGRES_PORT}" -U postgres -d postgres -v ON_ERROR_STOP=1 -v db_name="${CI_TEST_DB}" -v role_name="${CI_TEST_ROLE}" -v role_password="${CI_TEST_ROLE_PASSWORD}" <<'SQL'
-          SELECT format('CREATE DATABASE %I', :'db_name') \gexec
+          SELECT format('CREATE ROLE erp LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB CREATEROLE NOREPLICATION NOBYPASSRLS', :'role_password') \gexec
+          SELECT format('CREATE DATABASE %I OWNER erp', :'db_name') \gexec
           SELECT format('CREATE ROLE %I WITH LOGIN PASSWORD %L NOSUPERUSER NOBYPASSRLS', :'role_name', :'role_password') \gexec
           SQL
           psql -h localhost -p "${CI_POSTGRES_PORT}" -U postgres -d postgres -v ON_ERROR_STOP=1 -v db_name="${CI_TEST_DB}" -v role_name="${CI_TEST_ROLE}" <<'SQL'
@@ -91,19 +92,25 @@ jobs:
           import os, urllib.parse
           role = os.environ['CI_TEST_ROLE']
           password = urllib.parse.quote(os.environ['CI_TEST_ROLE_PASSWORD'], safe='')
+          admin_password = urllib.parse.quote(os.environ['CI_POSTGRES_PASSWORD'], safe='')
           db = os.environ['CI_TEST_DB']
           port = os.environ['CI_POSTGRES_PORT']
           with open(os.environ['GITHUB_ENV'], 'a') as f:
               f.write(f'TEST_DATABASE_URL=postgres://{role}:{password}@localhost:{port}/{db}\n')
-              admin_password = urllib.parse.quote(os.environ['CI_POSTGRES_PASSWORD'], safe='')
-              f.write(f'DATABASE_URL=postgres://postgres:{admin_password}@localhost:{port}/postgres\n')
+              f.write(f'DATABASE_URL=postgres://erp:{password}@localhost:{port}/{db}\n')
+              f.write(f'PLATFORM_SECURITY_DATABASE_URL=postgres://postgres:{admin_password}@localhost:{port}/{db}\n')
+              f.write(f'INTEGRATION_ADMIN_DATABASE_URL=postgres://postgres:{admin_password}@localhost:{port}/{db}\n')
           PY
 
       - name: Run migrations
         env:
-          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          PLATFORM_SECURITY_DATABASE_URL: ${{ env.PLATFORM_SECURITY_DATABASE_URL }}
           DATABASE_SSL_MODE: disable
-        run: npm run db:migrate
+        run: |
+          npm run db:migrate
+          npm run build
+          npm run db:security-bootstrap
 
       - name: Seed deterministic E2E fixtures
         env:

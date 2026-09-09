@@ -96,6 +96,25 @@ The repository's current deployment split is a frontend build on Vercel and a ba
 
 Render-managed PostgreSQL endpoint selection and TLS behavior are governed by the approved managed-PostgreSQL ADR. Production smoke validation must verify frontend-to-backend connectivity, backend CORS acceptance, health behavior, migrations, and background processing separately from repository CI.
 
+For migration `0009` and later, the release order is mandatory:
+
+```text
+build image
+  → run npm run db:migrate as erp
+  → run PLATFORM_SECURITY_DATABASE_URL=<privileged operator URL> npm run db:security-bootstrap
+  → start the application
+```
+
+`PLATFORM_SECURITY_DATABASE_URL` must be provisioned by the infrastructure owner
+as a separate privileged operator credential. It must not be supplied to the
+normal application process or used as `DATABASE_URL`. The bootstrap transaction
+normalizes dedicated roles, transfers lifecycle-function ownership, applies the
+minimal grants, and verifies the security matrix. A failure rolls back the
+bootstrap and the application startup verification refuses to serve traffic.
+The repository does not contain Render-specific release-command configuration;
+Render must configure this command as a mandatory release prerequisite before a
+production deployment can be considered complete.
+
 Dependency installation in deployment must use the repository lockfile consistently with its manifest and must preserve frozen/reproducible lockfile validation. A stale lockfile is a release defect; disabling frozen-lockfile validation is not an acceptable workaround.
 
 The repository does not claim production evidence for worker supervision, external providers, key rotation, backup restoration, database-role separation for pre-authentication lookup, registry attestations, or graceful shutdown until those checks are executed in the target environment.

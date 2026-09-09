@@ -45,6 +45,11 @@
       "strategy": "forward-only-security",
       "destructiveDownAllowed": false,
       "note": "Makes the user-session tenant RLS context fail closed when unset instead of raising UUID cast errors during platform session validation. Recovery is forward-only or restore from backup."
+    },
+    "0009_platform_procedure_owner": {
+      "strategy": "forward-only-security",
+      "destructiveDownAllowed": false,
+      "note": "Moves platform SECURITY DEFINER function ownership to the dedicated non-login procedure owner, removes accidental executor-role membership from the migration role, and preserves executor-only EXECUTE grants. Recovery is forward-only or restore from backup."
     }
   }
 }

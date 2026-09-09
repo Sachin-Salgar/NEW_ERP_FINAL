@@ -1,6 +1,5 @@
 // @ts-nocheck
 import { execFile } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -12,6 +11,7 @@ import { runMigrations } from '../../src/infrastructure/database/migrate.js';
 import { PostgresPlatformRepository } from '../../src/infrastructure/database/repositories/postgres-platform-repository.js';
 import { PlatformBootstrapService } from '../../src/application/services/platform-bootstrap-service.js';
 import { UnitOfWork } from '../../src/infrastructure/database/unit-of-work.js';
+import { runPlatformSecurityBootstrap } from '../../src/infrastructure/database/platform-security.js';
 import { PostgresAuditLogger } from '../../src/infrastructure/audit/postgres-audit-logger.js';
 import { v7 as uuidV7 } from 'uuid';
 import { resolveIntegrationAdminDatabaseUrl } from './database.js';
@@ -50,12 +50,19 @@ describe('fresh zero-state platform acceptance', () => {
     const databaseUrl = temporaryUrl.toString();
 
     await runMigrations(databaseUrl, 'disable');
-    const securitySql = await readFile(new URL('../../scripts/platform-security.sql', import.meta.url), 'utf8');
     await adminPool.query(`SELECT 1`);
     setupPool = new Pool({ connectionString: databaseUrl });
-    await setupPool.query(securitySql);
-    const rolePassword = process.env.ADR0040_SECURITY_ROLE_PASSWORD ?? 'integration-role-password-2026!';
-    for (const role of ['erp_app', 'erp_platform_executor', 'erp_procedure_owner']) {
+    const setupClient = await setupPool.connect();
+    try {
+      await runPlatformSecurityBootstrap(setupClient);
+    } finally {
+      setupClient.release();
+    }
+    const rolePassword = process.env.ADR0040_SECURITY_ROLE_PASSWORD;
+    if (!rolePassword) {
+      throw new Error('ADR0040_SECURITY_ROLE_PASSWORD is required for zero-state platform acceptance.');
+    }
+    for (const role of ['erp_app', 'erp_platform_executor']) {
       await setupPool.query(`ALTER ROLE "${role}" LOGIN PASSWORD '${rolePassword.replaceAll("'", "''")}'`);
     }
     await setupPool.query('GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO erp_app');

@@ -7,6 +7,7 @@ import {
   pingDatabase,
 } from './infrastructure/database/connection.js';
 import { createApplication } from './presentation/http/app.js';
+import { verifyPlatformSecurity } from './infrastructure/database/platform-security.js';
 
 async function bootstrap(): Promise<void> {
   const config = loadConfig();
@@ -22,6 +23,7 @@ async function bootstrap(): Promise<void> {
   try {
     await pingDatabase(pool);
     await pingDatabase(platformPool);
+    await verifyPlatformSecurity(pool, { requireErp: config.isProduction });
   } catch (error) {
     await platformPool.end().catch(() => undefined);
     const configuredDbName = new URL(config.DATABASE_URL).pathname.replace(/^\//, '') || '<unknown>';

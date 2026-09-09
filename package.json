@@ -17,6 +17,7 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "docs:config": "tsx scripts/generate-config-reference.ts",
     "db:verify-recovery": "tsx scripts/verify-migration-recovery.ts",
+    "db:security-bootstrap": "node dist/infrastructure/database/platform-security-bootstrap.js",
     "db:diagnose": "tsx scripts/diagnose-database.ts",
     "seed:custom-tenant": "tsx scripts/seed-custom-tenant.ts",
     "db:generate": "drizzle-kit generate",
