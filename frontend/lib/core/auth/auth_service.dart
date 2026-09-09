@@ -160,7 +160,7 @@ class AuthService extends ChangeNotifier {
         .toString()
         .trim();
     currentTenantId = tenant.isEmpty ? null : tenant;
-    final branch = (s['branchId'] ?? currentUser?['defaultBranchId'] ?? '')
+    final branch = (s['branchId'] ?? '')
         .toString()
         .trim();
     currentBranchId = branch.isEmpty ? null : branch;
@@ -183,6 +183,8 @@ class AuthService extends ChangeNotifier {
       await _secureStorage.write(key: 'context_type', value: contextType!);
     if (currentBranchId != null)
       await _secureStorage.write(key: 'branch_id', value: currentBranchId!);
+    else
+      await _secureStorage.delete(key: 'branch_id');
   }
 
   Future<bool> loadMe(String baseUrl) async {
@@ -195,8 +197,11 @@ class AuthService extends ChangeNotifier {
       currentUser = b['user'] as Map<String, dynamic>?;
       currentTenantId = (currentUser?['tenantId'] ?? currentTenantId)
           ?.toString();
-      currentBranchId = (currentUser?['defaultBranchId'] ?? currentBranchId)
-          ?.toString();
+      currentBranchId = (currentUser?['branchId'])?.toString();
+      if (currentBranchId != null && currentBranchId!.isNotEmpty)
+        await _secureStorage.write(key: 'branch_id', value: currentBranchId!);
+      else
+        await _secureStorage.delete(key: 'branch_id');
       notifyListeners();
       return true;
     } catch (_) {

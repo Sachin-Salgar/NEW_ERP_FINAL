@@ -1406,6 +1406,12 @@ export class PostgresPlatformRepository
         ],
       );
       await client.query(
+        `INSERT INTO user_branch_access (tenant_id, user_id, branch_id)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id, branch_id, tenant_id) DO NOTHING`,
+        [tenantId, userId, input.administrator.defaultBranchId ?? branchId],
+      );
+      await client.query(
         'INSERT INTO roles (id,tenant_id,code,name,description,is_system) VALUES ($1,$2,$3,$4,$5,$6)',
         [
           roleId,
