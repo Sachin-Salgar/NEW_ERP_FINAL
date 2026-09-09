@@ -126,8 +126,8 @@ export class PostgresPricingRepository implements PriceListRepository {
       async (c) => {
         const row = (
           await c.query(
-            `SELECT i.id,i.price_list_id AS "priceListId",i.item_code AS "itemCode",i.unit_of_measure AS "unitOfMeasure",i.price,i.effective_from AS "effectiveFrom",i.effective_to AS "effectiveTo",i.version_number AS "versionNumber" FROM sales_price_list_items i JOIN sales_price_lists l ON l.id=i.price_list_id AND l.tenant_id=i.tenant_id WHERE i.tenant_id=$1 AND i.branch_id =$2 AND i.item_code=$3 AND i.unit_of_measure=$4 AND l.status='PUBLISHED' AND i.effective_from<= $5::date AND (i.effective_to IS NULL OR i.effective_to>=$5::date) AND l.effective_from<= $5::date AND (l.effective_to IS NULL OR l.effective_to>=$5::date) AND (l.branch_id=$6 OR l.branch_id IS NULL) ORDER BY (l.branch_id IS NULL),l.effective_from DESC,i.effective_from DESC`,
-            [i.tenantId, i.branchId, i.itemCode, i.unitOfMeasure, i.asOf, i.branchId],
+            `SELECT i.id,i.price_list_id AS "priceListId",i.item_code AS "itemCode",i.unit_of_measure AS "unitOfMeasure",i.price,i.effective_from AS "effectiveFrom",i.effective_to AS "effectiveTo",i.version_number AS "versionNumber" FROM sales_price_list_items i JOIN sales_price_lists l ON l.id=i.price_list_id AND l.tenant_id=i.tenant_id WHERE i.tenant_id=$1 AND i.item_code=$2 AND i.unit_of_measure=$3 AND l.status='PUBLISHED' AND i.effective_from<= $4::date AND (i.effective_to IS NULL OR i.effective_to>=$4::date) AND l.effective_from<= $4::date AND (l.effective_to IS NULL OR l.effective_to>=$4::date) AND (l.branch_id=$5 OR l.branch_id IS NULL) ORDER BY (l.branch_id IS NULL),l.effective_from DESC,i.effective_from DESC`,
+            [i.tenantId, i.itemCode, i.unitOfMeasure, i.asOf, i.branchId],
           )
         ).rows[0];
         return row ? { ...row, price: Number(row.price) } : null;

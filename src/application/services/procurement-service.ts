@@ -42,7 +42,11 @@ export class ProcurementService {
   }
   getSupplier(c: ProcurementContext, id: string) {
     this.id(id, 'Supplier ID');
-    return this.read(c, PROCUREMENT_PERMISSIONS.supplierRead, () => this.repository.getSupplier(c, id));
+    return this.read(c, PROCUREMENT_PERMISSIONS.supplierRead, async () => {
+      const supplier = await this.repository.getSupplier(c, id);
+      if (!supplier) throw new NotFoundError('Supplier not found.');
+      return supplier;
+    });
   }
   updateSupplier(c: ProcurementContext, input: { id: string; name: string; email?: string; expectedVersion: number }) {
     this.id(input.id, 'Supplier ID');
@@ -82,7 +86,11 @@ export class ProcurementService {
   }
   getRequisition(c: ProcurementContext, id: string) {
     this.id(id, 'Requisition ID');
-    return this.read(c, PROCUREMENT_PERMISSIONS.requisitionRead, () => this.repository.getRequisition(c, id));
+    return this.read(c, PROCUREMENT_PERMISSIONS.requisitionRead, async () => {
+      const requisition = await this.repository.getRequisition(c, id);
+      if (!requisition) throw new NotFoundError('Requisition not found.');
+      return requisition;
+    });
   }
   updateRequisition(
     c: ProcurementContext,
@@ -172,7 +180,11 @@ export class ProcurementService {
   }
   getPurchaseOrder(c: ProcurementContext, id: string) {
     this.id(id, 'Purchase order ID');
-    return this.read(c, PROCUREMENT_PERMISSIONS.purchaseOrderRead, () => this.repository.getPurchaseOrder(c, id));
+    return this.read(c, PROCUREMENT_PERMISSIONS.purchaseOrderRead, async () => {
+      const purchaseOrder = await this.repository.getPurchaseOrder(c, id);
+      if (!purchaseOrder) throw new NotFoundError('Purchase order not found.');
+      return purchaseOrder;
+    });
   }
   updatePurchaseOrder(c: ProcurementContext, input: { id: string; orderDate: string; expectedVersion: number }) {
     this.id(input.id, 'Purchase order ID');
@@ -261,7 +273,11 @@ export class ProcurementService {
   }
   getReceipt(c: ProcurementContext, id: string) {
     this.id(id, 'Receipt ID');
-    return this.read(c, PROCUREMENT_PERMISSIONS.receiptRead, () => this.repository.getReceipt(c, id));
+    return this.read(c, PROCUREMENT_PERMISSIONS.receiptRead, async () => {
+      const receipt = await this.repository.getReceipt(c, id);
+      if (!receipt) throw new NotFoundError('Receipt not found.');
+      return receipt;
+    });
   }
   listReceipts(c: ProcurementContext, page: number, pageSize: number) {
     return this.read(c, PROCUREMENT_PERMISSIONS.receiptRead, () => this.repository.listReceipts(c, page, pageSize));

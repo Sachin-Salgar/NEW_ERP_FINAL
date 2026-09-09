@@ -104,9 +104,9 @@ export class PostgresInventoryRepository implements InventoryRepository {
     warehouseId?: string,
     itemId?: string,
   ) {
-    return this.withTenant(tenantId, branchId, undefined, async (client) => {
-      const values: unknown[] = [tenantId, branchId];
-      const filters = ['tenant_id=$1', '=$2'];
+    return this.withTenant(tenantId, undefined, async (client) => {
+      const values: unknown[] = [tenantId];
+      const filters = ['tenant_id=$1'];
       if (warehouseId) {
         values.push(warehouseId);
         filters.push(`warehouse_id=$${values.length}`);
@@ -141,23 +141,22 @@ export class PostgresInventoryRepository implements InventoryRepository {
     operationKey: string;
     actorUserId: string;
   }) {
-    return this.withTenant(input.tenantId, input.branchId, input.actorUserId, async (client) => {
+    return this.withTenant(input.tenantId, input.actorUserId, async (client) => {
       const existing = await this.findMovement(client, input);
       if (existing) return this.stockFor(client, input);
       await this.assertWarehouseAndItem(client, input);
       await this.ensureStock(client, input);
       await client.query(
         `UPDATE inventory_stock SET on_hand_quantity=on_hand_quantity+$1,updated_at=now(),updated_by=$2,version=version+1
-         WHERE tenant_id=$3 AND tenant_id=$4 AND warehouse_id=$5 AND item_id=$6`,
-        [input.quantity, input.actorUserId, input.tenantId, input.branchId, input.warehouseId, input.itemId],
+         WHERE tenant_id=$3 AND warehouse_id=$4 AND item_id=$5`,
+        [input.quantity, input.actorUserId, input.tenantId, input.warehouseId, input.itemId],
       );
       await client.query(
         `INSERT INTO inventory_movements
           (tenant_id,branch_id,financial_year_id,warehouse_id,item_id,movement_type,quantity,source_type,source_id,operation_key,created_by)
-         VALUES ($1,$2,$3,$4,$5,$6,'RECEIPT',$7,$8,$9,$10,$11)`,
+         VALUES ($1,$2,$3,$4,$5,'RECEIPT',$6,$7,$8,$9,$10)`,
         [
           input.tenantId,
-          input.branchId,
           input.branchId,
           input.financialYearId,
           input.warehouseId,
@@ -185,11 +184,11 @@ export class PostgresInventoryRepository implements InventoryRepository {
     idempotencyKey: string;
     actorUserId: string;
   }) {
-    return this.withTenant(input.tenantId, input.branchId, input.actorUserId, async (client) => {
+    return this.withTenant(input.tenantId, input.actorUserId, async (client) => {
       const prior = await client.query(
         `SELECT ${reservationColumns} FROM inventory_reservations
-         WHERE tenant_id=$1 AND tenant_id=$2 AND source_type=$3 AND source_id=$4 AND item_id=$5`,
-        [input.tenantId, input.branchId, input.sourceType, input.sourceId, input.itemId],
+         WHERE tenant_id=$1 AND branch_id=$2 AND financial_year_id=$3 AND source_type=$4 AND source_id=$5 AND item_id=$6`,
+        [input.tenantId, input.branchId, input.financialYearId, input.sourceType, input.sourceId, input.itemId],
       );
       if (prior.rows[0]) {
         if (Number(prior.rows[0].quantity) !== input.quantity)
@@ -200,13 +199,13 @@ export class PostgresInventoryRepository implements InventoryRepository {
       await this.ensureStock(client, input);
       const stock = await client.query(
         `SELECT ${stockColumns} FROM inventory_stock
-         WHERE tenant_id=$1 AND tenant_id=$2 AND warehouse_id=$3 AND item_id=$4 FOR UPDATE`,
-        [input.tenantId, input.branchId, input.warehouseId, input.itemId],
+         WHERE tenant_id=$1 AND warehouse_id=$2 AND item_id=$3 FOR UPDATE`,
+        [input.tenantId, input.warehouseId, input.itemId],
       );
       const concurrentPrior = await client.query(
         `SELECT ${reservationColumns} FROM inventory_reservations
-         WHERE tenant_id=$1 AND tenant_id=$2 AND source_type=$3 AND source_id=$4 AND item_id=$5`,
-        [input.tenantId, input.branchId, input.sourceType, input.sourceId, input.itemId],
+         WHERE tenant_id=$1 AND branch_id=$2 AND financial_year_id=$3 AND source_type=$4 AND source_id=$5 AND item_id=$6`,
+        [input.tenantId, input.branchId, input.financialYearId, input.sourceType, input.sourceId, input.itemId],
       );
       if (concurrentPrior.rows[0]) {
         if (Number(concurrentPrior.rows[0].quantity) !== input.quantity) {
@@ -219,17 +218,16 @@ export class PostgresInventoryRepository implements InventoryRepository {
       }
       await client.query(
         `UPDATE inventory_stock SET reserved_quantity=reserved_quantity+$1,updated_at=now(),updated_by=$2,version=version+1
-         WHERE tenant_id=$3 AND tenant_id=$4 AND warehouse_id=$5 AND item_id=$6`,
-        [input.quantity, input.actorUserId, input.tenantId, input.branchId, input.warehouseId, input.itemId],
+         WHERE tenant_id=$3 AND warehouse_id=$4 AND item_id=$5`,
+        [input.quantity, input.actorUserId, input.tenantId, input.warehouseId, input.itemId],
       );
       const result = await client.query(
         `INSERT INTO inventory_reservations
           (tenant_id,branch_id,financial_year_id,warehouse_id,item_id,source_type,source_id,idempotency_key,quantity,created_by,updated_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$11)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$10)
          RETURNING ${reservationColumns}`,
         [
           input.tenantId,
-          input.branchId,
           input.branchId,
           input.financialYearId,
           input.warehouseId,
@@ -247,13 +245,15 @@ export class PostgresInventoryRepository implements InventoryRepository {
 
   async listReservations(input: {
     tenantId: string;
+    branchId: string;
+    financialYearId: string;
     page: number;
     pageSize: number;
     status?: 'RESERVED' | 'RELEASED' | 'FULFILLED';
   }) {
-    return this.withTenant(input.tenantId, input.branchId, undefined, async (client) => {
-      const values: unknown[] = [input.tenantId, input.branchId];
-      const filters = ['tenant_id=$1', '=$2'];
+    return this.withTenant(input.tenantId, undefined, async (client) => {
+      const values: unknown[] = [input.tenantId, input.branchId, input.financialYearId];
+      const filters = ['tenant_id=$1', 'branch_id=$2', 'financial_year_id=$3'];
       if (input.status) {
         values.push(input.status);
         filters.push(`status=$${values.length}`);
@@ -278,12 +278,12 @@ export class PostgresInventoryRepository implements InventoryRepository {
     sourceType: string;
     sourceId: string;
   }) {
-    return this.withTenant(input.tenantId, input.branchId, undefined, async (client) => {
+    return this.withTenant(input.tenantId, undefined, async (client) => {
       const result = await client.query(
         `SELECT ${reservationColumns} FROM inventory_reservations
-         WHERE tenant_id=$1 AND tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4
-           AND source_type=$5 AND source_id=$6 ORDER BY item_id`,
-        [input.tenantId, input.branchId, input.branchId, input.financialYearId, input.sourceType, input.sourceId],
+         WHERE tenant_id=$1 AND branch_id=$2 AND financial_year_id=$3
+           AND source_type=$4 AND source_id=$5 ORDER BY item_id`,
+        [input.tenantId, input.branchId, input.financialYearId, input.sourceType, input.sourceId],
       );
       return result.rows.map((row) => this.mapReservation(row));
     });
@@ -297,12 +297,12 @@ export class PostgresInventoryRepository implements InventoryRepository {
     operationKey: string;
     actorUserId: string;
   }) {
-    return this.withTenant(input.tenantId, input.branchId, input.actorUserId, async (client) => {
+    return this.withTenant(input.tenantId, input.actorUserId, async (client) => {
       const rows = await client.query(
         `SELECT id FROM inventory_reservations
-         WHERE tenant_id=$1 AND tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4
-           AND source_type=$5 AND source_id=$6 ORDER BY item_id FOR UPDATE`,
-        [input.tenantId, input.branchId, input.branchId, input.financialYearId, input.sourceType, input.sourceId],
+         WHERE tenant_id=$1 AND branch_id=$2 AND financial_year_id=$3
+           AND source_type=$4 AND source_id=$5 ORDER BY item_id FOR UPDATE`,
+        [input.tenantId, input.branchId, input.financialYearId, input.sourceType, input.sourceId],
       );
       if (!rows.rows.length) throw new ValidationError('No Inventory reservations exist for the Sales Order.');
       const results: InventoryReservationRecord[] = [];
@@ -327,18 +327,17 @@ export class PostgresInventoryRepository implements InventoryRepository {
     operationKey: string;
     actorUserId: string;
   }) {
-    return this.withTenant(input.tenantId, input.branchId, input.actorUserId, async (client) => {
+    return this.withTenant(input.tenantId, input.actorUserId, async (client) => {
       const reservation = await this.lockReservation(client, input);
       if (reservation.status === 'RELEASED') return reservation;
       if (reservation.status === 'FULFILLED') throw new ValidationError('Fulfilled reservations cannot be released.');
       await client.query(
         `UPDATE inventory_stock SET reserved_quantity=reserved_quantity-$1,updated_at=now(),updated_by=$2,version=version+1
-         WHERE tenant_id=$3 AND tenant_id=$4 AND warehouse_id=$5 AND item_id=$6`,
+         WHERE tenant_id=$3 AND warehouse_id=$4 AND item_id=$5`,
         [
           reservation.quantity,
           input.actorUserId,
           input.tenantId,
-          input.branchId,
           reservation.warehouseId,
           reservation.itemId,
         ],
@@ -360,25 +359,24 @@ export class PostgresInventoryRepository implements InventoryRepository {
     operationKey: string;
     actorUserId: string;
   }) {
-    return this.withTenant(input.tenantId, input.branchId, input.actorUserId, async (client) => {
+    return this.withTenant(input.tenantId, input.actorUserId, async (client) => {
       const reservation = await this.lockReservation(client, input);
       if (reservation.status === 'FULFILLED') return reservation;
       if (reservation.status === 'RELEASED') throw new ValidationError('Released reservations cannot be fulfilled.');
       const movement = await client.query(
-        `SELECT id FROM inventory_movements WHERE tenant_id=$1 AND tenant_id=$2 AND operation_key=$3`,
+        `SELECT id FROM inventory_movements WHERE tenant_id=$1 AND branch_id=$2 AND operation_key=$3`,
         [input.tenantId, input.branchId, input.operationKey],
       );
       if (movement.rows[0]) return reservation;
       const stockUpdate = await client.query(
         `UPDATE inventory_stock SET on_hand_quantity=on_hand_quantity-$1,reserved_quantity=reserved_quantity-$1,
           updated_at=now(),updated_by=$2,version=version+1
-         WHERE tenant_id=$3 AND tenant_id=$4 AND warehouse_id=$5 AND item_id=$6
+         WHERE tenant_id=$3 AND warehouse_id=$4 AND item_id=$5
            AND on_hand_quantity >= $1 AND reserved_quantity >= $1`,
         [
           reservation.quantity,
           input.actorUserId,
           input.tenantId,
-          input.branchId,
           reservation.warehouseId,
           reservation.itemId,
         ],
@@ -387,10 +385,9 @@ export class PostgresInventoryRepository implements InventoryRepository {
       await client.query(
         `INSERT INTO inventory_movements
           (tenant_id,branch_id,financial_year_id,warehouse_id,item_id,movement_type,quantity,source_type,source_id,operation_key,created_by)
-         VALUES ($1,$2,$3,$4,$5,$6,'ISSUE',$7,'RESERVATION',$8,$9,$10)`,
+         VALUES ($1,$2,$3,$4,$5,'ISSUE',$6,'RESERVATION',$7,$8,$9)`,
         [
           input.tenantId,
-          input.branchId,
           input.branchId,
           input.financialYearId,
           reservation.warehouseId,
@@ -422,23 +419,22 @@ export class PostgresInventoryRepository implements InventoryRepository {
     operationKey: string;
     actorUserId: string;
   }) {
-    return this.withTenant(input.tenantId, input.branchId, input.actorUserId, async (client) => {
+    return this.withTenant(input.tenantId, input.actorUserId, async (client) => {
       const prior = await this.findMovement(client, input);
       if (prior) return prior;
       await this.assertWarehouseAndItem(client, input);
       await this.ensureStock(client, input);
       await client.query(
         `UPDATE inventory_stock SET on_hand_quantity=on_hand_quantity+$1,updated_at=now(),updated_by=$2,version=version+1
-         WHERE tenant_id=$3 AND tenant_id=$4 AND warehouse_id=$5 AND item_id=$6`,
-        [input.quantity, input.actorUserId, input.tenantId, input.branchId, input.warehouseId, input.itemId],
+         WHERE tenant_id=$3 AND warehouse_id=$4 AND item_id=$5`,
+        [input.quantity, input.actorUserId, input.tenantId, input.warehouseId, input.itemId],
       );
       const result = await client.query(
         `INSERT INTO inventory_movements
           (tenant_id,branch_id,financial_year_id,warehouse_id,item_id,movement_type,quantity,source_type,source_id,operation_key,created_by)
-         VALUES ($1,$2,$3,$4,$5,$6,'RETURN',$7,$8,$9,$10,$11) RETURNING ${movementColumns}`,
+         VALUES ($1,$2,$3,$4,$5,'RETURN',$6,$7,$8,$9,$10) RETURNING ${movementColumns}`,
         [
           input.tenantId,
-          input.branchId,
           input.branchId,
           input.financialYearId,
           input.warehouseId,
@@ -459,13 +455,13 @@ export class PostgresInventoryRepository implements InventoryRepository {
     input: { tenantId: string; branchId: string; warehouseId: string; itemId: string },
   ) {
     const warehouse = await client.query(
-      `SELECT id FROM inventory_warehouses WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3 AND status='ACTIVE'`,
-      [input.warehouseId, input.tenantId, input.branchId],
+      `SELECT id FROM inventory_warehouses WHERE id=$1 AND tenant_id=$2 AND status='ACTIVE'`,
+      [input.warehouseId, input.tenantId],
     );
     if (!warehouse.rows[0]) throw new ValidationError('Active warehouse was not found in the tenant.');
     const item = await client.query(
-      `SELECT id FROM inventory_items WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3 AND status='ACTIVE' AND sales_eligible=true AND is_deleted=false`,
-      [input.itemId, input.tenantId, input.branchId],
+      `SELECT id FROM inventory_items WHERE id=$1 AND tenant_id=$2 AND status='ACTIVE' AND sales_eligible=true AND is_deleted=false`,
+      [input.itemId, input.tenantId],
     );
     if (!item.rows[0]) throw new ValidationError('Active sales-eligible item was not found in the tenant.');
   }
@@ -476,8 +472,8 @@ export class PostgresInventoryRepository implements InventoryRepository {
   ) {
     await client.query(
       `INSERT INTO inventory_stock (tenant_id,warehouse_id,item_id,created_by,updated_by)
-       VALUES ($1,$2,$3,$4,$5,$5) ON CONFLICT (tenant_id,warehouse_id,item_id) DO NOTHING`,
-      [input.tenantId, input.branchId, input.warehouseId, input.itemId, input.actorUserId],
+       VALUES ($1,$2,$3,$4,$4) ON CONFLICT (tenant_id,warehouse_id,item_id) DO NOTHING`,
+      [input.tenantId, input.warehouseId, input.itemId, input.actorUserId],
     );
   }
 
@@ -486,20 +482,20 @@ export class PostgresInventoryRepository implements InventoryRepository {
     input: { tenantId: string; branchId: string; warehouseId: string; itemId: string },
   ) {
     const result = await client.query(
-      `SELECT ${stockColumns} FROM inventory_stock WHERE tenant_id=$1 AND tenant_id=$2 AND warehouse_id=$3 AND item_id=$4`,
-      [input.tenantId, input.branchId, input.warehouseId, input.itemId],
+      `SELECT ${stockColumns} FROM inventory_stock WHERE tenant_id=$1 AND warehouse_id=$2 AND item_id=$3`,
+      [input.tenantId, input.warehouseId, input.itemId],
     );
     return this.mapStock(result.rows[0]);
   }
 
   private async lockReservation(
     client: PoolClient,
-    input: { tenantId: string; branchId: string; reservationId: string },
+    input: { tenantId: string; branchId: string; financialYearId: string; reservationId: string },
   ) {
     const result = await client.query(
       `SELECT ${reservationColumns} FROM inventory_reservations
-       WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3 FOR UPDATE`,
-      [input.reservationId, input.tenantId, input.branchId],
+       WHERE id=$1 AND tenant_id=$2 AND branch_id=$3 AND financial_year_id=$4 FOR UPDATE`,
+      [input.reservationId, input.tenantId, input.branchId, input.financialYearId],
     );
     if (!result.rows[0]) throw new ValidationError('Reservation was not found in the tenant.');
     return this.mapReservation(result.rows[0]);
@@ -510,7 +506,7 @@ export class PostgresInventoryRepository implements InventoryRepository {
     input: { tenantId: string; branchId: string; operationKey: string },
   ) {
     const result = await client.query(
-      `SELECT ${movementColumns} FROM inventory_movements WHERE tenant_id=$1 AND tenant_id=$2 AND operation_key=$3`,
+      `SELECT ${movementColumns} FROM inventory_movements WHERE tenant_id=$1 AND branch_id=$2 AND operation_key=$3`,
       [input.tenantId, input.branchId, input.operationKey],
     );
     return result.rows[0] ? this.mapMovement(result.rows[0]) : null;

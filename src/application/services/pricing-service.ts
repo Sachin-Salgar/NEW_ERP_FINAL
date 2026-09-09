@@ -29,6 +29,8 @@ export class PricingService {
     },
   ): Promise<PriceListRecord> {
     await this.authorize(c, 'sales.pricing.create');
+    if (i.branchId && i.branchId !== c.branchId)
+      throw new ForbiddenError('Pricing branch must match the current server branch context.');
     if (i.branchId && this.auth.hasBranchAccess && !(await this.auth.hasBranchAccess(c.tenantId, c.userId, i.branchId)))
       throw new ForbiddenError('User is not authorized for this pricing branch.');
     if (!i.code?.trim() || !i.name?.trim() || !i.currency?.trim())
@@ -114,12 +116,14 @@ export class PricingService {
     i: { branchId?: string; itemCode: string; unitOfMeasure: string; asOf: string },
   ) {
     await this.authorize(c, 'sales.pricing.read');
-    const branchId = i.branchId ?? c.branchId;
+    if (i.branchId && i.branchId !== c.branchId)
+      throw new ForbiddenError('Pricing branch must match the current server branch context.');
+    const branchId = c.branchId;
     if (!branchId) throw new ValidationError('Branch ID is required to resolve a transaction price.');
     this.id(branchId, 'Branch ID');
     if (this.auth.hasBranchAccess && !(await this.auth.hasBranchAccess(c.tenantId, c.userId, branchId)))
       throw new ForbiddenError('User is not authorized for this pricing branch.');
-    return this.repository.resolvePrice({ ...c, branchId, ...i });
+    return this.repository.resolvePrice({ ...c, ...i, branchId });
   }
   async transition(c: PricingContext, id: string, status: PriceListStatus, expectedVersion: number) {
     await this.authorize(c, `sales.pricing.${status === 'PUBLISHED' ? 'publish' : 'archive'}`);

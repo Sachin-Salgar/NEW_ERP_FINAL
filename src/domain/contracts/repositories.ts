@@ -350,6 +350,8 @@ export interface InventoryRepository {
   }): Promise<InventoryReservationRecord>;
   listReservations(input: {
     tenantId: string;
+    branchId: string;
+    financialYearId: string;
     page: number;
     pageSize: number;
     status?: ReservationStatus;
