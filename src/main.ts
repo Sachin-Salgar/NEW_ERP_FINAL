@@ -23,7 +23,7 @@ async function bootstrap(): Promise<void> {
   try {
     await pingDatabase(pool);
     await pingDatabase(platformPool);
-    await verifyPlatformSecurity(pool, { requireErp: config.isProduction });
+    await verifyPlatformSecurity(platformPool, { requireErp: config.isProduction });
   } catch (error) {
     await platformPool.end().catch(() => undefined);
     const configuredDbName = new URL(config.DATABASE_URL).pathname.replace(/^\//, '') || '<unknown>';
