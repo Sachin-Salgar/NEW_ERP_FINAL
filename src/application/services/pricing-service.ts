@@ -12,7 +12,8 @@ export interface PricingContext {
 export class PricingService {
   constructor(
     private readonly repository: PriceListRepository,
-    private readonly auth: Pick<AuthorizationService, 'hasPermission'>,
+    private readonly auth: Pick<AuthorizationService, 'hasPermission'> &
+      Partial<Pick<AuthorizationService, 'hasBranchAccess'>>,
     private readonly modules: Pick<ModuleAccessService, 'isModuleEnabled'>,
     private readonly audit: AuditLogger,
   ) {}
@@ -28,6 +29,10 @@ export class PricingService {
     },
   ): Promise<PriceListRecord> {
     await this.authorize(c, 'sales.pricing.create');
+    if (i.branchId && i.branchId !== c.branchId)
+      throw new ForbiddenError('Pricing branch must match the current server branch context.');
+    if (i.branchId && this.auth.hasBranchAccess && !(await this.auth.hasBranchAccess(c.tenantId, c.userId, i.branchId)))
+      throw new ForbiddenError('User is not authorized for this pricing branch.');
     if (!i.code?.trim() || !i.name?.trim() || !i.currency?.trim())
       throw new ValidationError('Code, name, and currency are required.');
     const x = await this.repository.create({
@@ -111,10 +116,14 @@ export class PricingService {
     i: { branchId?: string; itemCode: string; unitOfMeasure: string; asOf: string },
   ) {
     await this.authorize(c, 'sales.pricing.read');
-    const branchId = i.branchId ?? c.branchId;
+    if (i.branchId && i.branchId !== c.branchId)
+      throw new ForbiddenError('Pricing branch must match the current server branch context.');
+    const branchId = c.branchId;
     if (!branchId) throw new ValidationError('Branch ID is required to resolve a transaction price.');
     this.id(branchId, 'Branch ID');
-    return this.repository.resolvePrice({ ...c, branchId, ...i });
+    if (this.auth.hasBranchAccess && !(await this.auth.hasBranchAccess(c.tenantId, c.userId, branchId)))
+      throw new ForbiddenError('User is not authorized for this pricing branch.');
+    return this.repository.resolvePrice({ ...c, ...i, branchId });
   }
   async transition(c: PricingContext, id: string, status: PriceListStatus, expectedVersion: number) {
     await this.authorize(c, `sales.pricing.${status === 'PUBLISHED' ? 'publish' : 'archive'}`);

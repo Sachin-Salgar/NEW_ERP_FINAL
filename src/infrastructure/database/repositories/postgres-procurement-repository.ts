@@ -27,7 +27,7 @@ export class PostgresProcurementRepository implements ProcurementRepository {
     return this.run(c, async (db) => {
       const current = (
         await db.query(
-          `SELECT * FROM procurement_receipts WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3 AND is_deleted=false FOR UPDATE`,
+          `SELECT * FROM procurement_receipts WHERE id=$1 AND tenant_id=$2 AND branch_id=$3 AND is_deleted=false FOR UPDATE`,
           [c.id, c.tenantId, c.branchId],
         )
       ).rows[0];
@@ -43,7 +43,7 @@ export class PostgresProcurementRepository implements ProcurementRepository {
       const purchaseOrder = (
         await db.query(
           `SELECT id FROM procurement_purchase_orders
-             WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3
+             WHERE id=$1 AND tenant_id=$2 AND branch_id=$3
                AND status='APPROVED' AND is_deleted=false
              FOR UPDATE`,
           [current.purchase_order_id, c.tenantId, c.branchId],
@@ -77,7 +77,7 @@ export class PostgresProcurementRepository implements ProcurementRepository {
       const receipt = (
         await db.query(
           `UPDATE procurement_receipts SET status='COMPLETED',updated_at=now(),updated_by=$5,version=version+1
-         WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3 AND version=$4 AND status='DRAFT' AND is_deleted=false RETURNING *`,
+         WHERE id=$1 AND tenant_id=$2 AND branch_id=$3 AND version=$4 AND status='DRAFT' AND is_deleted=false RETURNING *`,
           [c.id, c.tenantId, c.branchId, c.expectedVersion, c.userId],
         )
       ).rows[0];
@@ -92,7 +92,7 @@ export class PostgresProcurementRepository implements ProcurementRepository {
         (
           await db.query(
             `UPDATE procurement_receipts SET status='CANCELLED',updated_at=now(),updated_by=$5,version=version+1
-       WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3 AND version=$4 AND status='DRAFT' AND is_deleted=false RETURNING *`,
+       WHERE id=$1 AND tenant_id=$2 AND branch_id=$3 AND version=$4 AND status='DRAFT' AND is_deleted=false RETURNING *`,
             [c.id, c.tenantId, c.branchId, c.expectedVersion, c.userId],
           )
         ).rows[0] ?? null,
@@ -111,7 +111,7 @@ export class PostgresProcurementRepository implements ProcurementRepository {
     );
   }
   async listSuppliers(c: ProcurementContext, page: number, pageSize: number) {
-    return this.list(c, 'procurement_suppliers', page, pageSize, 'name');
+    return this.list(c, 'procurement_suppliers', page, pageSize, 'name', false);
   }
   async getSupplier(c: ProcurementContext, id: string) {
     return this.run(c, async (db) =>
@@ -124,10 +124,10 @@ export class PostgresProcurementRepository implements ProcurementRepository {
     );
   }
   async updateSupplier(c: ProcurementContext & { id: string; name: string; email?: string; expectedVersion: number }) {
-    return this.update(c, 'procurement_suppliers', c.id, c.expectedVersion, 'name=$5,email=$6', [
+    return this.update(c, 'procurement_suppliers', c.id, c.expectedVersion, 'name=$4,email=$5', [
       c.name,
       c.email ?? null,
-    ]);
+    ], undefined, false);
   }
   async deleteSupplier(c: ProcurementContext & { id: string; expectedVersion: number }) {
     return this.run(
@@ -135,8 +135,8 @@ export class PostgresProcurementRepository implements ProcurementRepository {
       async (db) =>
         (
           await db.query(
-            `UPDATE procurement_suppliers SET is_deleted=true,deleted_at=now(),deleted_by=$5,updated_at=now(),updated_by=$5,version=version+1 WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3 AND version=$4 AND is_deleted=false RETURNING *`,
-            [c.id, c.tenantId, c.branchId, c.expectedVersion, c.userId],
+            `UPDATE procurement_suppliers SET is_deleted=true,deleted_at=now(),deleted_by=$4,updated_at=now(),updated_by=$4,version=version+1 WHERE id=$1 AND tenant_id=$2 AND version=$3 AND is_deleted=false RETURNING *`,
+            [c.id, c.tenantId, c.expectedVersion, c.userId],
           )
         ).rows[0] ?? null,
     );
@@ -147,10 +147,9 @@ export class PostgresProcurementRepository implements ProcurementRepository {
     return this.run(c, async (db) => {
       const h = (
         await db.query(
-          `INSERT INTO procurement_requisitions(tenant_id,branch_id,financial_year_id,required_date,justification,created_by) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id,tenant_id AS "tenantId",branch_id AS "branchId",financial_year_id AS "financialYearId",requisition_number AS "requisitionNumber",required_date AS "requiredDate",justification,status,created_at AS "createdAt"`,
+          `INSERT INTO procurement_requisitions(tenant_id,branch_id,financial_year_id,required_date,justification,created_by) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,tenant_id AS "tenantId",branch_id AS "branchId",financial_year_id AS "financialYearId",requisition_number AS "requisitionNumber",required_date AS "requiredDate",justification,status,created_at AS "createdAt"`,
           [
             c.tenantId,
-            c.branchId,
             c.branchId,
             c.financialYearId,
             c.requiredDate,
@@ -197,12 +196,11 @@ export class PostgresProcurementRepository implements ProcurementRepository {
       const h = (
         await db.query(
           `INSERT INTO procurement_purchase_orders(tenant_id,branch_id,financial_year_id,supplier_id,requisition_id,order_date,created_by)
-           SELECT $1,$2,$3,$4,id,$6,$7,$8 FROM procurement_suppliers
-           WHERE id=$5 AND tenant_id=$1 AND tenant_id=$2 AND is_deleted=false
+           SELECT $1,$2,$3,$4,$5,$6,$7 FROM procurement_suppliers
+           WHERE id=$4 AND tenant_id=$1 AND is_deleted=false
            RETURNING id,tenant_id AS "tenantId",branch_id AS "branchId",financial_year_id AS "financialYearId",po_number AS "poNumber",supplier_id AS "supplierId",requisition_id AS "requisitionId",order_date AS "orderDate",status,created_at AS "createdAt"`,
           [
             c.tenantId,
-            c.branchId,
             c.branchId,
             c.financialYearId,
             c.supplierId,
@@ -249,7 +247,7 @@ export class PostgresProcurementRepository implements ProcurementRepository {
     return this.run(c, async (db) => {
       const po = (
         await db.query(
-          `SELECT id FROM procurement_purchase_orders WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3 AND status='APPROVED' AND is_deleted=false FOR UPDATE`,
+          `SELECT id FROM procurement_purchase_orders WHERE id=$1 AND tenant_id=$2 AND branch_id=$3 AND status='APPROVED' AND is_deleted=false FOR UPDATE`,
           [c.purchaseOrderId, c.tenantId, c.branchId],
         )
       ).rows[0];
@@ -289,7 +287,7 @@ export class PostgresProcurementRepository implements ProcurementRepository {
         throw new ValidationError('Receipt contains an item not on the purchase order.');
       const h = (
         await db.query(
-          `INSERT INTO procurement_receipts(tenant_id,branch_id,financial_year_id,purchase_order_id,warehouse_id,receipt_date,operation_key,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(tenant_id,operation_key) DO UPDATE SET operation_key=EXCLUDED.operation_key RETURNING id`,
+          `INSERT INTO procurement_receipts(tenant_id,branch_id,financial_year_id,purchase_order_id,warehouse_id,receipt_date,operation_key,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(tenant_id,operation_key) DO UPDATE SET operation_key=EXCLUDED.operation_key RETURNING id`,
           [
             c.tenantId,
             c.branchId,
@@ -305,8 +303,8 @@ export class PostgresProcurementRepository implements ProcurementRepository {
       ).rows[0];
       for (const line of c.lines)
         await db.query(
-          `INSERT INTO procurement_receipt_lines(tenant_id,receipt_id,item_id,quantity) VALUES($1,$2,$3,$4,$5) ON CONFLICT(receipt_id,item_id) DO UPDATE SET quantity=EXCLUDED.quantity`,
-          [c.tenantId, c.branchId, h.id, line.itemId, line.quantity],
+          `INSERT INTO procurement_receipt_lines(tenant_id,receipt_id,item_id,quantity) VALUES($1,$2,$3,$4) ON CONFLICT(receipt_id,item_id) DO UPDATE SET quantity=EXCLUDED.quantity`,
+          [c.tenantId, h.id, line.itemId, line.quantity],
         );
       return { id: String(h.id), lines: c.lines };
     });
@@ -323,7 +321,7 @@ export class PostgresProcurementRepository implements ProcurementRepository {
     return this.run(c, async (db) => {
       const current = (
         await db.query(
-          `SELECT * FROM procurement_receipts WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3 AND is_deleted=false FOR UPDATE`,
+          `SELECT * FROM procurement_receipts WHERE id=$1 AND tenant_id=$2 AND branch_id=$3 AND is_deleted=false FOR UPDATE`,
           [c.id, c.tenantId, c.branchId],
         )
       ).rows[0];
@@ -333,7 +331,7 @@ export class PostgresProcurementRepository implements ProcurementRepository {
         throw new ValidationError('Receipt was modified concurrently.');
       const approvedOrder = await db.query(
         `SELECT id FROM procurement_purchase_orders
-         WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3 AND status='APPROVED' AND is_deleted=false
+         WHERE id=$1 AND tenant_id=$2 AND branch_id=$3 AND status='APPROVED' AND is_deleted=false
          FOR UPDATE`,
         [current.purchase_order_id, c.tenantId, c.branchId],
       );
@@ -368,15 +366,15 @@ export class PostgresProcurementRepository implements ProcurementRepository {
       const updated = (
         await db.query(
           `UPDATE procurement_receipts SET warehouse_id=$5,receipt_date=$6,updated_at=now(),updated_by=$7,version=version+1
-           WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3 AND version=$4 AND is_deleted=false RETURNING *`,
+           WHERE id=$1 AND tenant_id=$2 AND branch_id=$3 AND version=$4 AND is_deleted=false RETURNING *`,
           [c.id, c.tenantId, c.branchId, c.expectedVersion, c.warehouseId, c.receiptDate, c.userId],
         )
       ).rows[0];
       await db.query(`DELETE FROM procurement_receipt_lines WHERE receipt_id=$1`, [c.id]);
       for (const line of c.lines)
         await db.query(
-          `INSERT INTO procurement_receipt_lines(tenant_id,receipt_id,item_id,quantity) VALUES($1,$2,$3,$4,$5)`,
-          [c.tenantId, c.branchId, c.id, line.itemId, line.quantity],
+          `INSERT INTO procurement_receipt_lines(tenant_id,receipt_id,item_id,quantity) VALUES($1,$2,$3,$4)`,
+          [c.tenantId, c.id, line.itemId, line.quantity],
         );
       return updated ?? null;
     });
@@ -400,10 +398,9 @@ export class PostgresProcurementRepository implements ProcurementRepository {
   ) {
     for (const [index, line] of lines.entries())
       await db.query(
-        `INSERT INTO ${table}(tenant_id${fk},line_number,item_id,description,quantity,unit_price,unit_of_measure) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        `INSERT INTO ${table}(tenant_id,${fk},line_number,item_id,description,quantity,unit_price,unit_of_measure) VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,
         [
           c.tenantId,
-          c.branchId,
           id,
           index + 1,
           line.itemId,
@@ -414,15 +411,25 @@ export class PostgresProcurementRepository implements ProcurementRepository {
         ],
       );
   }
-  private async list(c: ProcurementContext, table: string, page: number, pageSize: number, order: string) {
+  private async list(
+    c: ProcurementContext,
+    table: string,
+    page: number,
+    pageSize: number,
+    order: string,
+    branchScoped = true,
+  ) {
     return this.run(c, async (db) => {
-      const values = [c.tenantId, c.branchId, pageSize, (page - 1) * pageSize];
+      const values = branchScoped
+        ? [c.tenantId, c.branchId, pageSize, (page - 1) * pageSize]
+        : [c.tenantId, pageSize, (page - 1) * pageSize];
+      const scope = branchScoped ? 'tenant_id=$1 AND branch_id=$2' : 'tenant_id=$1';
       const count = await db.query(
-        `SELECT count(*)::int AS count FROM ${table} WHERE tenant_id=$1 AND tenant_id=$2 AND is_deleted=false`,
-        values.slice(0, 2),
+        `SELECT count(*)::int AS count FROM ${table} WHERE ${scope} AND is_deleted=false`,
+        values.slice(0, branchScoped ? 2 : 1),
       );
       const rows = await db.query(
-        `SELECT * FROM ${table} WHERE tenant_id=$1 AND tenant_id=$2 AND is_deleted=false ORDER BY ${order} DESC OFFSET $4 LIMIT $3`,
+        `SELECT * FROM ${table} WHERE ${scope} AND is_deleted=false ORDER BY ${order} DESC OFFSET $${branchScoped ? 4 : 3} LIMIT $${branchScoped ? 3 : 2}`,
         values,
       );
       return { items: rows.rows, total: Number(count.rows[0].count) };
@@ -434,7 +441,7 @@ export class PostgresProcurementRepository implements ProcurementRepository {
       async (db) =>
         (
           await db.query(
-            `SELECT * FROM ${table} WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3 AND is_deleted=false`,
+            `SELECT * FROM ${table} WHERE id=$1 AND tenant_id=$2 AND branch_id=$3 AND is_deleted=false`,
             [id, c.tenantId, c.branchId],
           )
         ).rows[0] ?? null,
@@ -448,14 +455,17 @@ export class PostgresProcurementRepository implements ProcurementRepository {
     set: string,
     values: unknown[],
     status?: string,
+    branchScoped = true,
   ) {
     return this.run(
       c,
       async (db) =>
         (
           await db.query(
-            `UPDATE ${table} SET ${set},updated_at=now(),updated_by=$${5 + values.length},version=version+1 WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3 AND version=$4 AND is_deleted=false${status ? ` AND status='${status}'` : ''} RETURNING *`,
-            [id, c.tenantId, c.branchId, version, ...values, c.userId],
+            `UPDATE ${table} SET ${set},updated_at=now(),updated_by=$${(branchScoped ? 5 : 4) + values.length},version=version+1 WHERE id=$1 AND tenant_id=$2${branchScoped ? ' AND branch_id=$3' : ''} AND version=$${branchScoped ? 4 : 3} AND is_deleted=false${status ? ` AND status='${status}'` : ''} RETURNING *`,
+            branchScoped
+              ? [id, c.tenantId, c.branchId, version, ...values, c.userId]
+              : [id, c.tenantId, version, ...values, c.userId],
           )
         ).rows[0] ?? null,
     );
@@ -472,7 +482,7 @@ export class PostgresProcurementRepository implements ProcurementRepository {
       async (db) =>
         (
           await db.query(
-            `UPDATE ${table} SET status=$5,updated_at=now(),updated_by=$6,version=version+1 WHERE id=$1 AND tenant_id=$2 AND tenant_id=$3 AND version=$4 AND is_deleted=false RETURNING *`,
+            `UPDATE ${table} SET status=$5,updated_at=now(),updated_by=$6,version=version+1 WHERE id=$1 AND tenant_id=$2 AND branch_id=$3 AND version=$4 AND is_deleted=false RETURNING *`,
             [id, c.tenantId, c.branchId, version, status, c.userId],
           )
         ).rows[0] ?? null,

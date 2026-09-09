@@ -28,6 +28,10 @@ const loginRequestJsonSchema = {
     password: { type: 'string', minLength: 1, description: 'Password' },
   },
 } as const;
+const branchContextSchema = z.object({
+  branchId: z.string().uuid(),
+  financialYearId: z.string().uuid(),
+});
 const sanitizeUser = (user: {
   id: string;
   tenantId: string;
@@ -88,6 +92,32 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         branchAccess: true,
       },
     }),
+  );
+  fastify.post<{ Body: { branchId: string; financialYearId: string } }>(
+    '/auth/context/branch',
+    { preHandler: [requireAuth] },
+    async (request) => {
+      if (!request.user || !request.tenantId || !request.sessionId)
+        throw new UnauthorizedError('Authenticated tenant session is required.');
+      const input = branchContextSchema.parse(request.body);
+      if (!(await request.server.branchService.validateBranchAccess(request.tenantId, request.user.id, input.branchId)))
+        throw new UnauthorizedError('Branch access is not authorized.');
+      if (!(await request.server.branchService.validateFinancialYear(
+        request.tenantId,
+        input.financialYearId,
+        input.branchId,
+      )))
+        throw new ValidationError('Financial Year is not valid for the selected branch.');
+      const session = await request.server.authService.updateBranchContext(
+        request.sessionId,
+        request.tenantId,
+        request.user.id,
+        input.branchId,
+        input.financialYearId,
+      );
+      if (!session) throw new UnauthorizedError('Authenticated session could not be updated.');
+      return { success: true, session };
+    },
   );
   fastify.post<{ Body: { identifier: string; password: string } }>(
     '/auth/platform-login',

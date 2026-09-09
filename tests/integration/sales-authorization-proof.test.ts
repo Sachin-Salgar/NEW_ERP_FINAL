@@ -329,5 +329,101 @@ describe('Sales authorization proof', () => {
     );
     expect(rlsHidden.rows).toHaveLength(0);
     await expect(pool.query(`SELECT id FROM sales_quotations WHERE id = $1`, [quotation])).rejects.toMatchObject({ code: '22P02' });
+
+    await adminPool.query(
+      `INSERT INTO user_branch_access (tenant_id, user_id, branch_id) VALUES ($1, $2, $3)`,
+      [tenantA.tenantId, tenantA.userId, branchA2],
+    );
+    const branchMismatch = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/context/branch',
+      headers: tenantHeaders(tenantAToken, tenantA.tenantId),
+      payload: { branchId: branchA2, financialYearId: financialYear.rows[0].id },
+    });
+    expect([400, 403]).toContain(branchMismatch.statusCode);
+    await adminPool.query(
+      `UPDATE financial_years SET branch_id = NULL WHERE tenant_id = $1 AND id = $2`,
+      [tenantA.tenantId, financialYear.rows[0].id],
+    );
+    const switchToBranchA2 = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/context/branch',
+      headers: tenantHeaders(tenantAToken, tenantA.tenantId),
+      payload: { branchId: branchA2, financialYearId: financialYear.rows[0].id },
+    });
+    expect(switchToBranchA2.statusCode).toBe(200);
+    const branchA2Get = await app.inject({
+      method: 'GET',
+      url: `/api/v1/sales/quotations/${quotationA2}`,
+      headers: tenantHeaders(tenantAToken, tenantA.tenantId),
+    });
+    expect(branchA2Get.statusCode).toBe(200);
+    await adminPool.query(
+      `DELETE FROM user_branch_access WHERE tenant_id = $1 AND user_id = $2 AND branch_id = $3`,
+      [tenantA.tenantId, tenantA.userId, branchA2],
+    );
+    const revokedBranchRead = await app.inject({
+      method: 'GET',
+      url: `/api/v1/sales/quotations/${quotationA2}`,
+      headers: tenantHeaders(tenantAToken, tenantA.tenantId),
+    });
+    expect([403, 404]).toContain(revokedBranchRead.statusCode);
+
+    await adminPool.query(
+      `UPDATE users SET default_branch_id = $1 WHERE tenant_id = $2 AND id = $3`,
+      [branchA2, tenantA.tenantId, tenantA.userId],
+    );
+    const defaultWithoutAccessLogin = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      headers: { host: tenantASeed.tenant.subdomain, 'x-tenant-id': tenantA.tenantId },
+      payload: { identifier: tenantASeed.administrator.username, password: tenantASeed.administrator.password },
+    });
+    expect(defaultWithoutAccessLogin.statusCode).toBe(200);
+    expect(defaultWithoutAccessLogin.json().session.branchId).toBeNull();
+    const defaultWithoutAccessRead = await app.inject({
+      method: 'GET',
+      url: '/api/v1/sales/quotations',
+      headers: tenantHeaders(defaultWithoutAccessLogin.json().accessToken, tenantA.tenantId),
+    });
+    expect(defaultWithoutAccessRead.statusCode).toBe(403);
+
+    await adminPool.query(
+      `UPDATE users SET default_branch_id = $1 WHERE tenant_id = $2 AND id = $3`,
+      [tenantA.branchId, tenantA.tenantId, tenantA.userId],
+    );
+    const crossTenantSwitch = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/context/branch',
+      headers: tenantHeaders(tenantAToken, tenantA.tenantId),
+      payload: { branchId: tenantB.branchId, financialYearId: financialYearB.rows[0].id },
+    });
+    expect([400, 401, 403]).toContain(crossTenantSwitch.statusCode);
+
+    await adminPool.query(
+      `INSERT INTO user_branch_access (tenant_id, user_id, branch_id) VALUES ($1, $2, $3)`,
+      [tenantA.tenantId, tenantA.userId, branchA2],
+    );
+    await adminPool.query(`UPDATE branches SET status = 'inactive' WHERE tenant_id = $1 AND id = $2`, [
+      tenantA.tenantId,
+      branchA2,
+    ]);
+    const inactiveBranchRead = await app.inject({
+      method: 'GET',
+      url: `/api/v1/sales/quotations/${quotationA2}`,
+      headers: tenantHeaders(tenantAToken, tenantA.tenantId),
+    });
+    expect([403, 404]).toContain(inactiveBranchRead.statusCode);
+    await adminPool.query(
+      `UPDATE branches SET status = 'active', is_deleted = true, deleted_at = NOW()
+       WHERE tenant_id = $1 AND id = $2`,
+      [tenantA.tenantId, branchA2],
+    );
+    const deletedBranchRead = await app.inject({
+      method: 'GET',
+      url: `/api/v1/sales/quotations/${quotationA2}`,
+      headers: tenantHeaders(tenantAToken, tenantA.tenantId),
+    });
+    expect([403, 404]).toContain(deletedBranchRead.statusCode);
   });
 });

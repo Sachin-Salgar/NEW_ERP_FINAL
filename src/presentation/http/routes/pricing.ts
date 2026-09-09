@@ -3,6 +3,7 @@ import { requireAuth, requirePermission } from '../middleware/auth.js';
 
 const context = (request: any) => ({
   tenantId: request.tenantId,
+  branchId: request.user.branchId,
   userId: request.user.id,
 });
 
@@ -53,10 +54,9 @@ const routes: FastifyPluginAsync = async (fastify) => {
       preHandler: [requireAuth, requirePermission('sales.pricing.read')],
     },
     async (request: any) => {
-      const branchId = request.user.branchId ?? request.user.defaultBranchId;
       return {
         success: true,
-        price: await fastify.pricingService.resolvePrice(context(request), { ...request.query, branchId }),
+        price: await fastify.pricingService.resolvePrice(context(request), request.query),
       };
     },
   );

@@ -32,7 +32,8 @@ const transitions: Record<SalesReturnStatus, SalesReturnStatus[]> = {
 export class SalesReturnService {
   constructor(
     private readonly repository: SalesReturnRepository,
-    private readonly auth: Pick<AuthorizationService, 'hasPermission'>,
+    private readonly auth: Pick<AuthorizationService, 'hasPermission'> &
+      Partial<Pick<AuthorizationService, 'hasBranchAccess' | 'hasFinancialYearAccess'>>,
     private readonly modules: Pick<ModuleAccessService, 'isModuleEnabled'>,
     private readonly audit: AuditLogger,
     private readonly tx: SalesReturnTransactionRunner,
@@ -212,6 +213,10 @@ export class SalesReturnService {
       this.id(v, l);
     if (!(await this.modules.isModuleEnabled(c.tenantId, 'sales')))
       throw new ForbiddenError('Sales module is not enabled.');
+    if (this.auth.hasBranchAccess && !(await this.auth.hasBranchAccess(c.tenantId, c.userId, c.branchId)))
+      throw new ForbiddenError('User is not authorized for this branch.');
+    if (this.auth.hasFinancialYearAccess && !(await this.auth.hasFinancialYearAccess(c.tenantId, c.financialYearId, c.branchId)))
+      throw new ForbiddenError('Financial Year is not valid for this branch.');
     if (!(await this.auth.hasPermission(c.tenantId, c.userId, p)))
       throw new ForbiddenError('Insufficient Sales Return permission.');
   }

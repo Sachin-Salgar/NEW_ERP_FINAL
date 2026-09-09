@@ -16,6 +16,8 @@ export class ProcurementService {
     private readonly repository: ProcurementRepository,
     private readonly authorization: {
       hasPermission(tenantId: string, userId: string, permission: ProcurementPermission): Promise<boolean>;
+      hasBranchAccess?(tenantId: string, userId: string, branchId: string): Promise<boolean>;
+      hasFinancialYearAccess?(tenantId: string, financialYearId: string, branchId: string): Promise<boolean>;
     },
     private readonly modules: {
       isModuleEnabled(tenantId: string, moduleCode: string): Promise<boolean>;
@@ -40,7 +42,11 @@ export class ProcurementService {
   }
   getSupplier(c: ProcurementContext, id: string) {
     this.id(id, 'Supplier ID');
-    return this.read(c, PROCUREMENT_PERMISSIONS.supplierRead, () => this.repository.getSupplier(c, id));
+    return this.read(c, PROCUREMENT_PERMISSIONS.supplierRead, async () => {
+      const supplier = await this.repository.getSupplier(c, id);
+      if (!supplier) throw new NotFoundError('Supplier not found.');
+      return supplier;
+    });
   }
   updateSupplier(c: ProcurementContext, input: { id: string; name: string; email?: string; expectedVersion: number }) {
     this.id(input.id, 'Supplier ID');
@@ -80,7 +86,11 @@ export class ProcurementService {
   }
   getRequisition(c: ProcurementContext, id: string) {
     this.id(id, 'Requisition ID');
-    return this.read(c, PROCUREMENT_PERMISSIONS.requisitionRead, () => this.repository.getRequisition(c, id));
+    return this.read(c, PROCUREMENT_PERMISSIONS.requisitionRead, async () => {
+      const requisition = await this.repository.getRequisition(c, id);
+      if (!requisition) throw new NotFoundError('Requisition not found.');
+      return requisition;
+    });
   }
   updateRequisition(
     c: ProcurementContext,
@@ -170,7 +180,11 @@ export class ProcurementService {
   }
   getPurchaseOrder(c: ProcurementContext, id: string) {
     this.id(id, 'Purchase order ID');
-    return this.read(c, PROCUREMENT_PERMISSIONS.purchaseOrderRead, () => this.repository.getPurchaseOrder(c, id));
+    return this.read(c, PROCUREMENT_PERMISSIONS.purchaseOrderRead, async () => {
+      const purchaseOrder = await this.repository.getPurchaseOrder(c, id);
+      if (!purchaseOrder) throw new NotFoundError('Purchase order not found.');
+      return purchaseOrder;
+    });
   }
   updatePurchaseOrder(c: ProcurementContext, input: { id: string; orderDate: string; expectedVersion: number }) {
     this.id(input.id, 'Purchase order ID');
@@ -259,7 +273,11 @@ export class ProcurementService {
   }
   getReceipt(c: ProcurementContext, id: string) {
     this.id(id, 'Receipt ID');
-    return this.read(c, PROCUREMENT_PERMISSIONS.receiptRead, () => this.repository.getReceipt(c, id));
+    return this.read(c, PROCUREMENT_PERMISSIONS.receiptRead, async () => {
+      const receipt = await this.repository.getReceipt(c, id);
+      if (!receipt) throw new NotFoundError('Receipt not found.');
+      return receipt;
+    });
   }
   listReceipts(c: ProcurementContext, page: number, pageSize: number) {
     return this.read(c, PROCUREMENT_PERMISSIONS.receiptRead, () => this.repository.listReceipts(c, page, pageSize));
@@ -436,6 +454,10 @@ export class ProcurementService {
       this.id(value, label);
     if (!(await this.modules.isModuleEnabled(c.tenantId, PROCUREMENT_MODULE_CODE)))
       throw new ForbiddenError('Procurement module is not enabled.');
+    if (this.authorization.hasBranchAccess && !(await this.authorization.hasBranchAccess(c.tenantId, c.userId, c.branchId)))
+      throw new ForbiddenError('User is not authorized for this branch.');
+    if (this.authorization.hasFinancialYearAccess && !(await this.authorization.hasFinancialYearAccess(c.tenantId, c.financialYearId, c.branchId)))
+      throw new ForbiddenError('Financial Year is not valid for this branch.');
     if (!(await this.authorization.hasPermission(c.tenantId, c.userId, p)))
       throw new ForbiddenError('Insufficient Procurement permission.');
   }

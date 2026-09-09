@@ -26,7 +26,8 @@ const transitions: Record<InvoiceStatus, InvoiceStatus[]> = {
 export class InvoiceService {
   constructor(
     private readonly repository: InvoiceRepository,
-    private readonly authorizationService: Pick<AuthorizationService, 'hasPermission'>,
+    private readonly authorizationService: Pick<AuthorizationService, 'hasPermission'> &
+      Partial<Pick<AuthorizationService, 'hasBranchAccess' | 'hasFinancialYearAccess'>>,
     private readonly moduleAccessService: Pick<ModuleAccessService, 'isModuleEnabled'>,
     private readonly auditLogger: AuditLogger,
     private readonly transactionRunner: InvoiceTransactionRunner,
@@ -193,6 +194,10 @@ export class InvoiceService {
       this.validateId(value, label);
     if (!(await this.moduleAccessService.isModuleEnabled(context.tenantId, 'sales')))
       throw new ForbiddenError('Sales module is not enabled.');
+    if (this.authorizationService.hasBranchAccess && !(await this.authorizationService.hasBranchAccess(context.tenantId, context.userId, context.branchId)))
+      throw new ForbiddenError('User is not authorized for this branch.');
+    if (this.authorizationService.hasFinancialYearAccess && !(await this.authorizationService.hasFinancialYearAccess(context.tenantId, context.financialYearId, context.branchId)))
+      throw new ForbiddenError('Financial Year is not valid for this branch.');
     if (!(await this.authorizationService.hasPermission(context.tenantId, context.userId, permission)))
       throw new ForbiddenError('Insufficient invoice permission.');
   }

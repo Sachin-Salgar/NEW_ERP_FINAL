@@ -27,7 +27,8 @@ const transitions: Record<DeliveryStatus, DeliveryStatus[]> = {
 export class DeliveryService {
   constructor(
     private readonly repository: DeliveryRepository,
-    private readonly auth: Pick<AuthorizationService, 'hasPermission'>,
+    private readonly auth: Pick<AuthorizationService, 'hasPermission'> &
+      Partial<Pick<AuthorizationService, 'hasBranchAccess' | 'hasFinancialYearAccess'>>,
     private readonly modules: Pick<ModuleAccessService, 'isModuleEnabled'>,
     private readonly audit: AuditLogger,
     private readonly tx: DeliveryTransactionRunner,
@@ -204,6 +205,10 @@ export class DeliveryService {
       this.id(value, label);
     if (!(await this.modules.isModuleEnabled(context.tenantId, 'sales')))
       throw new ForbiddenError('Sales module is not enabled.');
+    if (this.auth.hasBranchAccess && !(await this.auth.hasBranchAccess(context.tenantId, context.userId, context.branchId)))
+      throw new ForbiddenError('User is not authorized for this branch.');
+    if (this.auth.hasFinancialYearAccess && !(await this.auth.hasFinancialYearAccess(context.tenantId, context.financialYearId, context.branchId)))
+      throw new ForbiddenError('Financial Year is not valid for this branch.');
     if (!(await this.auth.hasPermission(context.tenantId, context.userId, permission)))
       throw new ForbiddenError('Insufficient delivery permission.');
   }

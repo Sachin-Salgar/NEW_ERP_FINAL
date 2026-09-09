@@ -16,6 +16,8 @@ export class InventoryService {
     private readonly repository: InventoryRepository,
     private readonly authorization: {
       hasPermission(tenantId: string, userId: string, permission: InventoryPermission): Promise<boolean>;
+      hasBranchAccess?(tenantId: string, userId: string, branchId: string): Promise<boolean>;
+      hasFinancialYearAccess?(tenantId: string, financialYearId: string, branchId: string): Promise<boolean>;
     },
     private readonly modules: {
       isModuleEnabled(tenantId: string, moduleCode: string): Promise<boolean>;
@@ -181,6 +183,10 @@ export class InventoryService {
     this.validateContext(c);
     if (!(await this.modules.isModuleEnabled(c.tenantId, INVENTORY_MODULE_CODE)))
       throw new ForbiddenError('Inventory module is not enabled.');
+    if (this.authorization.hasBranchAccess && !(await this.authorization.hasBranchAccess(c.tenantId, c.userId, c.branchId)))
+      throw new ForbiddenError('User is not authorized for this branch.');
+    if (this.authorization.hasFinancialYearAccess && !(await this.authorization.hasFinancialYearAccess(c.tenantId, c.financialYearId, c.branchId)))
+      throw new ForbiddenError('Financial Year is not valid for this branch.');
     if (!(await this.authorization.hasPermission(c.tenantId, c.userId, permission)))
       throw new ForbiddenError('Insufficient Inventory permission.');
   }
