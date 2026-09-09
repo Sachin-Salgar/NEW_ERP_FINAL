@@ -77,7 +77,7 @@ jobs:
           SQL
           psql -h localhost -p "${CI_POSTGRES_PORT}" -U postgres -d "${CI_TEST_DB}" -v ON_ERROR_STOP=1 -v role_name="${CI_TEST_ROLE}" <<'SQL'
           GRANT USAGE, CREATE ON SCHEMA public TO :"role_name";
-          ALTER SCHEMA public OWNER TO :"role_name";
+          ALTER SCHEMA public OWNER TO erp;
           GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO :"role_name";
           GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO :"role_name";
           ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO :"role_name";

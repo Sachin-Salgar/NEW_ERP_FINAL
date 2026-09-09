@@ -12,6 +12,5 @@ npm-debug.log*
 frontend
 docs
 tests
-scripts
 *.md
 !README.md
