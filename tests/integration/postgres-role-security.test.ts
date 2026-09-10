@@ -15,8 +15,8 @@ const testUrl = resolveDatabaseUrl(process.env, { forTest: true });
 const rolePassword = randomBytes(24).toString('base64url');
 const reverseMembershipRole = `erp_security_parent_${process.pid}`;
 const erpDefaultTable = `security_default_erp_${process.pid}`;
-const appDefaultTable = `security_default_app_${process.pid}`;
 const securitySequence = `security_default_sequence_${process.pid}`;
+const unrelatedFunction = `security_unrelated_postgres_${process.pid}`;
 const roleNames = ['erp', 'erp_app', 'erp_platform_executor', 'erp_procedure_owner'] as const;
 
 function roleUrl(role: string, password = rolePassword): string {
@@ -102,38 +102,41 @@ describe('PostgreSQL platform security boundary', () => {
       `);
       await client.query('GRANT EXECUTE ON FUNCTION public.platform_update_tenant_status(uuid, text) TO erp, erp_app');
       await client.query('REVOKE EXECUTE ON FUNCTION public.platform_update_tenant_status(uuid, text) FROM erp_platform_executor');
-      await client.query('GRANT erp_procedure_owner, erp_platform_executor TO erp');
+      await client.query('GRANT erp_procedure_owner, erp_platform_executor TO erp WITH ADMIN OPTION');
       await client.query(`DROP ROLE IF EXISTS ${reverseMembershipRole}`);
       await client.query(`CREATE ROLE ${reverseMembershipRole} NOLOGIN`);
       await client.query(`GRANT ${reverseMembershipRole} TO erp_procedure_owner`);
       await client.query('ALTER DEFAULT PRIVILEGES FOR ROLE erp GRANT EXECUTE ON FUNCTIONS TO PUBLIC');
-      await client.query('ALTER DEFAULT PRIVILEGES FOR ROLE erp_app GRANT SELECT ON TABLES TO erp_platform_executor');
       await client.query(`ALTER DEFAULT PRIVILEGES FOR ROLE erp GRANT SELECT ON TABLES TO erp_app`);
-      await client.query('GRANT CREATE ON SCHEMA public TO erp, erp_app');
+      await client.query('GRANT CREATE ON SCHEMA public TO erp');
       await client.query(`SET ROLE erp; CREATE TABLE public.${erpDefaultTable} (id integer); RESET ROLE`);
-      await client.query(`SET ROLE erp_app; CREATE TABLE public.${appDefaultTable} (id integer); RESET ROLE`);
       await client.query(`SET ROLE erp; CREATE SEQUENCE public.${securitySequence}; RESET ROLE`);
       await client.query('REVOKE CREATE ON SCHEMA public FROM erp, erp_app');
-      const defaultTablePrivileges = await client.query<{ erp_app_allowed: boolean; executor_allowed: boolean }>(
-        `SELECT has_table_privilege('erp_app', $1, 'SELECT') AS erp_app_allowed,
-                has_table_privilege('erp_platform_executor', $2, 'SELECT') AS executor_allowed`,
-        [`public.${erpDefaultTable}`, `public.${appDefaultTable}`],
+      await client.query(
+        `CREATE OR REPLACE FUNCTION public.${unrelatedFunction}() RETURNS integer
+         LANGUAGE sql AS $$ SELECT 1 $$`,
       );
-      expect(defaultTablePrivileges.rows[0]).toEqual({ erp_app_allowed: true, executor_allowed: true });
-      await client.query(`DROP TABLE public.${appDefaultTable}`);
+      const unrelatedBefore = await client.query<{ owner: string; acl: string[] | null }>(
+        `SELECT pg_get_userbyid(p.proowner) AS owner, p.proacl AS acl
+         FROM pg_proc p
+         WHERE p.oid = 'public.${unrelatedFunction}()'::regprocedure`,
+      );
+      expect(unrelatedBefore.rows[0]?.owner).toBe('postgres');
       await client.query('REVOKE SELECT ON customers FROM erp_app');
       await client.query(`REVOKE SELECT ON SEQUENCE public.${securitySequence} FROM erp_app`);
       await runPlatformSecurityBootstrap(client, { requireErp: true });
     } finally {
       client.release();
     }
+
   });
 
   afterAll(async () => {
     const cleanup = await admin.connect();
     try {
-      await cleanup.query(`DROP TABLE IF EXISTS public.${erpDefaultTable}, public.${appDefaultTable}`);
+      await cleanup.query(`DROP TABLE IF EXISTS public.${erpDefaultTable}`);
       await cleanup.query(`DROP SEQUENCE IF EXISTS public.${securitySequence}`);
+      await cleanup.query(`DROP FUNCTION IF EXISTS public.${unrelatedFunction}()`);
       await cleanup.query(`DROP ROLE IF EXISTS ${reverseMembershipRole}`);
       await cleanup.query('DROP ROLE IF EXISTS erp_security_bootstrap_test');
     } finally {
@@ -178,6 +181,8 @@ describe('PostgreSQL platform security boundary', () => {
     expect(flags.rows.find(({ rolname }) => rolname === 'erp')).toMatchObject({
       rolcanlogin: true,
       rolsuper: false,
+      rolcreatedb: false,
+      rolcreaterole: true,
       rolbypassrls: false,
     });
 
@@ -235,6 +240,13 @@ describe('PostgreSQL platform security boundary', () => {
          AND owner.rolname IN ('erp', 'erp_app')`,
     );
     expect(defaults.rows).toEqual([]);
+
+    const unrelatedAfter = await admin.query<{ owner: string; acl: string[] | null }>(
+      `SELECT pg_get_userbyid(p.proowner) AS owner, p.proacl AS acl
+       FROM pg_proc p
+       WHERE p.oid = 'public.${unrelatedFunction}()'::regprocedure`,
+    );
+    expect(unrelatedAfter.rows[0]?.owner).toBe('postgres');
 
     const appTable = await admin.query<{ allowed: boolean }>(
       `SELECT has_table_privilege('erp_app', 'public.customers', 'SELECT') AS allowed`,

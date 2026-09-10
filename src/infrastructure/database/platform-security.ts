@@ -161,7 +161,7 @@ export async function verifyPlatformSecurity(
     JOIN pg_roles owner ON owner.oid = defaults.defaclrole
     CROSS JOIN LATERAL aclexplode(defaults.defaclacl) privilege
      WHERE defaults.defaclnamespace = 'public'::regnamespace
-      AND owner.rolname IN ('erp', 'erp_app')
+      AND owner.rolname = 'erp'
       AND defaults.defaclobjtype IN ('r', 'S', 'f')`,
   );
   if (defaultFunctionGrants.rowCount !== 0) {

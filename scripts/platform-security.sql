@@ -56,7 +56,6 @@ BEGIN
     ALTER ROLE erp
       LOGIN NOSUPERUSER NOCREATEDB CREATEROLE NOREPLICATION NOBYPASSRLS;
   END IF;
-
   IF EXISTS (
     SELECT 1
     FROM pg_database
@@ -85,7 +84,6 @@ GRANT USAGE ON SCHEMA public TO erp_app, erp_platform_executor, erp_procedure_ow
 REVOKE CREATE ON SCHEMA public FROM PUBLIC, erp_app, erp_platform_executor, erp_procedure_owner;
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM erp_platform_executor, erp_procedure_owner;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM erp_platform_executor, erp_procedure_owner;
-REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM erp_platform_executor, erp_procedure_owner;
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM erp_app;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM erp_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO erp_app;
@@ -96,14 +94,26 @@ DECLARE
   grantee text;
 BEGIN
   FOR object_owner IN
-    SELECT rolname FROM pg_roles WHERE rolname IN ('erp', 'erp_app')
+    SELECT CASE
+      WHEN datdba = (SELECT oid FROM pg_roles WHERE rolname = current_user)
+        THEN current_user
+      ELSE 'erp'
+    END
+    FROM pg_database
+    WHERE datname = current_database()
   LOOP
     -- Defaults belong to the role that creates the object, not the bootstrap operator.
     FOREACH grantee IN ARRAY ARRAY['PUBLIC', 'erp', 'erp_app', 'erp_platform_executor', 'erp_procedure_owner']
     LOOP
-      EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL ON TABLES FROM %s', object_owner, grantee);
-      EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL ON SEQUENCES FROM %s', object_owner, grantee);
-      EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM %s', object_owner, grantee);
+      IF object_owner = current_user THEN
+        EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM %s', grantee);
+        EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM %s', grantee);
+        EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM %s', grantee);
+      ELSE
+        EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL ON TABLES FROM %s', object_owner, grantee);
+        EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL ON SEQUENCES FROM %s', object_owner, grantee);
+        EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM %s', object_owner, grantee);
+      END IF;
     END LOOP;
   END LOOP;
 END $$;
@@ -181,19 +191,8 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.platform_update_tenant_status(uuid, text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.platform_delete_tenant(uuid) FROM PUBLIC;
-DO $$
-DECLARE
-  role_name text;
-BEGIN
-  FOR role_name IN
-    SELECT rolname
-    FROM pg_roles
-    WHERE rolname NOT IN ('erp_procedure_owner', 'erp_platform_executor')
-  LOOP
-    EXECUTE format('REVOKE ALL ON FUNCTION public.platform_update_tenant_status(uuid, text) FROM %I', role_name);
-    EXECUTE format('REVOKE ALL ON FUNCTION public.platform_delete_tenant(uuid) FROM %I', role_name);
-  END LOOP;
-END $$;
+REVOKE ALL ON FUNCTION public.platform_update_tenant_status(uuid, text) FROM erp, erp_app;
+REVOKE ALL ON FUNCTION public.platform_delete_tenant(uuid) FROM erp, erp_app;
 GRANT EXECUTE ON FUNCTION public.platform_update_tenant_status(uuid, text) TO erp_platform_executor;
 GRANT EXECUTE ON FUNCTION public.platform_delete_tenant(uuid) TO erp_platform_executor;
 

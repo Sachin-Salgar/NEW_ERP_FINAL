@@ -95,11 +95,13 @@ and grant/revoke schema, table, sequence, and function privileges. CI uses a
 disposable superuser bootstrap role distinct from the disposable `erp`
 migration role; production must preserve the same credential separation.
 
-Default privileges are configured separately for each object-creating role with
-`ALTER DEFAULT PRIVILEGES FOR ROLE erp` and `ALTER DEFAULT PRIVILEGES FOR ROLE
-erp_app`; the bootstrap operator is not the owner of those default-privilege
-configurations. Public, application, executor, and procedure-owner grants are
-removed for future tables, sequences, and functions. The bootstrap also
+Default privileges are configured for the object-creating migration role with
+`ALTER DEFAULT PRIVILEGES FOR ROLE erp`; the bootstrap operator is not the owner
+of that default-privilege configuration. `erp_app` is a runtime role and is not
+an object-creating role, so no `ALTER DEFAULT PRIVILEGES FOR ROLE erp_app`
+operation is required. Public, application, executor, and procedure-owner
+grants are removed for future tables, sequences, and functions created by
+`erp`. The bootstrap also
 normalizes `erp_app` to its explicit integration baseline (DML on current
 tables and `USAGE/SELECT/UPDATE` on current sequences); test fixtures may
 reapply those grants after bootstrap.
