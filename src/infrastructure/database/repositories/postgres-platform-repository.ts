@@ -19,6 +19,14 @@ import type {
   UserRepository,
 } from '../../../application/contracts/security.js';
 import { withTenantContext } from '../tenant-context.js';
+import type {
+  AuthorizedTenantLoginContext,
+  PendingLoginChallenge,
+  PendingLoginChallengeSnapshot,
+  PlatformLoginContext,
+  TenantLoginContext,
+  UsableLoginContexts,
+} from '../../../domain/contracts/unified-authentication.js';
 
 export class PostgresPlatformRepository
   implements
@@ -34,6 +42,365 @@ export class PostgresPlatformRepository
     private readonly pool: Pool,
     private readonly tenantContextKey = 'app.current_tenant_id',
   ) {}
+
+  async findLoginIdentity(identifier: string) {
+    const result = await this.pool.query(
+      `SELECT i.identity_id AS "identityId",
+              c.secret_hash AS "secretHash",
+              x.security_version AS "identitySecurityVersion",
+              c.failed_attempt_count AS "failedAttemptCount",
+              c.locked_until AS "lockedUntil"
+         FROM auth_login_identifiers i
+         JOIN identities x ON x.id = i.identity_id AND x.status = 'active'
+         JOIN identity_credentials c
+           ON c.identity_id = x.id
+          AND c.provider = 'local'
+          AND c.credential_type = 'password'
+          AND c.status = 'active'
+        WHERE i.identifier = $1::citext
+          AND i.is_active = true
+        LIMIT 1`,
+      [identifier.trim()],
+    );
+    const row = result.rows[0];
+    return row
+      ? {
+          identityId: row.identityId,
+          identitySecurityVersion: Number(row.identitySecurityVersion ?? 1),
+          secretHash: row.secretHash,
+          failedAttemptCount: Number(row.failedAttemptCount ?? 0),
+          lockedUntil: row.lockedUntil ? new Date(row.lockedUntil) : null,
+        }
+      : null;
+  }
+
+  async recordFailedIdentityLogin(
+    identityId: string,
+    options: { maxFailedAttempts?: number; lockoutMinutes?: number } = {},
+  ) {
+    const maxFailedAttempts = options.maxFailedAttempts ?? 5;
+    const lockoutMinutes = options.lockoutMinutes ?? 15;
+    const result = await this.pool.query(
+      `UPDATE identity_credentials
+          SET failed_attempt_count = failed_attempt_count + 1,
+              locked_until = CASE
+                WHEN failed_attempt_count + 1 >= $2
+                THEN NOW() + ($3 * INTERVAL '1 minute')
+                ELSE NULL
+              END,
+              updated_at = NOW()
+        WHERE identity_id = $1
+          AND provider = 'local'
+          AND credential_type = 'password'
+          AND status = 'active'
+        RETURNING failed_attempt_count AS "failedAttemptCount", locked_until AS "lockedUntil"`,
+      [identityId, maxFailedAttempts, lockoutMinutes],
+    );
+    const row = result.rows[0];
+    return {
+      failedAttemptCount: Number(row?.failedAttemptCount ?? 0),
+      lockedUntil: row?.lockedUntil ? new Date(row.lockedUntil) : null,
+    };
+  }
+
+  async resetFailedIdentityLogin(identityId: string): Promise<void> {
+    await this.pool.query(
+      `UPDATE identity_credentials
+          SET failed_attempt_count = 0, locked_until = NULL, updated_at = NOW()
+        WHERE identity_id = $1
+          AND provider = 'local'
+          AND credential_type = 'password'
+          AND status = 'active'`,
+      [identityId],
+    );
+  }
+
+  async resolveUsableLoginContexts(identityId: string): Promise<UsableLoginContexts> {
+    const identityResult = await this.pool.query(
+      `SELECT id, security_version AS "identitySecurityVersion"
+         FROM identities
+        WHERE id = $1
+          AND status = 'active'
+          AND EXISTS (
+            SELECT 1
+              FROM auth_login_identifiers li
+             WHERE li.identity_id = identities.id
+               AND li.is_active = true
+          )
+          AND EXISTS (
+            SELECT 1
+              FROM identity_credentials ic
+             WHERE ic.identity_id = identities.id
+               AND ic.provider = 'local'
+               AND ic.credential_type = 'password'
+               AND ic.status = 'active'
+          )
+        LIMIT 1`,
+      [identityId],
+    );
+    const identity = identityResult.rows[0];
+    if (!identity) return { identityId, identitySecurityVersion: 0, contexts: [] };
+
+    const platformResult = await this.pool.query(
+      `SELECT m.id AS "platformMembershipId",
+              m.security_version AS "membershipSecurityVersion"
+         FROM platform_memberships m
+        WHERE m.identity_id = $1
+          AND m.status = 'active'
+          AND m.revoked_at IS NULL
+        ORDER BY m.id`,
+      [identityId],
+    );
+    const membershipResult = await this.pool.query(
+      `SELECT m.id AS "tenantMembershipId",
+              m.tenant_id AS "tenantId",
+              m.security_version AS "membershipSecurityVersion",
+              t.name AS "tenantName",
+              t.status AS "tenantStatus",
+              t.version AS "tenantSecurityVersion"
+         FROM tenant_memberships m
+         JOIN identities i ON i.id = m.identity_id
+         JOIN tenants t ON t.id = m.tenant_id
+        WHERE m.identity_id = $1
+          AND m.status = 'active'
+          AND m.revoked_at IS NULL
+          AND t.is_deleted = false
+          AND t.status IN ('active', 'trial')
+        ORDER BY m.tenant_id, m.id`,
+      [identityId],
+    );
+
+    const contexts: Array<TenantLoginContext | PlatformLoginContext> = [];
+    for (const row of membershipResult.rows) {
+      contexts.push({
+        contextType: 'tenant',
+        contextId: row.tenantMembershipId,
+        tenantMembershipId: row.tenantMembershipId,
+        tenantId: row.tenantId,
+        tenantName: row.tenantName,
+        identityId,
+        identitySecurityVersion: Number(identity.identitySecurityVersion ?? 1),
+        membershipSecurityVersion: Number(row.membershipSecurityVersion ?? 1),
+        tenantSecurityVersion: Number(row.tenantSecurityVersion ?? 1),
+      });
+    }
+    for (const row of platformResult.rows) {
+      contexts.push({
+        contextType: 'platform',
+        contextId: row.platformMembershipId,
+        identityId,
+        platformMembershipId: row.platformMembershipId,
+        identitySecurityVersion: Number(identity.identitySecurityVersion ?? 1),
+        membershipSecurityVersion: Number(row.membershipSecurityVersion ?? 1),
+        platformSecurityVersion: Number(row.membershipSecurityVersion ?? 1),
+      });
+    }
+    contexts.sort((a, b) => `${a.contextType}:${a.contextId}`.localeCompare(`${b.contextType}:${b.contextId}`));
+    return {
+      identityId,
+      identitySecurityVersion: Number(identity.identitySecurityVersion ?? 1),
+      contexts,
+    };
+  }
+
+  async authorizeTenantLoginContext(
+    identityId: string,
+    tenantMembershipId: string,
+    tenantId: string,
+  ): Promise<AuthorizedTenantLoginContext | null> {
+    return withTenantContext(this.pool, this.tenantContextKey, tenantId, async (client) => {
+      const result = await client.query(
+        `SELECT m.id AS "tenantMembershipId",
+                m.tenant_id AS "tenantId",
+                m.security_version AS "membershipSecurityVersion",
+                t.name AS "tenantName",
+                t.version AS "tenantSecurityVersion",
+                i.security_version AS "identitySecurityVersion",
+                u.id AS "userId",
+                u.identity_id AS "identityId",
+                u.default_branch_id AS "defaultBranchId",
+                u.username,
+                u.email,
+                u.status,
+                u.version AS "userSecurityVersion"
+           FROM tenant_memberships m
+           JOIN identities i ON i.id = m.identity_id
+           JOIN tenants t ON t.id = m.tenant_id
+           JOIN users u ON u.tenant_id = m.tenant_id
+                       AND u.identity_id = m.identity_id
+          WHERE m.id = $1
+            AND m.identity_id = $2
+            AND m.tenant_id = $3
+            AND i.status = 'active'
+            AND EXISTS (
+              SELECT 1
+                FROM identity_credentials c
+               WHERE c.identity_id = i.id
+                 AND c.provider = 'local'
+                 AND c.credential_type = 'password'
+                 AND c.status = 'active'
+            )
+            AND m.status = 'active'
+            AND m.revoked_at IS NULL
+            AND t.is_deleted = false
+            AND t.status IN ('active', 'trial')
+            AND u.status = 'active'
+            AND u.is_deleted = false`,
+        [tenantMembershipId, identityId, tenantId],
+      );
+      const row = result.rows[0];
+      if (!row) return null;
+      return {
+        contextType: 'tenant',
+        contextId: row.tenantMembershipId,
+        tenantMembershipId: row.tenantMembershipId,
+        tenantId: row.tenantId,
+        tenantName: row.tenantName,
+        identityId: row.identityId,
+        identitySecurityVersion: Number(row.identitySecurityVersion ?? 1),
+        membershipSecurityVersion: Number(row.membershipSecurityVersion ?? 1),
+        tenantSecurityVersion: Number(row.tenantSecurityVersion ?? 1),
+        userId: row.userId,
+        user: {
+          id: row.userId,
+          identityId: row.identityId,
+          tenantId: row.tenantId,
+          defaultBranchId: row.defaultBranchId ?? null,
+          username: row.username,
+          email: row.email,
+          status: row.status,
+        },
+        userSecurityVersion: Number(row.userSecurityVersion ?? 1),
+      };
+    });
+  }
+
+  async authorizePlatformLoginContext(identityId: string, platformMembershipId: string): Promise<PlatformLoginContext | null> {
+    const result = await this.pool.query(
+      `SELECT m.id AS "platformMembershipId",
+              m.security_version AS "membershipSecurityVersion",
+              i.security_version AS "identitySecurityVersion"
+         FROM platform_memberships m
+         JOIN identities i ON i.id = m.identity_id
+        WHERE m.id = $1
+          AND m.identity_id = $2
+          AND i.status = 'active'
+          AND EXISTS (
+            SELECT 1
+              FROM identity_credentials c
+             WHERE c.identity_id = i.id
+               AND c.provider = 'local'
+               AND c.credential_type = 'password'
+               AND c.status = 'active'
+          )
+          AND m.status = 'active'
+          AND m.revoked_at IS NULL`,
+      [platformMembershipId, identityId],
+    );
+    const row = result.rows[0];
+    if (!row) return null;
+    return {
+      contextType: 'platform',
+      contextId: row.platformMembershipId,
+      identityId,
+      platformMembershipId: row.platformMembershipId,
+      identitySecurityVersion: Number(row.identitySecurityVersion ?? 1),
+      membershipSecurityVersion: Number(row.membershipSecurityVersion ?? 1),
+      platformSecurityVersion: Number(row.membershipSecurityVersion ?? 1),
+    };
+  }
+
+  async createPlatformSession(input: {
+    id: string;
+    identityId: string;
+    platformMembershipId: string;
+    refreshTokenHash: string;
+    expiresAt: Date;
+    securityVersion: number;
+  }): Promise<SessionRecord> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(`SELECT set_config('app.platform_session_enabled', 'true', true)`);
+      const result = await client.query(
+        `INSERT INTO user_sessions
+          (id, context_type, tenant_id, user_id, identity_id, tenant_membership_id,
+           platform_membership_id, refresh_token_hash, is_active, expires_at, login_at,
+           last_activity_at, updated_at, version, security_version)
+         VALUES ($1, 'platform', NULL, NULL, $2, NULL, $3, $4, true, $5, NOW(), NOW(), NOW(), 1, $6)
+         RETURNING id, identity_id AS "identityId", platform_membership_id AS "platformMembershipId",
+                   context_type AS "contextType", is_active AS "isActive", expires_at AS "expiresAt",
+                   login_at AS "loginAt", last_activity_at AS "lastActivityAt",
+                   revoked_at AS "revokedAt", logout_at AS "logoutAt", security_version AS "securityVersion"`,
+        [
+          input.id,
+          input.identityId,
+          input.platformMembershipId,
+          input.refreshTokenHash,
+          input.expiresAt,
+          input.securityVersion,
+        ],
+      );
+      await client.query('COMMIT');
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        tenantId: null,
+        userId: null,
+        identityId: row.identityId,
+        contextType: 'platform',
+        platformMembershipId: row.platformMembershipId,
+        securityVersion: row.securityVersion,
+        isActive: row.isActive,
+        expiresAt: new Date(row.expiresAt),
+        loginAt: new Date(row.loginAt),
+        lastActivityAt: new Date(row.lastActivityAt),
+        revokedAt: row.revokedAt ? new Date(row.revokedAt) : null,
+        logoutAt: row.logoutAt ? new Date(row.logoutAt) : null,
+      };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async createPendingLoginChallenge(input: {
+    challengeId: string;
+    identityId: string;
+    secretHash: string;
+    contextSnapshot: PendingLoginChallengeSnapshot;
+    expiresAt: Date;
+  }): Promise<PendingLoginChallenge> {
+    await this.pool.query(
+      `INSERT INTO pending_login_challenges
+        (challenge_id, identity_id, secret_hash, context_snapshot, expires_at)
+       VALUES ($1, $2, $3, $4::jsonb, $5)`,
+      [input.challengeId, input.identityId, input.secretHash, JSON.stringify(input.contextSnapshot), input.expiresAt],
+    );
+    return { ...input };
+  }
+
+  async consumePendingLoginChallenge(
+    challengeId: string,
+    secretHash: string,
+  ): Promise<{ identityId: string; contextSnapshot: PendingLoginChallengeSnapshot } | null> {
+    const result = await this.pool.query(
+      `UPDATE pending_login_challenges
+          SET consumed_at = NOW()
+        WHERE challenge_id = $1
+          AND secret_hash = $2
+          AND consumed_at IS NULL
+          AND expires_at > clock_timestamp()
+       RETURNING identity_id AS "identityId", context_snapshot AS "contextSnapshot"`,
+      [challengeId, secretHash],
+    );
+    const row = result.rows[0];
+    return row
+      ? { identityId: row.identityId, contextSnapshot: row.contextSnapshot as PendingLoginChallengeSnapshot }
+      : null;
+  }
 
   private mapBranchRow(row: any): BranchRecord {
     return {
@@ -968,7 +1335,7 @@ export class PostgresPlatformRepository
       return client.query(
         `INSERT INTO user_sessions (
           id, tenant_id, user_id, branch_id, financial_year_id, access_token_id, refresh_token_hash, device,
-          user_agent, ip_address, is_active, expires_at
+          user_agent, ip_address, is_active, expires_at, identity_id, context_type, tenant_membership_id, security_version
         ) VALUES (
           $1,$2,$3,$4,
           COALESCE(
@@ -983,11 +1350,17 @@ export class PostgresPlatformRepository
                  AND is_locked = false
             )
           ),
-          $6,$7,$8,$9,$10,true,$11
+          $6,$7,$8,$9,$10,true,$11,
+          COALESCE($12, (SELECT identity_id FROM users WHERE id = $3 AND tenant_id = $2 LIMIT 1)),
+          COALESCE($13, 'tenant')::session_context_enum,
+          $14,
+          COALESCE($15, 1)
         )
         RETURNING id, tenant_id as "tenantId", user_id as "userId",
                   branch_id as "branchId", financial_year_id as "financialYearId", access_token_id as "accessTokenId", is_active as "isActive", expires_at as "expiresAt",
-                   login_at as "loginAt", last_activity_at as "lastActivityAt", revoked_at as "revokedAt", logout_at as "logoutAt"`,
+                   login_at as "loginAt", last_activity_at as "lastActivityAt", revoked_at as "revokedAt", logout_at as "logoutAt",
+                   identity_id as "identityId", context_type as "contextType", tenant_membership_id as "tenantMembershipId",
+                   platform_membership_id as "platformMembershipId", security_version as "securityVersion"`,
         [
           id,
           input.tenantId,
@@ -1000,6 +1373,10 @@ export class PostgresPlatformRepository
           input.userAgent ?? null,
           input.ipAddress ?? null,
           input.expiresAt,
+          input.identityId ?? null,
+          input.contextType ?? 'tenant',
+          input.tenantMembershipId ?? null,
+          input.securityVersion ?? 1,
         ],
       );
     });
@@ -1018,6 +1395,11 @@ export class PostgresPlatformRepository
       lastActivityAt: new Date(row.lastActivityAt),
       revokedAt: row.revokedAt ? new Date(row.revokedAt) : null,
       logoutAt: row.logoutAt ? new Date(row.logoutAt) : null,
+      identityId: row.identityId,
+      contextType: row.contextType,
+      tenantMembershipId: row.tenantMembershipId ?? null,
+      platformMembershipId: row.platformMembershipId ?? null,
+      securityVersion: row.securityVersion,
     };
   }
 
@@ -1299,6 +1681,15 @@ export class PostgresPlatformRepository
         ],
       );
 
+      await client.query(
+        `INSERT INTO tenant_memberships (identity_id, tenant_id, status, activated_at)
+         SELECT identity_id, tenant_id, 'active', NOW()
+           FROM users
+          WHERE id = $1 AND tenant_id = $2
+         ON CONFLICT (identity_id, tenant_id) DO NOTHING`,
+        [id, input.tenantId],
+      );
+
       if (input.defaultBranchId) {
         await client.query(
           `INSERT INTO user_branch_access (tenant_id, user_id, branch_id)
@@ -1404,6 +1795,14 @@ export class PostgresPlatformRepository
           input.administrator.email,
           input.administrator.password,
         ],
+      );
+      await client.query(
+        `INSERT INTO tenant_memberships (identity_id, tenant_id, status, activated_at)
+         SELECT identity_id, tenant_id, 'active', NOW()
+           FROM users
+          WHERE id = $1 AND tenant_id = $2
+         ON CONFLICT (identity_id, tenant_id) DO NOTHING`,
+        [userId, tenantId],
       );
       await client.query(
         `INSERT INTO user_branch_access (tenant_id, user_id, branch_id)

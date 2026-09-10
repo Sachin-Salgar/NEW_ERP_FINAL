@@ -38,7 +38,7 @@ describe('production-equivalent migration role', () => {
   });
 
   it(
-    'applies migration 0009 as a non-superuser production-equivalent erp role',
+    'applies the current migrations as a non-superuser production-equivalent erp role',
     async () => {
       const admin = new Client({ connectionString: adminDatabaseUrl, ssl: false });
       await admin.connect();
@@ -75,7 +75,7 @@ describe('production-equivalent migration role', () => {
         const migration = await verification.query<{ count: string }>(
           'SELECT count(*)::text AS count FROM public."__drizzle_migrations"',
         );
-        expect(migration.rows[0]?.count).toBe('10');
+        expect(migration.rows[0]?.count).toBe('11');
         const role = await verification.query<{ rolcanlogin: boolean; rolsuper: boolean; rolcreatedb: boolean; rolcreaterole: boolean; rolbypassrls: boolean }>(
           `SELECT rolcanlogin, rolsuper, rolcreatedb, rolcreaterole, rolbypassrls
            FROM pg_roles WHERE rolname = current_user`,

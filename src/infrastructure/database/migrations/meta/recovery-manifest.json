@@ -50,6 +50,11 @@
       "strategy": "forward-only-security",
       "destructiveDownAllowed": false,
       "note": "Moves platform SECURITY DEFINER function ownership to the dedicated non-login procedure owner, removes accidental executor-role membership from the migration role, and preserves executor-only EXECUTE grants. Recovery is forward-only or restore from backup."
+    },
+    "0010_pending_login_challenges": {
+      "strategy": "forward-only-security",
+      "destructiveDownAllowed": false,
+      "note": "Adds single-use pending login challenge storage for pre-session context selection without tenant-scoped user access. Recovery is forward-only or restore from backup."
     }
   }
 }

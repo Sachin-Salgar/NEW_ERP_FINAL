@@ -5,6 +5,7 @@ import rateLimit from '@fastify/rate-limit';
 
 import { isCorsOriginAllowed, type AppConfig } from '../../config/schema.js';
 import { AuthenticationService } from '../../application/services/authentication-service.js';
+import { UnifiedAuthenticationService } from '../../application/services/unified-authentication-service.js';
 import { AuthorizationService } from '../../application/services/authorization-service.js';
 import { BranchService } from '../../application/services/branch-service.js';
 import { ModuleAccessService } from '../../application/services/module-access-service.js';
@@ -194,6 +195,16 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     maxFailedAttempts: config.AUTH_MAX_FAILED_ATTEMPTS,
     lockoutMinutes: config.AUTH_LOCKOUT_MINUTES,
   });
+  const unifiedAuthenticationService = new UnifiedAuthenticationService(
+    repository,
+    passwordHasher,
+    jwtTokenService,
+    authService,
+    {
+      maxFailedAttempts: config.AUTH_MAX_FAILED_ATTEMPTS,
+      lockoutMinutes: config.AUTH_LOCKOUT_MINUTES,
+    },
+  );
   const authorizationService = new AuthorizationService(repository as any);
   const branchService = new BranchService(repository as any);
   const moduleAccessService = new ModuleAccessService(pool);
@@ -423,6 +434,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('appConfig', config);
   app.decorate('dbPool', pool);
   app.decorate('authService', authService);
+  app.decorate('unifiedAuthenticationService', unifiedAuthenticationService);
   app.decorate('authorizationService', authorizationService);
   app.decorate('branchService', branchService);
   app.decorate('moduleAccessService', moduleAccessService);

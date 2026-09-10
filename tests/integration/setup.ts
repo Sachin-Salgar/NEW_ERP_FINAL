@@ -28,6 +28,7 @@ beforeAll(async () => {
       await client.query(`ALTER ROLE "${role}" LOGIN PASSWORD '${password.replaceAll("'", "''")}'`);
     }
     await client.query('GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO erp_app');
+    await client.query('REVOKE DELETE ON public.pending_login_challenges FROM erp_app');
     await client.query('GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO erp_app');
     if (setupRole !== 'postgres' && setupRole !== 'erp_app') {
       await client.query(

@@ -171,7 +171,39 @@ describe('fresh zero-state platform acceptance', () => {
       identifier: email,
       password,
     });
-    expect(normalLoginWithPlatformCredentials.statusCode, normalLoginWithPlatformCredentials.body).toBe(401);
+    expect(normalLoginWithPlatformCredentials.statusCode, normalLoginWithPlatformCredentials.body).toBe(200);
+    expect(normalLoginWithPlatformCredentials.json()).toMatchObject({
+      success: true,
+      resolution: 'DIRECT',
+      contextType: 'platform',
+      destination: '/platform',
+      tenantId: null,
+      tokenType: 'bearer',
+    });
+    const identity = await setupPool.query<{ id: string }>(
+      `SELECT i.id
+         FROM identities i
+         JOIN auth_login_identifiers l ON l.identity_id = i.id
+        WHERE l.identifier = $1::citext`,
+      [email],
+    );
+    const tenantSessions = await setupPool.query(
+      `SELECT 1
+         FROM user_sessions
+        WHERE identity_id = $1
+          AND context_type = 'tenant'`,
+      [identity.rows[0].id],
+    );
+    expect(tenantSessions.rowCount).toBe(0);
+    const platformSession = await setupPool.query(
+      `SELECT 1
+         FROM user_sessions
+        WHERE identity_id = $1
+          AND context_type = 'platform'
+          AND tenant_id IS NULL`,
+      [identity.rows[0].id],
+    );
+    expect(platformSession.rowCount).toBeGreaterThan(0);
 
     const suffix = Date.now();
     const createTenant = (name: string, user: string) =>

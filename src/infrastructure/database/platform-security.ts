@@ -24,6 +24,7 @@ const lifecycleFunctions = [
   'public.platform_update_tenant_status(uuid,text)',
   'public.platform_delete_tenant(uuid)',
 ] as const;
+const governedFunctions = lifecycleFunctions;
 
 export async function verifyPlatformSecurity(
   database: Queryable,
@@ -150,7 +151,7 @@ export async function verifyPlatformSecurity(
        AND privilege.privilege_type = 'EXECUTE'
        AND privilege.grantee <> 0
        AND COALESCE(grantee.rolname, '') NOT IN ('erp_procedure_owner', 'erp_platform_executor')`,
-    [lifecycleFunctions],
+    [governedFunctions],
   );
   if (unintendedFunctionGrants.rowCount !== 0) {
     throw new Error('Platform lifecycle functions retain unintended role EXECUTE grants.');
@@ -327,7 +328,7 @@ export async function verifyPlatformSecurity(
      FROM pg_namespace
      WHERE nspname = 'public'
        AND nspowner = (SELECT oid FROM pg_roles WHERE rolname = 'erp_app')`,
-    [lifecycleFunctions],
+    [governedFunctions],
   );
   if (ownership.rowCount !== 0) throw new Error('Dedicated platform roles own database or schema objects.');
 

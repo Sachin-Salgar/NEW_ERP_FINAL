@@ -30,6 +30,7 @@ export type {
   UserRegistrationRecord,
   UserRegistrationRepository,
   UserRepository,
+  UnifiedAuthenticationRepository,
 } from '../../domain/contracts/repositories.js';
 
 export interface PasswordHasher {

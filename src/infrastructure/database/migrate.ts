@@ -24,6 +24,7 @@ const migrationChecks: Record<string, (client: Client) => Promise<boolean>> = {
   '0004_procurement': (client) => tableExists(client, 'procurement_purchase_orders'),
   '0005_finance': (client) => tableExists(client, 'finance_postings'),
   '0006_tax': (client) => tableExists(client, 'tax_rules'),
+  '0010_pending_login_challenges': pendingLoginChallengesMatchMigration,
 };
 
 async function tableExists(client: Client, tableName: string): Promise<boolean> {
@@ -52,6 +53,121 @@ async function policyExists(client: Client, tableName: string, policyName: strin
     [tableName, policyName],
   );
   return result.rows[0]?.exists ?? false;
+}
+
+async function pendingLoginChallengesMatchMigration(client: Client): Promise<boolean> {
+  const table = await client.query<{
+    relrowsecurity: boolean;
+    relforcerowsecurity: boolean;
+  }>(
+    `SELECT c.relrowsecurity, c.relforcerowsecurity
+       FROM pg_class c
+       JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = 'public'
+        AND c.relname = 'pending_login_challenges'`,
+  );
+  if (
+    table.rows.length !== 1 ||
+    table.rows[0].relrowsecurity ||
+    table.rows[0].relforcerowsecurity
+  ) {
+    return false;
+  }
+
+  const columns = await client.query<{
+    ordinal_position: number;
+    column_name: string;
+    data_type: string;
+    udt_name: string;
+    is_nullable: string;
+    column_default: string | null;
+    character_maximum_length: number | null;
+  }>(
+    `SELECT ordinal_position, column_name, data_type, udt_name, is_nullable,
+            column_default, character_maximum_length
+       FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'pending_login_challenges'
+      ORDER BY ordinal_position`,
+  );
+  const expectedColumns = [
+    ['challenge_id', 'uuid', 'uuid', 'NO', null, null],
+    ['identity_id', 'uuid', 'uuid', 'NO', null, null],
+    ['secret_hash', 'character varying', 'varchar', 'NO', null, 64],
+    ['context_snapshot', 'jsonb', 'jsonb', 'NO', null, null],
+    ['created_at', 'timestamp with time zone', 'timestamptz', 'NO', 'now()', null],
+    ['expires_at', 'timestamp with time zone', 'timestamptz', 'NO', null, null],
+    ['consumed_at', 'timestamp with time zone', 'timestamptz', 'YES', null, null],
+  ];
+  if (
+    JSON.stringify(
+      columns.rows.map((column) => [
+        column.column_name,
+        column.data_type,
+        column.udt_name,
+        column.is_nullable,
+        column.column_default?.replace(/\s+/g, ''),
+        column.character_maximum_length,
+      ]),
+    ) !== JSON.stringify(expectedColumns.map(([name, dataType, udt, nullable, defaultValue, length]) => [
+      name,
+      dataType,
+      udt,
+      nullable,
+      typeof defaultValue === 'string' ? defaultValue.replace(/\s+/g, '') : defaultValue,
+      length,
+    ]))
+  ) {
+    return false;
+  }
+
+  const constraints = await client.query<{ conname: string; definition: string }>(
+    `SELECT conname, pg_get_constraintdef(oid) AS definition
+       FROM pg_constraint
+      WHERE conrelid = 'public.pending_login_challenges'::regclass
+        AND conname IN (
+          'pending_login_challenges_pkey',
+          'pending_login_challenges_secret_hash_key',
+          'pending_login_challenges_identity_id_fkey',
+          'pending_login_challenges_expiry_check',
+          'pending_login_challenges_consumed_check'
+        )
+      ORDER BY conname`,
+  );
+  const expectedConstraints = [
+    ['pending_login_challenges_consumed_check', 'CHECK (((consumed_at IS NULL) OR (consumed_at >= created_at)))'],
+    ['pending_login_challenges_expiry_check', 'CHECK ((expires_at > created_at))'],
+    ['pending_login_challenges_identity_id_fkey', 'FOREIGN KEY (identity_id) REFERENCES identities(id)'],
+    ['pending_login_challenges_pkey', 'PRIMARY KEY (challenge_id)'],
+    ['pending_login_challenges_secret_hash_key', 'UNIQUE (secret_hash)'],
+  ];
+  if (JSON.stringify(constraints.rows.map((constraint) => [constraint.conname, constraint.definition])) !== JSON.stringify(expectedConstraints)) {
+    return false;
+  }
+
+  const indexes = await client.query<{ indexname: string; indexdef: string }>(
+    `SELECT indexname, indexdef
+       FROM pg_indexes
+      WHERE schemaname = 'public'
+        AND tablename = 'pending_login_challenges'
+      ORDER BY indexname`,
+  );
+  const expectedIndexes = [
+    ['pending_login_challenges_identity_expiry_idx', 'CREATE INDEX pending_login_challenges_identity_expiry_idx ON public.pending_login_challenges USING btree (identity_id, expires_at)'],
+    ['pending_login_challenges_pkey', 'CREATE UNIQUE INDEX pending_login_challenges_pkey ON public.pending_login_challenges USING btree (challenge_id)'],
+    ['pending_login_challenges_secret_hash_key', 'CREATE UNIQUE INDEX pending_login_challenges_secret_hash_key ON public.pending_login_challenges USING btree (secret_hash)'],
+    ['pending_login_challenges_unconsumed_expiry_idx', 'CREATE INDEX pending_login_challenges_unconsumed_expiry_idx ON public.pending_login_challenges USING btree (expires_at) WHERE (consumed_at IS NULL)'],
+  ];
+  if (JSON.stringify(indexes.rows.map((index) => [index.indexname, index.indexdef])) !== JSON.stringify(expectedIndexes)) {
+    return false;
+  }
+
+  const policies = await client.query(
+    `SELECT 1
+       FROM pg_policy
+      WHERE polrelid = 'public.pending_login_challenges'::regclass`,
+  );
+  return policies.rows.length === 0;
 }
 
 async function ensureMigrationTable(client: Client): Promise<void> {

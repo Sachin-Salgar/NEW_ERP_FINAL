@@ -2,6 +2,7 @@ import { v7 as uuidV7 } from 'uuid';
 
 import type { AuthenticatedUser, AuthenticationResult, SessionRecord } from '../../domain/contracts/authentication.js';
 import type { AuthenticationRepository, PasswordHasher, TokenService } from '../contracts/security.js';
+import type { AuthorizedTenantLoginContext } from '../../domain/contracts/unified-authentication.js';
 
 export interface AuthenticationLockoutOptions {
   maxFailedAttempts?: number;
@@ -179,6 +180,74 @@ export class AuthenticationService {
         id: user.id,
         identityId: user.identityId,
         tenantId: user.tenantId,
+        branchId: session.branchId ?? null,
+        defaultBranchId: user.defaultBranchId,
+        username: user.username,
+        email: user.email,
+        status: user.status,
+      },
+      session,
+      accessToken,
+      refreshToken: this.tokenService ? refreshToken : undefined,
+    };
+  }
+
+  async authenticateTenantContext(context: AuthorizedTenantLoginContext): Promise<AuthenticationResult> {
+    const user = context.user;
+    const tenantId = context.tenantId;
+    const sessionId = uuidV7();
+    const sessionExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 8);
+    const refreshToken = this.tokenService
+      ? this.tokenService.createRefreshToken({
+          userId: user.id,
+          identityId: context.user.identityId,
+          tenantId,
+          sessionId,
+          contextType: 'tenant',
+          membershipId: context.tenantMembershipId,
+          expiresInSeconds: 60 * 60 * 24 * 14,
+        })
+      : 'internal-session-token';
+
+    const branchAuthorized = user.defaultBranchId
+      ? this.authenticationRepository.validateBranchAccess
+        ? await this.authenticationRepository.validateBranchAccess(tenantId, user.id, user.defaultBranchId)
+        : true
+      : false;
+    const session = await this.authenticationRepository.createSession({
+      id: sessionId,
+      tenantId,
+      userId: user.id,
+      identityId: context.user.identityId,
+      tenantMembershipId: context.tenantMembershipId,
+      contextType: 'tenant',
+      securityVersion: context.membershipSecurityVersion,
+      branchId: branchAuthorized ? user.defaultBranchId ?? null : null,
+      accessTokenId: null,
+      expiresAt: sessionExpiresAt,
+      userAgent: 'erp-client',
+      ipAddress: null,
+      device: 'unknown',
+      refreshTokenHash: this.tokenService ? this.tokenService.hashTokenValue(refreshToken) : 'internal-session-token',
+    });
+    const accessToken = this.tokenService
+      ? this.tokenService.createAccessToken({
+          userId: user.id,
+          identityId: context.user.identityId,
+          tenantId,
+          sessionId: session.id,
+          contextType: 'tenant',
+          membershipId: context.tenantMembershipId,
+          expiresInSeconds: 60 * 60,
+        })
+      : undefined;
+
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        identityId: context.user.identityId,
+        tenantId,
         branchId: session.branchId ?? null,
         defaultBranchId: user.defaultBranchId,
         username: user.username,

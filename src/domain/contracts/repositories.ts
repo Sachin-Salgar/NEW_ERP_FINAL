@@ -1,6 +1,14 @@
 import type { PermissionDescriptor, RoleDescriptor, UserPermissionRecord } from './authorization.js';
 import type { CreateSessionInput, SessionRecord } from './authentication.js';
 import type { TenantBootstrapInput, TenantBootstrapResult } from './bootstrap.js';
+import type {
+  AuthorizedTenantLoginContext,
+  LoginIdentityCredential,
+  PendingLoginChallenge,
+  PendingLoginChallengeSnapshot,
+  PlatformLoginContext,
+  UsableLoginContexts,
+} from './unified-authentication.js';
 
 export interface PlatformBootstrapRepository {
   seedSubscriptionPlans(
@@ -1187,3 +1195,41 @@ export interface AuthorizationRepository {
 }
 
 export interface AuthenticationRepository extends UserRepository, SessionRepository, UserRegistrationRepository {}
+
+export interface UnifiedAuthenticationRepository extends AuthenticationRepository {
+  findLoginIdentity(identifier: string): Promise<LoginIdentityCredential | null>;
+  recordFailedIdentityLogin?(
+    identityId: string,
+    options?: { maxFailedAttempts?: number; lockoutMinutes?: number },
+  ): Promise<{ failedAttemptCount: number; lockedUntil: Date | null }>;
+  resetFailedIdentityLogin?(identityId: string): Promise<void>;
+  resolveUsableLoginContexts(identityId: string): Promise<UsableLoginContexts>;
+  authorizeTenantLoginContext(
+    identityId: string,
+    tenantMembershipId: string,
+    tenantId: string,
+  ): Promise<AuthorizedTenantLoginContext | null>;
+  authorizePlatformLoginContext(
+    identityId: string,
+    platformMembershipId: string,
+  ): Promise<PlatformLoginContext | null>;
+  createPlatformSession(input: {
+    id: string;
+    identityId: string;
+    platformMembershipId: string;
+    refreshTokenHash: string;
+    expiresAt: Date;
+    securityVersion: number;
+  }): Promise<SessionRecord>;
+  createPendingLoginChallenge(input: {
+    challengeId: string;
+    identityId: string;
+    secretHash: string;
+    contextSnapshot: PendingLoginChallengeSnapshot;
+    expiresAt: Date;
+  }): Promise<PendingLoginChallenge>;
+  consumePendingLoginChallenge(
+    challengeId: string,
+    secretHash: string,
+  ): Promise<{ identityId: string; contextSnapshot: PendingLoginChallengeSnapshot } | null>;
+}

@@ -28,6 +28,14 @@ const loginRequestJsonSchema = {
     password: { type: 'string', minLength: 1, description: 'Password' },
   },
 } as const;
+const selectContextRequestJsonSchema = {
+  type: 'object',
+  required: ['pendingSelectionToken', 'contextRef'],
+  properties: {
+    pendingSelectionToken: { type: 'string', minLength: 50, maxLength: 200 },
+    contextRef: { type: 'string', minLength: 20, maxLength: 200 },
+  },
+} as const;
 const branchContextSchema = z.object({
   branchId: z.string().uuid(),
   financialYearId: z.string().uuid(),
@@ -226,40 +234,127 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request) => {
       const body = authSchemas.loginRequest.parse(request.body);
-      const result = await request.server.authService.authenticate(body.identifier.trim(), body.password);
-      if (!result.success || !result.user || !result.session || !result.accessToken || !result.refreshToken) {
+      const result = await request.server.unifiedAuthenticationService.authenticate(body.identifier.trim(), body.password);
+      if (result.resolution === 'ZERO') {
         if (result.failureTenantId) {
           await recordSecurityEvent(request, {
             tenantId: result.failureTenantId,
-            actorUserId: result.failureUserId ?? null,
-            action: result.reason === 'ACCOUNT_LOCKED' ? 'auth.login.lockout' : 'auth.login.failure',
-            resourceType: 'authentication',
-            resourceId: result.failureUserId ?? null,
+            actorUserId: result.failureUserId,
+            action: 'auth.login.failure',
+            resourceType: 'session',
             outcome: 'failure',
             metadata: { reason: result.reason ?? 'INVALID_CREDENTIALS' },
           });
         }
         throw new UnauthorizedError('Invalid credentials.');
       }
-      await recordSecurityEvent(request, {
-        tenantId: result.user.tenantId,
-        actorUserId: result.user.id,
-        action: 'auth.login.success',
-        resourceType: 'session',
-        resourceId: result.session.id,
-        outcome: 'success',
-        metadata: { sessionId: result.session.id, contextType: 'tenant' },
-      });
+      if (result.resolution === 'SELECT') {
+        return {
+          success: true,
+          resolution: 'SELECT' as const,
+          contexts: result.contexts,
+          pendingSelectionToken: result.pendingSelectionToken,
+        };
+      }
+      if (!result.authentication) throw new UnauthorizedError('Invalid credentials.');
+      const authentication = result.authentication;
+      if (result.context?.contextType === 'tenant') {
+        if (!authentication.user || !authentication.session || !authentication.accessToken || !authentication.refreshToken)
+          throw new UnauthorizedError('Invalid credentials.');
+        await recordSecurityEvent(request, {
+          tenantId: authentication.user.tenantId,
+          actorUserId: authentication.user.id,
+          action: 'auth.login.success',
+          resourceType: 'session',
+          resourceId: authentication.session.id,
+          outcome: 'success',
+          metadata: { sessionId: authentication.session.id, contextType: 'tenant' },
+        });
+        return {
+          success: true,
+          resolution: 'DIRECT' as const,
+          user: sanitizeUser(authentication.user),
+          session: sanitizeSession(authentication.session),
+          accessToken: authentication.accessToken,
+          refreshToken: authentication.refreshToken,
+          expiresAt: authentication.session.expiresAt,
+          tokenType: 'bearer',
+          contextType: 'tenant' as const,
+          destination: '/dashboard' as const,
+          tenant: { id: authentication.user.tenantId },
+        };
+      }
+      if (!authentication.session || !authentication.accessToken || !authentication.refreshToken)
+        throw new UnauthorizedError('Invalid credentials.');
       return {
         success: true,
-        user: sanitizeUser(result.user),
-        session: sanitizeSession(result.session),
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        expiresAt: result.session.expiresAt,
+        resolution: 'DIRECT' as const,
+        contextType: 'platform' as const,
+        destination: '/platform' as const,
+        tenantId: null,
+        accessToken: authentication.accessToken,
+        refreshToken: authentication.refreshToken,
+        expiresAt: authentication.session.expiresAt,
         tokenType: 'bearer',
-        contextType: 'tenant' as const,
-        tenant: { id: result.user.tenantId },
+      };
+    },
+  );
+  fastify.post<{
+    Body: {     pendingSelectionToken: string; contextRef: string };
+  }>(
+    '/auth/select-context',
+    {
+      schema: {
+        tags: ['Authentication'],
+        summary: 'Complete pending login context selection',
+        body: selectContextRequestJsonSchema,
+      },
+      bodyLimit: 10 * 1024,
+      config: { rateLimit: authRateLimit(fastify, fastify.appConfig.AUTH_LOGIN_RATE_LIMIT) },
+    },
+    async (request) => {
+      const body = z
+        .object({
+          pendingSelectionToken: z.string().min(50).max(200),
+          contextRef: z.string().min(20).max(200),
+        })
+        .parse(request.body);
+      const result = await request.server.unifiedAuthenticationService.selectContext(
+        body.pendingSelectionToken,
+        body.contextRef,
+      );
+      if (result.resolution !== 'DIRECT' || !result.authentication || !result.context)
+        throw new UnauthorizedError('Login context is invalid or expired.');
+      const authentication = result.authentication;
+      if (result.context.contextType === 'tenant') {
+        if (!authentication.user || !authentication.session || !authentication.accessToken || !authentication.refreshToken)
+          throw new UnauthorizedError('Login context is invalid or expired.');
+        return {
+          success: true,
+          resolution: 'DIRECT' as const,
+          user: sanitizeUser(authentication.user),
+          session: sanitizeSession(authentication.session),
+          accessToken: authentication.accessToken,
+          refreshToken: authentication.refreshToken,
+          expiresAt: authentication.session.expiresAt,
+          tokenType: 'bearer',
+          contextType: 'tenant' as const,
+          destination: '/dashboard' as const,
+          tenant: { id: authentication.user.tenantId },
+        };
+      }
+      if (!authentication.session || !authentication.accessToken || !authentication.refreshToken)
+        throw new UnauthorizedError('Login context is invalid or expired.');
+      return {
+        success: true,
+        resolution: 'DIRECT' as const,
+        contextType: 'platform' as const,
+        destination: '/platform' as const,
+        tenantId: null,
+        accessToken: authentication.accessToken,
+        refreshToken: authentication.refreshToken,
+        expiresAt: authentication.session.expiresAt,
+        tokenType: 'bearer',
       };
     },
   );

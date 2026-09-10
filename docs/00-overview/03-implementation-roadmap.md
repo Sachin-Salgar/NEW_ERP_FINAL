@@ -3,7 +3,7 @@
 **Status:** Living implementation roadmap  
 **Authority:** Architecture documents and Approved ADRs define the intended system; this document records what is actually implemented and what remains to be validated or built.
 
-**Last reconciled:** 2026-09-09
+**Last reconciled:** 2026-09-10
 **Branch:** `feature/branch-working-context-0041`
 
 ## Status definitions
@@ -19,12 +19,17 @@
 
 The system is a **layered modular monolith** with Flutter clients, REST API, backend services, repositories/data access, and PostgreSQL.
 
-The current architecture follows **ADR-0040: Platform, Tenant, and Branch
-Architecture**. The platform is the system administration boundary; Tenant is the
-security, authorization, data-isolation, and PostgreSQL RLS boundary; Branch is the
-only business subdivision below Tenant. A normal application user belongs to exactly
-one tenant and normal login establishes that tenant automatically. Tenant selection,
-tenant switching, and multi-tenant user context selection are not supported.
+The current approved architecture follows **ADR-0040: Platform, Tenant, and
+Branch Architecture**. The platform is the system administration boundary;
+Tenant is the security, authorization, data-isolation, and PostgreSQL RLS
+boundary; Branch is the only business subdivision below Tenant. A normal
+application user currently belongs to exactly one tenant and normal login
+establishes that tenant automatically. Tenant switching and post-login tenant
+switching remain unsupported.
+
+**ADR-0042 is Accepted architecture. Phase 1 backend implementation now exists
+for identity-wide usable-context resolution, pending-selection challenges, and
+context-specific session issuance; end-to-end security/database validation remains.
 Deployment hostname, frontend URL, client-supplied tenant ID, and deployment
 configuration are not tenant authorities.
 
@@ -37,8 +42,8 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 **Current phase:** The repository is reconciling implementation residue with the
 approved Platform → Tenant → Branch architecture. Retained tenant authentication,
 platform administration, branch authorization, RLS, and audit foundations remain
-roadmap items; identity-wide discovery, context-selection, and multi-membership
-implementation are deferred for governed migration and are not current architecture.
+roadmap items; identity-wide discovery, context-selection, and multi-membership implementation
+remain pending subsequent implementation work under accepted ADR-0042.
 
 ### Validation evidence captured
 
@@ -91,7 +96,7 @@ implementation are deferred for governed migration and are not current architect
 | Area                                       | Status                               | Current implementation / remaining work                                                                                                                                            |
 | ------------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Tenant data boundary                       | **COMPLETED**                        | Tenant-scoped model and PostgreSQL RLS architecture implemented.                                                                                                                   |
-| Identity-based tenant discovery            | **DEFERRED / RETIRED**               | Legacy identity/membership tables remain for later cleanup, but active backend login no longer discovers or exposes tenant contexts.                                                                       |
+| Identity-wide usable-context resolution    | **IMPLEMENTED — VALIDATION PENDING** | Unified backend login resolves current tenant/platform contexts after credential authentication; zero fails closed, one issues a direct context session, and multiple issue only a one-time pending challenge. |
 | Tenant-scoped session                      | **COMPLETED**                        | Normal login resolves exactly one active tenant server-side, fails closed on ambiguity/no match, and issues a tenant-bound session and JWT.                                                               |
 | TenantContext                              | **IMPLEMENTED — VALIDATION PENDING** | Server derives tenant from authenticated session; DB helper establishes transaction-local context.                                                                                 |
 | PostgreSQL RLS                             | **COMPLETED**                        | Integration coverage proves tested tenant visibility/write isolation, rollback and pooled-connection context isolation.                                                            |
@@ -106,7 +111,7 @@ implementation are deferred for governed migration and are not current architect
 | ------------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Authentication                              | **COMPLETED**                          | Backend authentication, token/session handling, security tests, and admin/limited-user browser E2E pass in CI.                                                                                     |
 | Session management / refresh / logout       | **COMPLETED**                          | Rotation, replay detection, invalidation, logout, and lifecycle tests pass; browser matrix teardown remains a validation residual.                                                                 |
-| Tenant selection                            | **DEFERRED / RETIRED**                 | Normal users do not select or switch tenants; the authenticated session establishes tenant context automatically.                                                                                 |
+| Login-time context selection                | **IMPLEMENTED — VALIDATION PENDING**  | `/auth/select-context` atomically consumes a short-lived challenge, re-resolves current membership state, and issues only the selected tenant/platform session; no post-login tenant switching is introduced. |
 | Branch selection                            | **IMPLEMENTED — VALIDATION PENDING**   | Branch is the only business subdivision below Tenant; branch defaults/access remain the supported working-context contract.                                                                        |
 | Generic location selection                  | **DEFERRED / RETIRED**                 | Generic Location is not an architecture level; domain-specific physical locations remain owned by their bounded module where applicable.                                                           |
 | Active tenant/branch context                | **IMPLEMENTED — VALIDATION PENDING**   | Active fixture/bootstrap context is tenant-scoped with branch access.                                                                                                                               |

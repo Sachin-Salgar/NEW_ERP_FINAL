@@ -28,6 +28,7 @@ import type { TaxService } from '../../../application/services/tax-service.js';
 import type { TenantAdministrationService } from '../../../application/services/tenant-administration-service.js';
 import type { TenantBootstrapService } from '../../../application/services/tenant-bootstrap-service.js';
 import type { PlatformAuthorizationService } from '../../../application/services/platform-authorization-service.js';
+import type { UnifiedAuthenticationService } from '../../../application/services/unified-authentication-service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -61,6 +62,7 @@ declare module 'fastify' {
     tenantAdministrationService: TenantAdministrationService;
     tenantBootstrapService: TenantBootstrapService;
     platformAuthorizationService: PlatformAuthorizationService;
+    unifiedAuthenticationService: UnifiedAuthenticationService;
   }
   interface FastifyRequest {
     user?: AuthenticatedUser;
