@@ -128,6 +128,8 @@ jobs:
           NODE_ENV: test
           TEST_DATABASE_URL: postgresql://newerp_test_runner:newerp-test-runner-ci-only@127.0.0.1:5432/newerp_test
           DATABASE_URL: postgresql://postgres:postgres-ci-only@127.0.0.1:5432/postgres
+          INTEGRATION_ADMIN_DATABASE_URL: postgresql://postgres:postgres-ci-only@127.0.0.1:5432/newerp_test
+          ADR0040_SECURITY_ROLE_PASSWORD: postgres-ci-only
           DATABASE_SSL_MODE: disable
           JWT_SECRET: integration-test-jwt-secret-change-me-123456789
         run: npm run test:integration
