@@ -7,6 +7,7 @@ import { Client } from 'pg';
 
 import { loadConfig } from '../../config/index.js';
 import { createDatabaseClientOptions, type DatabaseSslMode } from './connection.js';
+import { runPlatformSecurityBootstrapFromEnv } from './platform-security-bootstrap.js';
 
 const MIGRATION_TABLE = '__drizzle_migrations';
 
@@ -185,6 +186,14 @@ export async function runMigrations(databaseUrl?: string, sslMode?: DatabaseSslM
 
 async function main() {
   await runMigrations();
+
+  // Render's existing start command is intentionally kept stable:
+  // `npm run db:migrate && node dist/main.js`.
+  // Therefore the deployment preflight must establish platform security
+  // invariants before the application startup verifier runs.
+  if (process.env.RENDER === 'true') {
+    await runPlatformSecurityBootstrapFromEnv();
+  }
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
