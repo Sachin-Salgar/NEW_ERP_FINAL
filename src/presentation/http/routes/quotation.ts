@@ -83,7 +83,15 @@ const quotationRoutes: FastifyPluginAsync = async (f) => {
           await f.quotationService.transition(
             ctx(r),
             requestParam(r.params, 'id') ?? '',
-            (s === 'send' ? 'SENT' : s === 'cancel' ? 'CANCELLED' : s.toUpperCase()) as any,
+            (s === 'send'
+              ? 'SENT'
+              : s === 'accept'
+                ? 'ACCEPTED'
+                : s === 'reject'
+                  ? 'REJECTED'
+                  : s === 'expire'
+                    ? 'EXPIRED'
+                    : 'CANCELLED') as any,
             r.body.expectedVersion,
           ),
         ),

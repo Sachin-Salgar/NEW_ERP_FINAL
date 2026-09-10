@@ -175,7 +175,16 @@ export class QuotationService {
     status: QuotationStatus,
     expectedVersion: number,
   ): Promise<QuotationRecord> {
-    const permissionKey = status === 'SENT' ? 'send' : status === 'CANCELLED' ? 'cancel' : status.toLowerCase();
+    const permissionKey =
+      status === 'SENT'
+        ? 'send'
+        : status === 'ACCEPTED'
+          ? 'accept'
+          : status === 'REJECTED'
+            ? 'reject'
+            : status === 'EXPIRED'
+              ? 'expire'
+              : 'cancel';
     const permission = (QUOTATION_PERMISSIONS as Record<string, string>)[permissionKey];
     await this.authorize(c, permission as QuotationPermission);
     this.id(id, 'Quotation ID');

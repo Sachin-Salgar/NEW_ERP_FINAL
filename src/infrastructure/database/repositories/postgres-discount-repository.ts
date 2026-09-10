@@ -89,7 +89,7 @@ export class PostgresDiscountRepository implements DiscountRuleRepository {
     );
   }
 
-  async resolve(tenantId: string, branchId: string, asOf: string): Promise<ResolvedDiscountRule | null> {
+  async resolve(tenantId: string, asOf: string): Promise<ResolvedDiscountRule | null> {
     return withTenantContext(
       this.pool,
       this.tenantContextKey,
@@ -99,11 +99,11 @@ export class PostgresDiscountRepository implements DiscountRuleRepository {
           `SELECT id,code,percentage,effective_from AS "effectiveFrom",
         effective_to AS "effectiveTo",version_number AS "versionNumber"
         FROM sales_discount_rules
-        WHERE tenant_id=$1 AND tenant_id=$2 AND status='PUBLISHED'
-          AND effective_from <= $3::date
-          AND (effective_to IS NULL OR effective_to >= $3::date)
+        WHERE tenant_id=$1 AND status='PUBLISHED'
+          AND effective_from <= $2::date
+          AND (effective_to IS NULL OR effective_to >= $2::date)
         ORDER BY effective_from DESC, code ASC`,
-          [tenantId, branchId, asOf],
+          [tenantId, asOf],
         );
         const first = result.rows[0];
         if (first && result.rows[1] && String(first.effectiveFrom) === String(result.rows[1].effectiveFrom)) {
@@ -120,7 +120,7 @@ export class PostgresDiscountRepository implements DiscountRuleRepository {
             }
           : null;
       },
-      { branchId },
+      {},
     ) as Promise<ResolvedDiscountRule | null>;
   }
 
@@ -133,14 +133,14 @@ export class PostgresDiscountRepository implements DiscountRuleRepository {
         const result = await client.query(
           `UPDATE sales_discount_rules
         SET status=$1::sales_discount_status_enum,updated_at=now(),updated_by=$2,version_number=version_number+1
-        WHERE tenant_id=$3 AND tenant_id=$4 AND id=$5 AND version_number=$6
+        WHERE tenant_id=$3 AND id=$4 AND version_number=$5
           AND ((status='DRAFT' AND $1='PUBLISHED') OR (status='PUBLISHED' AND $1='ARCHIVED'))
         RETURNING ${C}`,
-          [input.status, input.actorUserId, input.tenantId, input.branchId, input.id, input.expectedVersion],
+          [input.status, input.actorUserId, input.tenantId, input.id, input.expectedVersion],
         );
         return result.rows[0] ? mapRule(result.rows[0]) : null;
       },
-      { branchId: input.branchId, userId: input.actorUserId },
+      { userId: input.actorUserId },
     ) as Promise<DiscountRuleRecord | null>;
   }
 
@@ -154,8 +154,8 @@ export class PostgresDiscountRepository implements DiscountRuleRepository {
           `UPDATE sales_discount_rules
         SET name=$1,percentage=$2,effective_from=$3,effective_to=$4,updated_at=now(),
             updated_by=$5,version_number=version_number+1
-        WHERE tenant_id=$6 AND tenant_id=$7 AND id=$8 AND status='DRAFT'
-          AND version_number=$9
+        WHERE tenant_id=$6 AND id=$7 AND status='DRAFT'
+          AND version_number=$8
         RETURNING ${C}`,
           [
             input.name,
@@ -164,14 +164,13 @@ export class PostgresDiscountRepository implements DiscountRuleRepository {
             input.effectiveTo,
             input.actorUserId,
             input.tenantId,
-            input.branchId,
             input.id,
             input.expectedVersion,
           ],
         );
         return result.rows[0] ? mapRule(result.rows[0]) : null;
       },
-      { branchId: input.branchId, userId: input.actorUserId },
+      { userId: input.actorUserId },
     ) as Promise<DiscountRuleRecord | null>;
   }
 }

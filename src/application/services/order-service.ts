@@ -3,7 +3,7 @@ import type { AuditLogger } from '../contracts/audit.js';
 import type { AuthorizationService } from './authorization-service.js';
 import type { ModuleAccessService } from './module-access-service.js';
 import type { OrderRepository } from '../../domain/contracts/repositories.js';
-import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../../domain/errors.js';
+import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../../domain/errors.js';
 import {
   ORDER_PERMISSIONS,
   SALES_MODULE_CODE,
@@ -87,16 +87,40 @@ export class OrderService {
         expectedVersion: input.expectedVersion,
         actorUserId: c.userId,
       });
-      if (!x) throw new ValidationError('Draft order not found or version conflict.');
+      if (!x) throw new ConflictError('Order was modified concurrently.');
+      await this.audit.record(
+        {
+          tenantId: c.tenantId,
+          actorUserId: c.userId,
+          action: 'order.updated',
+          resourceType: 'sales_order',
+          resourceId: id,
+          outcome: 'success',
+        },
+        { requireTransaction: true },
+      );
       return x;
     });
   }
   async delete(c: OrderContext, id: string) {
     await this.authorize(c, ORDER_PERMISSIONS.delete);
     this.id(id, 'Order ID');
-    const x = await this.repository.softDelete({ ...c, orderId: id, actorUserId: c.userId });
-    if (!x) throw new ValidationError('Only draft orders can be deleted.');
-    return x;
+    return this.tx.runInTransaction(async () => {
+      const x = await this.repository.softDelete({ ...c, orderId: id, actorUserId: c.userId });
+      if (!x) throw new ValidationError('Only draft orders can be deleted.');
+      await this.audit.record(
+        {
+          tenantId: c.tenantId,
+          actorUserId: c.userId,
+          action: 'order.deleted',
+          resourceType: 'sales_order',
+          resourceId: id,
+          outcome: 'success',
+        },
+        { requireTransaction: true },
+      );
+      return x;
+    });
   }
   async transition(c: OrderContext, id: string, status: OrderStatus, expectedVersion: number) {
     if (!Number.isInteger(expectedVersion) || expectedVersion < 1)
@@ -140,7 +164,7 @@ export class OrderService {
         expectedVersion: transitionVersion,
         actorUserId: c.userId,
       });
-      if (!x) throw new ValidationError('Order not found or version conflict.');
+      if (!x) throw new ConflictError('Order was modified concurrently.');
       await this.audit.record(
         {
           tenantId: c.tenantId,

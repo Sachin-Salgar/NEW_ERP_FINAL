@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { OrderService, type OrderContext } from '../../src/application/services/order-service.js';
 import type { AuditLogger } from '../../src/application/contracts/audit.js';
 import type { OrderRecord, OrderRepository } from '../../src/domain/contracts/repositories.js';
-import { ForbiddenError, ValidationError } from '../../src/domain/errors.js';
+import { ConflictError, ForbiddenError, ValidationError } from '../../src/domain/errors.js';
 
 const context: OrderContext = {
   tenantId: randomUUID(),
@@ -46,7 +46,9 @@ class FakeRepository implements OrderRepository {
   async list() {
     return { items: [this.value], total: 1 };
   }
-  async update() {
+  async update(input: { notes?: string | null; expectedVersion: number }) {
+    if (input.expectedVersion !== this.value.versionNumber) return null;
+    this.value = { ...this.value, notes: input.notes ?? null, versionNumber: this.value.versionNumber + 1 };
     return this.value;
   }
   async transition(input: { status: OrderRecord['status']; expectedVersion: number }) {
@@ -90,7 +92,7 @@ describe('OrderService', () => {
     expect(audit.actions).toEqual(['order.created']);
   });
 
-  it('enforces lifecycle transitions and optimistic version checks', async () => {
+  it('enforces lifecycle transitions, audits draft updates, and maps stale versions to conflicts', async () => {
     const { service, repository, audit } = createService();
     await expect(service.transition(context, repository.value.id, 'CONFIRMED', 1)).resolves.toMatchObject({
       status: 'CONFIRMED',
@@ -99,10 +101,38 @@ describe('OrderService', () => {
     expect(repository.lastTransition).toMatchObject({ status: 'CONFIRMED', expectedVersion: 1 });
     expect(audit.actions).toEqual(['order.confirmed']);
 
+    repository.value = record('DRAFT');
+    await expect(service.update(context, repository.value.id, { notes: 'Updated', expectedVersion: 1 })).resolves.toMatchObject({
+      notes: 'Updated',
+      versionNumber: 2,
+    });
+    expect(audit.actions).toContain('order.updated');
+
+    const staleRepository = new FakeRepository();
+    staleRepository.value = record('DRAFT');
+    staleRepository.update = async () => null;
+    const staleService = new OrderService(
+      staleRepository,
+      { hasPermission: async () => true },
+      { isModuleEnabled: async () => true },
+      new Audit(),
+      { runInTransaction: async <T>(callback: () => Promise<T>) => callback() },
+    );
+    await expect(staleService.update(context, staleRepository.value.id, { notes: 'Stale', expectedVersion: 1 })).rejects.toBeInstanceOf(
+      ConflictError,
+    );
+
     repository.value = record('CONFIRMED');
     await expect(service.transition(context, repository.value.id, 'CONFIRMED', 1)).rejects.toBeInstanceOf(
       ValidationError,
     );
+  });
+
+  it('soft-deletes draft orders with transactional audit', async () => {
+    const { service, repository, audit } = createService();
+    repository.value = record('DRAFT');
+    await expect(service.delete(context, repository.value.id)).resolves.toMatchObject({ isDeleted: true });
+    expect(audit.actions).toContain('order.deleted');
   });
 
   it('rejects invalid transition versions and forbidden access', async () => {

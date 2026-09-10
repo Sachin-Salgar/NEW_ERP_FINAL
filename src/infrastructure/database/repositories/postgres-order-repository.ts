@@ -23,7 +23,7 @@ export class PostgresOrderRepository implements OrderRepository {
           throw new ValidationError('Only an accepted quotation in the active context can create an order.');
         const warehouse = await c.query(
           `SELECT id FROM inventory_warehouses WHERE id=$1 AND tenant_id=$2 AND status='ACTIVE'`,
-          [i.warehouseId, i.tenantId, i.branchId],
+          [i.warehouseId, i.tenantId],
         );
         if (!warehouse.rows[0]) throw new ValidationError('An active warehouse in the tenant is required.');
         const sourceItems = await c.query(
@@ -39,7 +39,7 @@ export class PostgresOrderRepository implements OrderRepository {
           [i.tenantId, i.branchId],
         );
         const r = await c.query(
-          `INSERT INTO sales_orders(tenant_id,branch_id,financial_year_id,order_number,customer_id,quotation_id,warehouse_id,subtotal,discount_total,total,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING ${C}`,
+          `INSERT INTO sales_orders(tenant_id,branch_id,financial_year_id,order_number,customer_id,quotation_id,warehouse_id,subtotal,discount_total,total,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING ${C}`,
           [
             i.tenantId,
             i.branchId,
