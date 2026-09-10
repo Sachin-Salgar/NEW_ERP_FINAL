@@ -6,7 +6,7 @@ import type {
   ProcurementLineInput,
   ProcurementRepository,
 } from '../../../domain/contracts/procurement.js';
-import { ValidationError } from '../../../domain/errors.js';
+import { ConflictError, ValidationError } from '../../../domain/errors.js';
 
 export class PostgresProcurementRepository implements ProcurementRepository {
   constructor(
@@ -63,7 +63,7 @@ export class PostgresProcurementRepository implements ProcurementRepository {
                   AND pr.status='COMPLETED'
              ),0) AS received
              FROM procurement_purchase_order_lines pol
-            WHERE pol.purchase_order_id=$3 AND pol.tenant_id=$1 AND pol.branch_id =$2`,
+            WHERE pol.purchase_order_id=$3 AND pol.tenant_id=$1`,
           [c.tenantId, c.branchId, current.purchase_order_id],
         )
       ).rows;
@@ -81,7 +81,7 @@ export class PostgresProcurementRepository implements ProcurementRepository {
           [c.id, c.tenantId, c.branchId, c.expectedVersion, c.userId],
         )
       ).rows[0];
-      if (!receipt) throw new Error('Receipt was modified concurrently.');
+      if (!receipt) throw new ConflictError('Receipt was modified concurrently.');
       return { receipt, lines, alreadyCompleted: false };
     });
   }
@@ -272,7 +272,7 @@ export class PostgresProcurementRepository implements ProcurementRepository {
           `SELECT pol.item_id AS "itemId", pol.quantity,
            COALESCE((SELECT SUM(prl.quantity) FROM procurement_receipt_lines prl JOIN procurement_receipts pr ON pr.id=prl.receipt_id
              WHERE pr.purchase_order_id=pol.purchase_order_id AND prl.item_id=pol.item_id AND pr.tenant_id=$1 AND pr.branch_id =$2 AND pr.status='COMPLETED'),0) AS received
-         FROM procurement_purchase_order_lines pol WHERE pol.purchase_order_id=$3 AND pol.tenant_id=$1 AND pol.branch_id =$2`,
+         FROM procurement_purchase_order_lines pol WHERE pol.purchase_order_id=$3 AND pol.tenant_id=$1`,
           [c.tenantId, c.branchId, c.purchaseOrderId],
         )
       ).rows;
@@ -290,7 +290,6 @@ export class PostgresProcurementRepository implements ProcurementRepository {
           `INSERT INTO procurement_receipts(tenant_id,branch_id,financial_year_id,purchase_order_id,warehouse_id,receipt_date,operation_key,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(tenant_id,operation_key) DO UPDATE SET operation_key=EXCLUDED.operation_key RETURNING id`,
           [
             c.tenantId,
-            c.branchId,
             c.branchId,
             c.financialYearId,
             c.purchaseOrderId,
@@ -328,7 +327,7 @@ export class PostgresProcurementRepository implements ProcurementRepository {
       if (!current) return null;
       if (current.status !== 'DRAFT') throw new ValidationError('Only draft receipts can be updated.');
       if (Number(current.version) !== c.expectedVersion)
-        throw new ValidationError('Receipt was modified concurrently.');
+        throw new ConflictError('Receipt was modified concurrently.');
       const approvedOrder = await db.query(
         `SELECT id FROM procurement_purchase_orders
          WHERE id=$1 AND tenant_id=$2 AND branch_id=$3 AND status='APPROVED' AND is_deleted=false
@@ -460,14 +459,26 @@ export class PostgresProcurementRepository implements ProcurementRepository {
     return this.run(
       c,
       async (db) =>
-        (
-          await db.query(
-            `UPDATE ${table} SET ${set},updated_at=now(),updated_by=$${(branchScoped ? 5 : 4) + values.length},version=version+1 WHERE id=$1 AND tenant_id=$2${branchScoped ? ' AND branch_id=$3' : ''} AND version=$${branchScoped ? 4 : 3} AND is_deleted=false${status ? ` AND status='${status}'` : ''} RETURNING *`,
-            branchScoped
-              ? [id, c.tenantId, c.branchId, version, ...values, c.userId]
-              : [id, c.tenantId, version, ...values, c.userId],
-          )
-        ).rows[0] ?? null,
+        await (async () => {
+          const updated = (
+            await db.query(
+              `UPDATE ${table} SET ${set},updated_at=now(),updated_by=$${(branchScoped ? 5 : 4) + values.length},version=version+1 WHERE id=$1 AND tenant_id=$2${branchScoped ? ' AND branch_id=$3' : ''} AND version=$${branchScoped ? 4 : 3} AND is_deleted=false${status ? ` AND status='${status}'` : ''} RETURNING *`,
+              branchScoped
+                ? [id, c.tenantId, c.branchId, version, ...values, c.userId]
+                : [id, c.tenantId, version, ...values, c.userId],
+            )
+          ).rows[0];
+          if (updated) return updated;
+          const current = (
+            await db.query(
+              `SELECT version FROM ${table} WHERE id=$1 AND tenant_id=$2${branchScoped ? ' AND branch_id=$3' : ''} AND is_deleted=false`,
+              branchScoped ? [id, c.tenantId, c.branchId] : [id, c.tenantId],
+            )
+          ).rows[0];
+          if (current && Number(current.version) !== version)
+            throw new ConflictError('The resource was modified concurrently.');
+          return null;
+        })(),
     );
   }
   private async transition(
@@ -480,12 +491,24 @@ export class PostgresProcurementRepository implements ProcurementRepository {
     return this.run(
       c,
       async (db) =>
-        (
-          await db.query(
-            `UPDATE ${table} SET status=$5,updated_at=now(),updated_by=$6,version=version+1 WHERE id=$1 AND tenant_id=$2 AND branch_id=$3 AND version=$4 AND is_deleted=false RETURNING *`,
-            [id, c.tenantId, c.branchId, version, status, c.userId],
-          )
-        ).rows[0] ?? null,
+        await (async () => {
+          const updated = (
+            await db.query(
+              `UPDATE ${table} SET status=$5,updated_at=now(),updated_by=$6,version=version+1 WHERE id=$1 AND tenant_id=$2 AND branch_id=$3 AND version=$4 AND is_deleted=false RETURNING *`,
+              [id, c.tenantId, c.branchId, version, status, c.userId],
+            )
+          ).rows[0];
+          if (updated) return updated;
+          const current = (
+            await db.query(
+              `SELECT version FROM ${table} WHERE id=$1 AND tenant_id=$2 AND branch_id=$3 AND is_deleted=false`,
+              [id, c.tenantId, c.branchId],
+            )
+          ).rows[0];
+          if (current && Number(current.version) !== version)
+            throw new ConflictError('The resource was modified concurrently.');
+          return null;
+        })(),
     );
   }
 }

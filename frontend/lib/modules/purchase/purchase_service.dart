@@ -165,7 +165,9 @@ class PurchaseService extends ChangeNotifier {
       'purchaseOrders': 'purchase-orders',
       'receipts': 'receipts',
     }[type]!;
-    final suffix = action != null ? '/$action' : (id == null ? '' : '/$id');
+    final suffix = action != null
+        ? '/${id ?? ''}/$action'
+        : (id == null ? '' : '/$id');
     try {
       final r = method == 'post'
           ? await apiClient.post(

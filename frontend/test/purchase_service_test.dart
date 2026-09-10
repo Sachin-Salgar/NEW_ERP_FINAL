@@ -90,7 +90,10 @@ void main() {
         isNull,
       );
       expect(requests[0].method, 'POST');
-      expect(requests[0].url.path, '/api/v1/purchase/requisitions/submit');
+      expect(
+        requests[0].url.path,
+        '/api/v1/purchase/requisitions/requisition-1/submit',
+      );
       expect(requests[0].headers['content-type'], contains('application/json'));
     },
   );

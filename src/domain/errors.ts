@@ -21,6 +21,13 @@ export class ValidationError extends AppError {
   }
 }
 
+export class ConflictError extends AppError {
+  constructor(message = 'The resource was modified concurrently.', details?: unknown) {
+    super(message, 'CONFLICT', 409, true, details);
+    this.name = 'ConflictError';
+  }
+}
+
 export class UnauthorizedError extends AppError {
   constructor(message = 'Unauthorized', details?: unknown) {
     super(message, 'UNAUTHORIZED', 401, true, details);

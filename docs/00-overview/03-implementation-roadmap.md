@@ -93,21 +93,18 @@ specifications and dependency boundaries before implementation is selected.
 - Broader browser E2E verification remains a known validation residual; no functional or security assertion failure is evidenced.
 - Production deployment and operational security evidence remains deployment-only.
 - Full business-module implementation.
-- Procurement Purchase v1 hardening and validation remains the immediate next implementation task.
 
 ## IMMEDIATE NEXT IMPLEMENTATION TASK
 
-**Complete Procurement Purchase v1 hardening and validation.**
+**Select the next bounded implementation unit through roadmap reconciliation.**
 
-This is implementation work, not another roadmap audit. The bounded Purchase
-implementation already exists for suppliers, requisitions, purchase orders, and
-receipts, including lifecycle transitions, optimistic version checks, FORCE RLS,
-authorization, and Inventory receipt integration. The remaining work is the
-documented hardening pass: dedicated Purchase integration, RLS, transaction,
-frontend, and production validation. Sales remains PARTIAL, but its remaining
-capabilities are separately specified and include unresolved Workflow/provider
-and business-rule boundaries; no single additional Sales implementation task is
-authoritatively selected ahead of this concrete Procurement hardening step.
+The bounded Purchase v1 implementation and its dedicated hardening validation
+are complete for suppliers, requisitions, purchase orders, receipts, lifecycle
+transitions, optimistic version checks, FORCE RLS, authorization, Inventory
+receipt integration, transaction rollback, idempotency, and the focused Flutter
+workflow client. Sales remains PARTIAL, but its remaining capabilities are
+separately specified and include unresolved workflow/provider and business-rule
+boundaries.
 
 Prerequisites already satisfied:
 
@@ -123,7 +120,8 @@ Prerequisites already satisfied:
 
 Remaining blockers and residuals:
 
-- Procurement hardening validation has not yet been completed.
+- Procurement Purchase v1 is complete for its bounded implementation and
+  validation scope; broader Procurement capabilities remain out of scope.
 - Broader browser navigation/session/responsive validation remains a known
   teardown residual.
 - Purchase returns, RFQ/supplier quotations, vendor invoices, and payment
@@ -212,7 +210,7 @@ Project Management is explicitly removed/deferred and is not an implementation t
 | -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1        | Core Enterprise    | **COMPLETED WITH KNOWN VALIDATION RESIDUAL — READY FOR SALES**                                                                                                                                                        |
 | 2        | Sales              | **PARTIAL — QUOTATION, ORDER, DELIVERY, INVOICE, RETURN, CREDIT NOTE, PRICING, AND DISCOUNT BOUNDED FOUNDATIONS IMPLEMENTED** — [Sales specification package](../08-business-modules/03-sales-module-architecture.md) |
-| 3        | Procurement        | **IMPLEMENTED — VALIDATION PENDING** — bounded Purchase v1 backend/frontend slice implemented; dedicated Purchase integration, RLS, transaction, frontend, and production validation remain in this hardening pass.   |
+| 3        | Procurement        | **COMPLETE** — bounded Purchase v1 backend/frontend slice and dedicated API, RLS, transaction, Inventory, idempotency, concurrency, authorization, Flutter, and repository validation are complete.   |
 | 4        | Inventory          | **PARTIAL — ITEM MASTER, WAREHOUSE, STOCK, RESERVATION, FULFILLMENT, AND RETURN MOVEMENT FOUNDATION IMPLEMENTED; ADVANCED OPERATIONS REMAIN DEFERRED**                                                                |
 | 5        | Manufacturing      | **PENDING**                                                                                                                                                                                                           |
 | 6        | Finance            | **PARTIAL — bounded posting foundation implemented; broader accounting remains pending**                                                                                                                              |
