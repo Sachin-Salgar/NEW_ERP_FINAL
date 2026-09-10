@@ -4,7 +4,7 @@
 **Authority:** Architecture documents and Approved ADRs define the intended system; this document records what is actually implemented and what remains to be validated or built.
 
 **Last reconciled:** 2026-09-10
-**Branch:** `feature/branch-working-context-0041`
+**Branch:** `main`
 
 ## Status definitions
 
@@ -27,9 +27,10 @@ application user currently belongs to exactly one tenant and normal login
 establishes that tenant automatically. Tenant switching and post-login tenant
 switching remain unsupported.
 
-**ADR-0042 is Accepted architecture. Phase 1 backend implementation now exists
+**ADR-0042 is Accepted architecture. Phase 1 backend implementation is complete
 for identity-wide usable-context resolution, pending-selection challenges, and
-context-specific session issuance; end-to-end security/database validation remains.
+context-specific session issuance. Phase 2 Flutter integration is also complete,
+including direct tenant/platform routing and pending context selection.**
 Deployment hostname, frontend URL, client-supplied tenant ID, and deployment
 configuration are not tenant authorities.
 
@@ -39,11 +40,11 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 
 ## 2. Current checkpoint
 
-**Current phase:** The repository is reconciling implementation residue with the
-approved Platform → Tenant → Branch architecture. Retained tenant authentication,
-platform administration, branch authorization, RLS, and audit foundations remain
-roadmap items; identity-wide discovery, context-selection, and multi-membership implementation
-remain pending subsequent implementation work under accepted ADR-0042.
+**Current phase:** Unified Login Phase 1 backend and Phase 2 Flutter integration
+are complete. The next implementation step is the bounded Procurement Purchase
+v1 hardening and validation pass. Sales remains a partial module with bounded
+foundations implemented; its remaining capabilities require their separate
+specifications and dependency boundaries before implementation is selected.
 
 ### Validation evidence captured
 
@@ -61,11 +62,13 @@ remain pending subsequent implementation work under accepted ADR-0042.
 - `npm run typecheck`, `npm run lint -- --no-fix`, `python tools/ai/validate_ai_workflow.py`, `python tools/ai/repository_scanner.py`, `npm run db:diagnose`, and `git diff --check` passed for this proof run.
 - Machine-derived permission inventory passed with zero catalog-only or missing enforcement references.
 - Phase 4C seed cleanup now uses Tenant → Branch fixtures only; targeted seed lint and JavaScript syntax validation pass. The custom-tenant integration test remains blocked before test execution by migration `0009_tenant_branch_architecture.sql` failing with `ON CONFLICT DO UPDATE command cannot affect row a second time`.
+- Unified Login Phase 1 backend: commit `a0b20b8442853923f368da1749bc67977dba22ea`; serialized PostgreSQL integration suite passed with 21/21 files and 30/30 tests.
+- Unified Login Phase 2 Flutter integration: commit `97dfcb9da058c4ebedeae1acc33d683eec66e964`; Flutter analyzer, 86 Flutter tests, formatting, Flutter Web release build, repository typecheck/lint/build, 159 unit tests, migration-recovery verification, AI workflow validation, and diff checks passed.
 
 ### Implemented
 
 - Production Flutter Web login against deployed backend/database.
-- Single credential login establishes the authenticated user's single tenant and routes to Dashboard; any existing context-selection implementation is residue pending governed migration.
+- Unified Login establishes direct tenant or platform sessions for exactly one usable context and uses server-authorized pending selection for multiple contexts; Phase 1 backend and Phase 2 Flutter integration are complete under ADR-0042.
 - Platform administrator operator bootstrap (`scripts/platform-admin.ts`) and separate platform-session authorization are proven; the custom tenant seed does not create a platform administrator.
 - Tenant-scoped authentication/session context derived from trusted server state.
 - TenantContext and PostgreSQL transaction-local tenant context infrastructure.
@@ -90,18 +93,53 @@ remain pending subsequent implementation work under accepted ADR-0042.
 - Broader browser E2E verification remains a known validation residual; no functional or security assertion failure is evidenced.
 - Production deployment and operational security evidence remains deployment-only.
 - Full business-module implementation.
+- Procurement Purchase v1 hardening and validation remains the immediate next implementation task.
+
+## IMMEDIATE NEXT IMPLEMENTATION TASK
+
+**Complete Procurement Purchase v1 hardening and validation.**
+
+This is implementation work, not another roadmap audit. The bounded Purchase
+implementation already exists for suppliers, requisitions, purchase orders, and
+receipts, including lifecycle transitions, optimistic version checks, FORCE RLS,
+authorization, and Inventory receipt integration. The remaining work is the
+documented hardening pass: dedicated Purchase integration, RLS, transaction,
+frontend, and production validation. Sales remains PARTIAL, but its remaining
+capabilities are separately specified and include unresolved Workflow/provider
+and business-rule boundaries; no single additional Sales implementation task is
+authoritatively selected ahead of this concrete Procurement hardening step.
+
+Prerequisites already satisfied:
+
+- Core Enterprise architecture and security gate is complete with the known
+  browser teardown residual retained.
+- ADR-0040 tenant/platform identity, session, and RLS foundations are in place.
+- ADR-0041 branch working-context and authorization implementation and focused
+  proofs are in place.
+- ADR-0042 Unified Login Phase 1 backend and Phase 2 Flutter integration are
+  complete and validated.
+- Procurement Purchase v1 backend/frontend bounded implementation and module
+  contracts already exist.
+
+Remaining blockers and residuals:
+
+- Procurement hardening validation has not yet been completed.
+- Broader browser navigation/session/responsive validation remains a known
+  teardown residual.
+- Purchase returns, RFQ/supplier quotations, vendor invoices, and payment
+  processing remain outside Purchase v1 and are not part of this task.
 
 ## 3. Tenancy, identity and authentication
 
 | Area                                       | Status                               | Current implementation / remaining work                                                                                                                                            |
 | ------------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Tenant data boundary                       | **COMPLETED**                        | Tenant-scoped model and PostgreSQL RLS architecture implemented.                                                                                                                   |
-| Identity-wide usable-context resolution    | **IMPLEMENTED — VALIDATION PENDING** | Unified backend login resolves current tenant/platform contexts after credential authentication; zero fails closed, one issues a direct context session, and multiple issue only a one-time pending challenge. |
+| Identity-wide usable-context resolution    | **COMPLETED**                        | Unified backend login resolves current tenant/platform contexts after credential authentication; zero fails closed, one issues a direct context session, and multiple issue only a one-time pending challenge. Phase 1 is recorded in commit `a0b20b8442853923f368da1749bc67977dba22ea`. |
 | Tenant-scoped session                      | **COMPLETED**                        | Normal login resolves exactly one active tenant server-side, fails closed on ambiguity/no match, and issues a tenant-bound session and JWT.                                                               |
 | TenantContext                              | **IMPLEMENTED — VALIDATION PENDING** | Server derives tenant from authenticated session; DB helper establishes transaction-local context.                                                                                 |
 | PostgreSQL RLS                             | **COMPLETED**                        | Integration coverage proves tested tenant visibility/write isolation, rollback and pooled-connection context isolation.                                                            |
 | Legacy host/deployment TenantResolver      | **DEFERRED / RETIRED**               | Tenant authority remains server-established from the authenticated tenant account; do not reintroduce host or client tenant resolution.                                           |
-| Login/session frontend                     | **IMPLEMENTED — VALIDATION PENDING** | Flutter authentication/session restoration exists; CI now proves admin and limited-user browser login/dashboard flows. Full browser navigation/session-restoration matrix remains. |
+| Login/session frontend                     | **COMPLETED**                        | Flutter authentication/session restoration and Unified Login Phase 2 direct tenant/platform routing and pending selection are complete in commit `97dfcb9da058c4ebedeae1acc33d683eec66e964`; the broader browser matrix remains a separate known residual. |
 | Cross-deployment tenancy verification      | **PENDING**                          | Deployment-independent architecture exists, but required representative cross-deployment verification is not yet evidenced.                                                        |
 | Ambiguous multi-tenant credential handling | **IMPLEMENTED**                      | Fail-closed behavior is covered by tests.                                                                                                                                          |
 
@@ -111,7 +149,7 @@ remain pending subsequent implementation work under accepted ADR-0042.
 | ------------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Authentication                              | **COMPLETED**                          | Backend authentication, token/session handling, security tests, and admin/limited-user browser E2E pass in CI.                                                                                     |
 | Session management / refresh / logout       | **COMPLETED**                          | Rotation, replay detection, invalidation, logout, and lifecycle tests pass; browser matrix teardown remains a validation residual.                                                                 |
-| Login-time context selection                | **IMPLEMENTED — VALIDATION PENDING**  | `/auth/select-context` atomically consumes a short-lived challenge, re-resolves current membership state, and issues only the selected tenant/platform session; no post-login tenant switching is introduced. |
+| Login-time context selection                | **COMPLETED**                         | `/auth/select-context` atomically consumes a short-lived challenge, re-resolves current membership state, and issues only the selected tenant/platform session; no post-login tenant switching is introduced. Backend and Flutter implementation and validation are complete under ADR-0042. |
 | Branch selection                            | **IMPLEMENTED — VALIDATION PENDING**   | Branch is the only business subdivision below Tenant; branch defaults/access remain the supported working-context contract.                                                                        |
 | Generic location selection                  | **DEFERRED / RETIRED**                 | Generic Location is not an architecture level; domain-specific physical locations remain owned by their bounded module where applicable.                                                           |
 | Active tenant/branch context                | **IMPLEMENTED — VALIDATION PENDING**   | Active fixture/bootstrap context is tenant-scoped with branch access.                                                                                                                               |

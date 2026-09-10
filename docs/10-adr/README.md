@@ -78,6 +78,7 @@ If an ADR conflicts with another authoritative document and the scope cannot be 
 | [0024](./0024-api-versioning-strategy.md) | API Versioning Strategy | Approved | 2026-09-04 | Public HTTP API compatibility and version lifecycle |
 | [0040](./0040-platform-identity-membership-and-context.md) | Platform Identity, Membership, and Context Architecture | Approved | 2026-09-06 | Identity, platform context, sessions, permissions, RLS, audit, bootstrap, and deployment |
 | [0041](./0041-branch-working-context-and-authorization.md) | Branch Working Context and Authorization | Approved | 2026-09-09 | Tenant-scoped branch access, server-authoritative branch context, Financial Year compatibility, and branch-scoped operations |
+| [0042](./0042-unified-login-and-membership-based-context-selection.md) | Unified Login and Membership-Based Context Selection | Accepted | 2026-09-10 | Unified credential login, direct context resolution, and membership-based pending context selection |
 
 This table is the authoritative status index for the ADRs listed above. Each ADR's `Status` field must agree with this table.
 
