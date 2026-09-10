@@ -34,7 +34,7 @@ No conflicting authoritative architecture decision was identified during this au
 
 GitHub Actions run `33948006381` on commit `53ec31ddd635b5b1c0a971e4f060f055da2f67a2` passed dependency audit, lint, generated configuration verification, migration recovery verification, typecheck, unit tests, backend build, Docker build and Trivy. Postgres run `33948006417` created the non-superuser database/role, ran migrations and fixtures, started the backend, and passed admin and limited-user Flutter Web E2E. CI Sanity `33948006353` and AI Workflow Validation `33948006349` also passed.
 
-This evidence validates the repository-controlled CI environment. It does not constitute Vercel/Render production validation.
+This evidence validates the repository-controlled CI environment. It does not constitute future managed-deployment validation.
 
 ## 4. Architecture bypass review
 
@@ -70,7 +70,7 @@ The workflow log records the exception after the test had completed, followed by
 
 ## 6. Production boundary
 
-Vercel/Render production behavior is intentionally treated as a separate release-validation layer. The Postgres CI workflow does not need production URLs and must remain deterministic and self-contained.
+Future managed-deployment behavior is intentionally treated as a separate release-validation layer. The Postgres CI workflow does not need production URLs and must remain deterministic and self-contained.
 
 Production smoke validation should verify the deployed frontend can reach the configured backend and that the backend accepts the deployed frontend origin through its production CORS configuration. This is separate from the Core Enterprise repository CI gate.
 

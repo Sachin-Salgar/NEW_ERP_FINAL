@@ -78,8 +78,8 @@ invariants and refuses to serve traffic when they are incomplete. The normal
 migration role must never retain membership in `erp_procedure_owner` after
 bootstrap.
 
-The role contract is explicit: `erp` is the current Render application and
-migration role (`LOGIN`, `NOSUPERUSER`, `NOCREATEDB`, `CREATEROLE`,
+The role contract is explicit: `erp` is the migration/database-owner-side
+role (`LOGIN`, `NOSUPERUSER`, `NOCREATEDB`, `CREATEROLE`,
 `NOREPLICATION`, `NOBYPASSRLS`); `erp_app` is the non-privileged integration
 application role (`LOGIN`, `NOSUPERUSER`, `NOCREATEDB`, `NOCREATEROLE`,
 `NOREPLICATION`, `NOBYPASSRLS`, with no public-schema CREATE privilege);

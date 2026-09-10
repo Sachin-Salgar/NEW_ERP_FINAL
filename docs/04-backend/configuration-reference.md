@@ -43,6 +43,7 @@ These variables are used by development, testing, or PostgreSQL tooling but are 
 | Variable | Purpose |
 |---|---|
 | `PLATFORM_DATABASE_URL` | Dedicated PostgreSQL connection URL for platform procedure execution. Required in production and must use the separately provisioned `erp_platform_executor` credential. |
+| `PLATFORM_SECURITY_DATABASE_URL` | Privileged PostgreSQL connection URL used only by the explicit platform-security bootstrap command. It is not an application runtime credential. |
 | `TEST_DATABASE_URL` | Explicit PostgreSQL connection URL used by integration tests. Tests fail rather than silently creating/selecting another database when it is absent. |
 | `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` | Optional standard PostgreSQL client/tooling variables used by local scripts or administrative tooling. They are not authoritative application database configuration; the backend uses `DATABASE_URL`. |
 
@@ -52,7 +53,7 @@ These variables are used by development, testing, or PostgreSQL tooling but are 
 - Production HS256 compatibility deployments must provide a strong `JWT_SECRET`; the development default is rejected.
 - When `JWT_SIGNING_ALGORITHM=RS256`, `JWT_RS256_KEYS_JSON` must contain exactly one active signing key plus any verification-only overlap keys. Retired keys are not published in JWKS or accepted for verification.
 - `JWT_ACCEPT_LEGACY_HS256=true` is only for the controlled migration window and requires a real legacy secret in production.
-- `DATABASE_SSL_MODE` defaults to `require`. Use `disable` only where the deployment/database network is explicitly designed for it.
+- `DATABASE_SSL_MODE` defaults to `require`. Local PostgreSQL development may use `disable`; managed deployments must select the mode appropriate to their provider/network boundary.
 - Production platform procedures use `PLATFORM_DATABASE_URL` with the separately provisioned `erp_platform_executor` credential. The normal application pool must never receive that credential.
 - Tenant identity is not configured through an environment variable. Tenant context is derived by the application and propagated to PostgreSQL using `TENANT_CONTEXT_KEY`; do not bypass the established RLS flow.
 - Keep secrets in deployment/environment secret stores. Do not commit real credentials or private signing keys to repository files.

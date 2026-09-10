@@ -116,8 +116,8 @@ Documentation shall remain synchronized with implementation.
 
 The database connection policy uses the environment-provided `DATABASE_SSL_MODE`:
 
-- Local development uses the Render External PostgreSQL URL with `require` (the default), enabling TLS and certificate validation.
-- Render production uses the Render Internal PostgreSQL URL with `disable`, relying on Render's private network rather than forcing external TLS configuration.
+- Local development and integration testing use PostgreSQL 17 on the developer machine or an equivalent local test service, normally with `disable`.
+- Future managed deployments select their endpoint and TLS mode through environment configuration; the application does not infer either from a provider hostname.
 
 The setting must not be inferred from the database hostname or provider.
 

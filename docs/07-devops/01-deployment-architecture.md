@@ -92,28 +92,32 @@ Deployment architecture provides a controlled path from validated software chang
 
 ## 11. Current Deployment Boundaries
 
-The repository's current deployment split is a frontend build on Vercel and a backend service connected to PostgreSQL through the configured deployment environment. The Vercel configuration builds the Flutter web output and rewrites browser routes to the frontend entry point; it does not establish tenant identity or connect directly to PostgreSQL. The backend endpoint and production CORS allowlist are deployment configuration concerns.
+The current development topology is a Windows developer machine running the
+Flutter frontend, backend service, and PostgreSQL 17. The Vercel configuration
+builds the Flutter web output and rewrites browser routes to the frontend entry
+point; it does not establish tenant identity or connect directly to PostgreSQL.
+The backend endpoint and CORS allowlist remain deployment configuration concerns.
 
-Render-managed PostgreSQL endpoint selection and TLS behavior are governed by the approved managed-PostgreSQL ADR. Production smoke validation must verify frontend-to-backend connectivity, backend CORS acceptance, health behavior, migrations, and background processing separately from repository CI.
+Future managed deployments select their PostgreSQL endpoint and TLS behavior
+through environment configuration. No final production provider is selected by
+this repository.
 
-For migration `0009` and later, the release order is mandatory:
+For migration `0009` and later, the local and future release order is:
 
 ```text
-build image
+PostgreSQL 17 available
   → run npm run db:migrate as erp
   → run PLATFORM_SECURITY_DATABASE_URL=<privileged operator URL> npm run db:security-bootstrap
-  → start the application
+  → start the application with DATABASE_URL using erp_app
 ```
 
-`PLATFORM_SECURITY_DATABASE_URL` must be provisioned by the infrastructure owner
-as a separate privileged operator credential. It must not be supplied to the
-normal application process or used as `DATABASE_URL`. The bootstrap transaction
-normalizes dedicated roles, transfers lifecycle-function ownership, applies the
-minimal grants, and verifies the security matrix. A failure rolls back the
-bootstrap and the application startup verification refuses to serve traffic.
-The repository does not contain Render-specific release-command configuration;
-Render must configure this command as a mandatory release prerequisite before a
-production deployment can be considered complete.
+`PLATFORM_SECURITY_DATABASE_URL` must be supplied only to the explicit security
+bootstrap command as a separate privileged operator credential. It must not be
+supplied to the normal application process or used as `DATABASE_URL`. The
+bootstrap transaction normalizes dedicated roles, transfers lifecycle-function
+ownership, applies the minimal grants, and verifies the security matrix. A
+failure rolls back the bootstrap and the application startup verification
+refuses to serve traffic.
 
 Dependency installation in deployment must use the repository lockfile consistently with its manifest and must preserve frozen/reproducible lockfile validation. A stale lockfile is a release defect; disabling frozen-lockfile validation is not an acceptable workaround.
 

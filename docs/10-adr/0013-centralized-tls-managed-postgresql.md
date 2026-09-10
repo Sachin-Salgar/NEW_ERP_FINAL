@@ -12,7 +12,10 @@ The ERP connects to PostgreSQL in local development, automated test environments
 
 The application runtime and the controlled operational seed tooling must use one connection-configuration policy so that managed PostgreSQL requirements are not implemented independently in each consumer.
 
-Render provides an External Database URL for connections from outside Render and an Internal Database URL for Render services in the same region. Render recommends the Internal URL for same-region services because it uses Render's private network, while External connections use Render-managed TLS certificates. Endpoint selection is therefore an environment and deployment concern, not an application-code concern.
+Managed PostgreSQL providers may expose separate private and external
+endpoints, with provider-specific transport requirements. Endpoint selection
+is therefore an environment and deployment concern, not an application-code
+concern.
 
 ## Decision
 
@@ -20,8 +23,8 @@ PostgreSQL connection creation remains centralized in `src/infrastructure/databa
 
 The configured `DATABASE_URL` determines the endpoint consumed by the application without requiring the application to distinguish Internal from External URLs:
 
-* Local development uses the Render External Database URL because the developer machine is outside Render's private network. TLS is enabled and certificate validation is required.
-* The Render production service uses the Render Internal Database URL for same-region private-network connectivity. The application must not require external PostgreSQL connectivity when running inside Render.
+* Local development uses PostgreSQL 17 hosted on the developer machine or an equivalent local test service. Local connections may use `disable` because they remain on the local development boundary.
+* Future managed deployments select their provider endpoint and TLS mode through environment configuration. The application must not require a specific provider or endpoint class.
 * The configured environment selects the connection behavior; the application does not infer it from a hostname or provider.
 
 For any connection where TLS is configured, certificate validation remains mandatory with `rejectUnauthorized: true`. Certificate verification must never be disabled for a TLS connection. The centralized factory applies the configured transport policy without inferring policy from a hostname.
@@ -38,7 +41,7 @@ This decision changes connection configuration only. It does not alter database 
 - Environment-specific endpoint selection keeps provider and network-boundary knowledge out of application code.
 - TLS and certificate validation protect connections where TLS is used and prevent silently accepting an untrusted database endpoint.
 - Environment-provided configuration preserves deployment portability and secret-management boundaries.
-- The Render service can use the provider-recommended private-network endpoint without requiring a provider-specific hostname branch in application code.
+- A managed service can use its provider-recommended private-network endpoint without requiring a provider-specific hostname branch in application code.
 
 ## Alternatives Considered
 
@@ -46,7 +49,7 @@ This decision changes connection configuration only. It does not alter database 
 2. **Disable certificate validation for TLS connections** — rejected because it weakens endpoint authentication.
 3. **Treat every non-loopback hostname as requiring identical transport settings** — rejected because endpoint security characteristics depend on the deployment and network boundary.
 4. **Detect provider hostnames in application code** — rejected because endpoint selection and provider configuration belong in deployment configuration.
-5. **Use the External URL for the Render service** — not selected as the standard same-region deployment path because Render recommends the Internal URL for private-network connectivity; it remains the external path for local development outside Render.
+5. **Infer endpoint behavior from provider hostnames** — rejected because endpoint selection and transport policy belong in deployment configuration.
 
 ## Consequences
 
@@ -60,22 +63,22 @@ This decision changes connection configuration only. It does not alter database 
 
 - A TLS-enabled endpoint must provide a certificate chain trusted by the runtime or an approved environment-provided CA configuration.
 - A misconfigured TLS-enabled endpoint fails connection validation rather than silently downgrading transport.
-- Local development and Render production intentionally use different Render endpoint classes.
+- Local development and future managed deployments intentionally select their own endpoint and transport settings.
 
 ## Implementation Notes
 
 - Keep PostgreSQL pool construction in the centralized database connection module.
 - Operational scripts that connect to PostgreSQL must use that centralized factory rather than constructing an independent pool.
-- Application code must not detect Render hostnames or branch between Internal and External URLs based on hostname.
+- Application code must not detect provider hostnames or branch between private and external URLs based on hostname.
 - Commit `1a62d12` is implementation evidence for the overly broad `non-localhost hostname -> force validated TLS` behavior, not part of the architectural rule.
 - `src/infrastructure/database/migrate.ts` uses the shared connection-policy helper for its `pg.Client` options. The migration path remains a separate client lifecycle, but it no longer defines an independent TLS policy.
 
 ## Validation Evidence
 
-- TLS certificate validation succeeded against the controlled Render External PostgreSQL endpoint.
+- Local PostgreSQL 17 development uses the centralized connection factory; managed endpoint validation remains deployment-specific.
 - The application runtime and `scripts/seed-custom-tenant.ts` use the centralized connection factory.
 - The application runtime, migrations, and operational seed tooling use the shared database transport policy.
-- Render documentation confirms separate Internal and External URLs, recommends Internal URLs for same-region Render services, and documents Render-managed TLS for External connections.
+- Provider documentation remains relevant only when a future managed deployment is selected.
 - No migration or schema change is required by this decision.
 
 ## Related Documents
