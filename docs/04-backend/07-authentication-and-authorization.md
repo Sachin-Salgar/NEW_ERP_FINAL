@@ -61,7 +61,13 @@ users.tenant_id → tenants.id
 A deployment-independent `auth_login_identifiers` lookup maps a login identifier to
 the user's single tenant account. It contains no password and grants no authorization.
 
-The authoritative password hash remains on the tenant-scoped `users` row. The backend reads that row only after it has a candidate tenant and establishes tenant-scoped database context.
+The canonical local-password credential is the `identity_credentials.secret_hash`
+associated with the authenticated identity. The tenant-scoped `users.password_hash`
+column is retained as a compatibility field for existing tenant-user persistence and
+seed convergence; it is kept synchronized by supported seed/update paths but is not
+the active authentication source. Tenant authentication reads the credential through
+the identity credential record after it has a candidate tenant and establishes
+tenant-scoped database context.
 
 After credential verification, that user's tenant becomes the active tenant for the
 session. The client does not select a tenant, and tenant switching is not supported.

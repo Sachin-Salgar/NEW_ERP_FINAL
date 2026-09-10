@@ -92,6 +92,7 @@ describe('fresh zero-state platform acceptance', () => {
     const secret = `acceptance-secret-${uuidV7()}-long`;
     const password = 'AcceptancePassword123!';
     const email = `platform-${Date.now()}@example.com`;
+    const failedEmail = `platform-failed-${Date.now()}@example.com`;
     const cliEnv = {
       ...process.env,
       DATABASE_URL: databaseUrl,
@@ -104,10 +105,42 @@ describe('fresh zero-state platform acceptance', () => {
         env: environment,
         cwd: process.cwd(),
       });
+    await setupPool.query(`UPDATE platform_roles SET code = $1 WHERE code = 'platform_owner'`, [
+      `platform_owner_missing_${Date.now()}`,
+    ]);
+    try {
+      await expect(
+        execFileAsync(process.execPath, [tsx, 'scripts/platform-admin.ts', 'bootstrap', failedEmail], {
+          env: cliEnv,
+          cwd: process.cwd(),
+        }),
+      ).rejects.toThrow();
+    } finally {
+      await setupPool.query(`UPDATE platform_roles SET code = 'platform_owner' WHERE code LIKE 'platform_owner_missing_%'`);
+    }
+    const failedIdentity = await setupPool.query(
+      `SELECT 1 FROM auth_login_identifiers WHERE identifier = $1::citext`,
+      [failedEmail],
+    );
+    expect(failedIdentity.rowCount).toBe(0);
+    const failedMembership = await setupPool.query(
+      `SELECT 1 FROM platform_memberships m JOIN identities i ON i.id = m.identity_id
+       JOIN auth_login_identifiers l ON l.identity_id = i.id WHERE l.identifier = $1::citext`,
+      [failedEmail],
+    );
+    expect(failedMembership.rowCount).toBe(0);
     const cli = await runBootstrap(cliEnv);
     expect(cli.stdout).toContain('bootstrap completed');
+    const membershipCount = await setupPool.query<{ count: number }>(
+      `SELECT COUNT(*)::int AS count FROM platform_memberships WHERE status = 'active'`,
+    );
+    expect(membershipCount.rows[0].count).toBe(1);
     await expect(runBootstrap(cliEnv)).rejects.toThrow();
     await expect(runBootstrap({ ...cliEnv, PLATFORM_ADMIN_BOOTSTRAP_SECRET: 'invalid-secret' })).rejects.toThrow();
+    const membershipAfterFailure = await setupPool.query<{ count: number }>(
+      `SELECT COUNT(*)::int AS count FROM platform_memberships WHERE status = 'active'`,
+    );
+    expect(membershipAfterFailure.rows[0].count).toBe(1);
     const plaintext = await setupPool.query(
       `SELECT count(*)::int AS count FROM pg_catalog.pg_tables WHERE schemaname = 'public'`,
     );

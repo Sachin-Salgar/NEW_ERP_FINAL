@@ -13,6 +13,26 @@ describe('Discount Authorization Proof', () => {
     const created = await value.app.inject({ method: 'POST', url: '/api/v1/sales/discount-rules', headers: headers(tokenA, value.tenantA.tenantId), payload: { code: 'PROOF-DISC', name: 'Proof Discount', percentage: 10, effectiveFrom: '2026-04-01' } });
     expect(created.statusCode).toBe(201);
     const id = created.json().discountRule.id;
+    expect(
+      (
+        await value.app.inject({
+          method: 'PATCH',
+          url: `/api/v1/sales/discount-rules/${id}`,
+          headers: headers(missing, value.missing.tenantId),
+          payload: { name: 'Unauthorized update', percentage: 20, effectiveFrom: '2026-04-01', effectiveTo: null, expectedVersion: 1 },
+        })
+      ).statusCode,
+    ).toBe(403);
+    expect(
+      (
+        await value.app.inject({
+          method: 'PATCH',
+          url: `/api/v1/sales/discount-rules/${id}`,
+          headers: headers(tokenB, value.tenantB.tenantId),
+          payload: { name: 'Cross-tenant update', percentage: 20, effectiveFrom: '2026-04-01', effectiveTo: null, expectedVersion: 1 },
+        })
+      ).statusCode,
+    ).toBe(400);
     expect((await value.app.inject({ method: 'GET', url: `/api/v1/sales/discount-rules/${id}`, headers: headers(tokenB, value.tenantB.tenantId) })).statusCode).toBe(400);
     expect((await value.app.inject({ method: 'GET', url: `/api/v1/sales/discount-rules/${id}`, headers: headers(tokenA, value.tenantB.tenantId) })).statusCode).toBe(400);
     expect((await value.app.inject({ method: 'GET', url: '/api/v1/sales/discount-rules', headers: headers(missing, value.missing.tenantId) })).statusCode).toBe(403);

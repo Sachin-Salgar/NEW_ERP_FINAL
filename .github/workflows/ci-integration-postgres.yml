@@ -119,8 +119,8 @@ jobs:
         run: |
           set -euo pipefail
           psql -h localhost -p "${CI_POSTGRES_PORT}" -U postgres -d "${CI_TEST_DB}" -v ON_ERROR_STOP=1 -v role_name="${CI_TEST_ROLE}" <<'SQL'
-          GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO :"role_name";
-          GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO :"role_name";
+          GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO :"role_name";
+          GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO :"role_name";
           SQL
 
       - name: Seed deterministic E2E fixtures
@@ -132,6 +132,7 @@ jobs:
         env:
           DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
           TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+          PLATFORM_DATABASE_URL: ${{ env.PLATFORM_DATABASE_URL }}
           DATABASE_SSL_MODE: disable
           NODE_ENV: test
           HOST: 0.0.0.0
@@ -141,7 +142,7 @@ jobs:
           CORS_ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000,http://localhost:8080,http://127.0.0.1:8080,http://localhost:8081,http://127.0.0.1:8081,http://localhost:8082,http://127.0.0.1:8082
         run: |
           set -euo pipefail
-          nohup env DATABASE_URL="$DATABASE_URL" TEST_DATABASE_URL="$TEST_DATABASE_URL" DATABASE_SSL_MODE="$DATABASE_SSL_MODE" NODE_ENV="$NODE_ENV" HOST="$HOST" PORT="$PORT" API_PREFIX="$API_PREFIX" JWT_SECRET="$JWT_SECRET" CORS_ALLOWED_ORIGINS="$CORS_ALLOWED_ORIGINS" npm run dev > backend-e2e.log 2>&1 &
+          nohup env DATABASE_URL="$DATABASE_URL" TEST_DATABASE_URL="$TEST_DATABASE_URL" PLATFORM_DATABASE_URL="$PLATFORM_DATABASE_URL" DATABASE_SSL_MODE="$DATABASE_SSL_MODE" NODE_ENV="$NODE_ENV" HOST="$HOST" PORT="$PORT" API_PREFIX="$API_PREFIX" JWT_SECRET="$JWT_SECRET" CORS_ALLOWED_ORIGINS="$CORS_ALLOWED_ORIGINS" npm run dev > backend-e2e.log 2>&1 &
           for i in $(seq 1 60); do
             if curl -fsS http://localhost:3000/api/v1/bootstrap >/tmp/backend-bootstrap.json; then cat /tmp/backend-bootstrap.json; exit 0; fi
             sleep 2
