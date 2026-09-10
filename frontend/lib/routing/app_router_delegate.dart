@@ -5,6 +5,7 @@ import '../core/auth/auth_service.dart';
 import 'dart:async';
 
 import '../modules/auth/login_screen.dart';
+import '../modules/auth/context_selection_screen.dart';
 import '../widgets/app_shell.dart';
 import 'route_config.dart';
 import 'route_state.dart';
@@ -43,14 +44,20 @@ class AppRouterDelegate extends RouterDelegate<String>
   Future<void> setNewRoutePath(String configuration) async {
     var target = normalizePath(configuration);
     if (!auth.isAuthenticated) {
-      target = '/login';
+      if (auth.hasPendingSelection) {
+        target = '/login/select-context';
+      } else {
+        target = '/login';
+      }
     } else if (target == '/login') {
       target = '/dashboard';
     }
 
     _setPath(target, notify: false);
     final navigator = contentNavigatorKey.currentState;
-    if (!auth.isAuthenticated || navigator == null || target == '/login')
+    if (!auth.isAuthenticated ||
+        navigator == null ||
+        target.startsWith('/login'))
       return;
 
     _syncingBrowserRoute = true;
@@ -94,9 +101,9 @@ class AppRouterDelegate extends RouterDelegate<String>
 
   void _onAuthChanged() {
     if (!auth.isAuthenticated) {
-      _setPath('/login');
-    } else if (_path == '/login' || _path.isEmpty) {
-      _setPath('/dashboard');
+      _setPath(auth.hasPendingSelection ? '/login/select-context' : '/login');
+    } else if (_path.startsWith('/login') || _path.isEmpty) {
+      _setPath(auth.nextPostAuthRoute);
     } else {
       notifyListeners();
     }
@@ -123,11 +130,17 @@ class AppRouterDelegate extends RouterDelegate<String>
     if (!auth.isAuthenticated) {
       return Navigator(
         key: navigatorKey,
-        pages: const [
+        pages: [
           MaterialPage(
-            key: ValueKey('login-page'),
-            name: '/login',
-            child: LoginScreen(),
+            key: ValueKey(
+              auth.hasPendingSelection
+                  ? 'context-selection-page'
+                  : 'login-page',
+            ),
+            name: auth.hasPendingSelection ? '/login/select-context' : '/login',
+            child: auth.hasPendingSelection
+                ? const ContextSelectionScreen()
+                : const LoginScreen(),
           ),
         ],
         onDidRemovePage: (_) {},

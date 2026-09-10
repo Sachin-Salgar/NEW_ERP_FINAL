@@ -39,6 +39,17 @@ Map<String, dynamic> _loginResponse({
   'tenant': {'id': tenantId},
 };
 
+Map<String, dynamic> _platformLoginResponse() => {
+  'success': true,
+  'resolution': 'DIRECT',
+  'accessToken': 'platform-access',
+  'refreshToken': 'platform-refresh',
+  'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
+  'contextType': 'platform',
+  'destination': '/platform',
+  'tenantId': null,
+};
+
 void main() {
   test('normal login stores the backend-established tenant session', () async {
     final storage = _MemorySecureStorage();
@@ -98,6 +109,251 @@ void main() {
     expect(auth.lastLoginError, 'Incorrect username or password.');
   });
 
+  test(
+    'direct platform login preserves platform context and destination',
+    () async {
+      final storage = _MemorySecureStorage();
+      final client = MockClient((request) async {
+        if (request.url.path == '/api/v1/auth/login') {
+          return http.Response(jsonEncode(_platformLoginResponse()), 200);
+        }
+        return http.Response(
+          jsonEncode({'modules': [], 'permissions': []}),
+          200,
+        );
+      });
+      late final AuthService auth;
+      auth = AuthService(
+        secureStorage: storage,
+        apiClientFactory: (baseUrl) =>
+            ApiClient(baseUrl: baseUrl, httpClient: client, authOverride: auth),
+      );
+
+      expect(
+        await auth.login(
+          'http://example.com',
+          'platform@example.com',
+          'Password123',
+        ),
+        isTrue,
+      );
+      expect(auth.isAuthenticated, isTrue);
+      expect(auth.contextType, 'platform');
+      expect(auth.currentTenantId, isNull);
+      expect(auth.nextPostAuthRoute, '/platform');
+    },
+  );
+
+  test(
+    'select response stays unauthenticated and uses safe descriptors',
+    () async {
+      final storage = _MemorySecureStorage();
+      final client = MockClient((request) async {
+        if (request.url.path == '/api/v1/auth/login') {
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'resolution': 'SELECT',
+              'pendingSelectionToken': 'challenge.secret',
+              'contexts': [
+                {
+                  'type': 'tenant',
+                  'contextRef': 'tenant-ref',
+                  'label': 'Tenant One',
+                },
+                {
+                  'type': 'platform',
+                  'contextRef': 'platform-ref',
+                  'label': 'Platform administration',
+                },
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response('ok', 200);
+      });
+      late final AuthService auth;
+      auth = AuthService(
+        secureStorage: storage,
+        apiClientFactory: (baseUrl) =>
+            ApiClient(baseUrl: baseUrl, httpClient: client, authOverride: auth),
+      );
+
+      expect(
+        await auth.login(
+          'http://example.com',
+          'user@example.com',
+          'Password123',
+        ),
+        isFalse,
+      );
+      expect(auth.hasPendingSelection, isTrue);
+      expect(auth.isAuthenticated, isFalse);
+      expect(auth.pendingContexts.map((context) => context.label), [
+        'Tenant One',
+        'Platform administration',
+      ]);
+      expect(storage.values, isEmpty);
+    },
+  );
+
+  test(
+    'selection submits token and context reference, then establishes session',
+    () async {
+      final storage = _MemorySecureStorage();
+      late String? submittedToken;
+      late String? submittedContextRef;
+      final client = MockClient((request) async {
+        if (request.url.path == '/api/v1/auth/login') {
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'resolution': 'SELECT',
+              'pendingSelectionToken': 'challenge.secret',
+              'contexts': [
+                {
+                  'type': 'tenant',
+                  'contextRef': 'tenant-ref',
+                  'label': 'Tenant One',
+                },
+                {
+                  'type': 'platform',
+                  'contextRef': 'platform-ref',
+                  'label': 'Platform administration',
+                },
+              ],
+            }),
+            200,
+          );
+        }
+        if (request.url.path == '/api/v1/auth/select-context') {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          submittedToken = body['pendingSelectionToken'] as String?;
+          submittedContextRef = body['contextRef'] as String?;
+          return http.Response(jsonEncode(_loginResponse()), 200);
+        }
+        return http.Response(
+          jsonEncode({'modules': [], 'permissions': []}),
+          200,
+        );
+      });
+      late final AuthService auth;
+      auth = AuthService(
+        secureStorage: storage,
+        apiClientFactory: (baseUrl) =>
+            ApiClient(baseUrl: baseUrl, httpClient: client, authOverride: auth),
+      );
+      await auth.login('http://example.com', 'user@example.com', 'Password123');
+
+      expect(
+        await auth.selectContext('http://example.com', 'tenant-ref'),
+        isTrue,
+      );
+      expect(submittedToken, 'challenge.secret');
+      expect(submittedContextRef, 'tenant-ref');
+      expect(auth.isAuthenticated, isTrue);
+      expect(auth.nextPostAuthRoute, '/dashboard');
+      expect(auth.hasPendingSelection, isFalse);
+    },
+  );
+
+  test(
+    'expired selection clears pending state and exposes a safe retry message',
+    () async {
+      final client = MockClient((request) async {
+        if (request.url.path == '/api/v1/auth/login') {
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'resolution': 'SELECT',
+              'pendingSelectionToken': 'challenge.secret',
+              'contexts': [
+                {
+                  'type': 'tenant',
+                  'contextRef': 'tenant-ref',
+                  'label': 'Tenant One',
+                },
+                {
+                  'type': 'platform',
+                  'contextRef': 'platform-ref',
+                  'label': 'Platform administration',
+                },
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response(
+          jsonEncode({'message': 'internal database detail'}),
+          401,
+        );
+      });
+      late final AuthService auth;
+      auth = AuthService(
+        apiClientFactory: (baseUrl) =>
+            ApiClient(baseUrl: baseUrl, httpClient: client, authOverride: auth),
+      );
+      await auth.login('http://example.com', 'user@example.com', 'Password123');
+
+      expect(
+        await auth.selectContext('http://example.com', 'tenant-ref'),
+        isFalse,
+      );
+      expect(auth.hasPendingSelection, isFalse);
+      expect(auth.lastLoginError, contains('sign in again'));
+      expect(auth.lastLoginError, isNot(contains('database')));
+    },
+  );
+
+  test('duplicate selection submissions are prevented', () async {
+    final storage = _MemorySecureStorage();
+    var selectionCalls = 0;
+    final client = MockClient((request) async {
+      if (request.url.path == '/api/v1/auth/login') {
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'resolution': 'SELECT',
+            'pendingSelectionToken': 'challenge.secret',
+            'contexts': [
+              {
+                'type': 'tenant',
+                'contextRef': 'tenant-ref',
+                'label': 'Tenant One',
+              },
+              {
+                'type': 'platform',
+                'contextRef': 'platform-ref',
+                'label': 'Platform administration',
+              },
+            ],
+          }),
+          200,
+        );
+      }
+      if (request.url.path == '/api/v1/auth/select-context') {
+        selectionCalls++;
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        return http.Response(jsonEncode(_loginResponse()), 200);
+      }
+      return http.Response(jsonEncode({'modules': [], 'permissions': []}), 200);
+    });
+    late final AuthService auth;
+    auth = AuthService(
+      secureStorage: storage,
+      apiClientFactory: (baseUrl) =>
+          ApiClient(baseUrl: baseUrl, httpClient: client, authOverride: auth),
+    );
+    await auth.login('http://example.com', 'user@example.com', 'Password123');
+
+    final results = await Future.wait([
+      auth.selectContext('http://example.com', 'tenant-ref'),
+      auth.selectContext('http://example.com', 'tenant-ref'),
+    ]);
+    expect(results.where((result) => result).length, 1);
+    expect(selectionCalls, 1);
+  });
   test('valid stored tenant session restores through /auth/me', () async {
     final storage = _MemorySecureStorage()
       ..values.addAll({

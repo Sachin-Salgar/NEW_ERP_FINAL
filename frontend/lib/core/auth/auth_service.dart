@@ -24,6 +24,18 @@ class FlutterSecureStorageAdapter implements SecureStorageLike {
   Future<void> delete({required String key}) => _inner.delete(key: key);
 }
 
+class PendingLoginContext {
+  final String type;
+  final String contextRef;
+  final String label;
+
+  const PendingLoginContext({
+    required this.type,
+    required this.contextRef,
+    required this.label,
+  });
+}
+
 class AuthService extends ChangeNotifier {
   final AuthZService authzService;
   final SecureStorageLike _secureStorage;
@@ -44,6 +56,10 @@ class AuthService extends ChangeNotifier {
   String? currentTenantId, currentBranchId;
   Map<String, dynamic>? currentUser, deploymentInfo;
   String? contextType;
+  String? _postAuthRoute;
+  String? _pendingSelectionToken;
+  List<PendingLoginContext> _pendingContexts = const [];
+  Future<bool>? _selectionRequest;
   List<Map<String, dynamic>> availableModules = const [];
   bool _accessibleModulesLoaded = false;
   String? lastLoginError;
@@ -52,11 +68,15 @@ class AuthService extends ChangeNotifier {
       _expiresAt != null &&
       DateTime.now().isBefore(_expiresAt!);
   String? get accessToken => _accessToken;
+  bool get hasPendingSelection =>
+      !isAuthenticated &&
+      _pendingSelectionToken != null &&
+      _pendingContexts.isNotEmpty;
+  List<PendingLoginContext> get pendingContexts => _pendingContexts;
   String get nextPostAuthRoute => !isAuthenticated
       ? '/login'
-      : contextType == 'platform'
-      ? '/platform'
-      : '/dashboard';
+      : _postAuthRoute ??
+            (contextType == 'platform' ? '/platform' : '/dashboard');
   Future<void> ensureEffectivePermissionsLoaded({String? baseUrl}) async {
     if (!isAuthenticated || currentUser == null || currentUser!['id'] == null)
       return;
@@ -116,7 +136,51 @@ class AuthService extends ChangeNotifier {
           );
         return false;
       }
-      await _storeSession(jsonDecode(r.body) as Map<String, dynamic>);
+      final body = jsonDecode(r.body) as Map<String, dynamic>;
+      if (body['resolution'] == 'SELECT') {
+        final token = body['pendingSelectionToken'];
+        final contexts = body['contexts'];
+        if (token is! String || token.isEmpty || contexts is! List) {
+          lastLoginError = 'Login could not be completed. Please try again.';
+          return false;
+        }
+        final safeContexts = contexts
+            .whereType<Map>()
+            .map((context) {
+              final type = context['type'];
+              final contextRef = context['contextRef'];
+              final label = context['label'];
+              if (type is! String ||
+                  contextRef is! String ||
+                  label is! String ||
+                  type.isEmpty ||
+                  contextRef.isEmpty ||
+                  label.trim().isEmpty) {
+                return null;
+              }
+              return PendingLoginContext(
+                type: type,
+                contextRef: contextRef,
+                label: label.trim(),
+              );
+            })
+            .whereType<PendingLoginContext>()
+            .toList(growable: false);
+        if (safeContexts.isEmpty) {
+          lastLoginError = 'Login could not be completed. Please try again.';
+          return false;
+        }
+        _clearLocalSession();
+        _pendingSelectionToken = token;
+        _pendingContexts = safeContexts;
+        lastLoginError = null;
+        notifyListeners();
+        return false;
+      }
+      if (!await _storeSession(body)) {
+        lastLoginError = 'Login could not be completed. Please try again.';
+        return false;
+      }
       await loadAccessibleModules(baseUrl);
       await fetchEffectivePermissions(baseUrl);
       notifyListeners();
@@ -130,6 +194,86 @@ class AuthService extends ChangeNotifier {
       if (kDebugMode) debugPrint('ERP login failed: $e');
       return false;
     }
+  }
+
+  Future<bool> selectContext(String baseUrl, String contextRef) async {
+    if (!hasPendingSelection || _selectionRequest != null) return false;
+    final token = _pendingSelectionToken!;
+    final request = _completeContextSelection(baseUrl, token, contextRef);
+    _selectionRequest = request;
+    try {
+      return await request;
+    } finally {
+      _selectionRequest = null;
+    }
+  }
+
+  Future<bool> _completeContextSelection(
+    String baseUrl,
+    String token,
+    String contextRef,
+  ) async {
+    _ensureApiClient(baseUrl);
+    try {
+      final response = await _apiClient.post(
+        '/api/v1/auth/select-context',
+        body: {'pendingSelectionToken': token, 'contextRef': contextRef},
+      );
+      if (response.statusCode != 200) {
+        _clearPendingSelection();
+        lastLoginError =
+            'This login choice is no longer available. Please sign in again.';
+        notifyListeners();
+        return false;
+      }
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      if (!await _storeSession(body)) {
+        _clearPendingSelection();
+        lastLoginError =
+            'This login choice is no longer available. Please sign in again.';
+        notifyListeners();
+        return false;
+      }
+      _clearPendingSelection();
+      await loadAccessibleModules(baseUrl);
+      await fetchEffectivePermissions(baseUrl);
+      lastLoginError = null;
+      notifyListeners();
+      return true;
+    } on TimeoutException {
+      lastLoginError = 'The selection request timed out. Please try again.';
+      notifyListeners();
+      return false;
+    } catch (_) {
+      lastLoginError = 'Unable to complete the selection. Please try again or sign in again.';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  void cancelPendingSelection() {
+    _clearPendingSelection();
+    lastLoginError = null;
+    notifyListeners();
+  }
+
+  void _clearPendingSelection() {
+    _pendingSelectionToken = null;
+    _pendingContexts = const [];
+  }
+
+  void _clearLocalSession() {
+    _accessToken = null;
+    _refreshToken = null;
+    _expiresAt = null;
+    currentTenantId = null;
+    currentBranchId = null;
+    currentUser = null;
+    contextType = null;
+    _postAuthRoute = null;
+    availableModules = const [];
+    _accessibleModulesLoaded = false;
+    authzService.clear();
   }
 
   String _loginErrorFromResponse(int statusCode, String body) {
@@ -149,32 +293,38 @@ class AuthService extends ChangeNotifier {
     return message ?? 'Login failed (HTTP $statusCode).';
   }
 
-  Future<void> _storeSession(Map<String, dynamic> body) async {
+  Future<bool> _storeSession(Map<String, dynamic> body) async {
+    final accessToken = body['accessToken'];
+    final refreshToken = body['refreshToken'];
+    if (accessToken is! String ||
+        accessToken.isEmpty ||
+        refreshToken is! String ||
+        refreshToken.isEmpty) {
+      return false;
+    }
     contextType = body['contextType']?.toString() ?? 'tenant';
-    _accessToken = body['accessToken'] as String?;
-    _refreshToken = body['refreshToken'] as String?;
+    _accessToken = accessToken;
+    _refreshToken = refreshToken;
     _expiresAt = DateTime.tryParse(body['expiresAt']?.toString() ?? '');
+    if (_expiresAt == null) return false;
+    _postAuthRoute = _safeDestination(
+      body['destination']?.toString(),
+      contextType,
+    );
     currentUser = body['user'] as Map<String, dynamic>?;
     final s = (body['session'] as Map<String, dynamic>?) ?? {};
     final tenant = (s['tenantId'] ?? currentUser?['tenantId'] ?? '')
         .toString()
         .trim();
     currentTenantId = tenant.isEmpty ? null : tenant;
-    final branch = (s['branchId'] ?? '')
-        .toString()
-        .trim();
+    final branch = (s['branchId'] ?? '').toString().trim();
     currentBranchId = branch.isEmpty ? null : branch;
-    if (_accessToken != null)
-      await _secureStorage.write(key: 'access_token', value: _accessToken!);
-    if (_refreshToken != null)
-      await _secureStorage.write(key: 'refresh_token', value: _refreshToken!);
-    else
-      await _secureStorage.delete(key: 'refresh_token');
-    if (_expiresAt != null)
-      await _secureStorage.write(
-        key: 'expires_at',
-        value: _expiresAt!.toIso8601String(),
-      );
+    await _secureStorage.write(key: 'access_token', value: _accessToken!);
+    await _secureStorage.write(key: 'refresh_token', value: _refreshToken!);
+    await _secureStorage.write(
+      key: 'expires_at',
+      value: _expiresAt!.toIso8601String(),
+    );
     if (currentTenantId != null)
       await _secureStorage.write(key: 'tenant_id', value: currentTenantId!);
     else
@@ -185,6 +335,13 @@ class AuthService extends ChangeNotifier {
       await _secureStorage.write(key: 'branch_id', value: currentBranchId!);
     else
       await _secureStorage.delete(key: 'branch_id');
+    return true;
+  }
+
+  String _safeDestination(String? destination, String? type) {
+    if (destination == '/platform' && type == 'platform') return destination!;
+    if (destination == '/dashboard' && type == 'tenant') return destination!;
+    return type == 'platform' ? '/platform' : '/dashboard';
   }
 
   Future<bool> loadMe(String baseUrl) async {
@@ -309,16 +466,8 @@ class AuthService extends ChangeNotifier {
       }
     } catch (_) {}
     _refreshRequest = null;
-    _accessToken = null;
-    _refreshToken = null;
-    _expiresAt = null;
-    currentTenantId = null;
-    currentBranchId = null;
-    currentUser = null;
-    availableModules = const [];
-    _accessibleModulesLoaded = false;
-    contextType = null;
-    authzService.clear();
+    _clearLocalSession();
+    _clearPendingSelection();
     for (final k in [
       'access_token',
       'refresh_token',
