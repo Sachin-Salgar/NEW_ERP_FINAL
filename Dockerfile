@@ -25,6 +25,7 @@ COPY --from=builder /usr/local/bin/node /usr/local/bin/node
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/dist ./dist
+COPY scripts ./scripts
 
 USER 1000
 EXPOSE 3000

@@ -100,6 +100,12 @@ The current backend CI and release workflows provide the repository-controlled e
 - dependency auditing at the configured severity threshold;
 - immutable image tags, SBOM generation, and build provenance on release images.
 
+The PostgreSQL integration workflow uses separate disposable credentials for
+the migration role (`erp`) and the privileged platform-security bootstrap role.
+The migration role is `NOSUPERUSER NOBYPASSRLS CREATEROLE`; the bootstrap role is
+the isolated privileged operator. The bootstrap credential is not used as the
+application runtime role or as the migration credential.
+
 These workflow controls document repository capability. Successful execution, registry publication, deployment configuration, provider delivery, production key rotation, backup restoration, and operational monitoring remain environment-specific evidence.
 
 ## Cross References
