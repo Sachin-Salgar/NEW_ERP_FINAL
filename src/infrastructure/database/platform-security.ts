@@ -263,8 +263,16 @@ export async function verifyPlatformSecurity(
   }
   const ownerTables = await database.query<{ table_name: string; privilege_type: string }>(
     `SELECT table_name, privilege_type
-     FROM information_schema.role_table_grants
-     WHERE grantee = 'erp_procedure_owner'
+     FROM (
+       SELECT c.relname AS table_name, privilege.privilege_type
+       FROM pg_class c
+       JOIN pg_namespace n ON n.oid = c.relnamespace
+       CROSS JOIN LATERAL aclexplode(COALESCE(c.relacl, acldefault('r', c.relowner))) privilege
+       JOIN pg_roles grantee ON grantee.oid = privilege.grantee
+       WHERE n.nspname = 'public'
+         AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
+         AND grantee.rolname = 'erp_procedure_owner'
+     ) grants
      ORDER BY table_name, privilege_type`,
   );
   const expectedOwnerTables = [
