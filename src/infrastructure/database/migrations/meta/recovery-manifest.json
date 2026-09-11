@@ -6,10 +6,10 @@
       "destructiveDownAllowed": false,
       "note": "Clean development baseline for shared platform, identity, authorization, audit, tenant context, RLS, and security infrastructure. Rebuild development databases from zero; production recovery remains restore/forward-compensation only."
     },
-    "0001_customer": {
+    "0001_customer_master": {
       "strategy": "restore-backup",
       "destructiveDownAllowed": false,
-      "note": "Customer-domain baseline. Rebuild development databases from zero; production recovery remains restore/forward-compensation only."
+      "note": "Canonical Customer Master baseline after the development migration-history reset. Rebuild development databases from zero; production recovery remains restore/forward-compensation only."
     },
     "0002_sales": {
       "strategy": "restore-backup",

@@ -3,7 +3,7 @@
   "dialect": "postgresql",
   "entries": [
     { "idx": 0, "version": "7", "when": 1789000000000, "tag": "0000_core_platform", "breakpoints": true },
-    { "idx": 1, "version": "7", "when": 1789000000001, "tag": "0001_customer", "breakpoints": true },
+    { "idx": 1, "version": "7", "when": 1789000000001, "tag": "0001_customer_master", "breakpoints": true },
     { "idx": 2, "version": "7", "when": 1789000000002, "tag": "0002_sales", "breakpoints": true },
     { "idx": 3, "version": "7", "when": 1789000000003, "tag": "0003_inventory", "breakpoints": true },
     { "idx": 4, "version": "7", "when": 1789000000004, "tag": "0004_procurement", "breakpoints": true },
@@ -12,9 +12,6 @@
     { "idx": 7, "version": "7", "when": 1789000000007, "tag": "0007_platform_tenant_delete_lifecycle", "breakpoints": true },
     { "idx": 8, "version": "7", "when": 1789000000008, "tag": "0008_platform_session_rls_empty_context", "breakpoints": true },
     { "idx": 9, "version": "7", "when": 1789000000009, "tag": "0009_platform_procedure_owner", "breakpoints": true },
-    { "idx": 10, "version": "7", "when": 1789000000010, "tag": "0010_pending_login_challenges", "breakpoints": true },
-    { "idx": 11, "version": "7", "when": 1789000000011, "tag": "0011_customer_master_v2", "breakpoints": true },
-    { "idx": 12, "version": "7", "when": 1789000000012, "tag": "0012_customer_master_detail_tables", "breakpoints": true },
-    { "idx": 13, "version": "7", "when": 1789000000013, "tag": "0013_customer_tenant_safe_child_foreign_keys", "breakpoints": true }
+    { "idx": 10, "version": "7", "when": 1789000000010, "tag": "0010_pending_login_challenges", "breakpoints": true }
   ]
 }

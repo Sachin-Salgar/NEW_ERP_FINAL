@@ -18,62 +18,19 @@ const migrationChecks: Record<string, (client: Client) => Promise<boolean>> = {
     (await tableExists(client, 'audit_events')) &&
     (await functionExists(client, 'platform_update_tenant_status(uuid,text)')) &&
     (await policyExists(client, 'audit_events', 'audit_events_context_visibility_policy')),
-  '0001_customer': (client) => tableExists(client, 'customers'),
+  '0001_customer_master': (client) => tableExists(client, 'customers'),
   '0002_sales': (client) => tableExists(client, 'sales_quotations'),
   '0003_inventory': (client) => tableExists(client, 'inventory_items'),
   '0004_procurement': (client) => tableExists(client, 'procurement_purchase_orders'),
   '0005_finance': (client) => tableExists(client, 'finance_postings'),
   '0006_tax': (client) => tableExists(client, 'tax_rules'),
   '0010_pending_login_challenges': pendingLoginChallengesMatchMigration,
-  '0011_customer_master_v2': async (client) =>
-    (await tableExists(client, 'customers')) &&
-    (await columnExists(client, 'customers', 'code')) &&
-    (await tableExists(client, 'customer_contacts')) &&
-    (await tableExists(client, 'customer_offices')),
-  '0012_customer_master_detail_tables': async (client) =>
-    (await tableExists(client, 'customer_tax_payment_terms')) &&
-    (await tableExists(client, 'customer_other_details')),
-  '0013_customer_tenant_safe_child_foreign_keys': async (client) =>
-    (await constraintExists(client, 'customer_contacts', 'fk_customer_contacts_customer_tenant')) &&
-    (await constraintExists(client, 'customer_offices', 'fk_customer_offices_customer_tenant')) &&
-    (await constraintExists(client, 'customer_tax_payment_terms', 'fk_customer_tax_payment_terms_customer_tenant')) &&
-    (await constraintExists(client, 'customer_other_details', 'fk_customer_other_details_customer_tenant')),
 };
 
 async function tableExists(client: Client, tableName: string): Promise<boolean> {
   const result = await client.query<{ exists: boolean }>('SELECT to_regclass($1) IS NOT NULL AS exists', [
     `public.${tableName}`,
   ]);
-  return result.rows[0]?.exists ?? false;
-}
-
-async function columnExists(client: Client, tableName: string, columnName: string): Promise<boolean> {
-  const result = await client.query<{ exists: boolean }>(
-    `SELECT EXISTS (
-       SELECT 1
-         FROM information_schema.columns
-        WHERE table_schema = 'public'
-          AND table_name = $1
-          AND column_name = $2
-     ) AS exists;`,
-    [tableName, columnName],
-  );
-  return result.rows[0]?.exists ?? false;
-}
-
-async function constraintExists(client: Client, tableName: string, constraintName: string): Promise<boolean> {
-  const result = await client.query<{ exists: boolean }>(
-    `SELECT EXISTS (
-       SELECT 1
-         FROM pg_constraint constraint_record
-         JOIN pg_class table_record ON table_record.oid = constraint_record.conrelid
-         JOIN pg_namespace schema_record ON schema_record.oid = table_record.relnamespace
-        WHERE schema_record.nspname = 'public'
-          AND table_record.relname = $1
-          AND constraint_record.conname = $2
-     ) AS exists;`,
-    [tableName, constraintName],
-  );
   return result.rows[0]?.exists ?? false;
 }
 
