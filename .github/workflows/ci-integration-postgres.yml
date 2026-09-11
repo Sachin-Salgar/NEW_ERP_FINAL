@@ -30,7 +30,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '18'
 
       - name: Install dependencies (pnpm)
         run: |
@@ -138,3 +138,95 @@ jobs:
           NODE_ENV: test
           HOST: 0.0.0.0
           PORT: 3000
+          API_PREFIX: /api/v1
+          JWT_SECRET: e2e-test-jwt-secret-should-be-long-enough
+          CORS_ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000,http://localhost:8080,http://127.0.0.1:8080,http://localhost:8081,http://127.0.0.1:8081,http://localhost:8082,http://127.0.0.1:8082
+        run: |
+          set -euo pipefail
+          nohup env DATABASE_URL="$DATABASE_URL" TEST_DATABASE_URL="$TEST_DATABASE_URL" PLATFORM_DATABASE_URL="$PLATFORM_DATABASE_URL" DATABASE_SSL_MODE="$DATABASE_SSL_MODE" NODE_ENV="$NODE_ENV" HOST="$HOST" PORT="$PORT" API_PREFIX="$API_PREFIX" JWT_SECRET="$JWT_SECRET" CORS_ALLOWED_ORIGINS="$CORS_ALLOWED_ORIGINS" npm run dev > backend-e2e.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3000/api/v1/bootstrap >/tmp/backend-bootstrap.json; then cat /tmp/backend-bootstrap.json; exit 0; fi
+            sleep 2
+          done
+          cat backend-e2e.log
+          exit 1
+
+      - name: Set up Flutter web SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+
+      - name: Enable Flutter web
+        run: flutter config --enable-web
+
+      - name: Install Flutter dependencies
+        working-directory: frontend
+        run: flutter pub get
+
+      - name: Set up ChromeDriver
+        run: |
+          set -euo pipefail
+          CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
+          CHROME_MAJOR=${CHROME_VERSION%%.*}
+          DRIVER_VERSION=$(curl -fsSL "https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_${CHROME_MAJOR}")
+          wget -q "https://storage.googleapis.com/chrome-for-testing-public/${DRIVER_VERSION}/linux64/chromedriver-linux64.zip"
+          unzip -q chromedriver-linux64.zip
+          sudo mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
+          sudo chmod +x /usr/local/bin/chromedriver
+          chromedriver --version
+
+      - name: Start ChromeDriver
+        run: |
+          set -euo pipefail
+          nohup chromedriver --port=4444 --host=127.0.0.1 > chromedriver.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4444/status >/tmp/chromedriver-status.json; then cat /tmp/chromedriver-status.json; exit 0; fi
+            sleep 1
+          done
+          cat chromedriver.log
+          exit 1
+
+      - name: Run admin E2E test
+        working-directory: frontend
+        env:
+          CHROME_EXECUTABLE: /usr/bin/google-chrome
+        run: |
+          set -o pipefail
+          flutter drive --driver=test_driver/integration_test.dart --target=integration_test/admin_login_e2e_test.dart -d web-server --browser-name=chrome --driver-port=4444 --web-port=8080 --dart-define=API_BASE_URL=http://localhost:3000 2>&1 | tee admin-e2e-test.log
+
+      - name: Run limited-user E2E test
+        working-directory: frontend
+        env:
+          CHROME_EXECUTABLE: /usr/bin/google-chrome
+        run: |
+          set -o pipefail
+          flutter drive --driver=test_driver/integration_test.dart --target=integration_test/limited_user_login_e2e_test.dart -d web-server --browser-name=chrome --driver-port=4444 --web-port=8081 --dart-define=API_BASE_URL=http://localhost:3000 2>&1 | tee limited-user-e2e-test.log
+
+      - name: Run browser navigation matrix E2E test
+        working-directory: frontend
+        env:
+          CHROME_EXECUTABLE: /usr/bin/google-chrome
+        run: |
+          set -o pipefail
+          flutter drive --driver=test_driver/integration_test.dart --target=integration_test/navigation_matrix_e2e_test.dart -d web-server --browser-name=chrome --driver-port=4444 --web-port=8082 --dart-define=API_BASE_URL=http://localhost:3000 2>&1 | tee navigation-matrix-e2e-test.log
+
+      - name: Upload E2E logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-e2e-logs
+          path: frontend/*-e2e-test.log
+
+      - name: Upload backend log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-e2e-log
+          path: backend-e2e.log
+
+      - name: Upload ChromeDriver log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chromedriver-log
+          path: chromedriver.log
