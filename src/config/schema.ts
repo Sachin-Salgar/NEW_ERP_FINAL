@@ -97,7 +97,7 @@ export function resolveDatabaseUrl(env: NodeJS.ProcessEnv = process.env, options
   let value = env[key]?.trim();
 
   if (!value && env === process.env) {
-    dotenv.config({ path: '.env.local', override: false });
+    dotenv.config({ path: '.env.local', override: true });
     value = process.env[key]?.trim();
   }
 
@@ -141,7 +141,7 @@ export function resolveDatabaseSslMode(env: NodeJS.ProcessEnv = process.env): (t
 }
 
 export function parseAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
-  dotenv.config({ path: '.env.local', override: false });
+  dotenv.config({ path: '.env.local', override: true });
   resolveDatabaseUrl(env);
 
   const parsed = appConfigSchema.safeParse(env);

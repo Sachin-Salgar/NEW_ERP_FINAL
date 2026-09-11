@@ -44,6 +44,7 @@ Important rules:
 - `erp_platform_executor` and `erp_procedure_owner` are platform security roles; they are not local app credentials.
 - `.env.local` is the local secret source. It is not committed.
 - `DATABASE_URL` and `TEST_DATABASE_URL` must remain separate and are not interchangeable.
+- Local commands load `.env.local` with precedence over inherited process variables. CI and explicitly supplied non-local environments remain responsible for providing their own variables when `.env.local` is absent.
 
 ## Canonical startup command
 

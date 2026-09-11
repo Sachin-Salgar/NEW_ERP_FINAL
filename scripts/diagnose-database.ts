@@ -4,12 +4,14 @@ import pg from 'pg';
 
 const localEnvLoaded = fs.existsSync('.env.local');
 const environmentKeys = new Set(Object.keys(process.env));
-dotenv.config({ path: '.env.local', override: false });
+const localEnv = dotenv.config({ path: '.env.local', override: true });
+const localKeys = new Set(Object.keys(localEnv.parsed ?? {}));
 
 function describeUrl(name: string, value: string | undefined): string {
   if (!value) return `${name}: absent`;
   const url = new URL(value);
-  return `${name}: source=${environmentKeys.has(name) ? 'environment' : '.env.local'} host=${url.hostname} port=${url.port || '5432'} database=${url.pathname.slice(1)} user=${decodeURIComponent(url.username)} password=${url.password ? '<present>' : '<absent>'}`;
+  const source = localKeys.has(name) ? '.env.local' : environmentKeys.has(name) ? 'environment' : 'unknown';
+  return `${name}: source=${source} host=${url.hostname} port=${url.port || '5432'} database=${url.pathname.slice(1)} user=${decodeURIComponent(url.username)} password=${url.password ? '<present>' : '<absent>'}`;
 }
 
 async function probe(name: string, value: string | undefined): Promise<void> {
@@ -24,7 +26,9 @@ async function probe(name: string, value: string | undefined): Promise<void> {
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'unknown database error';
-    console.error(`${name}: FAILED code=${(error as { code?: string }).code ?? '<none>'} message=${message.replace(/password authentication failed for user "[^"]+"/i, 'password authentication failed for user <redacted>')}`);
+    console.error(
+      `${name}: FAILED code=${(error as { code?: string }).code ?? '<none>'} message=${message.replace(/password authentication failed for user "[^"]+"/i, 'password authentication failed for user <redacted>')}`,
+    );
     process.exitCode = 1;
   } finally {
     await pool.end();

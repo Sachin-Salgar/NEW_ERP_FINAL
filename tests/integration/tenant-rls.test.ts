@@ -4,6 +4,7 @@ import { v7 } from 'uuid';
 
 import { applyTenantTableRls } from '../../src/infrastructure/database/rls.js';
 import { withTenantContext } from '../../src/infrastructure/database/tenant-context.js';
+import { resolveDatabaseUrl } from '../../src/config/schema.js';
 import { createIntegrationAdminPool, createIntegrationApplicationPool } from './database.js';
 
 const runIfDatabase = it;
@@ -41,7 +42,8 @@ describe('PostgreSQL tenant isolation', () => {
           value text NOT NULL
         );
       `);
-      await adminPool.query('GRANT SELECT, INSERT, UPDATE, DELETE ON tenant_rls_demo TO erp_app');
+      const applicationRole = new URL(resolveDatabaseUrl(process.env, { forTest: true })).username.replaceAll('"', '""');
+      await adminPool.query(`GRANT SELECT, INSERT, UPDATE, DELETE ON tenant_rls_demo TO "${applicationRole}"`);
       await applyTenantTableRls(adminPool, {
         tableName: 'tenant_rls_demo',
         tenantColumn: 'tenant_id',
@@ -143,4 +145,3 @@ describe('PostgreSQL tenant isolation', () => {
     }
   });
 });
-

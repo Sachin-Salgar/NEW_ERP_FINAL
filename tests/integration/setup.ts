@@ -8,35 +8,26 @@ import { runMigrations } from '../../src/infrastructure/database/migrate.js';
 import { resolveIntegrationAdminDatabaseUrl } from './database.js';
 import { runPlatformSecurityBootstrap } from '../../src/infrastructure/database/platform-security.js';
 
-dotenv.config({ path: '.env.local' });
+dotenv.config({ path: '.env.local', override: true });
 
 beforeAll(async () => {
   if (process.env.SKIP_INTEGRATION_MIGRATIONS === 'true') return;
   const testUrl = resolveDatabaseUrl(process.env, { forTest: true });
   const targetAdminUrl = resolveIntegrationAdminDatabaseUrl();
   const setupRole = new URL(testUrl).username;
+  const password = process.env.ADR0040_SECURITY_ROLE_PASSWORD ?? randomBytes(24).toString('base64url');
+  process.env.ADR0040_SECURITY_ROLE_PASSWORD = password;
   await runMigrations(targetAdminUrl, 'disable');
 
   const pool = new Pool({ connectionString: targetAdminUrl, ssl: false });
-  const password = process.env.ADR0040_SECURITY_ROLE_PASSWORD ?? randomBytes(24).toString('base64url');
-  process.env.ADR0040_SECURITY_ROLE_PASSWORD = password;
   const client = await pool.connect();
   try {
     await client.query(`SELECT pg_advisory_lock(hashtext('new-erp-final:integration-role-setup'))`);
     await runPlatformSecurityBootstrap(client);
-    for (const role of ['erp_app', 'erp_platform_executor']) {
-      await client.query(`ALTER ROLE "${role}" LOGIN PASSWORD '${password.replaceAll("'", "''")}'`);
-    }
-    await client.query('GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO erp_app');
-    await client.query('REVOKE DELETE ON public.pending_login_challenges FROM erp_app');
-    await client.query('GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO erp_app');
-    if (setupRole !== 'postgres' && setupRole !== 'erp_app') {
-      await client.query(
-        `GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "${setupRole.replaceAll('"', '""')}"`,
-      );
-      await client.query(
-        `GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO "${setupRole.replaceAll('"', '""')}"`,
-      );
+    if (setupRole !== 'postgres') {
+      const quotedRole = setupRole.replaceAll('"', '""');
+      await client.query(`GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "${quotedRole}"`);
+      await client.query(`GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO "${quotedRole}"`);
     }
     await client.query(`SELECT pg_advisory_unlock(hashtext('new-erp-final:integration-role-setup'))`);
   } finally {
@@ -45,10 +36,5 @@ beforeAll(async () => {
   }
 
 
-  process.env.INTEGRATION_APPLICATION_DATABASE_URL = (() => {
-    const app = new URL(testUrl);
-    app.username = 'erp_app';
-    app.password = password;
-    return app.toString();
-  })();
+  process.env.INTEGRATION_APPLICATION_DATABASE_URL = testUrl;
 });
