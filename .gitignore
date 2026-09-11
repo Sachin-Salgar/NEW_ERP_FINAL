@@ -26,5 +26,7 @@ logs/
 # Local validation artifacts
 .pgdata/
 probe-*.ts
+.local-dev-logs/
+.tmp-bootstrap-output.json
 
 .env.local
