@@ -135,11 +135,126 @@ export interface TenantBootstrapRepository {
   bootstrapTenant(input: TenantBootstrapInput): Promise<TenantBootstrapResult>;
 }
 
+export interface CustomerContactRecord {
+  id: string;
+  customerId: string;
+  contactPerson: string | null;
+  designation: string | null;
+  mobile: string | null;
+  email: string | null;
+  createdAt: Date;
+  updatedAt: Date | null;
+}
+
+export interface CustomerOfficeRecord {
+  id: string;
+  customerId: string;
+  name: string | null;
+  address: string | null;
+  address1: string | null;
+  city: string | null;
+  pincode: string | null;
+  state: string | null;
+  faxNo: string | null;
+  phone: string | null;
+  email: string | null;
+  mobile: string | null;
+  contact: string | null;
+  designation: string | null;
+  website: string | null;
+  weeklyOff: string | null;
+  panNo: string | null;
+  gstNo: string | null;
+  createdAt: Date;
+  updatedAt: Date | null;
+}
+
+export interface CustomerTaxPaymentTermsRecord {
+  id: string;
+  customerId: string;
+  taxCategory: string | null;
+  paymentTerms: string | null;
+  creditDays: number | null;
+  taxRegistrationType: string | null;
+  createdAt: Date;
+  updatedAt: Date | null;
+}
+
+export interface CustomerOtherDetailsRecord {
+  id: string;
+  customerId: string;
+  notes: string | null;
+  reference: string | null;
+  remarks: string | null;
+  createdAt: Date;
+  updatedAt: Date | null;
+}
+
 export interface CustomerRecord {
   [key: string]: unknown;
   id: string;
   tenantId: string;
+  code?: string | null;
   name: string;
+  shortName?: string | null;
+  customerType?: string | null;
+  customerCategory?: string | null;
+  zone?: string | null;
+  domesticExport?: string | null;
+  inUse?: boolean | null;
+  merchantExporter?: boolean | null;
+  insurance?: boolean | null;
+  nda?: boolean | null;
+  startDate?: Date | string | null;
+  expiryDate?: Date | string | null;
+  address?: string | null;
+  address1?: string | null;
+  city?: string | null;
+  pincode?: string | null;
+  country?: string | null;
+  state?: string | null;
+  district?: string | null;
+  panNo?: string | null;
+  gstNo?: string | null;
+  vatNo?: string | null;
+  cstNo?: string | null;
+  serviceTaxNo?: string | null;
+  eccCode?: string | null;
+  fax?: string | null;
+  phone?: string | null;
+  mobile?: string | null;
+  email?: string | null;
+  contactPerson?: string | null;
+  designation?: string | null;
+  website?: string | null;
+  interestPercent?: number | null;
+  outstandingLimit?: number | null;
+  agingLimit?: number | null;
+  cashDiscountPercent?: number | null;
+  supplierCode?: string | null;
+  industryType?: string | null;
+  discountApplicable?: boolean | null;
+  bankName?: string | null;
+  bankAddress?: string | null;
+  bankAddress1?: string | null;
+  bankAccountNo?: string | null;
+  range?: string | null;
+  commissionerate?: string | null;
+  division?: string | null;
+  referenceCustomer?: string | null;
+  documentThrough?: string | null;
+  dealerName?: string | null;
+  dealerAddress?: string | null;
+  dealerAddress1?: string | null;
+  weeklyOff?: string | null;
+  groupCustomer?: string | null;
+  distanceInKm?: number | null;
+  marketingBy?: string | null;
+  salesmanName?: string | null;
+  contacts?: CustomerContactRecord[];
+  officeDetails?: CustomerOfficeRecord | null;
+  taxPaymentTerms?: CustomerTaxPaymentTermsRecord | null;
+  otherDetails?: CustomerOtherDetailsRecord | null;
   createdAt: Date;
   createdBy: string | null;
   updatedAt: Date | null;
@@ -165,25 +280,24 @@ export interface CustomerListResult {
 
 export interface CustomerRepository {
   create(input: {
-    [key: string]: unknown;
     tenantId: string;
-    name: string;
     actorUserId: string;
+    [key: string]: unknown;
   }): Promise<CustomerRecord>;
   getById(tenantId: string, customerId: string, ...scope: string[]): Promise<CustomerRecord | null>;
   list(tenantId: string, query: CustomerListQuery): Promise<CustomerListResult>;
   update(input: {
-    [key: string]: unknown;
     tenantId: string;
     customerId: string;
-    name: string;
     actorUserId: string;
+    [key: string]: unknown;
   }): Promise<CustomerRecord | null>;
   softDelete(input: {
-    [key: string]: unknown;
     tenantId: string;
     customerId: string;
     actorUserId: string;
+    expectedVersion?: number;
+    [key: string]: unknown;
   }): Promise<CustomerRecord | null>;
 }
 

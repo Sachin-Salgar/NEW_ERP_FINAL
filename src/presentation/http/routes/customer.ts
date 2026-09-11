@@ -10,13 +10,7 @@ interface CustomerParams {
   id: string;
 }
 
-interface CreateCustomerBody {
-  name: string;
-}
-
-interface UpdateCustomerBody {
-  name: string;
-}
+type CustomerBody = Record<string, unknown>;
 
 function requireTenant(request: FastifyRequest) {
   const tenantId = request.tenantId;
@@ -26,29 +20,17 @@ function requireTenant(request: FastifyRequest) {
 }
 
 function customerResponse(customer: CustomerRecord) {
-  return {
-    id: customer.id,
-    tenantId: customer.tenantId,
-    name: customer.name,
-    createdAt: customer.createdAt,
-    createdBy: customer.createdBy,
-    updatedAt: customer.updatedAt,
-    updatedBy: customer.updatedBy,
-    deletedAt: customer.deletedAt,
-    deletedBy: customer.deletedBy,
-    isDeleted: customer.isDeleted,
-    version: customer.version,
-  };
+  return customer;
 }
 
 const customerRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{ Body: CreateCustomerBody }>(
+  fastify.post<{ Body: CustomerBody }>(
     '/customers',
     { preHandler: [requireAuth, requirePermission('customer.create')] },
     async (request, reply) => {
       const context = requireTenant(request);
       const body = request.body;
-      const customer = await request.server.customerService.create(context, { name: body.name });
+      const customer = await request.server.customerService.create(context, body);
       reply.code(201);
       return { success: true, customer: customerResponse(customer) };
     },
@@ -92,15 +74,13 @@ const customerRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  fastify.patch<{ Params: CustomerParams; Body: UpdateCustomerBody }>(
+  fastify.patch<{ Params: CustomerParams; Body: CustomerBody }>(
     '/customers/:id',
     { preHandler: [requireAuth, requirePermission('customer.update')] },
     async (request) => {
       const context = requireTenant(request);
       const customerId = requestParam(request.params, 'id') ?? '';
-      const customer = await request.server.customerService.update(context, customerId, {
-        name: request.body.name,
-      });
+      const customer = await request.server.customerService.update(context, customerId, request.body);
       return { success: true, customer: customerResponse(customer) };
     },
   );
@@ -111,7 +91,9 @@ const customerRoutes: FastifyPluginAsync = async (fastify) => {
     async (request) => {
       const context = requireTenant(request);
       const customerId = requestParam(request.params, 'id') ?? '';
-      await request.server.customerService.softDelete(context, customerId);
+      await request.server.customerService.softDelete(context, customerId, typeof request.query === 'object' && request.query !== null && 'expectedVersion' in request.query
+        ? Number((request.query as Record<string, unknown>).expectedVersion)
+        : undefined);
       return { success: true, deleted: true };
     },
   );

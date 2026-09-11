@@ -246,11 +246,74 @@ describe('Customer authorization proof', () => {
         authorization: `Bearer ${tenantAToken}`,
         'x-tenant-id': tenantAResult.tenantId,
       },
-      payload: { name: `Customer ${uniqueSuffix}` },
+      payload: {
+        name: `Customer ${uniqueSuffix}`,
+        code: `C-${uniqueSuffix.slice(-12)}`,
+        domesticExport: 'DOMESTIC',
+        inUse: true,
+        merchantExporter: false,
+        insurance: true,
+        nda: true,
+        startDate: '2026-01-01',
+        expiryDate: '2026-12-31',
+        address: 'Main address',
+        city: 'Pune',
+        pincode: '411001',
+        email: `customer-${uniqueSuffix}@example.com`,
+        interestPercent: 2.5,
+        outstandingLimit: 100000,
+        contacts: [{ contactPerson: 'First Contact', designation: 'Manager', mobile: '9999999999', email: 'contact@example.com' }],
+        officeDetails: { name: 'Head Office', city: 'Pune', pincode: '411001', email: 'office@example.com' },
+        taxPaymentTerms: { taxCategory: 'GST', paymentTerms: 'NET 30', creditDays: 30, taxRegistrationType: 'REGISTERED' },
+        otherDetails: { notes: 'Important customer', reference: 'REF-1', remarks: 'Preferred' },
+      },
     });
     expect(createCustomer.statusCode).toBe(201);
     const customer = createCustomer.json().customer;
     expect(customer.tenantId).toBe(tenantAResult.tenantId);
+    expect(customer.code).toBe(`C-${uniqueSuffix.slice(-12).toUpperCase()}`);
+    expect(customer.contacts).toHaveLength(1);
+    expect(customer.officeDetails.name).toBe('Head Office');
+    expect(customer.taxPaymentTerms.paymentTerms).toBe('NET 30');
+    expect(customer.otherDetails.reference).toBe('REF-1');
+
+    const updatedCustomer = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/customers/${customer.id}`,
+      headers: {
+        authorization: 'Bearer ' + tenantAToken,
+        'x-tenant-id': tenantAResult.tenantId,
+      },
+      payload: {
+        name: `Customer Updated ${uniqueSuffix}`,
+        expectedVersion: customer.version,
+        contacts: [
+          { contactPerson: 'Updated Contact', designation: 'Director', mobile: '8888888888', email: 'updated@example.com' },
+          { contactPerson: 'Second Contact', designation: 'Accounts', mobile: '7777777777', email: 'second@example.com' },
+        ],
+        taxPaymentTerms: { taxCategory: 'GST', paymentTerms: 'NET 45', creditDays: 45, taxRegistrationType: 'REGISTERED' },
+      },
+    });
+    expect(updatedCustomer.statusCode).toBe(200);
+    expect(updatedCustomer.json().customer.name).toBe(`Customer Updated ${uniqueSuffix}`);
+    expect(updatedCustomer.json().customer.contacts).toHaveLength(2);
+    expect(updatedCustomer.json().customer.taxPaymentTerms.creditDays).toBe(45);
+
+    const childOnlyUpdate = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/customers/${customer.id}`,
+      headers: {
+        authorization: 'Bearer ' + tenantAToken,
+        'x-tenant-id': tenantAResult.tenantId,
+      },
+      payload: {
+        expectedVersion: updatedCustomer.json().customer.version,
+        otherDetails: { notes: 'Updated child-only details' },
+      },
+    });
+    expect(childOnlyUpdate.statusCode).toBe(200);
+    expect(childOnlyUpdate.json().customer.version).toBe(updatedCustomer.json().customer.version + 1);
+    expect(childOnlyUpdate.json().customer.otherDetails.notes).toBe('Updated child-only details');
 
     const tenantAList = await app.inject({
       method: 'GET',
@@ -316,6 +379,25 @@ describe('Customer authorization proof', () => {
     });
     expect(tenantBList.statusCode).toBe(200);
     expect(tenantBList.json().customers.some((entry: { id: string }) => entry.id === customer.id)).toBe(false);
+
+    const tenantBChildren = await withTenantContext(pool, 'app.current_tenant_id', tenantBResult.tenantId, async (client) =>
+      Promise.all([
+        client.query(`SELECT id FROM customer_contacts WHERE customer_id = $1`, [customer.id]),
+        client.query(`SELECT id FROM customer_offices WHERE customer_id = $1`, [customer.id]),
+        client.query(`SELECT id FROM customer_tax_payment_terms WHERE customer_id = $1`, [customer.id]),
+        client.query(`SELECT id FROM customer_other_details WHERE customer_id = $1`, [customer.id]),
+      ]),
+    );
+    expect(tenantBChildren.every((result) => result.rows.length === 0)).toBe(true);
+    await expect(
+      withTenantContext(pool, 'app.current_tenant_id', tenantBResult.tenantId, async (client) =>
+        client.query(
+          `INSERT INTO customer_contacts (customer_id, tenant_id, contact_person, sort_order)
+           VALUES ($1, $2, 'Cross-tenant contact', 99)`,
+          [customer.id, tenantBResult.tenantId],
+        ),
+      ),
+    ).rejects.toMatchObject({ code: '23503' });
 
     const crmModuleIdResult = await adminPool.query<{ id: string }>(`SELECT id FROM modules WHERE code = 'crm' LIMIT 1`);
     expect(crmModuleIdResult.rowCount).toBe(1);

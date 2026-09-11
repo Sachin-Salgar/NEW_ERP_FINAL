@@ -546,6 +546,58 @@ export const enterpriseSchemas = {
   }),
 };
 
+const customerCreateRequest = z.object({
+  name: z.string().trim().min(1).max(255),
+  code: z.string().trim().max(50).optional(),
+  shortName: z.string().max(100).optional(),
+  customerType: z.string().max(50).optional(),
+  customerCategory: z.string().max(50).optional(),
+  zone: z.string().max(100).optional(),
+  domesticExport: z.enum(['DOMESTIC', 'EXPORT']).optional(),
+  inUse: z.boolean().optional(),
+  merchantExporter: z.boolean().optional(),
+  insurance: z.boolean().optional(),
+  nda: z.boolean().optional(),
+  startDate: z.string().date().optional(),
+  expiryDate: z.string().date().optional(),
+  address: z.string().optional(), address1: z.string().optional(), city: z.string().max(100).optional(),
+  pincode: z.string().max(20).optional(), country: z.string().max(100).optional(), state: z.string().max(100).optional(),
+  district: z.string().max(100).optional(), panNo: z.string().max(50).optional(), gstNo: z.string().max(50).optional(),
+  vatNo: z.string().max(50).optional(), cstNo: z.string().max(50).optional(), serviceTaxNo: z.string().max(50).optional(),
+  eccCode: z.string().max(50).optional(),
+  fax: z.string().max(50).optional(), phone: z.string().max(50).optional(), mobile: z.string().max(50).optional(),
+  email: z.string().email().optional(), interestPercent: z.number().finite().optional(),
+  outstandingLimit: z.number().finite().nonnegative().optional(), agingLimit: z.number().finite().nonnegative().optional(),
+  cashDiscountPercent: z.number().finite().nonnegative().optional(), supplierCode: z.string().max(50).optional(),
+  contactPerson: z.string().max(255).optional(), designation: z.string().max(255).optional(), website: z.string().max(255).optional(),
+  industryType: z.string().max(100).optional(), bankName: z.string().max(255).optional(), bankAddress: z.string().optional(),
+  bankAddress1: z.string().optional(), bankAccountNo: z.string().max(100).optional(), discountApplicable: z.boolean().optional(),
+  contacts: z.array(z.object({
+    contactPerson: z.string().max(255).optional(), designation: z.string().max(255).optional(),
+    mobile: z.string().max(50).optional(), email: z.string().email().optional(),
+  })).max(4).optional(),
+  officeDetails: z.object({
+    name: z.string().max(255).optional(), address: z.string().optional(), address1: z.string().optional(),
+    city: z.string().max(100).optional(), pincode: z.string().max(20).optional(), state: z.string().max(100).optional(),
+    faxNo: z.string().max(50).optional(), phone: z.string().max(50).optional(), email: z.string().email().optional(),
+    mobile: z.string().max(50).optional(), contact: z.string().max(255).optional(), designation: z.string().max(255).optional(),
+    website: z.string().max(255).optional(), weeklyOff: z.string().max(50).optional(), panNo: z.string().max(50).optional(),
+    gstNo: z.string().max(50).optional(),
+  }).nullable().optional(),
+  taxPaymentTerms: z.object({
+    taxCategory: z.string().max(100).optional(), paymentTerms: z.string().max(255).optional(),
+    creditDays: z.number().int().nonnegative().optional(), taxRegistrationType: z.string().max(100).optional(),
+  }).nullable().optional(),
+  otherDetails: z.object({
+    notes: z.string().optional(), reference: z.string().max(255).optional(), remarks: z.string().optional(),
+  }).nullable().optional(),
+  range: z.string().max(100).optional(), commissionerate: z.string().max(100).optional(), division: z.string().max(100).optional(),
+  referenceCustomer: z.string().max(255).optional(), documentThrough: z.string().max(255).optional(),
+  dealerName: z.string().max(255).optional(), dealerAddress: z.string().optional(), dealerAddress1: z.string().optional(),
+  weeklyOff: z.string().max(50).optional(), groupCustomer: z.string().max(255).optional(), distanceInKm: z.number().finite().nonnegative().optional(),
+  marketingBy: z.string().max(255).optional(), salesmanName: z.string().max(255).optional(),
+});
+
 export const customerSchemas = {
   customer: z.object({
     id: z.string().uuid(),
@@ -559,12 +611,10 @@ export const customerSchemas = {
     deletedBy: z.string().uuid().nullable(),
     isDeleted: z.boolean(),
     version: z.number().int().positive(),
-  }),
-  createRequest: z.object({
-    name: z.string().trim().min(1).max(255),
-  }),
-  updateRequest: z.object({
-    name: z.string().trim().min(1).max(255),
+  }).passthrough(),
+  createRequest: customerCreateRequest,
+  updateRequest: customerCreateRequest.partial().extend({
+    expectedVersion: z.number().int().positive().optional(),
   }),
 };
 

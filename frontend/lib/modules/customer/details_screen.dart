@@ -70,12 +70,12 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
             IconButton(
               tooltip: 'Edit customer',
               onPressed: () async {
-                final updated = await Navigator.pushNamed<Map<String, dynamic>>(
+                final updated = await Navigator.pushNamed<dynamic>(
                   context,
                   '/customers/${widget.id}/edit',
                 );
                 if (updated != null && mounted) {
-                  setState(() => customer = updated);
+                  await load();
                 }
               },
               icon: const Icon(Icons.edit_outlined),
@@ -93,13 +93,55 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
           margin: const EdgeInsets.all(24),
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: ListTile(
-              title: const Text('Customer name'),
-              subtitle: Text(customer!['name'] as String),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(customer!['name'] as String, style: Theme.of(context).textTheme.headlineSmall),
+                  const SizedBox(height: 16),
+                  for (final entry in customer!.entries)
+                    if (!['contacts', 'officeDetails', 'taxPaymentTerms', 'otherDetails'].contains(entry.key))
+                      if (entry.value != null && entry.value.toString().isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Text('${_label(entry.key)}: ${entry.value}'),
+                        ),
+                  _detail('Office Details', customer!['officeDetails']),
+                  _detail('Tax & Payment Terms', customer!['taxPaymentTerms']),
+                  _detail('Other Details', customer!['otherDetails']),
+                  _contacts(customer!['contacts']),
+                ],
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  String _label(String value) => value.replaceAllMapped(RegExp(r'([A-Z])'), (match) => ' ${match.group(1)}');
+
+  Widget _detail(String title, dynamic value) {
+    if (value is! Map || value.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title, style: Theme.of(context).textTheme.titleMedium),
+        for (final entry in value.entries)
+          if (entry.value != null && entry.value.toString().isNotEmpty) Text('${_label(entry.key.toString())}: ${entry.value}'),
+      ]),
+    );
+  }
+
+  Widget _contacts(dynamic value) {
+    if (value is! List || value.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Contact Persons', style: Theme.of(context).textTheme.titleMedium),
+        for (final item in value)
+          if (item is Map) Text(item.entries.map((entry) => '${_label(entry.key.toString())}: ${entry.value}').join(' | ')),
+      ]),
     );
   }
 }
