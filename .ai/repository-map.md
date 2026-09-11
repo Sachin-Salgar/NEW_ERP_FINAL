@@ -7,6 +7,7 @@
 | `docs/` | Authoritative ERP architecture and governance | Primary source of truth |
 | `.ai/` | AI workflow/navigation artifacts | Workflow guidance, not ERP authority |
 | `.github/` | GitHub/Copilot integration | AI tooling configuration |
+| `scripts/start-local-dev.ps1` | Canonical local full-stack startup script | Required for local backend + frontend validation |
 | `README.md` | Repository entry point | Context only |
 | `LICENSE` | Licensing | Do not use as ERP design authority |
 
@@ -37,6 +38,7 @@ Start every repository-level task with:
 2. `docs/00-overview/02-governance.md`
 3. the relevant domain README(s)
 4. relevant approved ADRs
+5. `.ai/workflows/local-deployment.md` for local PostgreSQL/backend/frontend startup and validation
 
 Do not read every document by default. Follow the domain map and task dependencies.
 

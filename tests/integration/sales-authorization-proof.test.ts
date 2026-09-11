@@ -22,6 +22,8 @@ const salesPermissions = [
   'sales.order.create',
   'sales.order.update',
   'sales.order.delete',
+  'sales.pricing.read',
+  'sales.discount.read',
   'sales.delivery.read',
   'sales.delivery.create',
   'sales.delivery.update',
