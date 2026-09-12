@@ -93,6 +93,22 @@ async function main() {
     );
 
     await client.query(
+      `INSERT INTO identity_credentials (
+        identity_id, provider, credential_type, secret_hash, status, password_changed_at, created_at, updated_at
+      )
+      VALUES ($1, 'local', 'password', $3, 'active', NOW(), NOW(), NOW()),
+             ($2, 'local', 'password', $3, 'active', NOW(), NOW(), NOW())
+      ON CONFLICT (identity_id, provider, credential_type) DO UPDATE
+        SET secret_hash = EXCLUDED.secret_hash,
+            status = 'active',
+            failed_attempt_count = 0,
+            locked_until = NULL,
+            password_changed_at = EXCLUDED.password_changed_at,
+            updated_at = NOW()`,
+      [ADMIN_IDENTITY_ID, LIMITED_IDENTITY_ID, passwordHash],
+    );
+
+    await client.query(
       `INSERT INTO users (id, tenant_id, default_branch_id, username, email, password_hash, status, identity_id, created_at)
        VALUES ($1, $2, $3, 'e2e@example.com', $4, $5, 'active', $6, NOW()),
               ($7, $2, $3, 'e2e-limited', $8, $5, 'active', $9, NOW())
