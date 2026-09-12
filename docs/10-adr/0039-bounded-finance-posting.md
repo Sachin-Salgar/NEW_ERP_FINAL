@@ -1,7 +1,7 @@
 # ADR-0039: Bounded Finance Posting
 
 - Date: 2026-09-05
-- Status: Accepted
+- Status: Approved
 
 ## Decision
 

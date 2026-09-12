@@ -1,7 +1,7 @@
 # ADR-0037: Sales Return Inventory Stock Integration
 
 - Date: 2025-03-08
-- Status: Accepted
+- Status: Approved
 
 ## Context
 

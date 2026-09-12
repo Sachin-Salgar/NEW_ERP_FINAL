@@ -27,7 +27,7 @@ application user currently belongs to exactly one tenant and normal login
 establishes that tenant automatically. Tenant switching and post-login tenant
 switching remain unsupported.
 
-**ADR-0042 is Accepted architecture. Phase 1 backend implementation is complete
+**ADR-0042 is Approved architecture. Phase 1 backend implementation is complete
 for identity-wide usable-context resolution, pending-selection challenges, and
 context-specific session issuance. Phase 2 Flutter integration is also complete,
 including direct tenant/platform routing and pending context selection.**
@@ -70,6 +70,14 @@ specifications and dependency boundaries before implementation is selected.
   non-RLS-bypassing `erp_app` role in every remaining backend integration
   workflow. GitHub Actions integration run **34678706337** and AI Workflow
   Validation run **34678706323** both passed on commit `9a1776b`.
+- The ADR terminology audit confirmed `Approved` as the only authoritative
+  binding status vocabulary. ADR-0037, ADR-0038, ADR-0039, and ADR-0042,
+  their index reference, and the ADR-0042 roadmap reference now use
+  `Approved`; the next available identifier is corrected to ADR-0043.
+  ADR-0032 has no status metadata and ADR-0025 through ADR-0039 are absent
+  from the ADR index; these remain governance/documentation follow-ups because
+  the repository does not provide enough authoritative metadata to invent
+  their status or index scope.
 - `npx vitest run tests/integration/authentication-flow.test.ts tests/integration/rbac-role-permissions.test.ts --reporter=basic` → exit code 0 on the current `main` branch.
 - ADR-0041 defines the branch working-context and authorization model. The
   implementation is in place on the feature branch, with unit, typecheck, lint,
