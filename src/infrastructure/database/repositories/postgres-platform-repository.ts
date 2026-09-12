@@ -27,6 +27,7 @@ import type {
   TenantLoginContext,
   UsableLoginContexts,
 } from '../../../domain/contracts/unified-authentication.js';
+import { compareUsableLoginContexts } from '../../../domain/contracts/unified-authentication.js';
 
 export class PostgresPlatformRepository
   implements
@@ -157,15 +158,20 @@ export class PostgresPlatformRepository
               m.security_version AS "membershipSecurityVersion",
               t.name AS "tenantName",
               t.status AS "tenantStatus",
-              t.version AS "tenantSecurityVersion"
+              t.version AS "tenantSecurityVersion",
+              u.id AS "userId",
+              u.version AS "userSecurityVersion"
          FROM tenant_memberships m
          JOIN identities i ON i.id = m.identity_id
          JOIN tenants t ON t.id = m.tenant_id
+         JOIN users u ON u.tenant_id = m.tenant_id AND u.identity_id = m.identity_id
         WHERE m.identity_id = $1
           AND m.status = 'active'
           AND m.revoked_at IS NULL
           AND t.is_deleted = false
           AND t.status IN ('active', 'trial')
+          AND u.status = 'active'
+          AND u.is_deleted = false
         ORDER BY m.tenant_id, m.id`,
       [identityId],
     );
@@ -179,9 +185,11 @@ export class PostgresPlatformRepository
         tenantId: row.tenantId,
         tenantName: row.tenantName,
         identityId,
+        userId: row.userId,
         identitySecurityVersion: Number(identity.identitySecurityVersion ?? 1),
         membershipSecurityVersion: Number(row.membershipSecurityVersion ?? 1),
         tenantSecurityVersion: Number(row.tenantSecurityVersion ?? 1),
+        userSecurityVersion: Number(row.userSecurityVersion ?? 1),
       });
     }
     for (const row of platformResult.rows) {
@@ -195,7 +203,7 @@ export class PostgresPlatformRepository
         platformSecurityVersion: Number(row.membershipSecurityVersion ?? 1),
       });
     }
-    contexts.sort((a, b) => `${a.contextType}:${a.contextId}`.localeCompare(`${b.contextType}:${b.contextId}`));
+    contexts.sort(compareUsableLoginContexts);
     return {
       identityId,
       identitySecurityVersion: Number(identity.identitySecurityVersion ?? 1),
