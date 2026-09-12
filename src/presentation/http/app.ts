@@ -28,6 +28,7 @@ import { InventoryService } from '../../application/services/inventory-service.j
 import { ProcurementService } from '../../application/services/procurement-service.js';
 import { TaxService } from '../../application/services/tax-service.js';
 import { SecurityAdministrationService } from '../../application/services/security-administration-service.js';
+import { AuditQueryService } from '../../application/services/audit-query-service.js';
 import { TenantAdministrationService } from '../../application/services/tenant-administration-service.js';
 import { TenantBootstrapService } from '../../application/services/tenant-bootstrap-service.js';
 import { PlatformAuthorizationService } from '../../application/services/platform-authorization-service.js';
@@ -63,6 +64,7 @@ import { JwtTokenService } from '../../infrastructure/security/jwt-token-service
 import { UnitOfWork } from '../../infrastructure/database/unit-of-work.js';
 import { createLogger } from '../../infrastructure/logging/logger.js';
 import { PostgresAuditLogger } from '../../infrastructure/audit/postgres-audit-logger.js';
+import { PostgresAuditRepository } from '../../infrastructure/database/repositories/postgres-audit-repository.js';
 import healthRoutes from './routes/health.js';
 import authRoutes from './routes/auth.js';
 import accountSecurityRoutes from './routes/account-security.js';
@@ -413,6 +415,11 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     transactionRunner,
   );
   const securityAdministrationService = new SecurityAdministrationService(repository, pool, config.TENANT_CONTEXT_KEY);
+  const auditQueryService = new AuditQueryService(
+    new PostgresAuditRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+  );
   const tenantAdministrationService = new TenantAdministrationService(pool, config.TENANT_CONTEXT_KEY);
   const tenantBootstrapService = new TenantBootstrapService(repository, passwordHasher, transactionRunner);
 
@@ -444,6 +451,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('mfaService', mfaService);
   app.decorate('auditLogger', auditLogger);
   app.decorate('securityAdministrationService', securityAdministrationService);
+  app.decorate('auditQueryService', auditQueryService);
   app.decorate('tenantAdministrationService', tenantAdministrationService);
   app.decorate('tenantBootstrapService', tenantBootstrapService);
   app.decorate('platformAuthorizationService', platformAuthorizationService);

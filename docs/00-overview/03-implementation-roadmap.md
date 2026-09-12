@@ -41,10 +41,10 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 ## 2. Current checkpoint
 
 **Current phase:** Unified Login Phase 1 backend and Phase 2 Flutter integration
-are complete. The next implementation step is the bounded Procurement Purchase
-v1 hardening and validation pass. Sales remains a partial module with bounded
-foundations implemented; its remaining capabilities require their separate
-specifications and dependency boundaries before implementation is selected.
+are complete. The bounded Audit Query / Read API slice is now implemented and
+validated. Sales remains a partial module with bounded foundations implemented;
+its remaining capabilities require their separate specifications and dependency
+boundaries before implementation is selected.
 
 ### Validation evidence captured
 
@@ -83,6 +83,14 @@ specifications and dependency boundaries before implementation is selected.
   implementation is in place on the feature branch, with unit, typecheck, lint,
   build, and diff validation passing; database-backed branch authorization proof
   remains pending.
+- The bounded Audit Query / Read API uses the existing
+  `/api/v1/security/audit-logs` route and `security.audit_log.read` permission,
+  adds repository-backed tenant-scoped filtering for actor, action, resource,
+  correlation ID, and timestamp range, deterministic timestamp/ID ordering, and
+  page/page_size pagination. Unit tests, the PostgreSQL audit atomicity/RLS
+  integration test, typecheck, build, lint, AI workflow validation, repository
+  scanning, and `git diff --check` pass. No migration was required because the
+  existing audit query indexes cover the approved filters.
 - GitHub Actions run **33486274877**, workflow `CI - Integration Tests (Postgres)`, commit `8dd4d17edd3f050a66c1bd2c25e47597fda21a95` → **success**.
 - The successful CI run completed the Postgres setup/migration/fixture/backend startup path and both Flutter Web E2E steps: **Run admin E2E test → success** and **Run limited-user E2E test → success**.
 - This CI run validates the repository-controlled test environment; it does not use or depend on future managed deployment configuration.

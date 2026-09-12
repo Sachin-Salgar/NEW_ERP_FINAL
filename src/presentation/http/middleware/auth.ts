@@ -21,6 +21,7 @@ import type { JwtTokenService } from '../../../infrastructure/security/jwt-token
 import type { AppConfig } from '../../../config/schema.js';
 import type { AuditLogger } from '../../../application/contracts/audit.js';
 import type { SecurityAdministrationService } from '../../../application/services/security-administration-service.js';
+import type { AuditQueryService } from '../../../application/services/audit-query-service.js';
 import type { ItemMasterService } from '../../../application/services/item-master-service.js';
 import type { InventoryService } from '../../../application/services/inventory-service.js';
 import type { ProcurementService } from '../../../application/services/procurement-service.js';
@@ -59,6 +60,7 @@ declare module 'fastify' {
     procurementService: ProcurementService;
     taxService: TaxService;
     securityAdministrationService: SecurityAdministrationService;
+    auditQueryService: AuditQueryService;
     tenantAdministrationService: TenantAdministrationService;
     tenantBootstrapService: TenantBootstrapService;
     platformAuthorizationService: PlatformAuthorizationService;

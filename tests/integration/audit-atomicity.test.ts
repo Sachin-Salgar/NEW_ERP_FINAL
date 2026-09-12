@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Pool } from 'pg';
 
 import { PostgresAuditLogger } from '../../src/infrastructure/audit/postgres-audit-logger.js';
+import { PostgresAuditRepository } from '../../src/infrastructure/database/repositories/postgres-audit-repository.js';
 import { UnitOfWork } from '../../src/infrastructure/database/unit-of-work.js';
 import { resolveDatabaseUrl } from '../../src/config/schema.js';
 import { v7 as uuidV7 } from 'uuid';
@@ -74,5 +75,79 @@ describe('security mutation audit atomicity', () => {
     const row = await pool.query<{ name: string }>('SELECT name FROM tenants WHERE id = $1', [tenantId]);
     expect(row.rows[0].name).toBe(originalName);
   });
-});
 
+  it('retrieves only the current tenant events with filters and deterministic pagination', async () => {
+    const audit = new PostgresAuditLogger(pool, {
+      tenantContextKey: 'app.current_tenant_id',
+    });
+    const repository = new PostgresAuditRepository(pool, 'app.current_tenant_id');
+    const otherTenantId = uuidV7();
+
+    await pool.query(
+      `INSERT INTO tenants (id, name, subdomain, slug, status)
+       VALUES ($1, $2, $3, $4, 'active')`,
+      [otherTenantId, `Other Audit Tenant ${otherTenantId}`, `other-${otherTenantId}`, `other-${otherTenantId}`],
+    );
+
+    await audit.record({
+      tenantId,
+      action: 'audit.query.fixture',
+      resourceType: 'audit_test',
+      resourceId: 'first',
+      outcome: 'success',
+    });
+    await audit.record({
+      tenantId,
+      action: 'audit.query.fixture',
+      resourceType: 'audit_test',
+      resourceId: 'second',
+      outcome: 'success',
+    });
+    await expect(
+      audit.record({
+        tenantId: '00000000-0000-0000-0000-000000000000',
+        action: 'audit.query.other',
+        resourceType: 'audit_test',
+        resourceId: 'other',
+        outcome: 'success',
+      }),
+    ).rejects.toThrow();
+    await audit.record({
+      tenantId: otherTenantId,
+      action: 'audit.query.other',
+      resourceType: 'audit_test',
+      resourceId: 'other',
+      outcome: 'success',
+    });
+
+    const firstPage = await repository.list(tenantId, {
+      page: 1,
+      pageSize: 1,
+      order: 'desc',
+      action: 'audit.query.fixture',
+    });
+    const secondPage = await repository.list(tenantId, {
+      page: 2,
+      pageSize: 1,
+      order: 'desc',
+      action: 'audit.query.fixture',
+    });
+    const allTenantEvents = await repository.list(tenantId, {
+      page: 1,
+      pageSize: 20,
+      order: 'desc',
+    });
+    const otherTenant = await repository.list(otherTenantId, {
+      page: 1,
+      pageSize: 20,
+      order: 'desc',
+    });
+
+    expect(firstPage.total).toBe(2);
+    expect(firstPage.items).toHaveLength(1);
+    expect(secondPage.items).toHaveLength(1);
+    expect(firstPage.items[0]?.id).not.toBe(secondPage.items[0]?.id);
+    expect(allTenantEvents.items.every((item) => item.tenantId === tenantId)).toBe(true);
+    expect(otherTenant.items.every((item) => item.tenantId === otherTenantId)).toBe(true);
+  });
+});
