@@ -61,10 +61,10 @@ specifications and dependency boundaries before implementation is selected.
   shared local database because it contains invalid stale identity data and
   encounters concurrent RLS setup updates; no database was modified to bypass
   those failures.
-- The latest remote audit-branch integration run predates these local changes
-  and failed during backend/E2E execution. CI must be rerun from this branch
-  after the fixes are committed and pushed; current CI status is therefore
-  **IMPLEMENTED — VALIDATION PENDING**.
+- GitHub Actions integration run **34677762985** on the audit branch passed
+  database setup, migrations, fixture seeding, backend startup, admin E2E,
+  limited-user E2E, and browser navigation matrix E2E. AI Workflow Validation
+  run **34677763002** also passed.
 - `npx vitest run tests/integration/authentication-flow.test.ts tests/integration/rbac-role-permissions.test.ts --reporter=basic` → exit code 0 on the current `main` branch.
 - ADR-0041 defines the branch working-context and authorization model. The
   implementation is in place on the feature branch, with unit, typecheck, lint,
@@ -347,12 +347,12 @@ The current verification pass must cover:
 
 **Current evidence:** The audit branch has passed local dependency installation,
 typecheck, lint, build, unit, focused migration/security integration, migration
-recovery, Flutter analyzer, and Flutter tests. Its latest remote integration
-run predates the current fixes and failed during backend/E2E execution; a
-post-push CI run is required before this audit branch can be marked stable.
-The prior successful CI evidence on commit `53ec31ddd635b5b1c0a971e4f060f055da2f67a2`
-and run `33948006417` remains historical evidence for the baseline, not proof
-of the current audit branch.
+recovery, Flutter analyzer, and Flutter tests. GitHub Actions run
+`34677762985` passed database setup, migrations, fixtures, backend startup,
+admin E2E, limited-user E2E, and browser navigation matrix E2E; AI Workflow
+Validation run `34677763002` passed as well. The full local PostgreSQL suite
+still encounters stale shared-database contamination and concurrent RLS setup
+updates, so CI is the authoritative clean-database evidence for this branch.
 
 **Roadmap rule:** a verification item is not marked COMPLETED until actual repository/CI/deployment evidence supports it.
 
