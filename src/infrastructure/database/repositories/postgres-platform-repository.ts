@@ -158,26 +158,39 @@ export class PostgresPlatformRepository
               m.security_version AS "membershipSecurityVersion",
               t.name AS "tenantName",
               t.status AS "tenantStatus",
-              t.version AS "tenantSecurityVersion",
-              u.id AS "userId",
-              u.version AS "userSecurityVersion"
+              t.version AS "tenantSecurityVersion"
          FROM tenant_memberships m
          JOIN identities i ON i.id = m.identity_id
          JOIN tenants t ON t.id = m.tenant_id
-         JOIN users u ON u.tenant_id = m.tenant_id AND u.identity_id = m.identity_id
         WHERE m.identity_id = $1
           AND m.status = 'active'
           AND m.revoked_at IS NULL
           AND t.is_deleted = false
           AND t.status IN ('active', 'trial')
-          AND u.status = 'active'
-          AND u.is_deleted = false
         ORDER BY m.tenant_id, m.id`,
       [identityId],
     );
 
     const contexts: Array<TenantLoginContext | PlatformLoginContext> = [];
     for (const row of membershipResult.rows) {
+      const userResult = await withTenantContext(
+        this.pool,
+        this.tenantContextKey,
+        row.tenantId,
+        (client) =>
+          client.query(
+            `SELECT id AS "userId", version AS "userSecurityVersion"
+               FROM users
+              WHERE tenant_id = $1
+                AND identity_id = $2
+                AND status = 'active'
+                AND is_deleted = false
+              LIMIT 1`,
+            [row.tenantId, identityId],
+          ),
+      );
+      const user = userResult.rows[0];
+      if (!user) continue;
       contexts.push({
         contextType: 'tenant',
         contextId: row.tenantMembershipId,
@@ -185,11 +198,11 @@ export class PostgresPlatformRepository
         tenantId: row.tenantId,
         tenantName: row.tenantName,
         identityId,
-        userId: row.userId,
+        userId: user.userId,
         identitySecurityVersion: Number(identity.identitySecurityVersion ?? 1),
         membershipSecurityVersion: Number(row.membershipSecurityVersion ?? 1),
         tenantSecurityVersion: Number(row.tenantSecurityVersion ?? 1),
-        userSecurityVersion: Number(row.userSecurityVersion ?? 1),
+        userSecurityVersion: Number(user.userSecurityVersion ?? 1),
       });
     }
     for (const row of platformResult.rows) {
