@@ -65,6 +65,11 @@ specifications and dependency boundaries before implementation is selected.
   database setup, migrations, fixture seeding, backend startup, admin E2E,
   limited-user E2E, and browser navigation matrix E2E. AI Workflow Validation
   run **34677763002** also passed.
+- Subsequent audit commits `495b448` and `9a1776b` corrected release-test
+  database URL resolution and provisioned the non-login, non-superuser,
+  non-RLS-bypassing `erp_app` role in every remaining backend integration
+  workflow. GitHub Actions integration run **34678706337** and AI Workflow
+  Validation run **34678706323** both passed on commit `9a1776b`.
 - `npx vitest run tests/integration/authentication-flow.test.ts tests/integration/rbac-role-permissions.test.ts --reporter=basic` → exit code 0 on the current `main` branch.
 - ADR-0041 defines the branch working-context and authorization model. The
   implementation is in place on the feature branch, with unit, typecheck, lint,
