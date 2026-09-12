@@ -4,7 +4,7 @@
 **Authority:** Architecture documents and Approved ADRs define the intended system; this document records what is actually implemented and what remains to be validated or built.
 
 **Last reconciled:** 2026-09-10
-**Branch:** `main`
+**Branch:** `ai/audit-fixes-2026-09`
 
 ## Status definitions
 
@@ -48,6 +48,23 @@ specifications and dependency boundaries before implementation is selected.
 
 ### Validation evidence captured
 
+- Audit branch `ai/audit-fixes-2026-09` adds the documented `erp_app` bootstrap
+  before migrations, standardizes integration CI on Node 22 and `npm ci`,
+  seeds active local password credentials for both E2E identities, and aligns
+  ADR-0042 challenge snapshots and canonical context ordering with the domain
+  contract.
+- On the audit branch, `npm ci`, `npm run typecheck`, `npm run build`,
+  `npm run lint -- --no-fix`, `npm run db:verify-recovery`,
+  `npm run test:unit`, the focused migration/security integration tests,
+  `flutter analyze`, and the full Flutter test suite pass. The full
+  PostgreSQL integration suite remains unavailable against the configured
+  shared local database because it contains invalid stale identity data and
+  encounters concurrent RLS setup updates; no database was modified to bypass
+  those failures.
+- The latest remote audit-branch integration run predates these local changes
+  and failed during backend/E2E execution. CI must be rerun from this branch
+  after the fixes are committed and pushed; current CI status is therefore
+  **IMPLEMENTED — VALIDATION PENDING**.
 - `npx vitest run tests/integration/authentication-flow.test.ts tests/integration/rbac-role-permissions.test.ts --reporter=basic` → exit code 0 on the current `main` branch.
 - ADR-0041 defines the branch working-context and authorization model. The
   implementation is in place on the feature branch, with unit, typecheck, lint,
@@ -91,6 +108,9 @@ specifications and dependency boundaries before implementation is selected.
 ### Remaining work and residuals
 
 - Broader browser E2E verification remains a known validation residual; no functional or security assertion failure is evidenced.
+- No authoritative retention or cleanup period is defined for expired or
+  consumed `pending_login_challenges`; lifecycle policy remains a documentation
+  and governance gap, so no purge mechanism has been invented.
 - Production deployment and operational security evidence remains deployment-only.
 - Full business-module implementation.
 
@@ -325,7 +345,14 @@ The current verification pass must cover:
 11. Browser route deep-link, back/forward, refresh, and shell-persistence verification.
 12. Final security and Core Enterprise audit after technical verification.
 
-**Current evidence:** On commit `53ec31ddd635b5b1c0a971e4f060f055da2f67a2`, Backend CI run `33948006381` passed dependency audit, lint, generated-doc verification, migration recovery verification, typecheck, unit tests, build, Docker build, and Trivy. Postgres run `33948006417` passed database setup, migrations, fixtures, backend startup, admin E2E, and limited-user E2E; only the browser navigation matrix failed with a post-test `FocusManager was used after being disposed` assertion.
+**Current evidence:** The audit branch has passed local dependency installation,
+typecheck, lint, build, unit, focused migration/security integration, migration
+recovery, Flutter analyzer, and Flutter tests. Its latest remote integration
+run predates the current fixes and failed during backend/E2E execution; a
+post-push CI run is required before this audit branch can be marked stable.
+The prior successful CI evidence on commit `53ec31ddd635b5b1c0a971e4f060f055da2f67a2`
+and run `33948006417` remains historical evidence for the baseline, not proof
+of the current audit branch.
 
 **Roadmap rule:** a verification item is not marked COMPLETED until actual repository/CI/deployment evidence supports it.
 
