@@ -93,6 +93,17 @@ async function main() {
     );
 
     await client.query(
+      `INSERT INTO tenant_memberships (identity_id, tenant_id, status, activated_at, revoked_at)
+       VALUES ($1, $3, 'active', NOW(), NULL), ($2, $3, 'active', NOW(), NULL)
+       ON CONFLICT (identity_id, tenant_id) DO UPDATE
+         SET status = 'active',
+             activated_at = COALESCE(tenant_memberships.activated_at, EXCLUDED.activated_at),
+             revoked_at = NULL,
+             updated_at = NOW()`,
+      [ADMIN_IDENTITY_ID, LIMITED_IDENTITY_ID, TENANT_ID],
+    );
+
+    await client.query(
       `INSERT INTO identity_credentials (
         identity_id, provider, credential_type, secret_hash, status, password_changed_at, created_at, updated_at
       )
