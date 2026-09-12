@@ -92,6 +92,8 @@ jobs:
         env:
           NODE_ENV: test
           TEST_DATABASE_URL: postgresql://newerp_release_test_runner:newerp-release-test-runner-ci-only@127.0.0.1:5432/newerp_release_test
+          DATABASE_URL: postgresql://postgres:postgres-release-ci-only@127.0.0.1:5432/newerp_release_test
+          INTEGRATION_ADMIN_DATABASE_URL: postgresql://postgres:postgres-release-ci-only@127.0.0.1:5432/newerp_release_test
           DATABASE_SSL_MODE: disable
           JWT_SECRET: release-integration-jwt-secret-change-me-123456789
         run: npm run test:integration
