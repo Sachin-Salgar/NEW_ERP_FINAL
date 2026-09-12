@@ -195,6 +195,35 @@ async function main() {
       [TENANT_ID, ADMIN_USER_ID, BRANCH_ID, LIMITED_USER_ID],
     );
 
+    const fixtureCheck = await client.query(
+      `SELECT i.identity_id, c.secret_hash, m.id AS membership_id, u.id AS user_id
+         FROM auth_login_identifiers i
+         JOIN identity_credentials c
+           ON c.identity_id = i.identity_id
+          AND c.provider = 'local'
+          AND c.credential_type = 'password'
+          AND c.status = 'active'
+         JOIN tenant_memberships m
+           ON m.identity_id = i.identity_id
+          AND m.tenant_id = $1
+          AND m.status = 'active'
+          AND m.revoked_at IS NULL
+         JOIN users u
+           ON u.identity_id = i.identity_id
+          AND u.tenant_id = $1
+          AND u.status = 'active'
+          AND u.is_deleted = false
+        WHERE i.identifier IN ($2, $3)
+          AND i.is_active = true`,
+      [TENANT_ID, ADMIN_EMAIL, LIMITED_EMAIL],
+    );
+    if (
+      fixtureCheck.rowCount !== 2 ||
+      !(await Promise.all(fixtureCheck.rows.map((row) => bcrypt.compare(PASSWORD, row.secret_hash)))).every(Boolean)
+    ) {
+      throw new Error('E2E authentication fixture verification failed.');
+    }
+
     await client.query('COMMIT');
     console.log('E2E seed completed successfully.');
     console.log(`Seeded admin user: ${ADMIN_EMAIL}`);
