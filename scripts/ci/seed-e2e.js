@@ -221,6 +221,15 @@ async function main() {
       fixtureCheck.rowCount !== 2 ||
       !(await Promise.all(fixtureCheck.rows.map((row) => bcrypt.compare(PASSWORD, row.secret_hash)))).every(Boolean)
     ) {
+      const fixtureState = await client.query(
+        `SELECT
+           (SELECT count(*) FROM auth_login_identifiers WHERE identifier IN ($2, $3) AND is_active = true) AS identifiers,
+           (SELECT count(*) FROM identity_credentials WHERE identity_id IN ($4, $5) AND provider = 'local' AND credential_type = 'password' AND status = 'active') AS credentials,
+           (SELECT count(*) FROM tenant_memberships WHERE tenant_id = $1 AND identity_id IN ($4, $5) AND status = 'active' AND revoked_at IS NULL) AS memberships,
+           (SELECT count(*) FROM users WHERE tenant_id = $1 AND identity_id IN ($4, $5) AND status = 'active' AND is_deleted = false) AS users`,
+        [TENANT_ID, ADMIN_EMAIL, LIMITED_EMAIL, ADMIN_IDENTITY_ID, LIMITED_IDENTITY_ID],
+      );
+      console.error('E2E fixture state:', fixtureState.rows[0]);
       throw new Error('E2E authentication fixture verification failed.');
     }
 
