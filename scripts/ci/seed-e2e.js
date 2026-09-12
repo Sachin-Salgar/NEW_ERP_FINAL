@@ -217,10 +217,15 @@ async function main() {
           AND i.is_active = true`,
       [TENANT_ID, ADMIN_EMAIL, LIMITED_EMAIL],
     );
-    if (
-      fixtureCheck.rowCount !== 2 ||
-      !(await Promise.all(fixtureCheck.rows.map((row) => bcrypt.compare(PASSWORD, row.secret_hash)))).every(Boolean)
-    ) {
+    const fixturePasswords = await Promise.all(
+      fixtureCheck.rows.map(async (row) => ({
+        identityId: row.identity_id,
+        hashLength: row.secret_hash.length,
+        hashPrefix: row.secret_hash.slice(0, 4),
+        matches: await bcrypt.compare(PASSWORD, row.secret_hash),
+      })),
+    );
+    if (fixtureCheck.rowCount !== 2 || !fixturePasswords.every((fixture) => fixture.matches)) {
       const fixtureState = await client.query(
         `SELECT
            (SELECT count(*) FROM auth_login_identifiers WHERE identifier IN ($2, $3) AND is_active = true) AS identifiers,
@@ -229,7 +234,7 @@ async function main() {
            (SELECT count(*) FROM users WHERE tenant_id = $1 AND identity_id IN ($4, $5) AND status = 'active' AND is_deleted = false) AS users`,
         [TENANT_ID, ADMIN_EMAIL, LIMITED_EMAIL, ADMIN_IDENTITY_ID, LIMITED_IDENTITY_ID],
       );
-      console.error('E2E fixture state:', fixtureState.rows[0]);
+      console.error('E2E fixture state:', fixtureState.rows[0], fixturePasswords);
       throw new Error('E2E authentication fixture verification failed.');
     }
 
