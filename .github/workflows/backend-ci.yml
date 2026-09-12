@@ -116,6 +116,7 @@ jobs:
           psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
           CREATE ROLE erp WITH LOGIN PASSWORD 'postgres-ci-only' NOSUPERUSER NOCREATEDB CREATEROLE NOREPLICATION NOBYPASSRLS;
           CREATE ROLE newerp_test_runner WITH LOGIN PASSWORD 'newerp-test-runner-ci-only' NOSUPERUSER NOBYPASSRLS;
+          CREATE ROLE erp_app NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION NOLOGIN;
           CREATE DATABASE newerp_test OWNER newerp_test_runner;
           SQL
           psql -h 127.0.0.1 -U postgres -d newerp_test -v ON_ERROR_STOP=1 <<'SQL'
