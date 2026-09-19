@@ -25,6 +25,7 @@ import type { AuditQueryService } from '../../../application/services/audit-quer
 import type { ItemMasterService } from '../../../application/services/item-master-service.js';
 import type { InventoryService } from '../../../application/services/inventory-service.js';
 import type { ProcurementService } from '../../../application/services/procurement-service.js';
+import type { ManufacturingExecutionService } from '../../../application/services/manufacturing-execution-service.js';
 import type { TaxService } from '../../../application/services/tax-service.js';
 import type { TenantAdministrationService } from '../../../application/services/tenant-administration-service.js';
 import type { TenantBootstrapService } from '../../../application/services/tenant-bootstrap-service.js';
@@ -58,6 +59,7 @@ declare module 'fastify' {
     itemMasterService: ItemMasterService;
     inventoryService: InventoryService;
     manufacturingMachineService: ManufacturingMachineService;
+    manufacturingExecutionService: ManufacturingExecutionService;
     procurementService: ProcurementService;
     taxService: TaxService;
     securityAdministrationService: SecurityAdministrationService;
