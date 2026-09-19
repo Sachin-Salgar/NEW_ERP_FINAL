@@ -181,6 +181,24 @@ async function main() {
           [passwordHash, id],
         );
       }
+      for (const [id, username, email] of users) {
+        await client.query(
+          `INSERT INTO auth_login_identifiers (identifier_type, identifier, tenant_id, user_id, identity_id, is_active)
+           SELECT 'username', $1::citext, u.tenant_id, u.id, u.identity_id, true
+           FROM users u WHERE u.id = $2
+           ON CONFLICT (identifier_type, identifier)
+           DO UPDATE SET tenant_id = EXCLUDED.tenant_id, user_id = EXCLUDED.user_id, identity_id = EXCLUDED.identity_id, is_active = true`,
+          [username, id],
+        );
+        await client.query(
+          `INSERT INTO auth_login_identifiers (identifier_type, identifier, tenant_id, user_id, identity_id, is_active)
+           SELECT 'email', $1::citext, u.tenant_id, u.id, u.identity_id, true
+           FROM users u WHERE u.id = $2
+           ON CONFLICT (identifier_type, identifier)
+           DO UPDATE SET tenant_id = EXCLUDED.tenant_id, user_id = EXCLUDED.user_id, identity_id = EXCLUDED.identity_id, is_active = true`,
+          [email, id],
+        );
+      }
 
       await client.query(`DELETE FROM user_branch_access WHERE tenant_id = $1 AND user_id = ANY($2::uuid[])`, [
         tenantId,
