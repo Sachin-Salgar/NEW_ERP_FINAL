@@ -128,12 +128,12 @@ const procurementRoutes: FastifyPluginAsync = async (f) => {
     f.post(
       `/purchase/requisitions/:id/${action}`,
       { preHandler: [requireAuth, requirePermission(permission)] },
-      async (r) => ({
-        success: true,
-        requisition: await (f.procurementService as any)[method](ctx(r), {
+      async (r) => {
+        const result = await (f.procurementService as any)[method](ctx(r), {
           ...(r.body as any),
           id: requestParam(r.params, 'id') ?? '',
-        }),
+        });
+        return { success: true, ...(action === 'submit' ? (result.requisition ? result : { requisition: result, workflow: { required: false, approved: true, instance: null } }) : { requisition: result }) };
       }),
     );
   f.post(
@@ -189,12 +189,12 @@ const procurementRoutes: FastifyPluginAsync = async (f) => {
     f.post(
       `/purchase/purchase-orders/:id/${action}`,
       { preHandler: [requireAuth, requirePermission(permission)] },
-      async (r) => ({
-        success: true,
-        purchaseOrder: await (f.procurementService as any)[method](ctx(r), {
+      async (r) => {
+        const result = await (f.procurementService as any)[method](ctx(r), {
           ...(r.body as any),
           id: requestParam(r.params, 'id') ?? '',
-        }),
+        });
+        return { success: true, ...(action === 'submit' ? (result.purchaseOrder ? result : { purchaseOrder: result, workflow: { required: false, approved: true, instance: null } }) : { purchaseOrder: result }) };
       }),
     );
   f.post(
