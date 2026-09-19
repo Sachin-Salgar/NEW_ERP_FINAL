@@ -280,6 +280,16 @@ These are architectural extension points, not claims that the capabilities are c
 
 AI-generated workflow changes must not be published automatically where they could alter authorization, financial controls, compliance rules, or other high-impact behavior without the required human governance.
 
+## 19.1 Current Implementation Alignment
+
+The repository now treats Workflow/BPM as a single canonical platform capability for configurable approvals. Manufacturing Work Order Scheduling and Procurement Requisition/Purchase Order approval are integrated through the canonical workflow service. Procurement's former module-local approve/reject HTTP actions and approval permissions are removed; submit/cancel remain domain lifecycle operations, while approval decisions are applied back to Procurement through explicit workflow integration methods.
+
+Sales Return approval is also integrated with the canonical workflow capability when an applicable published workflow exists. Its domain lifecycle remains authoritative; Workflow coordinates the authorization decision and the Sales Return service applies the resulting APPROVED or REJECTED transition.
+
+Module-local lifecycle/state transitions are not themselves considered separate workflow engines. A module may retain domain invariants and state transition logic, but configurable approval routing, human approval tasks, decision history, and approval policy must use the canonical Workflow/BPM capability.
+
+New modules must integrate with the canonical workflow contracts rather than introducing module-specific approval engines or approval endpoints. Where a domain needs a lifecycle state that the generic workflow outcome model does not yet represent, the domain state must be extended explicitly rather than mapping an unrelated workflow outcome such as RETURN to an incorrect business status.
+
 ## 19. Implementation Rules for AI-Assisted Development
 
 AI-assisted implementation must:
