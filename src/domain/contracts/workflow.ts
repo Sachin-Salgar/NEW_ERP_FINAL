@@ -1,4 +1,4 @@
-export interface WorkflowContext { tenantId:string; branchId:string; userId:string; }
+export interface WorkflowContext { tenantId:string; branchId:string; financialYearId:string; userId:string; }
 export type WorkflowDecision='APPROVE'|'REJECT'|'RETURN';
 export interface WorkflowStepConfig { step:number; roleId:string; requiredApprovals?:number; }
 export interface WorkflowDefinitionInput { code:string; name:string; documentType:string; action:string; branchId?:string|null; steps:WorkflowStepConfig[]; }
