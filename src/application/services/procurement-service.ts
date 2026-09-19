@@ -10,6 +10,7 @@ import {
   type ProcurementRepository,
 } from '../../domain/contracts/procurement.js';
 import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../../domain/errors.js';
+import type { WorkflowService } from './workflow-service.js';
 
 export class ProcurementService {
   constructor(
@@ -25,6 +26,7 @@ export class ProcurementService {
     private readonly audit: AuditLogger,
     private readonly tx: { runInTransaction<T>(callback: () => Promise<T>): Promise<T> },
     private readonly inventory: InventoryDependencyPort,
+    private readonly workflow: WorkflowService,
   ) {}
 
   createSupplier(c: ProcurementContext, input: { name: string; code?: string; email?: string }) {
@@ -115,41 +117,13 @@ export class ProcurementService {
       this.repository.transitionRequisition({ ...c, ...value }),
     );
   }
-  submitRequisition(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
-    return this.transition(
-      c,
-      PROCUREMENT_PERMISSIONS.requisitionSubmit,
-      'requisition',
-      { ...i, status: 'SUBMITTED' },
-      (v) => this.repository.transitionRequisition({ ...c, ...v }),
-    );
-  }
-  approveRequisition(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
-    return this.transition(
-      c,
-      PROCUREMENT_PERMISSIONS.requisitionApprove,
-      'requisition',
-      { ...i, status: 'APPROVED' },
-      (v) => this.repository.transitionRequisition({ ...c, ...v }),
-    );
-  }
-  rejectRequisition(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
-    return this.transition(
-      c,
-      PROCUREMENT_PERMISSIONS.requisitionReject,
-      'requisition',
-      { ...i, status: 'REJECTED' },
-      (v) => this.repository.transitionRequisition({ ...c, ...v }),
-    );
-  }
-  cancelRequisition(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
-    return this.transition(
-      c,
-      PROCUREMENT_PERMISSIONS.requisitionCancel,
-      'requisition',
-      { ...i, status: 'CANCELLED' },
-      (v) => this.repository.transitionRequisition({ ...c, ...v }),
-    );
+  async submitRequisition(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
+    const submitted = await this.transition(c, PROCUREMENT_PERMISSIONS.requisitionSubmit, 'requisition', { ...i, status: 'SUBMITTED' },
+      (v) => this.repository.transitionRequisition({ ...c, ...v }));
+    const version = Number((submitted as any).version ?? i.expectedVersion + 1);
+    const workflow = await this.workflow.startIfRequired(c, { documentType: 'purchase_requisition', action: 'APPROVE', documentId: i.id, documentVersion: version,
+      operationKey: 'procurement.requisition.approval:' + i.id + ':' + version });
+    return { requisition: submitted, workflow };
   }
   createPurchaseOrder(
     c: ProcurementContext,
@@ -202,37 +176,13 @@ export class ProcurementService {
       this.repository.transitionPurchaseOrder({ ...c, ...value }),
     );
   }
-  submitPurchaseOrder(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
-    return this.transition(
-      c,
-      PROCUREMENT_PERMISSIONS.purchaseOrderSubmit,
-      'order',
-      { ...i, status: 'SUBMITTED' },
-      (v) => this.repository.transitionPurchaseOrder({ ...c, ...v }),
-    );
-  }
-  approvePurchaseOrder(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
-    return this.transition(
-      c,
-      PROCUREMENT_PERMISSIONS.purchaseOrderApprove,
-      'order',
-      { ...i, status: 'APPROVED' },
-      (v) => this.repository.transitionPurchaseOrder({ ...c, ...v }),
-    );
-  }
-  rejectPurchaseOrder(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
-    return this.transition(c, PROCUREMENT_PERMISSIONS.purchaseOrderReject, 'order', { ...i, status: 'REJECTED' }, (v) =>
-      this.repository.transitionPurchaseOrder({ ...c, ...v }),
-    );
-  }
-  cancelPurchaseOrder(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
-    return this.transition(
-      c,
-      PROCUREMENT_PERMISSIONS.purchaseOrderCancel,
-      'order',
-      { ...i, status: 'CANCELLED' },
-      (v) => this.repository.transitionPurchaseOrder({ ...c, ...v }),
-    );
+  async submitPurchaseOrder(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
+    const submitted = await this.transition(c, PROCUREMENT_PERMISSIONS.purchaseOrderSubmit, 'order', { ...i, status: 'SUBMITTED' },
+      (v) => this.repository.transitionPurchaseOrder({ ...c, ...v }));
+    const version = Number((submitted as any).version ?? i.expectedVersion + 1);
+    const workflow = await this.workflow.startIfRequired(c, { documentType: 'purchase_order', action: 'APPROVE', documentId: i.id, documentVersion: version,
+      operationKey: 'procurement.purchase-order.approval:' + i.id + ':' + version });
+    return { purchaseOrder: submitted, workflow };
   }
   async createReceipt(
     c: ProcurementContext,
