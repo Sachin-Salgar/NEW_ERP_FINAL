@@ -1,0 +1,26 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import '../../core/auth/auth_service.dart';
+import '../../core/network/api_client.dart';
+
+class ManufacturingService extends ChangeNotifier {
+ ManufacturingService({required this.apiClient,required this.auth});
+ final ApiClient apiClient; final AuthService auth;
+ List<Map<String,dynamic>> capabilities=[]; List<Map<String,dynamic>> workOrders=[]; String? error; bool loading=false;
+ Future<void> refresh() async {loading=true;error=null;notifyListeners();try{final a=await apiClient.get('/api/v1/manufacturing/capabilities?page=1&page_size=100');final b=await apiClient.get('/api/v1/manufacturing/work-orders?page=1&page_size=100');if(a.statusCode!=200||b.statusCode!=200)throw Exception(_message(a.statusCode!=200?a:b));capabilities=_list(a,'items');workOrders=_list(b,'items');}catch(e){error=e.toString().replaceFirst('Exception: ','');}finally{loading=false;notifyListeners();}}
+ Future<Map<String,dynamic>?> createCapability(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/capabilities',body,201);
+ Future<Map<String,dynamic>?> createProcess(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/process-details',body,201);
+ Future<Map<String,dynamic>?> addRouting(String processId,Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/process-details/'+processId+'/routing-operations',body,201);
+ Future<Map<String,dynamic>?> createWorkOrder(Map<String,dynamic> body) async{final result=await _mutate('/api/v1/manufacturing/work-orders',body,201);await refresh();return result;}
+ Future<Map<String,dynamic>?> scheduleWorkOrder(String id) async{final result=await _mutate('/api/v1/manufacturing/work-orders/'+id+'/schedule',{},200);await refresh();return result;}
+ Future<Map<String,dynamic>?> readiness(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/readiness/check',body,200);
+ Future<Map<String,dynamic>?> punchProduction(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/production-output',body,201);
+ Future<Map<String,dynamic>?> punchQuality(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/quality-output',body,201);
+ Future<Map<String,dynamic>?> materialReturn(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/material-returns',body,201);
+ Future<Map<String,dynamic>?> variance(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/variance-costs',body,201);
+ Future<Map<String,dynamic>?> materialRequisition(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/material-requisitions',body,201);
+ Future<Map<String,dynamic>?> issueMaterial(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/material-requisitions/issue',body,200);
+ Future<Map<String,dynamic>?> _mutate(String path,Map<String,dynamic> body,int expected) async{try{final response=await apiClient.post(path,body:body);if(response.statusCode!=expected){error=_message(response);notifyListeners();return null;}error=null;notifyListeners();return jsonDecode(response.body) as Map<String,dynamic>;}catch(e){error=e.toString().replaceFirst('Exception: ','');notifyListeners();return null;}}
+ List<Map<String,dynamic>> _list(dynamic response,String key){final b=jsonDecode(response.body) as Map<String,dynamic>;final raw=(b[key]??b['items']??const []) as List<dynamic>;return raw.map((e)=>Map<String,dynamic>.from(e as Map)).toList();}
+ String _message(dynamic response){try{final b=jsonDecode(response.body);if(b is Map&&b['message'] is String)return b['message'] as String;}catch(_){ }return 'Request failed (HTTP '+response.statusCode.toString()+').';}
+}
