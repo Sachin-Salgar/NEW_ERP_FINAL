@@ -9,6 +9,7 @@ export default defineConfig({
     setupFiles: ['./tests/integration/setup.ts'],
     testTimeout: 30000,
     hookTimeout: 30000,
+    // Integration fixtures share one PostgreSQL database; serialize files to avoid cross-file setup races.
     fileParallelism: false,
   },
 });
