@@ -402,7 +402,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
       fulfillReservationsBySource: (context, sourceType, sourceId, operationKey) =>
         inventoryService.fulfillReservationsBySource(context, sourceType, sourceId, operationKey),
     },
-  );    workflowService,
+    workflowService,
   );
   workflowService.registerDecisionHandler('sales_return','APPROVE','APPROVED',async (context,instance)=>{ await salesReturnService.applyWorkflowDecision(context,{id:String(instance.document_id),status:'APPROVED',expectedVersion:Number(instance.document_version)}); });
   workflowService.registerDecisionHandler('sales_return','APPROVE','REJECTED',async (context,instance)=>{ await salesReturnService.applyWorkflowDecision(context,{id:String(instance.document_id),status:'REJECTED',expectedVersion:Number(instance.document_version)}); });
