@@ -10,6 +10,7 @@ import {
 } from '../../domain/contracts/sales-return.js';
 import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../../domain/errors.js';
 import type { InventoryDependencyPort } from '../../domain/contracts/inventory.js';
+import type { WorkflowService } from './workflow-service.js';
 
 export interface SalesReturnContext {
   tenantId: string;
@@ -38,6 +39,7 @@ export class SalesReturnService {
     private readonly audit: AuditLogger,
     private readonly tx: SalesReturnTransactionRunner,
     private readonly inventory?: InventoryDependencyPort,
+    private readonly workflow?: WorkflowService,
   ) {}
   async create(
     context: SalesReturnContext,
@@ -141,6 +143,12 @@ export class SalesReturnService {
     await this.authorize(context, SALES_RETURN_PERMISSIONS[action]);
     this.id(id, 'Return ID');
     this.version(expectedVersion);
+    if ((status === 'APPROVED' || status === 'REJECTED') && this.workflow) {
+      const current = await this.get(context, id);
+      if (current.status !== 'INSPECTED') throw new ValidationError('Sales Return cannot transition from ' + current.status + ' to ' + status + '.');
+      const workflow = await this.workflow.startIfRequired(context, {documentType:'sales_return',action:'APPROVE',documentId:id,documentVersion:expectedVersion,operationKey:'sales-return.approval:' + id + ':' + expectedVersion});
+      if (workflow.required) return { salesReturn: current, workflow } as any;
+    }
     return this.tx.runInTransaction(async () => {
       const current = await this.get(context, id);
       if (status === 'PROCESSED' && current.status === 'PROCESSED' && current.inventoryStatus === 'COMPLETED')
@@ -199,6 +207,18 @@ export class SalesReturnService {
         },
         { requireTransaction: true },
       );
+      return value;
+    });
+  }
+  async applyWorkflowDecision(context: SalesReturnContext, input: { id: string; status: 'APPROVED' | 'REJECTED'; expectedVersion: number }) {
+    this.id(input.id, 'Return ID');
+    this.version(input.expectedVersion);
+    return this.tx.runInTransaction(async () => {
+      const current = await this.get(context, input.id);
+      if (current.status !== 'INSPECTED') throw new ValidationError('Sales Return cannot transition from ' + current.status + ' to ' + input.status + '.');
+      const value = await this.repository.transition({...context,returnId:input.id,status:input.status,expectedVersion:input.expectedVersion,actorUserId:context.userId});
+      if (!value) throw new ValidationError('Sales Return not found or version conflict.');
+      await this.audit.record({tenantId:context.tenantId,actorUserId:context.userId,action:'sales_return.workflow_decision',resourceType:'sales_return',resourceId:input.id,outcome:'success',metadata:{status:input.status}},{requireTransaction:true});
       return value;
     });
   }
