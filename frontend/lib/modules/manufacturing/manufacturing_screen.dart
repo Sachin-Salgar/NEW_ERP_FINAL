@@ -8,9 +8,9 @@ class _ManufacturingScreenState extends State<ManufacturingScreen> {
  final s=GetIt.I<ManufacturingService>(); int tab=0;
  final code=TextEditingController(), name=TextEditingController(), machineId=TextEditingController(), opCode=TextEditingController();
  final itemId=TextEditingController(), revision=TextEditingController(), processId=TextEditingController(), woNo=TextEditingController(), qty=TextEditingController();
- final woId=TextEditingController(), taskId=TextEditingController(), warehouseId=TextEditingController(), toolId=TextEditingController(), fixtureId=TextEditingController(), operationKey=TextEditingController(), returnNo=TextEditingController(), unitCost=TextEditingController(), result=TextEditingController();
+ final woId=TextEditingController(), taskId=TextEditingController(), warehouseId=TextEditingController(), requisitionLineId=TextEditingController(), requiredQty=TextEditingController(), expectedVersion=TextEditingController(), acceptedQty=TextEditingController(), rejectedQty=TextEditingController(), reworkQty=TextEditingController(), returnedQty=TextEditingController(), toolId=TextEditingController(), fixtureId=TextEditingController(), operationKey=TextEditingController(), returnNo=TextEditingController(), unitCost=TextEditingController(), result=TextEditingController();
  @override void initState(){super.initState();s.refresh();}
- @override void dispose(){for(final c in [code,name,machineId,opCode,itemId,revision,processId,woNo,qty,woId,taskId,warehouseId,toolId,fixtureId,operationKey,returnNo,unitCost,result])c.dispose();super.dispose();}
+ @override void dispose(){for(final c in [code,name,machineId,opCode,itemId,revision,processId,woNo,qty,woId,taskId,warehouseId,requisitionLineId,requiredQty,expectedVersion,acceptedQty,rejectedQty,reworkQty,returnedQty,toolId,fixtureId,operationKey,returnNo,unitCost,result])c.dispose();super.dispose();}
  Widget f(String label,TextEditingController c)=>Padding(padding:const EdgeInsets.only(bottom:12),child:TextField(controller:c,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder())));
  Future<void> act(Future<dynamic> Function() fn)async{final v=await fn();if(mounted)setState((){});if(v!=null&&mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Operation completed.')));}
  Widget action(String label,IconData icon,Future<dynamic> Function() fn)=>FilledButton.icon(onPressed:()=>act(fn),icon:Icon(icon),label:Text(label));
@@ -49,14 +49,23 @@ class _ManufacturingScreenState extends State<ManufacturingScreen> {
    action('Punch Rework',Icons.replay,()=>s.punchProduction({'taskSheetId':taskId.text,'quantity':double.tryParse(qty.text)??0,'outputType':'REWORK','operationKey':operationKey.text})),
    action('Punch Reject',Icons.cancel,()=>s.punchProduction({'taskSheetId':taskId.text,'quantity':double.tryParse(qty.text)??0,'outputType':'REJECT','operationKey':operationKey.text})),
   ]),
-  const Divider(height:32),f('Warehouse ID',warehouseId),f('Inventory Item ID',itemId),
+  const Divider(height:32),const Text('Material Requisition / Issue',style:TextStyle(fontWeight:FontWeight.bold)),
+  f('Warehouse ID',warehouseId),f('Inventory Item ID',itemId),f('Requisition Line ID',requisitionLineId),f('Required Quantity',requiredQty),
+  Wrap(spacing:8,children:[
+   action('Create Material Requisition',Icons.request_page,()=>s.materialRequisition({'workOrderId':woId.text,'requisitionNumber':returnNo.text,'lines':[{'itemId':itemId.text,'requiredQuantity':double.tryParse(requiredQty.text)??0}]})),
+   action('Issue Material',Icons.output,()=>s.issueMaterial({'requisitionLineId':requisitionLineId.text,'warehouseId':warehouseId.text,'quantity':double.tryParse(qty.text)??0,'operationKey':operationKey.text})),
+  ]),
+    const Divider(height:32),f('Warehouse ID',warehouseId),f('Inventory Item ID',itemId),
   action('Create Material Return',Icons.assignment_return,()=>s.materialReturn({'workOrderId':woId.text,'warehouseId':warehouseId.text,'itemId':itemId.text,'quantity':double.tryParse(qty.text)??0,'returnNumber':returnNo.text,'operationKey':operationKey.text})),
   const Divider(height:32),f('Variance Unit Cost',unitCost),
   Wrap(spacing:8,children:[
    action('Rework Cost',Icons.build,()=>s.variance({'workOrderId':woId.text,'taskSheetId':taskId.text,'varianceType':'REWORK','quantity':double.tryParse(qty.text)??0,'unitCost':double.tryParse(unitCost.text)??0})),
    action('Rejection Cost',Icons.warning,()=>s.variance({'workOrderId':woId.text,'taskSheetId':taskId.text,'varianceType':'REJECTION','quantity':double.tryParse(qty.text)??0,'unitCost':double.tryParse(unitCost.text)??0})),
   ]),
-  const Divider(height:32),f('Inspected Quantity',qty),const Text('Quality reconciliation is enforced server-side: Inspected = Accepted + Rejected + Rework + Return.',style:TextStyle(color:Colors.grey)),
+  const Divider(height:32),const Text('Quality Output / Disposition',style:TextStyle(fontWeight:FontWeight.bold)),
+  f('Inspected Quantity',qty),f('Accepted Quantity',acceptedQty),f('Rejected Quantity',rejectedQty),f('Rework Quantity',reworkQty),f('Returned Quantity',returnedQty),
+  const Text('Quality reconciliation is enforced server-side: Inspected = Accepted + Rejected + Rework + Return.',style:TextStyle(color:Colors.grey)),
+    action('Record Quality Disposition',Icons.verified,()=>s.punchQuality({'taskSheetId':taskId.text,'inspectedQuantity':double.tryParse(qty.text)??0,'acceptedQuantity':double.tryParse(acceptedQty.text)??0,'rejectedQuantity':double.tryParse(rejectedQty.text)??0,'reworkQuantity':double.tryParse(reworkQty.text)??0,'returnedQuantity':double.tryParse(returnedQty.text)??0})),
   action('Record Accepted Quality',Icons.verified,()=>s.punchQuality({'taskSheetId':taskId.text,'inspectedQuantity':double.tryParse(qty.text)??0,'acceptedQuantity':double.tryParse(qty.text)??0,'rejectedQuantity':0,'reworkQuantity':0,'returnedQuantity':0})),
  ]);
 }
