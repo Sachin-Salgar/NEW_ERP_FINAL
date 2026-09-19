@@ -31,6 +31,7 @@ export const allRemainingPermissions = [
   'manufacturing.work_order.read','manufacturing.work_order.create','manufacturing.work_order.schedule','manufacturing.task_sheet.read','manufacturing.task_sheet.update',
   'manufacturing.material_requisition.create','manufacturing.material_requisition.issue','manufacturing.readiness.execute','manufacturing.production.punch','manufacturing.quality.punch',
   'manufacturing.material_return.create','manufacturing.variance.create','manufacturing.variance.read',
+  'workflow.definition.read','workflow.definition.create','workflow.definition.publish','workflow.task.read','workflow.task.decide',
   'sales.pricing.read', 'sales.pricing.create', 'sales.pricing.update', 'sales.pricing.publish', 'sales.pricing.archive',
   'sales.discount.read', 'sales.discount.create', 'sales.discount.update', 'sales.discount.publish', 'sales.discount.archive',
   'tax.configuration.read', 'tax.configuration.create', 'tax.configuration.update',
