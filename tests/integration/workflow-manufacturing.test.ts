@@ -20,6 +20,6 @@ describe('Configurable workflow integration',()=>{
   const scheduled=await value.app.inject({method:'POST',url:`/api/v1/manufacturing/work-orders/${wo.json().workOrder.id}/schedule`,headers:h});
   expect(scheduled.statusCode).toBe(200);
   expect(scheduled.json().workOrder.pendingApproval).toBe(true);
-  expect((await value.app.inject({method:'GET',url:'/api/v1/workflow/tasks',headers:h})).json().tasks).toHaveLength(1);
+  const tasks=(await value.app.inject({method:'GET',url:'/api/v1/workflow/tasks',headers:h})).json().tasks;expect(tasks).toHaveLength(1);const selfDecision=await value.app.inject({method:'POST',url:`/api/v1/workflow/tasks/${tasks[0].id}/decision`,headers:h,payload:{decision:'APPROVE'}});expect(selfDecision.statusCode).toBe(409);
  });
 });
