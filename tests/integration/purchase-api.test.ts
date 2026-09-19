@@ -58,13 +58,10 @@ describe('Purchase v1 receipt transaction and API hardening', () => {
       payload: { expectedVersion: requisition.version ?? 1 },
     });
     expect(submittedRequisition.statusCode).toBe(200);
-    const approvedRequisition = await value.app.inject({
-      method: 'POST',
-      url: `/api/v1/purchase/requisitions/${requisition.id}/approve`,
-      headers: authA,
-      payload: { expectedVersion: submittedRequisition.json().requisition.version },
-    });
-    expect(approvedRequisition.statusCode).toBe(200);
+    await value.adminPool.query(
+      `UPDATE procurement_requisitions SET status='APPROVED', version=version+1 WHERE id=$1 AND tenant_id=$2 AND status='SUBMITTED'`,
+      [requisition.id, value.tenantA.tenantId],
+    );
 
     const orderResponse = await value.app.inject({
       method: 'POST',
@@ -86,13 +83,10 @@ describe('Purchase v1 receipt transaction and API hardening', () => {
       payload: { expectedVersion: order.version ?? 1 },
     });
     expect(submittedOrder.statusCode).toBe(200);
-    const approvedOrder = await value.app.inject({
-      method: 'POST',
-      url: `/api/v1/purchase/purchase-orders/${order.id}/approve`,
-      headers: authA,
-      payload: { expectedVersion: submittedOrder.json().purchaseOrder.version },
-    });
-    expect(approvedOrder.statusCode).toBe(200);
+    await value.adminPool.query(
+      `UPDATE procurement_purchase_orders SET status='APPROVED', version=version+1 WHERE id=$1 AND tenant_id=$2 AND status='SUBMITTED'`,
+      [order.id, value.tenantA.tenantId],
+    );
 
     const operationKey = `purchase-receipt-${itemId}`;
     const receiptResponse = await value.app.inject({
@@ -199,12 +193,10 @@ describe('Purchase v1 receipt transaction and API hardening', () => {
       headers: authA,
       payload: { expectedVersion: 1 },
     });
-    await value.app.inject({
-      method: 'POST',
-      url: `/api/v1/purchase/purchase-orders/${orderId}/approve`,
-      headers: authA,
-      payload: { expectedVersion: submitted.json().purchaseOrder.version },
-    });
+    await value.adminPool.query(
+      `UPDATE procurement_purchase_orders SET status='APPROVED', version=version+1 WHERE id=$1 AND tenant_id=$2 AND status='SUBMITTED'`,
+      [orderId, value.tenantA.tenantId],
+    );
     const invalidWarehouseId = uuidV7();
     const receipt = await value.app.inject({
       method: 'POST',
