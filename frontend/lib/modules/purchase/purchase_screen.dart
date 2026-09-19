@@ -258,7 +258,7 @@ class _PurchaseScreenState extends State<PurchaseScreen>
       return;
     }
     if (!await _confirm('Apply the $action action to this document?')) return;
-    await service.workflow(type, '${item['id']}', '${item['version'] ?? 1}', action: action);
+    await service.workflow(type, '${item['id']}', action == 'cancel' ? 'CANCELLED' : 'SUBMITTED', (item['version'] as num?)?.toInt() ?? 1, action: action);
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Submitted. Approvals are handled in Workflow & BPM.')));
   }
 
