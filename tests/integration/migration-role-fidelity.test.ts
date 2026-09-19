@@ -75,7 +75,7 @@ describe('production-equivalent migration role', () => {
         const migration = await verification.query<{ count: string }>(
           'SELECT count(*)::text AS count FROM public."__drizzle_migrations"',
         );
-        expect(migration.rows[0]?.count).toBe('13');
+        expect(migration.rows[0]?.count).toBe('14');
         const role = await verification.query<{ rolcanlogin: boolean; rolsuper: boolean; rolcreatedb: boolean; rolcreaterole: boolean; rolbypassrls: boolean }>(
           `SELECT rolcanlogin, rolsuper, rolcreatedb, rolcreaterole, rolbypassrls
            FROM pg_roles WHERE rolname = current_user`,
