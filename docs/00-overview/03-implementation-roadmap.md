@@ -253,7 +253,7 @@ Project Management is explicitly removed/deferred and is not an implementation t
 | 2        | Sales              | **PARTIAL — QUOTATION, ORDER, DELIVERY, INVOICE, RETURN, CREDIT NOTE, PRICING, AND DISCOUNT BOUNDED FOUNDATIONS IMPLEMENTED** — [Sales specification package](../08-business-modules/03-sales-module-architecture.md) |
 | 3        | Procurement        | **COMPLETE** — bounded Purchase v1 backend/frontend slice and dedicated API, RLS, transaction, Inventory, idempotency, concurrency, authorization, Flutter, and repository validation are complete.   |
 | 4        | Inventory          | **PARTIAL — ITEM MASTER, WAREHOUSE, STOCK, RESERVATION, FULFILLMENT, AND RETURN MOVEMENT FOUNDATION IMPLEMENTED; ADVANCED OPERATIONS REMAIN DEFERRED**                                                                |
-| 5        | Manufacturing      | **PENDING**                                                                                                                                                                                                           |
+| 5        | Manufacturing      | **PARTIAL — Machine / Asset Master foundation implemented under FEAT-009; capability matrix, routing, work orders, production execution, quality, and maintenance workflows remain pending**                                                                                                                                                                                                           |
 | 6        | Finance            | **PARTIAL — bounded posting foundation implemented; broader accounting remains pending**                                                                                                                              |
 | 7        | Human Resources    | **PENDING**                                                                                                                                                                                                           |
 | 8        | CRM                | **PARTIAL** — Customer foundation and HTTP API are implemented; contacts, leads, opportunities, activities, and broader CRM capabilities remain pending.                                                              |
@@ -262,7 +262,7 @@ Project Management is explicitly removed/deferred and is not an implementation t
 | 11       | BI & Analytics     | **PENDING**                                                                                                                                                                                                           |
 | 12       | Workflow / BPM     | **PENDING**                                                                                                                                                                                                           |
 
-Business modules must not open until the Core Enterprise gate is completed unless an approved architectural decision changes the sequence.
+Business modules must not open until the Core Enterprise gate is completed unless an approved architectural decision changes the sequence. Manufacturing implementation is being delivered from the Functional Specification v1.4 in dependency order; current status is not treated as complete until repository and CI evidence exists.
 
 ### Current Sales implementation step
 
@@ -393,3 +393,7 @@ updates, so CI is the authoritative clean-database evidence for this branch.
 ## 10. Reconciliation summary
 
 The Core Enterprise frontend has the planned persistent shell and Router 2.0 implementation with shared navigation metadata and authorization readiness handling. **Core Enterprise is implementation/security ready for progression to Sales, with Browser Matrix E2E retained as a known validation residual.** This residual must not be described as a green browser matrix or as completed production deployment evidence.
+
+### Functional Specification v1.4 implementation trace
+
+The target specification is broader than the current implementation. The feature branch `feature/functional-spec-v1.4-implementation` begins implementation without reclassifying pending modules as complete. FEAT-009 Machine / Asset Master is the first manufacturing slice. It includes tenant/branch ownership, machine identity and classification fields, capacity/power metadata, production-machine and cut-time flags, fixed-asset linkage, lifecycle status, optimistic concurrency, soft delete, audit logging, API authorization, PostgreSQL RLS, and unit coverage. FEAT-010 Machine Process Capability, FEAT-011 Product Process Details / Routing, FEAT-001 Work Order / Scheduling, FEAT-002 Task Sheet, FEAT-003 Material Requisition, FEAT-004 Readiness Gate, FEAT-005 Production Output, FEAT-006 Quality Output, FEAT-007 Material Return integration, and FEAT-008 variance costing remain pending until implemented and verified.
