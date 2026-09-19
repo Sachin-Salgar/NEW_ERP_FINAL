@@ -49,9 +49,17 @@ const DEFAULT_MODULES: PlatformModuleSeed[] = [
   { code: 'inventory', name: 'Inventory and Item Master', moduleGroup: 'Inventory', isCore: false, sortOrder: 40 },
   { code: 'sales', name: 'Sales', moduleGroup: 'Sales', isCore: false, sortOrder: 30 },
   { code: 'purchase', name: 'Procurement', moduleGroup: 'Procurement', isCore: false, sortOrder: 35 },
+  { code: 'manufacturing', name: 'Manufacturing', moduleGroup: 'Manufacturing', isCore: false, sortOrder: 50 },
 ];
 
-const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
+const MANUFACTURING_PERMISSIONS: PlatformPermissionSeed[] = [
+  { moduleCode: 'manufacturing', resource: 'machine', action: 'read', scope: 'tenant', permissionKey: 'manufacturing.machine.read', displayName: 'View machines' },
+  { moduleCode: 'manufacturing', resource: 'machine', action: 'create', scope: 'tenant', permissionKey: 'manufacturing.machine.create', displayName: 'Create machines' },
+  { moduleCode: 'manufacturing', resource: 'machine', action: 'update', scope: 'tenant', permissionKey: 'manufacturing.machine.update', displayName: 'Update machines' },
+  { moduleCode: 'manufacturing', resource: 'machine', action: 'delete', scope: 'tenant', permissionKey: 'manufacturing.machine.delete', displayName: 'Delete machines' },
+];
+
+const ALL_DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
   {
     moduleCode: 'tenant-configuration',
     resource: 'tenant',
@@ -595,6 +603,8 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
     displayName: 'Read Sales reports',
   },
 ];
+
+const ALL_DEFAULT_PERMISSIONS = [...DEFAULT_PERMISSIONS, ...MANUFACTURING_PERMISSIONS];
 
 export class PlatformBootstrapService {
   constructor(private readonly repository: PlatformBootstrapRepository) {}
