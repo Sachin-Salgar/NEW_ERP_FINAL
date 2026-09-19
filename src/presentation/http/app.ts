@@ -27,6 +27,8 @@ import { ItemMasterService } from '../../application/services/item-master-servic
 import { InventoryService } from '../../application/services/inventory-service.js';
 import { ManufacturingMachineService } from '../../application/services/manufacturing-machine-service.js';
 import { ManufacturingExecutionService } from '../../application/services/manufacturing-execution-service.js';
+import { WorkflowService } from '../../application/services/workflow-service.js';
+import { PostgresWorkflowRepository } from '../../infrastructure/database/repositories/postgres-workflow-repository.js';
 import { ProcurementService } from '../../application/services/procurement-service.js';
 import { TaxService } from '../../application/services/tax-service.js';
 import { SecurityAdministrationService } from '../../application/services/security-administration-service.js';
@@ -89,6 +91,7 @@ import itemMasterRoutes from './routes/item-master.js';
 import inventoryRoutes from './routes/inventory.js';
 import manufacturingMachineRoutes from './routes/manufacturing-machines.js';
 import manufacturingExecutionRoutes from './routes/manufacturing-execution.js';
+import workflowRoutes from './routes/workflow.js';
 import procurementRoutes from './routes/procurement.js';
 import taxRoutes from './routes/tax.js';
 import rbacRoutes from './routes/rbac.js';
@@ -257,6 +260,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     auditLogger,
     transactionRunner,
   );
+  const workflowService = new WorkflowService(new PostgresWorkflowRepository(pool, config.TENANT_CONTEXT_KEY), authorizationService, moduleAccessService, auditLogger);
   const manufacturingMachineService = new ManufacturingMachineService(
     new PostgresManufacturingMachineRepository(pool, config.TENANT_CONTEXT_KEY),
     authorizationService,
@@ -270,6 +274,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     moduleAccessService,
     auditLogger,
     transactionRunner,
+    workflowService,
   );
   const procurementService = new ProcurementService(
     new PostgresProcurementRepository(pool, config.TENANT_CONTEXT_KEY),
@@ -489,6 +494,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('inventoryService', inventoryService);
   app.decorate('manufacturingMachineService', manufacturingMachineService);
   app.decorate('manufacturingExecutionService', manufacturingExecutionService);
+  app.decorate('workflowService', workflowService);
   app.decorate('procurementService', procurementService);
   app.decorate('taxService', taxService);
 
@@ -600,6 +606,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(inventoryRoutes, { prefix: config.API_PREFIX });
   await app.register(manufacturingMachineRoutes, { prefix: config.API_PREFIX });
   await app.register(manufacturingExecutionRoutes, { prefix: config.API_PREFIX });
+  await app.register(workflowRoutes, { prefix: config.API_PREFIX });
   await app.register(procurementRoutes, { prefix: config.API_PREFIX });
   await app.register(taxRoutes, { prefix: config.API_PREFIX });
   return app;
