@@ -23,6 +23,6 @@ const manufacturingExecutionRoutes:FastifyPluginAsync=async fastify=>{
  fastify.post('/manufacturing/production-output',{preHandler:[requireAuth,requirePermission(P.productionPunch)]},async(r,reply)=>{reply.code(201);return{success:true,output:await fastify.manufacturingExecutionService.punchProduction(ctx(r),body(r))};});
  fastify.post('/manufacturing/quality-output',{preHandler:[requireAuth,requirePermission(P.qualityPunch)]},async(r,reply)=>{reply.code(201);return{success:true,quality:await fastify.manufacturingExecutionService.punchQuality(ctx(r),body(r))};});
  fastify.post('/manufacturing/material-returns',{preHandler:[requireAuth,requirePermission(P.materialReturn)]},async(r,reply)=>{reply.code(201);return{success:true:returnNote:await fastify.manufacturingExecutionService.materialReturn(ctx(r),body(r))};});
- fastify.post('/manufacturing/variance-costs',{preHandler:[requireAuth,requirePermission(P.varianceCreate)]},async(r,reply)=>{reply.code(201);return{success:true:variance:await fastify.manufacturingExecutionService.variance(ctx(r),body(r))};});
+ fastify.post('/manufacturing/variance-costs',{preHandler:[requireAuth,requirePermission(P.varianceCreate)]},async(r,reply)=>{reply.code(201);return{success:true,variance:await fastify.manufacturingExecutionService.variance(ctx(r),body(r))};});
 };
 export default manufacturingExecutionRoutes;
