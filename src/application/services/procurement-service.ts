@@ -118,6 +118,9 @@ export class ProcurementService {
     if (!(await this.modules.isModuleEnabled(c.tenantId, PROCUREMENT_MODULE_CODE))) throw new ForbiddenError('Procurement module is not enabled.');
     if (this.authorization.hasBranchAccess && !(await this.authorization.hasBranchAccess(c.tenantId, c.userId, c.branchId))) throw new ForbiddenError('User is not authorized for this branch.');
     return this.tx.runInTransaction(async () => {
+      const current = await this.repository.getRequisition(c, input.id) as any;
+      if (!current) throw new NotFoundError('Requisition not found.');
+      if (current.status !== 'SUBMITTED') throw new ValidationError('Requisition must be SUBMITTED before a workflow decision.');
       const result = await this.repository.transitionRequisition({ ...c, ...input });
       if (!result) throw new ValidationError('Requisition was modified concurrently or is no longer available.');
       await this.audit.record({tenantId:c.tenantId,actorUserId:c.userId,action:'procurement.requisition.workflow_decision',resourceType:'purchase_requisition',resourceId:input.id,outcome:'success',metadata:{status:input.status}},{requireTransaction:true});
@@ -184,6 +187,9 @@ export class ProcurementService {
     if (!(await this.modules.isModuleEnabled(c.tenantId, PROCUREMENT_MODULE_CODE))) throw new ForbiddenError('Procurement module is not enabled.');
     if (this.authorization.hasBranchAccess && !(await this.authorization.hasBranchAccess(c.tenantId, c.userId, c.branchId))) throw new ForbiddenError('User is not authorized for this branch.');
     return this.tx.runInTransaction(async () => {
+      const current = await this.repository.getPurchaseOrder(c, input.id) as any;
+      if (!current) throw new NotFoundError('Purchase order not found.');
+      if (current.status !== 'SUBMITTED') throw new ValidationError('Purchase order must be SUBMITTED before a workflow decision.');
       const result = await this.repository.transitionPurchaseOrder({ ...c, ...input });
       if (!result) throw new ValidationError('Purchase order was modified concurrently or is no longer available.');
       await this.audit.record({tenantId:c.tenantId,actorUserId:c.userId,action:'procurement.purchase_order.workflow_decision',resourceType:'purchase_order',resourceId:input.id,outcome:'success',metadata:{status:input.status}},{requireTransaction:true});
