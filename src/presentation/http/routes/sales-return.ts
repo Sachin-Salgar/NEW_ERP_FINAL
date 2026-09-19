@@ -56,7 +56,15 @@ const routes: FastifyPluginAsync = async (f) => {
       return: out(await f.salesReturnService.update(ctx(r), requestParam(r.params, 'id') ?? '', r.body)),
     }),
   );
-  for (const s of ['inspect', 'approve', 'reject', 'process', 'close', 'cancel'] as const)
+  f.post(
+    '/sales/returns/:id/request-approval',
+    { preHandler: [requireAuth, requirePermission('sales.return.approval.request')] },
+    async (r: any) => ({
+      success: true,
+      return: out(await f.salesReturnService.requestApproval(ctx(r), requestParam(r.params, 'id') ?? '', r.body.expectedVersion)),
+    }),
+  );
+  for (const s of ['inspect', 'process', 'close', 'cancel'] as const)
     f.post(
       `/sales/returns/:id/${s}`,
       { preHandler: [requireAuth, requirePermission(`sales.return.${s}`)] },
