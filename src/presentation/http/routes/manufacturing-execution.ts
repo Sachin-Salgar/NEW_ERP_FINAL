@@ -1,0 +1,28 @@
+import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
+import { requireAuth, requirePermission } from '../middleware/auth.js';
+import { requestParam } from '../request-input.js';
+import { ValidationError } from '../../../domain/errors.js';
+import { MANUFACTURING_EXECUTION_PERMISSIONS as P } from '../../../application/services/manufacturing-execution-service.js';
+
+const ctx=(r:FastifyRequest)=>{if(!r.user?.branchId||!r.user.financialYearId||!r.tenantId)throw new ValidationError('Authenticated branch and financial-year context is required.');return {tenantId:r.tenantId,branchId:r.user.branchId,financialYearId:r.user.financialYearId,userId:r.user.id};};
+const body=(r:FastifyRequest)=>r.body as Record<string,any>;
+const manufacturingExecutionRoutes:FastifyPluginAsync=async fastify=>{
+ fastify.get('/manufacturing/capabilities',{preHandler:[requireAuth,requirePermission(P.capabilityRead)]},async r=>({success:true,...await fastify.manufacturingExecutionService.listCapabilities(ctx(r),r.query as any)}));
+ fastify.post('/manufacturing/capabilities',{preHandler:[requireAuth,requirePermission(P.capabilityCreate)]},async(r,reply)=>{reply.code(201);return{success:true,capability:await fastify.manufacturingExecutionService.createCapability(ctx(r),body(r))};});
+ fastify.post('/manufacturing/process-details',{preHandler:[requireAuth,requirePermission(P.processCreate)]},async(r,reply)=>{reply.code(201);return{success:true,process:await fastify.manufacturingExecutionService.createProcess(ctx(r),body(r))};});
+ fastify.post('/manufacturing/process-details/:id/routing-operations',{preHandler:[requireAuth,requirePermission(P.processCreate)]},async(r,reply)=>{reply.code(201);return{success:true,operation:await fastify.manufacturingExecutionService.addRouting(ctx(r),{...body(r),processDetailId:requestParam(r.params,'id')})};});
+ fastify.get('/manufacturing/process-details/:id',{preHandler:[requireAuth,requirePermission(P.processRead)]},async r=>({success:true,process:await fastify.manufacturingExecutionService.getProcess(ctx(r),requestParam(r.params,'id')??'')}));
+ fastify.get('/manufacturing/work-orders',{preHandler:[requireAuth,requirePermission(P.workOrderRead)]},async r=>({success:true,...await fastify.manufacturingExecutionService.listWorkOrders(ctx(r),r.query as any)}));
+ fastify.post('/manufacturing/work-orders',{preHandler:[requireAuth,requirePermission(P.workOrderCreate)]},async(r,reply)=>{reply.code(201);return{success:true,workOrder:await fastify.manufacturingExecutionService.createWorkOrder(ctx(r),body(r))};});
+ fastify.post('/manufacturing/work-orders/:id/schedule',{preHandler:[requireAuth,requirePermission(P.workOrderSchedule)]},async r=>({success:true,workOrder:await fastify.manufacturingExecutionService.scheduleWorkOrder(ctx(r),requestParam(r.params,'id')??'')}));
+ fastify.get('/manufacturing/task-sheets/:id',{preHandler:[requireAuth,requirePermission(P.taskRead)]},async r=>({success:true,taskSheet:await fastify.manufacturingExecutionService.getTask(ctx(r),requestParam(r.params,'id')??'')}));
+ fastify.patch('/manufacturing/task-sheets/:id/status',{preHandler:[requireAuth,requirePermission(P.taskUpdate)]},async r=>({success:true,taskSheet:await fastify.manufacturingExecutionService.updateTask(ctx(r),requestParam(r.params,'id')??'',body(r))}));
+ fastify.post('/manufacturing/material-requisitions',{preHandler:[requireAuth,requirePermission(P.materialCreate)]},async(r,reply)=>{reply.code(201);return{success:true,requisition:await fastify.manufacturingExecutionService.createMaterialRequisition(ctx(r),body(r))};});
+ fastify.post('/manufacturing/material-requisitions/issue',{preHandler:[requireAuth,requirePermission(P.materialIssue)]},async r=>({success:true,issue:await fastify.manufacturingExecutionService.issueMaterial(ctx(r),body(r))}));
+ fastify.post('/manufacturing/readiness/check',{preHandler:[requireAuth,requirePermission(P.readinessExecute)]},async r=>({success:true,readiness:await fastify.manufacturingExecutionService.readiness(ctx(r),body(r))}));
+ fastify.post('/manufacturing/production-output',{preHandler:[requireAuth,requirePermission(P.productionPunch)]},async(r,reply)=>{reply.code(201);return{success:true,output:await fastify.manufacturingExecutionService.punchProduction(ctx(r),body(r))};});
+ fastify.post('/manufacturing/quality-output',{preHandler:[requireAuth,requirePermission(P.qualityPunch)]},async(r,reply)=>{reply.code(201);return{success:true,quality:await fastify.manufacturingExecutionService.punchQuality(ctx(r),body(r))};});
+ fastify.post('/manufacturing/material-returns',{preHandler:[requireAuth,requirePermission(P.materialReturn)]},async(r,reply)=>{reply.code(201);return{success:true:returnNote:await fastify.manufacturingExecutionService.materialReturn(ctx(r),body(r))};});
+ fastify.post('/manufacturing/variance-costs',{preHandler:[requireAuth,requirePermission(P.varianceCreate)]},async(r,reply)=>{reply.code(201);return{success:true:variance:await fastify.manufacturingExecutionService.variance(ctx(r),body(r))};});
+};
+export default manufacturingExecutionRoutes;
