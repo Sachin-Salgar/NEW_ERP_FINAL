@@ -133,12 +133,6 @@ export class SalesReturnService {
     this.id(id, 'Return ID');
     this.version(expectedVersion);
     if (status === 'APPROVED' || status === 'REJECTED') throw new ValidationError('Sales Return approval decisions must be made through the canonical Workflow/BPM engine.');
-    if ((status === 'APPROVED' || status === 'REJECTED') && this.workflow) {
-      const current = await this.get(context, id);
-      if (current.status !== 'INSPECTED') throw new ValidationError('Sales Return cannot transition from ' + current.status + ' to ' + status + '.');
-      const workflow = await this.workflow.startIfRequired(context, {documentType:'sales_return',action:'APPROVE',documentId:id,documentVersion:expectedVersion,operationKey:'sales-return.approval:' + id + ':' + expectedVersion});
-      if (workflow.required) return Object.assign({}, current, { pendingApproval: true, workflow }) as any;
-    }
     return this.tx.runInTransaction(async () => {
       const current = await this.get(context, id);
       if (status === 'PROCESSED' && current.status === 'PROCESSED' && current.inventoryStatus === 'COMPLETED')
