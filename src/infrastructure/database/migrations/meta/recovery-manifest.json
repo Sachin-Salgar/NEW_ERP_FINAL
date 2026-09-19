@@ -1,7 +1,7 @@
 {
   "version": 1,
   "migrations": {
-    "0013_workflow_engine": { "strategy": "restore-backup", "destructiveDownAllowed": false, "notes": "Workflow definitions, instances, tasks, and decisions are restored from backup; no destructive down migration." },
+    "0013_workflow_engine": { "strategy": "restore-backup", "destructiveDownAllowed": false, "note": "Workflow definitions, instances, tasks, and decisions are restored from backup; no destructive down migration." },
     "0000_core_platform": {
       "strategy": "restore-backup",
       "destructiveDownAllowed": false,
