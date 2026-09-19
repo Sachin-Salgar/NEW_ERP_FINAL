@@ -92,6 +92,7 @@ describe('custom tenant seed vertical slice', () => {
     const login = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
+      headers: { 'x-tenant-id': tenantId },
       payload: { identifier: 'administrator', password: administratorPassword },
     });
     expect(login.statusCode).toBe(200);
