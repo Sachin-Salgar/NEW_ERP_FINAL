@@ -210,7 +210,28 @@ export class ProcurementService {
     const version = Number((submitted as any).version ?? i.expectedVersion + 1);
     const workflow = await this.workflow.startIfRequired(c, { documentType: 'purchase_order', action: 'APPROVE', documentId: i.id, documentVersion: version,
       operationKey: 'procurement.purchase-order.approval:' + i.id + ':' + version });
-    if (!workflow.required) throw new ValidationError('No published Procurement approval workflow is configured.');
+    if (!workflow.required) {
+      const approved = await this.repository.transitionPurchaseOrder({
+        ...c,
+        id: i.id,
+        status: 'APPROVED',
+        expectedVersion: version,
+      });
+      if (!approved) throw new ValidationError('Purchase order approval failed because the record changed or no longer exists.');
+      await this.audit.record(
+        {
+          tenantId: c.tenantId,
+          actorUserId: c.userId,
+          action: 'procurement.purchase_order.auto_approved',
+          resourceType: 'purchase_order',
+          resourceId: i.id,
+          outcome: 'success',
+          metadata: { reason: 'no_published_workflow' },
+        },
+        { requireTransaction: true },
+      );
+      return { purchaseOrder: approved, workflow };
+    }
     return { purchaseOrder: submitted, workflow };
   }
   async createReceipt(
