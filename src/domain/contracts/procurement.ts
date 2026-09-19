@@ -110,9 +110,6 @@ export interface ProcurementRepository {
     page: number,
     pageSize: number,
   ): Promise<{ items: unknown[]; total: number }>;
-  transitionReceipt(
-    input: ProcurementContext & { id: string; status: string; expectedVersion: number },
-  ): Promise<unknown | null>;
   completeReceipt(input: ProcurementContext & { id: string; expectedVersion: number }): Promise<{
     receipt: unknown;
     lines: Array<{ itemId: string; quantity: number }>;
