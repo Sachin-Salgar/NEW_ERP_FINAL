@@ -1,6 +1,6 @@
 export interface ManufacturingExecutionContext { tenantId:string; branchId:string; financialYearId:string; userId:string; }
 export interface ManufacturingExecutionRepository {
- createCapability(input:any):Promise<any>; listCapabilities(context:any,query:any):Promise<any>;
+ createTool(input:any):Promise<any>; createFixture(input:any):Promise<any>; createCalibration(input:any):Promise<any>; createCapability(input:any):Promise<any>; listCapabilities(context:any,query:any):Promise<any>;
  createProcess(input:any):Promise<any>; addRoutingOperation(input:any):Promise<any>; getProcess(context:any,id:string):Promise<any>;
  createWorkOrder(input:any):Promise<any>; scheduleWorkOrder(input:any):Promise<any>; listWorkOrders(context:any,query:any):Promise<any>;
  getTaskSheet(context:any,id:string):Promise<any>; updateTaskStatus(input:any):Promise<any>;
