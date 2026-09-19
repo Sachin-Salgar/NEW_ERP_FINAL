@@ -147,7 +147,7 @@ export class SalesReturnService {
       const current = await this.get(context, id);
       if (current.status !== 'INSPECTED') throw new ValidationError('Sales Return cannot transition from ' + current.status + ' to ' + status + '.');
       const workflow = await this.workflow.startIfRequired(context, {documentType:'sales_return',action:'APPROVE',documentId:id,documentVersion:expectedVersion,operationKey:'sales-return.approval:' + id + ':' + expectedVersion});
-      if (workflow.required) return { salesReturn: current, workflow } as any;
+      if (workflow.required) return Object.assign({}, current, { pendingApproval: true, workflow }) as any;
     }
     return this.tx.runInTransaction(async () => {
       const current = await this.get(context, id);
