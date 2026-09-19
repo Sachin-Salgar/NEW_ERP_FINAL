@@ -74,17 +74,7 @@ const routes: FastifyPluginAsync = async (f) => {
           await f.salesReturnService.transition(
             ctx(r),
             requestParam(r.params, 'id') ?? '',
-            s === 'inspect'
-              ? 'INSPECTED'
-              : s === 'approve'
-                ? 'APPROVED'
-                : s === 'reject'
-                  ? 'REJECTED'
-                  : s === 'process'
-                    ? 'PROCESSED'
-                    : s === 'close'
-                      ? 'CLOSED'
-                      : 'CANCELLED',
+            s === 'inspect' ? 'INSPECTED' : s === 'process' ? 'PROCESSED' : s === 'close' ? 'CLOSED' : 'CANCELLED',
             r.body.expectedVersion,
           ),
         ),
