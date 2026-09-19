@@ -24,7 +24,7 @@ export class PostgresWorkflowRepository implements WorkflowRepository {
     await db.query(`UPDATE workflow_definitions SET status='RETIRED',updated_at=now(),updated_by=$2 WHERE tenant_id=$1 AND branch_id IS NULL AND document_type=$3 AND action=$4 AND status='PUBLISHED' AND id<>$5`,[c.tenantId,c.userId,d.document_type,d.action,id]);
    else
     await db.query(`UPDATE workflow_definitions SET status='RETIRED',updated_at=now(),updated_by=$2 WHERE tenant_id=$1 AND branch_id=$3 AND document_type=$4 AND action=$5 AND status='PUBLISHED' AND id<>$6`,[c.tenantId,c.userId,d.branch_id,d.document_type,d.action,id]);
-   return (await db.query('UPDATE workflow_definitions SET status='PUBLISHED',updated_at=now(),updated_by=$2 WHERE id=$1 AND tenant_id=$3 RETURNING *',[id,c.userId,c.tenantId])).rows[0];});
+   return (await db.query(`UPDATE workflow_definitions SET status='PUBLISHED',updated_at=now(),updated_by=$2 WHERE id=$1 AND tenant_id=$3 RETURNING *`,[id,c.userId,c.tenantId])).rows[0];});
  }
  async findPublished(c:WorkflowContext,documentType:string,action:string){
   return this.tx(c,async db=>(await db.query(`SELECT * FROM workflow_definitions WHERE tenant_id=$1 AND document_type=$2 AND action=$3 AND status='PUBLISHED' AND (branch_id=$4 OR branch_id IS NULL) ORDER BY branch_id NULLS LAST,version DESC LIMIT 1`,[c.tenantId,documentType,action,c.branchId])).rows[0]??null);
