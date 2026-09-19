@@ -134,7 +134,6 @@ export class ProcurementService {
     const submitted = await this.transition(c, PROCUREMENT_PERMISSIONS.requisitionSubmit, 'requisition', { ...i, status: 'SUBMITTED' },
       (v) => this.repository.transitionRequisition({ ...c, ...v }));
     if (!this.workflow) return submitted;
-    if (!this.workflow) return submitted;
     const version = Number((submitted as any).version ?? i.expectedVersion + 1);
     const workflow = await this.workflow.startIfRequired(c, { documentType: 'purchase_requisition', action: 'APPROVE', documentId: i.id, documentVersion: version,
       operationKey: 'procurement.requisition.approval:' + i.id + ':' + version });
@@ -207,6 +206,7 @@ export class ProcurementService {
   async submitPurchaseOrder(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
     const submitted = await this.transition(c, PROCUREMENT_PERMISSIONS.purchaseOrderSubmit, 'order', { ...i, status: 'SUBMITTED' },
       (v) => this.repository.transitionPurchaseOrder({ ...c, ...v }));
+    if (!this.workflow) return submitted;
     const version = Number((submitted as any).version ?? i.expectedVersion + 1);
     const workflow = await this.workflow.startIfRequired(c, { documentType: 'purchase_order', action: 'APPROVE', documentId: i.id, documentVersion: version,
       operationKey: 'procurement.purchase-order.approval:' + i.id + ':' + version });
@@ -371,8 +371,8 @@ export class ProcurementService {
     if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1)
       throw new ValidationError('Expected version is required.');
     const allowed: Record<string, string[]> = {
-      requisition: ['SUBMITTED', 'APPROVED', 'REJECTED', 'CANCELLED'],
-      order: ['SUBMITTED', 'APPROVED', 'REJECTED', 'CANCELLED'],
+      requisition: ['SUBMITTED', 'CANCELLED'],
+      order: ['SUBMITTED', 'CANCELLED'],
       receipt: ['CANCELLED'],
     };
     if (!allowed[type]?.includes(input.status)) throw new ValidationError(`Invalid ${type} lifecycle transition.`);
@@ -406,11 +406,8 @@ export class ProcurementService {
       if (!current) throw new NotFoundError(`${type} not found.`);
       const currentStatus = String((current as { status?: string } | null)?.status ?? '');
       const transitions: Record<string, Record<string, string[]>> = {
-        requisition: { DRAFT: ['SUBMITTED', 'CANCELLED'], SUBMITTED: ['APPROVED', 'REJECTED', 'CANCELLED'] },
-        order: {
-          DRAFT: ['SUBMITTED', 'CANCELLED'],
-          SUBMITTED: ['APPROVED', 'REJECTED', 'CANCELLED'],
-        },
+        requisition: { DRAFT: ['SUBMITTED', 'CANCELLED'] },
+        order: { DRAFT: ['SUBMITTED', 'CANCELLED'] },
         receipt: { DRAFT: ['CANCELLED'] },
       };
       if (!transitions[type]?.[currentStatus]?.includes(input.status))
