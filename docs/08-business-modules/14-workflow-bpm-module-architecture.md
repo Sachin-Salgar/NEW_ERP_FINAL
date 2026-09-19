@@ -290,6 +290,19 @@ Module-local lifecycle/state transitions are not themselves considered separate 
 
 New modules must integrate with the canonical workflow contracts rather than introducing module-specific approval engines or approval endpoints. Where a domain needs a lifecycle state that the generic workflow outcome model does not yet represent, the domain state must be extended explicitly rather than mapping an unrelated workflow outcome such as RETURN to an incorrect business status.
 
+
+## 20.1 Canonicalization Audit — 2026-09-19
+
+The implementation has been tightened so approval routing is not exposed through module-local approval endpoints or permissions.
+
+- Procurement Requisition and Purchase Order approval/rejection are initiated by submission and, when a published canonical workflow exists, resolved by the Workflow/BPM task decision. Their domain services retain only domain lifecycle operations such as submit and cancel plus the explicit workflow decision callback.
+- Procurement Receipt retains domain completion/cancellation behavior; its former generic `/workflow` endpoint and `purchase.receipt.workflow` permission are removed because it was a module-local transition surface rather than a canonical BPM workflow.
+- Sales Return approval/rejection is exposed through the canonical workflow request/task path. The module retains inspection, processing, closing, and cancellation as domain lifecycle operations. The former direct approve/reject permission surface is removed.
+- Legacy approval permissions are removed by migration `0014_remove_legacy_workflow_permissions.sql`, including existing role assignments to those permissions.
+- New modules must not add `approve`, `reject`, or generic `workflow` endpoints for configurable approvals. They must register a canonical Workflow/BPM operation and a domain callback/handler while keeping domain invariants in the owning module.
+
+This establishes the repository rule: **one canonical Workflow/BPM engine; many domain lifecycle implementations; no module-local configurable approval engine.**
+
 ## 19. Implementation Rules for AI-Assisted Development
 
 AI-assisted implementation must:
