@@ -168,6 +168,18 @@ Remaining blockers and residuals:
 - Purchase returns, RFQ/supplier quotations, vendor invoices, and payment
   processing remain outside Purchase v1 and are not part of this task.
 
+## Workflow/BPM architecture audit — 2026-09-19
+
+- Audited the central Workflow/BPM architecture, ADR-0043, Procurement module architecture, Sales module architecture, Sales Workflow integration specification, and Manufacturing module architecture against the executable branch implementation.
+- **Procurement:** the code removal is aligned with the higher-level Workflow/BPM architecture and ADR-0043. Procurement retains domain lifecycle operations while canonical Workflow/BPM owns configurable approval decisions. The Procurement module architecture's old bounded-implementation text was stale because it still described direct approve/reject transitions and workflow permissions; that documentation has now been reconciled to the canonical engine.
+- **Sales Return:** the direct approve/reject endpoints and permissions were removed. The Sales Return service now requests canonical workflow approval and applies APPROVED/REJECTED through an explicit module callback. The Sales Workflow specification previously said NOT CONNECTED; that was stale relative to approved ADR-0043 and has now been reconciled to the bounded implemented integration.
+- **Manufacturing:** the Work Order Scheduling approval gate already uses the canonical Workflow/BPM engine; no second module-local approval engine was introduced by this change.
+- **Canonical engine:** workflow definitions/instances/tasks/decisions remain in the shared Workflow/BPM layer. Business modules remain authoritative for business state and invariants. The current foundation remains bounded; ADR-0043 capabilities such as parallel approval levels, dynamic routing, delegation, escalation/SLA, and affected-level restart are not claimed implemented.
+- **Legacy approval surface audit:** the removed Procurement and Sales Return approval endpoints/permissions are absent from the branch source/bootstrap fixtures, and migration 0014 removes the legacy permission records. Domain lifecycle transitions and non-approval operations remain module-owned.
+- **Procurement no-workflow behavior:** when no published approval workflow is configured, submission is treated as requiring no approval and the module completes the domain transition to APPROVED. When a published workflow exists, submission remains SUBMITTED until the canonical workflow callback applies the outcome. This preserves configurable approval policy without restoring module-local approval endpoints.
+
+Validation for this audit is **PENDING** until the currently running GitHub Backend CI and Postgres integration workflows complete. The AI Workflow Validation run for the latest documentation commit has already succeeded. Vercel remains an unrelated build-rate-limit/plan failure.
+
 ## Workflow/BPM adoption
 
 - **IMPLEMENTED — canonical engine foundation and bounded integrations.** Manufacturing Work Order Scheduling, Procurement Requisition/Purchase Order approval, and Sales Return approval request/decision integration use the shared Workflow/BPM capability. Module-local approval decision endpoints are not permitted; modules retain only domain lifecycle transitions and explicit workflow integration callbacks.
