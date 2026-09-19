@@ -134,7 +134,7 @@ const procurementRoutes: FastifyPluginAsync = async (f) => {
           id: requestParam(r.params, 'id') ?? '',
         });
         return { success: true, ...(action === 'submit' ? (result.requisition ? result : { requisition: result, workflow: { required: false, approved: true, instance: null } }) : { requisition: result }) };
-      }),
+      }
     );
   f.post(
     '/purchase/purchase-orders',
@@ -195,7 +195,7 @@ const procurementRoutes: FastifyPluginAsync = async (f) => {
           id: requestParam(r.params, 'id') ?? '',
         });
         return { success: true, ...(action === 'submit' ? (result.purchaseOrder ? result : { purchaseOrder: result, workflow: { required: false, approved: true, instance: null } }) : { purchaseOrder: result }) };
-      }),
+      }
     );
   f.post(
     '/purchase/receipts',
