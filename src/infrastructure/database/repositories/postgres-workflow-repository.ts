@@ -16,8 +16,14 @@ export class PostgresWorkflowRepository implements WorkflowRepository {
   return this.tx(c,async db=>{const d=(await db.query('SELECT * FROM workflow_definitions WHERE id=$1 AND tenant_id=$2 FOR UPDATE',[id,c.tenantId])).rows[0];if(!d)throw new NotFoundError('Workflow definition not found.');
    if(!Array.isArray(d.steps)||!d.steps.length)throw new ValidationError('A workflow definition requires at least one approval step.');
    for(const s of d.steps){if(!Number.isInteger(Number(s.step))||Number(s.step)<1||typeof s.roleId!=='string')throw new ValidationError('Workflow steps require positive step numbers and role IDs.');if(Number(s.requiredApprovals??1)<1)throw new ValidationError('Required approvals must be positive.');}
-   const conflict=await db.query('SELECT id FROM workflow_definitions WHERE tenant_id=$1 AND COALESCE(branch_id,$2)=COALESCE($3,$2) AND document_type=$4 AND action=$5 AND status=\'PUBLISHED\' AND id<>$6',[c.tenantId,d.branch_id,d.branch_id,d.document_type,d.action,id]);if(conflict.rowCount)throw new ConflictError('A published workflow already exists for this operation and scope.');
-   await db.query('UPDATE workflow_definitions SET status=\'RETIRED\',updated_at=now(),updated_by=$2 WHERE tenant_id=$1 AND document_type=$3 AND action=$4 AND status=\'PUBLISHED\' AND id<>$5',[c.tenantId,c.userId,d.document_type,d.action,id]);
+   const conflict = d.branch_id===null
+    ? await db.query('SELECT id FROM workflow_definitions WHERE tenant_id=$1 AND branch_id IS NULL AND document_type=$2 AND action=$3 AND status=\\'PUBLISHED\\' AND id<>$4',[c.tenantId,d.document_type,d.action,id])
+    : await db.query('SELECT id FROM workflow_definitions WHERE tenant_id=$1 AND branch_id=$2 AND document_type=$3 AND action=$4 AND status=\\'PUBLISHED\\' AND id<>$5',[c.tenantId,d.branch_id,d.document_type,d.action,id]);
+   if(conflict.rowCount)throw new ConflictError('A published workflow already exists for this operation and scope.');
+   if(d.branch_id===null)
+    await db.query('UPDATE workflow_definitions SET status=\\'RETIRED\\',updated_at=now(),updated_by=$2 WHERE tenant_id=$1 AND branch_id IS NULL AND document_type=$3 AND action=$4 AND status=\\'PUBLISHED\\' AND id<>$5',[c.tenantId,c.userId,d.document_type,d.action,id]);
+   else
+    await db.query('UPDATE workflow_definitions SET status=\\'RETIRED\\',updated_at=now(),updated_by=$2 WHERE tenant_id=$1 AND branch_id=$3 AND document_type=$4 AND action=$5 AND status=\\'PUBLISHED\\' AND id<>$6',[c.tenantId,c.userId,d.branch_id,d.document_type,d.action,id]);
    return (await db.query('UPDATE workflow_definitions SET status=\'PUBLISHED\',updated_at=now(),updated_by=$2 WHERE id=$1 AND tenant_id=$3 RETURNING *',[id,c.userId,c.tenantId])).rows[0];});
  }
  async findPublished(c:WorkflowContext,documentType:string,action:string){
