@@ -8,7 +8,7 @@ describe('Configurable workflow integration',()=>{
   value=await fixture();
   const token=await login(value.app,value.tenantASeed,value.tenantA.tenantId);
   const h=headers(token,value.tenantA.tenantId);
-  const role=(await value.adminPool.query('SELECT id FROM roles WHERE tenant_id=$1 AND is_deleted=false ORDER BY created_at LIMIT 1',[value.tenantA.tenantId])).rows[0];
+  const role=(await value.adminPool.query('SELECT r.id FROM roles r JOIN user_roles ur ON ur.role_id=r.id AND ur.tenant_id=r.tenant_id JOIN users u ON u.id=ur.user_id AND u.tenant_id=ur.tenant_id WHERE r.tenant_id=$1 AND r.is_deleted=false AND u.username=$2 ORDER BY r.created_at LIMIT 1',[value.tenantA.tenantId,value.tenantASeed.administrator.username])).rows[0];
   const item=(await value.app.inject({method:'POST',url:'/api/v1/inventory/items',headers:h,payload:{code:'WF-CI-ITEM',name:'Workflow Item',unitOfMeasure:'EA'}})).json().item;
   const process=(await value.app.inject({method:'POST',url:'/api/v1/manufacturing/process-details',headers:h,payload:{itemId:item.id,revision:'WF-R1',status:'ACTIVE'}})).json().process;
   await value.app.inject({method:'POST',url:`/api/v1/manufacturing/process-details/${process.id}/routing-operations`,headers:h,payload:{sequenceNo:1,operationCode:'OP-10',operationDescription:'Workflow operation'}});
