@@ -569,7 +569,7 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
     permissionKey: `sales.invoice.${action}`,
     displayName: `${action[0].toUpperCase()}${action.slice(1)} invoices`,
   })),
-  ...(['read', 'create', 'update', 'inspect', 'approve', 'reject', 'process', 'cancel', 'close'] as const).map(
+  ...(['read', 'create', 'update', 'inspect', 'approval.request', 'process', 'cancel', 'close'] as const).map(
     (action) => ({
       moduleCode: 'sales',
       resource: 'return',
