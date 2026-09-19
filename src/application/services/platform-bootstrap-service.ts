@@ -57,6 +57,23 @@ const MANUFACTURING_PERMISSIONS: PlatformPermissionSeed[] = [
   { moduleCode: 'manufacturing', resource: 'machine', action: 'create', scope: 'tenant', permissionKey: 'manufacturing.machine.create', displayName: 'Create machines' },
   { moduleCode: 'manufacturing', resource: 'machine', action: 'update', scope: 'tenant', permissionKey: 'manufacturing.machine.update', displayName: 'Update machines' },
   { moduleCode: 'manufacturing', resource: 'machine', action: 'delete', scope: 'tenant', permissionKey: 'manufacturing.machine.delete', displayName: 'Delete machines' },
+  { moduleCode:'manufacturing', resource:'capability', action:'read', scope:'tenant', permissionKey:'manufacturing.capability.read', displayName:'View machine capabilities' },
+  { moduleCode:'manufacturing', resource:'capability', action:'create', scope:'tenant', permissionKey:'manufacturing.capability.create', displayName:'Create machine capabilities' },
+  { moduleCode:'manufacturing', resource:'process', action:'read', scope:'tenant', permissionKey:'manufacturing.process.read', displayName:'View product process details' },
+  { moduleCode:'manufacturing', resource:'process', action:'create', scope:'tenant', permissionKey:'manufacturing.process.create', displayName:'Create product process details and routing' },
+  { moduleCode:'manufacturing', resource:'work_order', action:'read', scope:'tenant', permissionKey:'manufacturing.work_order.read', displayName:'View work orders' },
+  { moduleCode:'manufacturing', resource:'work_order', action:'create', scope:'tenant', permissionKey:'manufacturing.work_order.create', displayName:'Create work orders' },
+  { moduleCode:'manufacturing', resource:'work_order', action:'schedule', scope:'tenant', permissionKey:'manufacturing.work_order.schedule', displayName:'Schedule work orders' },
+  { moduleCode:'manufacturing', resource:'task_sheet', action:'read', scope:'tenant', permissionKey:'manufacturing.task_sheet.read', displayName:'View task sheets' },
+  { moduleCode:'manufacturing', resource:'task_sheet', action:'update', scope:'tenant', permissionKey:'manufacturing.task_sheet.update', displayName:'Update task sheets' },
+  { moduleCode:'manufacturing', resource:'material_requisition', action:'create', scope:'tenant', permissionKey:'manufacturing.material_requisition.create', displayName:'Create material requisitions' },
+  { moduleCode:'manufacturing', resource:'material_requisition', action:'issue', scope:'tenant', permissionKey:'manufacturing.material_requisition.issue', displayName:'Issue manufacturing material' },
+  { moduleCode:'manufacturing', resource:'readiness', action:'execute', scope:'tenant', permissionKey:'manufacturing.readiness.execute', displayName:'Execute machine and tooling readiness gate' },
+  { moduleCode:'manufacturing', resource:'production', action:'punch', scope:'tenant', permissionKey:'manufacturing.production.punch', displayName:'Punch production output' },
+  { moduleCode:'manufacturing', resource:'quality', action:'punch', scope:'tenant', permissionKey:'manufacturing.quality.punch', displayName:'Punch quality output' },
+  { moduleCode:'manufacturing', resource:'material_return', action:'create', scope:'tenant', permissionKey:'manufacturing.material_return.create', displayName:'Create material return notes' },
+  { moduleCode:'manufacturing', resource:'variance', action:'create', scope:'tenant', permissionKey:'manufacturing.variance.create', displayName:'Create rework/rejection variance cost' },
+  { moduleCode:'manufacturing', resource:'variance', action:'read', scope:'tenant', permissionKey:'manufacturing.variance.read', displayName:'View rework/rejection variance cost' },
 ];
 
 const ALL_DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
