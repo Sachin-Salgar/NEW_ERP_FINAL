@@ -6,20 +6,21 @@ class ManufacturingScreen extends StatefulWidget { const ManufacturingScreen({su
 
 class _ManufacturingScreenState extends State<ManufacturingScreen> {
  final s=GetIt.I<ManufacturingService>(); int tab=0;
- final code=TextEditingController(), name=TextEditingController(), machineId=TextEditingController(), opCode=TextEditingController();
+ final code=TextEditingController(), name=TextEditingController(), machineId=TextEditingController(), machineCode=TextEditingController(), opCode=TextEditingController();
  final itemId=TextEditingController(), revision=TextEditingController(), processId=TextEditingController(), woNo=TextEditingController(), qty=TextEditingController();
  final woId=TextEditingController(), taskId=TextEditingController(), warehouseId=TextEditingController(), requisitionLineId=TextEditingController(), requiredQty=TextEditingController(), expectedVersion=TextEditingController(), acceptedQty=TextEditingController(), rejectedQty=TextEditingController(), reworkQty=TextEditingController(), returnedQty=TextEditingController(), toolId=TextEditingController(), fixtureId=TextEditingController(), operationKey=TextEditingController(), returnNo=TextEditingController(), unitCost=TextEditingController(), result=TextEditingController();
  @override void initState(){super.initState();s.refresh();}
- @override void dispose(){for(final c in [code,name,machineId,opCode,itemId,revision,processId,woNo,qty,woId,taskId,warehouseId,requisitionLineId,requiredQty,expectedVersion,acceptedQty,rejectedQty,reworkQty,returnedQty,toolId,fixtureId,operationKey,returnNo,unitCost,result])c.dispose();super.dispose();}
+ @override void dispose(){for(final c in [code,name,machineId,machineCode,opCode,itemId,revision,processId,woNo,qty,woId,taskId,warehouseId,requisitionLineId,requiredQty,expectedVersion,acceptedQty,rejectedQty,reworkQty,returnedQty,toolId,fixtureId,operationKey,returnNo,unitCost,result])c.dispose();super.dispose();}
  Widget f(String label,TextEditingController c)=>Padding(padding:const EdgeInsets.only(bottom:12),child:TextField(controller:c,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder())));
  Future<void> act(Future<dynamic> Function() fn)async{final v=await fn();if(mounted)setState((){});if(v!=null&&mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Operation completed.')));}
  Widget action(String label,IconData icon,Future<dynamic> Function() fn)=>FilledButton.icon(onPressed:()=>act(fn),icon:Icon(icon),label:Text(label));
  @override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:const Text('Manufacturing')),body:Column(children:[
   if(s.error!=null)MaterialBanner(content:Text(s.error!),actions:[TextButton(onPressed:()=>setState(()=>s.error=null),child:const Text('Dismiss'))]),
-  SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:['Capabilities','Process / Routing','Work Orders','Execution'].asMap().entries.map((e)=>Padding(padding:const EdgeInsets.all(4),child:ChoiceChip(label:Text(e.value),selected:tab==e.key,onSelected:(_)=>setState(()=>tab=e.key)))).toList())),
+  SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:['Machines','Capabilities','Process / Routing','Work Orders','Execution'].asMap().entries.map((e)=>Padding(padding:const EdgeInsets.all(4),child:ChoiceChip(label:Text(e.value),selected:tab==e.key,onSelected:(_)=>setState(()=>tab=e.key)))).toList())),
   Expanded(child:Padding(padding:const EdgeInsets.all(16),child:_body())),
  ]));
- Widget _body(){switch(tab){case 0:return _capabilities();case 1:return _process();case 2:return _workOrders();default:return _execution();}}
+ Widget _body(){switch(tab){case 0:return _machines();case 1:return _capabilities();case 2:return _process();case 3:return _workOrders();default:return _execution();}}
+ Widget _machines()=>ListView(children:[const Text('FEAT-009 — Machine / Asset Master',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold)),const SizedBox(height:16),f('Machine Code',machineCode),f('Machine Name',name),f('Status (ACTIVE / INACTIVE / MAINTENANCE)',result),action('Create Machine',Icons.precision_manufacturing,()=>s.createMachine({'code':machineCode.text,'name':name.text,'status':result.text.isEmpty?'ACTIVE':result.text})),const SizedBox(height:20),...s.machines.map((x)=>Card(child:ListTile(leading:const Icon(Icons.precision_manufacturing),title:Text('${x['code']??''} — ${x['name']??''}'),subtitle:Text('Status: ${x['status']??''}'),onTap:()=>setState(()=>machineId.text='${x['id']??''}'))))]);
  Widget _capabilities()=>ListView(children:[
   const Text('FEAT-010 — Machine Capability Matrix',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold)),const SizedBox(height:16),
   f('Machine ID',machineId),f('Operation Code',opCode),f('Capability Name',name),
