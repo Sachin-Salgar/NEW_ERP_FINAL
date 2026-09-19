@@ -300,3 +300,13 @@ AI-assisted implementation must:
 Workflow/BPM is a reusable enterprise orchestration capability within the modular-monolith ERP architecture. The platform owns workflow execution capabilities, while business modules remain authoritative for their domain records and define how those capabilities are used.
 
 The architecture supports configurable workflows, human tasks, approvals, business rules, SLAs, event-driven automation, monitoring, RPA integration, and governed low-code extensions without turning those capabilities into independent business systems or bypassing module ownership.
+
+## 20. Implementation Audit — 2026-09-19
+
+The repository audit distinguishes the documented target architecture from executable implementation. Procurement already contains module-local requisition and purchase-order state-transition endpoints (`workflow`, `submit`, `approve`, `reject`, `cancel`) and downstream approval-state enforcement. Before this change there was no shared executable Workflow/BPM definition/instance/task/decision persistence layer.
+
+This branch now adds the canonical shared workflow foundation in migration 0013 and the corresponding repository/service/HTTP routes. Workflow definitions are tenant-scoped, versioned, publishable, and keyed by document type + action + optional branch scope. Published definitions create sequential role-based approval tasks. Decisions support APPROVE, REJECT, and RETURN; requester self-approval is blocked; duplicate decisions by the same user are blocked; required approval counts and sequential steps are enforced; completed approval invokes a registered domain handler.
+
+Manufacturing Work Order Scheduling is the first bounded integration: when no published workflow exists, scheduling behaves exactly as before; when a published `manufacturing_work_order / SCHEDULE` definition exists, scheduling creates a pending approval instance and does not create the scheduled task sheets until the workflow reaches APPROVED. The approved callback invokes the existing scheduling operation through its normal authorization/service boundary.
+
+This is deliberately not represented as a second manufacturing approval engine. The configurable policy lives in the shared Workflow/BPM layer. Additional domain operations must register an approved-operation handler before a workflow definition can safely gate that operation. Rich expression-based conditional routing, delegation/escalation, SLA timers, notifications, and a dedicated Flutter workflow designer are not claimed as implemented by this slice.
