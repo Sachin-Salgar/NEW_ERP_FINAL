@@ -7,6 +7,9 @@ import { MANUFACTURING_EXECUTION_PERMISSIONS as P } from '../../../application/s
 const ctx=(r:FastifyRequest)=>{if(!r.user?.branchId||!r.user.financialYearId||!r.tenantId)throw new ValidationError('Authenticated branch and financial-year context is required.');return {tenantId:r.tenantId,branchId:r.user.branchId,financialYearId:r.user.financialYearId,userId:r.user.id};};
 const body=(r:FastifyRequest)=>r.body as Record<string,any>;
 const manufacturingExecutionRoutes:FastifyPluginAsync=async fastify=>{
+ fastify.post('/manufacturing/tools',{preHandler:[requireAuth,requirePermission(P.capabilityCreate)]},async(r,reply)=>{reply.code(201);return{success:true,tool:await fastify.manufacturingExecutionService.createTool(ctx(r),body(r))};});
+ fastify.post('/manufacturing/fixtures',{preHandler:[requireAuth,requirePermission(P.capabilityCreate)]},async(r,reply)=>{reply.code(201);return{success:true,fixture:await fastify.manufacturingExecutionService.createFixture(ctx(r),body(r))};});
+ fastify.post('/manufacturing/calibrations',{preHandler:[requireAuth,requirePermission(P.readinessExecute)]},async(r,reply)=>{reply.code(201);return{success:true,calibration:await fastify.manufacturingExecutionService.createCalibration(ctx(r),body(r))};});
  fastify.get('/manufacturing/capabilities',{preHandler:[requireAuth,requirePermission(P.capabilityRead)]},async r=>({success:true,...await fastify.manufacturingExecutionService.listCapabilities(ctx(r),r.query as any)}));
  fastify.post('/manufacturing/capabilities',{preHandler:[requireAuth,requirePermission(P.capabilityCreate)]},async(r,reply)=>{reply.code(201);return{success:true,capability:await fastify.manufacturingExecutionService.createCapability(ctx(r),body(r))};});
  fastify.post('/manufacturing/process-details',{preHandler:[requireAuth,requirePermission(P.processCreate)]},async(r,reply)=>{reply.code(201);return{success:true,process:await fastify.manufacturingExecutionService.createProcess(ctx(r),body(r))};});
