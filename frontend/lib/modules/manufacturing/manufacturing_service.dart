@@ -6,8 +6,12 @@ import '../../core/network/api_client.dart';
 class ManufacturingService extends ChangeNotifier {
  ManufacturingService({required this.apiClient,required this.auth});
  final ApiClient apiClient; final AuthService auth;
- List<Map<String,dynamic>> capabilities=[]; List<Map<String,dynamic>> workOrders=[]; String? error; bool loading=false;
- Future<void> refresh() async {loading=true;error=null;notifyListeners();try{final a=await apiClient.get('/api/v1/manufacturing/capabilities?page=1&page_size=100');final b=await apiClient.get('/api/v1/manufacturing/work-orders?page=1&page_size=100');if(a.statusCode!=200||b.statusCode!=200)throw Exception(_message(a.statusCode!=200?a:b));capabilities=_list(a,'items');workOrders=_list(b,'items');}catch(e){error=e.toString().replaceFirst('Exception: ','');}finally{loading=false;notifyListeners();}}
+ List<Map<String,dynamic>> capabilities=[]; List<Map<String,dynamic>> workOrders=[]; List<Map<String,dynamic>> machines=[]; String? error; bool loading=false;
+ Future<void> refresh() async {loading=true;error=null;notifyListeners();try{final a=await apiClient.get('/api/v1/manufacturing/capabilities?page=1&page_size=100');final b=await apiClient.get('/api/v1/manufacturing/work-orders?page=1&page_size=100');final m=await apiClient.get('/api/v1/manufacturing/machines?page=1&page_size=100');if(a.statusCode!=200||b.statusCode!=200||m.statusCode!=200)throw Exception(_message(a.statusCode!=200?a:b));capabilities=_list(a,'items');workOrders=_list(b,'items');machines=_list(m,'machines');}catch(e){error=e.toString().replaceFirst('Exception: ','');}finally{loading=false;notifyListeners();}}
+ Future<Map<String,dynamic>?> createMachine(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/machines',body,201);
+ Future<Map<String,dynamic>?> createTool(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/tools',body,201);
+ Future<Map<String,dynamic>?> createFixture(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/fixtures',body,201);
+ Future<Map<String,dynamic>?> createCalibration(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/calibrations',body,201);
  Future<Map<String,dynamic>?> createCapability(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/capabilities',body,201);
  Future<Map<String,dynamic>?> createProcess(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/process-details',body,201);
  Future<Map<String,dynamic>?> addRouting(String processId,Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/process-details/'+processId+'/routing-operations',body,201);
