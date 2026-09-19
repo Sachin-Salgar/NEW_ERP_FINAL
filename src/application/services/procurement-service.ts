@@ -210,6 +210,7 @@ export class ProcurementService {
     const version = Number((submitted as any).version ?? i.expectedVersion + 1);
     const workflow = await this.workflow.startIfRequired(c, { documentType: 'purchase_order', action: 'APPROVE', documentId: i.id, documentVersion: version,
       operationKey: 'procurement.purchase-order.approval:' + i.id + ':' + version });
+    if (!workflow.required) throw new ValidationError('No published Procurement approval workflow is configured.');
     return { purchaseOrder: submitted, workflow };
   }
   async createReceipt(
