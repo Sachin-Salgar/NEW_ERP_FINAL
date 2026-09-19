@@ -296,6 +296,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
       returnStock: (context, request) => inventoryService.returnStock(context, request),
     },
   );
+  workflowService.registerApprovedHandler('manufacturing_work_order','SCHEDULE',async (context,instance)=>{ await manufacturingExecutionService.scheduleWorkOrder(context,String(instance.document_id),true); });
   const orderService = new OrderService(
     new PostgresOrderRepository(pool, config.TENANT_CONTEXT_KEY) as any,
     authorizationService,
