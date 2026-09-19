@@ -37,7 +37,14 @@ class _ManufacturingScreenState extends State<ManufacturingScreen> {
   f('Work Order Number',woNo),f('Item ID',itemId),f('Process Detail ID',processId),f('Planned Quantity',qty),
   Row(children:[Expanded(child:action('Create Work Order',Icons.add_task,()=>s.createWorkOrder({'workOrderNumber':woNo.text,'itemId':itemId.text,'processDetailId':processId.text,'plannedQuantity':double.tryParse(qty.text)??0}))),const SizedBox(width:12),Expanded(child:action('Schedule Work Order',Icons.calendar_month,()=>s.scheduleWorkOrder(woId.text)))]),
   const SizedBox(height:20),...s.workOrders.map((x)=>Card(child:ListTile(title:Text((x['work_order_number']??'').toString()),subtitle:Text('Qty '+(x['planned_quantity']??'').toString()+' • '+(x['status']??'').toString()),onTap:()=>setState(()=>woId.text=x['id'].toString())))),
-  const SizedBox(height:12),f('Selected Task Sheet ID',taskId),const Text('Scheduling creates one Task Sheet / Route Card per routing operation. Task execution is protected by the readiness gate.',style:TextStyle(color:Colors.grey)),
+  const SizedBox(height:12),f('Selected Task Sheet ID',taskId),f('Expected Task Version',expectedVersion),
+  Wrap(spacing:8,children:[
+   action('Mark Task READY',Icons.play_circle,()=>s.updateTask(taskId.text,{'status':'READY','expectedVersion':int.tryParse(expectedVersion.text)??1})),
+   action('Start Task',Icons.play_arrow,()=>s.updateTask(taskId.text,{'status':'RUNNING','expectedVersion':int.tryParse(expectedVersion.text)??1})),
+   action('Pause Task',Icons.pause_circle,()=>s.updateTask(taskId.text,{'status':'PAUSED','expectedVersion':int.tryParse(expectedVersion.text)??1})),
+   action('Complete Task',Icons.task_alt,()=>s.updateTask(taskId.text,{'status':'COMPLETED','expectedVersion':int.tryParse(expectedVersion.text)??1})),
+  ]),
+  const Text('Scheduling creates one Task Sheet / Route Card per routing operation. Task execution is protected by the readiness gate.',style:TextStyle(color:Colors.grey)),
  ]);
  Widget _execution()=>ListView(children:[
   const Text('FEAT-003 to FEAT-008 — Manufacturing Execution',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold)),const SizedBox(height:16),
