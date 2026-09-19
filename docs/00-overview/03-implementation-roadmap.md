@@ -168,6 +168,11 @@ Remaining blockers and residuals:
 - Purchase returns, RFQ/supplier quotations, vendor invoices, and payment
   processing remain outside Purchase v1 and are not part of this task.
 
+## Workflow/BPM adoption
+
+- **IMPLEMENTED — canonical engine foundation and bounded integrations.** Manufacturing Work Order Scheduling, Procurement Requisition/Purchase Order approval, and Sales Return approval request/decision integration use the shared Workflow/BPM capability. Module-local approval decision endpoints are not permitted; modules retain only domain lifecycle transitions and explicit workflow integration callbacks.
+- Advanced BPM capabilities defined by ADR-0043 (parallel approval levels, dynamic rule evaluation, delegation, escalation/SLA, affected-level restart, etc.) remain future vertical slices and are not represented as completed functionality.
+
 ## 3. Tenancy, identity and authentication
 
 | Area                                       | Status                               | Current implementation / remaining work                                                                                                                                            |
@@ -251,7 +256,7 @@ Project Management is explicitly removed/deferred and is not an implementation t
 | -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1        | Core Enterprise    | **COMPLETED WITH KNOWN VALIDATION RESIDUAL — READY FOR SALES**                                                                                                                                                        |
 | 2        | Sales              | **PARTIAL — QUOTATION, ORDER, DELIVERY, INVOICE, RETURN, CREDIT NOTE, PRICING, AND DISCOUNT BOUNDED FOUNDATIONS IMPLEMENTED** — [Sales specification package](../08-business-modules/03-sales-module-architecture.md) |
-| 3        | Procurement        | **COMPLETE** — bounded Purchase v1 backend/frontend slice and dedicated API, RLS, transaction, Inventory, idempotency, concurrency, authorization, Flutter, and repository validation are complete.   |
+| 3        | Procurement        | **COMPLETE** — bounded Purchase v1 backend/frontend slice and dedicated API, RLS, transaction, Inventory, idempotency, concurrency, authorization, Flutter, and repository validation are complete; configurable Requisition/Purchase Order approvals now use the canonical Workflow/BPM engine and legacy direct approve/reject endpoints are removed.   |
 | 4        | Inventory          | **PARTIAL — ITEM MASTER, WAREHOUSE, STOCK, RESERVATION, FULFILLMENT, AND RETURN MOVEMENT FOUNDATION IMPLEMENTED; ADVANCED OPERATIONS REMAIN DEFERRED**                                                                |
 | 5        | Manufacturing      | **IMPLEMENTED — Functional Specification v1.4 FEAT-009 through FEAT-011 and FEAT-001 through FEAT-008 execution foundation implemented; configurable Workflow/BPM approval gate integrated for Work Order Scheduling; advanced OEE/analytics, HR, maintenance planning, and broader manufacturing optimization remain outside this slice.**                                                                                                                                                                                                           |
 | 6        | Finance            | **PARTIAL — bounded posting foundation implemented; broader accounting remains pending**                                                                                                                              |
