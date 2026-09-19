@@ -167,6 +167,19 @@ class SalesService extends ChangeNotifier {
     }
   }
 
+  Future<String?> requestReturnApproval(String id, int expectedVersion) async {
+    try {
+      final response = await apiClient.post(
+        '/api/v1/sales/returns/$id/request-approval',
+        body: {'expectedVersion': expectedVersion},
+      );
+      if (response.statusCode == 200) return null;
+      return _message(response);
+    } catch (e) {
+      return e.toString().replaceFirst('Exception: ', '');
+    }
+  }
+
   Future<String?> transitionBoundary(
     String kind,
     String id,
