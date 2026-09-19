@@ -132,6 +132,7 @@ export class SalesReturnService {
     await this.authorize(context, SALES_RETURN_PERMISSIONS[action as keyof typeof SALES_RETURN_PERMISSIONS]);
     this.id(id, 'Return ID');
     this.version(expectedVersion);
+    if (status === 'APPROVED' || status === 'REJECTED') throw new ValidationError('Sales Return approval decisions must be made through the canonical Workflow/BPM engine.');
     if ((status === 'APPROVED' || status === 'REJECTED') && this.workflow) {
       const current = await this.get(context, id);
       if (current.status !== 'INSPECTED') throw new ValidationError('Sales Return cannot transition from ' + current.status + ' to ' + status + '.');
