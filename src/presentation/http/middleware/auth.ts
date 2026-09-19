@@ -57,6 +57,7 @@ declare module 'fastify' {
     salesReportingService: SalesReportingService;
     itemMasterService: ItemMasterService;
     inventoryService: InventoryService;
+    manufacturingMachineService: ManufacturingMachineService;
     procurementService: ProcurementService;
     taxService: TaxService;
     securityAdministrationService: SecurityAdministrationService;
