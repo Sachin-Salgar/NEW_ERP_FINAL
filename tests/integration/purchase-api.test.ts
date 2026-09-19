@@ -58,10 +58,7 @@ describe('Purchase v1 receipt transaction and API hardening', () => {
       payload: { expectedVersion: requisition.version ?? 1 },
     });
     expect(submittedRequisition.statusCode).toBe(200);
-    await value.adminPool.query(
-      `UPDATE procurement_requisitions SET status='APPROVED', version=version+1 WHERE id=$1 AND tenant_id=$2 AND status='SUBMITTED'`,
-      [requisition.id, value.tenantA.tenantId],
-    );
+    expect(submittedRequisition.json().requisition.status).toBe('APPROVED');
 
     const orderResponse = await value.app.inject({
       method: 'POST',
@@ -83,10 +80,7 @@ describe('Purchase v1 receipt transaction and API hardening', () => {
       payload: { expectedVersion: order.version ?? 1 },
     });
     expect(submittedOrder.statusCode).toBe(200);
-    await value.adminPool.query(
-      `UPDATE procurement_purchase_orders SET status='APPROVED', version=version+1 WHERE id=$1 AND tenant_id=$2 AND status='SUBMITTED'`,
-      [order.id, value.tenantA.tenantId],
-    );
+    expect(submittedOrder.json().purchaseOrder.status).toBe('APPROVED');
 
     const operationKey = `purchase-receipt-${itemId}`;
     const receiptResponse = await value.app.inject({
@@ -193,10 +187,8 @@ describe('Purchase v1 receipt transaction and API hardening', () => {
       headers: authA,
       payload: { expectedVersion: 1 },
     });
-    await value.adminPool.query(
-      `UPDATE procurement_purchase_orders SET status='APPROVED', version=version+1 WHERE id=$1 AND tenant_id=$2 AND status='SUBMITTED'`,
-      [orderId, value.tenantA.tenantId],
-    );
+    expect(submitted.statusCode).toBe(200);
+    expect(submitted.json().purchaseOrder.status).toBe('APPROVED');
     const invalidWarehouseId = uuidV7();
     const receipt = await value.app.inject({
       method: 'POST',
