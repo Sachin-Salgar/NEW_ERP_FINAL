@@ -76,7 +76,7 @@ const MANUFACTURING_PERMISSIONS: PlatformPermissionSeed[] = [
   { moduleCode:'manufacturing', resource:'variance', action:'read', scope:'tenant', permissionKey:'manufacturing.variance.read', displayName:'View rework/rejection variance cost' },
 ];
 
-const ALL_DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
+const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
   {
     moduleCode: 'tenant-configuration',
     resource: 'tenant',
