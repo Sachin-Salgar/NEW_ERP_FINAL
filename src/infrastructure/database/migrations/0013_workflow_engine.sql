@@ -1,3 +1,5 @@
+CREATE UNIQUE INDEX IF NOT EXISTS uq_roles_id_tenant_workflow_fk ON public.roles(id,tenant_id);
+
 CREATE TABLE public.workflow_definitions (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
  tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
