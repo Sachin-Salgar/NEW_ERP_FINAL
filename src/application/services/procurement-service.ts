@@ -112,10 +112,17 @@ export class ProcurementService {
         }),
     );
   }
-  transitionRequisition(c: ProcurementContext, input: { id: string; status: string; expectedVersion: number }) {
-    return this.transition(c, PROCUREMENT_PERMISSIONS.requisitionWorkflow, 'requisition', input, (value) =>
-      this.repository.transitionRequisition({ ...c, ...value }),
-    );
+  async applyWorkflowDecision(c: ProcurementContext, input: { id: string; status: 'APPROVED' | 'REJECTED'; expectedVersion: number }) {
+    this.id(input.id, 'Requisition ID');
+    if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) throw new ValidationError('Expected version is required.');
+    if (!(await this.modules.isModuleEnabled(c.tenantId, PROCUREMENT_MODULE_CODE))) throw new ForbiddenError('Procurement module is not enabled.');
+    if (this.authorization.hasBranchAccess && !(await this.authorization.hasBranchAccess(c.tenantId, c.userId, c.branchId))) throw new ForbiddenError('User is not authorized for this branch.');
+    return this.tx.runInTransaction(async () => {
+      const result = await this.repository.transitionRequisition({ ...c, ...input });
+      if (!result) throw new ValidationError('Requisition was modified concurrently or is no longer available.');
+      await this.audit.record({tenantId:c.tenantId,actorUserId:c.userId,action:'procurement.requisition.workflow_decision',resourceType:'purchase_requisition',resourceId:input.id,outcome:'success',metadata:{status:input.status}},{requireTransaction:true});
+      return result;
+    });
   }
   async submitRequisition(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
     const submitted = await this.transition(c, PROCUREMENT_PERMISSIONS.requisitionSubmit, 'requisition', { ...i, status: 'SUBMITTED' },
@@ -171,10 +178,17 @@ export class ProcurementService {
         this.repository.updatePurchaseOrder({ ...c, ...input, orderDate: this.text(input.orderDate, 'Order date') }),
     );
   }
-  transitionPurchaseOrder(c: ProcurementContext, input: { id: string; status: string; expectedVersion: number }) {
-    return this.transition(c, PROCUREMENT_PERMISSIONS.purchaseOrderWorkflow, 'order', input, (value) =>
-      this.repository.transitionPurchaseOrder({ ...c, ...value }),
-    );
+  async applyPurchaseOrderWorkflowDecision(c: ProcurementContext, input: { id: string; status: 'APPROVED' | 'REJECTED'; expectedVersion: number }) {
+    this.id(input.id, 'Purchase order ID');
+    if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) throw new ValidationError('Expected version is required.');
+    if (!(await this.modules.isModuleEnabled(c.tenantId, PROCUREMENT_MODULE_CODE))) throw new ForbiddenError('Procurement module is not enabled.');
+    if (this.authorization.hasBranchAccess && !(await this.authorization.hasBranchAccess(c.tenantId, c.userId, c.branchId))) throw new ForbiddenError('User is not authorized for this branch.');
+    return this.tx.runInTransaction(async () => {
+      const result = await this.repository.transitionPurchaseOrder({ ...c, ...input });
+      if (!result) throw new ValidationError('Purchase order was modified concurrently or is no longer available.');
+      await this.audit.record({tenantId:c.tenantId,actorUserId:c.userId,action:'procurement.purchase_order.workflow_decision',resourceType:'purchase_order',resourceId:input.id,outcome:'success',metadata:{status:input.status}},{requireTransaction:true});
+      return result;
+    });
   }
   async submitPurchaseOrder(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
     const submitted = await this.transition(c, PROCUREMENT_PERMISSIONS.purchaseOrderSubmit, 'order', { ...i, status: 'SUBMITTED' },
