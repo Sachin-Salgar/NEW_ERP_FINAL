@@ -26,7 +26,7 @@ export class ProcurementService {
     private readonly audit: AuditLogger,
     private readonly tx: { runInTransaction<T>(callback: () => Promise<T>): Promise<T> },
     private readonly inventory: InventoryDependencyPort,
-    private readonly workflow: WorkflowService,
+    private readonly workflow?: WorkflowService,
   ) {}
 
   createSupplier(c: ProcurementContext, input: { name: string; code?: string; email?: string }) {
@@ -127,9 +127,14 @@ export class ProcurementService {
       return result;
     });
   }
+  transitionRequisition(c: ProcurementContext, input: { id: string; status: string; expectedVersion: number }) {
+    return this.transition(c, PROCUREMENT_PERMISSIONS.requisitionSubmit, 'requisition', input, (value) => this.repository.transitionRequisition({ ...c, ...value }));
+  }
   async submitRequisition(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
     const submitted = await this.transition(c, PROCUREMENT_PERMISSIONS.requisitionSubmit, 'requisition', { ...i, status: 'SUBMITTED' },
       (v) => this.repository.transitionRequisition({ ...c, ...v }));
+    if (!this.workflow) return submitted;
+    if (!this.workflow) return submitted;
     const version = Number((submitted as any).version ?? i.expectedVersion + 1);
     const workflow = await this.workflow.startIfRequired(c, { documentType: 'purchase_requisition', action: 'APPROVE', documentId: i.id, documentVersion: version,
       operationKey: 'procurement.requisition.approval:' + i.id + ':' + version });
@@ -195,6 +200,9 @@ export class ProcurementService {
       await this.audit.record({tenantId:c.tenantId,actorUserId:c.userId,action:'procurement.purchase_order.workflow_decision',resourceType:'purchase_order',resourceId:input.id,outcome:'success',metadata:{status:input.status}},{requireTransaction:true});
       return result;
     });
+  }
+  transitionPurchaseOrder(c: ProcurementContext, input: { id: string; status: string; expectedVersion: number }) {
+    return this.transition(c, PROCUREMENT_PERMISSIONS.purchaseOrderSubmit, 'order', input, (value) => this.repository.transitionPurchaseOrder({ ...c, ...value }));
   }
   async submitPurchaseOrder(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
     const submitted = await this.transition(c, PROCUREMENT_PERMISSIONS.purchaseOrderSubmit, 'order', { ...i, status: 'SUBMITTED' },
