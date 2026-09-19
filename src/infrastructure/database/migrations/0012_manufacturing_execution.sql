@@ -7,6 +7,7 @@ CREATE TABLE public.manufacturing_tools (
 );
 ALTER TABLE public.manufacturing_tools ADD CONSTRAINT fk_manufacturing_tool_branch_tenant FOREIGN KEY (branch_id,tenant_id) REFERENCES public.branches(id,tenant_id);
 CREATE UNIQUE INDEX uq_manufacturing_tool_code ON public.manufacturing_tools(tenant_id,branch_id,code) WHERE is_deleted=false;
+CREATE UNIQUE INDEX uq_manufacturing_tool_id_tenant ON public.manufacturing_tools(id,tenant_id);
 
 CREATE TABLE public.manufacturing_fixtures (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
@@ -18,6 +19,7 @@ CREATE TABLE public.manufacturing_fixtures (
 );
 ALTER TABLE public.manufacturing_fixtures ADD CONSTRAINT fk_manufacturing_fixture_branch_tenant FOREIGN KEY (branch_id,tenant_id) REFERENCES public.branches(id,tenant_id);
 CREATE UNIQUE INDEX uq_manufacturing_fixture_code ON public.manufacturing_fixtures(tenant_id,branch_id,code) WHERE is_deleted=false;
+CREATE UNIQUE INDEX uq_manufacturing_fixture_id_tenant ON public.manufacturing_fixtures(id,tenant_id);
 
 CREATE TABLE public.manufacturing_calibrations (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
@@ -59,6 +61,7 @@ CREATE TABLE public.manufacturing_process_details (
 ALTER TABLE public.manufacturing_process_details ADD CONSTRAINT fk_process_branch_tenant FOREIGN KEY (branch_id,tenant_id) REFERENCES public.branches(id,tenant_id);
 ALTER TABLE public.manufacturing_process_details ADD CONSTRAINT fk_process_item_tenant FOREIGN KEY (item_id,tenant_id) REFERENCES public.inventory_items(id,tenant_id);
 CREATE UNIQUE INDEX uq_manufacturing_process_revision ON public.manufacturing_process_details(tenant_id,item_id,revision) WHERE is_deleted=false;
+CREATE UNIQUE INDEX uq_manufacturing_process_id_tenant ON public.manufacturing_process_details(id,tenant_id);
 
 CREATE TABLE public.manufacturing_routing_operations (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
@@ -72,6 +75,7 @@ CREATE TABLE public.manufacturing_routing_operations (
 );
 ALTER TABLE public.manufacturing_routing_operations ADD CONSTRAINT fk_routing_process_tenant FOREIGN KEY (process_detail_id,tenant_id) REFERENCES public.manufacturing_process_details(id,tenant_id);
 CREATE UNIQUE INDEX uq_manufacturing_routing_sequence ON public.manufacturing_routing_operations(tenant_id,process_detail_id,sequence_no);
+CREATE UNIQUE INDEX uq_manufacturing_routing_id_tenant ON public.manufacturing_routing_operations(id,tenant_id);
 
 CREATE TABLE public.manufacturing_work_orders (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
@@ -88,6 +92,7 @@ ALTER TABLE public.manufacturing_work_orders ADD CONSTRAINT fk_wo_item_tenant FO
 ALTER TABLE public.manufacturing_work_orders ADD CONSTRAINT fk_wo_process_tenant FOREIGN KEY (process_detail_id,tenant_id) REFERENCES public.manufacturing_process_details(id,tenant_id);
 ALTER TABLE public.manufacturing_work_orders ADD CONSTRAINT fk_wo_customer_tenant FOREIGN KEY (customer_id,tenant_id) REFERENCES public.customers(id,tenant_id);
 CREATE UNIQUE INDEX uq_manufacturing_wo_number ON public.manufacturing_work_orders(tenant_id,work_order_number) WHERE is_deleted=false;
+CREATE UNIQUE INDEX uq_manufacturing_wo_id_tenant ON public.manufacturing_work_orders(id,tenant_id);
 
 CREATE TABLE public.manufacturing_task_sheets (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
@@ -103,6 +108,7 @@ ALTER TABLE public.manufacturing_task_sheets ADD CONSTRAINT fk_task_wo_tenant FO
 ALTER TABLE public.manufacturing_task_sheets ADD CONSTRAINT fk_task_routing_tenant FOREIGN KEY (routing_operation_id,tenant_id) REFERENCES public.manufacturing_routing_operations(id,tenant_id);
 ALTER TABLE public.manufacturing_task_sheets ADD CONSTRAINT fk_task_machine_tenant FOREIGN KEY (machine_id,tenant_id) REFERENCES public.manufacturing_machines(id,tenant_id);
 CREATE UNIQUE INDEX uq_manufacturing_task_operation ON public.manufacturing_task_sheets(tenant_id,work_order_id,routing_operation_id);
+CREATE UNIQUE INDEX uq_manufacturing_task_id_tenant ON public.manufacturing_task_sheets(id,tenant_id);
 
 CREATE TABLE public.manufacturing_material_requisitions (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
@@ -113,6 +119,7 @@ CREATE TABLE public.manufacturing_material_requisitions (
 ALTER TABLE public.manufacturing_material_requisitions ADD CONSTRAINT fk_mr_branch_tenant FOREIGN KEY (branch_id,tenant_id) REFERENCES public.branches(id,tenant_id);
 ALTER TABLE public.manufacturing_material_requisitions ADD CONSTRAINT fk_mr_wo_tenant FOREIGN KEY (work_order_id,tenant_id) REFERENCES public.manufacturing_work_orders(id,tenant_id);
 CREATE UNIQUE INDEX uq_manufacturing_mr_number ON public.manufacturing_material_requisitions(tenant_id,requisition_number);
+CREATE UNIQUE INDEX uq_manufacturing_mr_id_tenant ON public.manufacturing_material_requisitions(id,tenant_id);
 
 CREATE TABLE public.manufacturing_material_requisition_lines (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
@@ -120,6 +127,7 @@ CREATE TABLE public.manufacturing_material_requisition_lines (
  heat_lot_id varchar(120), min_quantity numeric(18,4), max_quantity numeric(18,4),
  CONSTRAINT manufacturing_mr_line_qty CHECK (required_quantity>0 AND issued_quantity>=0 AND issued_quantity<=required_quantity)
 );
+CREATE UNIQUE INDEX uq_manufacturing_mr_line_id_tenant ON public.manufacturing_material_requisition_lines(id,tenant_id);
 ALTER TABLE public.manufacturing_material_requisition_lines ADD CONSTRAINT fk_mr_line_branch_tenant FOREIGN KEY (branch_id,tenant_id) REFERENCES public.branches(id,tenant_id);
 ALTER TABLE public.manufacturing_material_requisition_lines ADD CONSTRAINT fk_mr_line_req_tenant FOREIGN KEY (requisition_id,tenant_id) REFERENCES public.manufacturing_material_requisitions(id,tenant_id);
 ALTER TABLE public.manufacturing_material_requisition_lines ADD CONSTRAINT fk_mr_line_item_tenant FOREIGN KEY (item_id,tenant_id) REFERENCES public.inventory_items(id,tenant_id);
