@@ -46,6 +46,8 @@ Run the repository scanner after significant repository structure changes or bef
 
 Classify the request, identify authoritative documents, inspect relevant ADRs, inspect existing implementation/tests, and establish the smallest evidence boundary.
 
+For workflow/approval changes, also load `.ai/workflows/canonical-workflow-bpm.md` and verify the affected module's authoritative architecture. The canonical Workflow/BPM engine is shared; modules own business state and invariants.
+
 ### C. Decide
 
 If the authoritative material establishes the requirement, proceed. If a required decision is missing or contradictory, stop and ask. Architecture changes go through ADR governance.
