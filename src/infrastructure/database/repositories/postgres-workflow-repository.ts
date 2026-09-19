@@ -1,5 +1,5 @@
 import type { Pool } from 'pg';
-import type { WorkflowRepository, WorkflowContext, WorkflowDefinitionInput, WorkflowDecision, WorkflowStepConfig } from '../../../domain/contracts/workflow.js';
+import type { WorkflowRepository, WorkflowContext, WorkflowDefinitionInput, WorkflowDecision } from '../../../domain/contracts/workflow.js';
 import { withTenantContext } from '../tenant-context.js';
 import { ConflictError, NotFoundError, ValidationError } from '../../../domain/errors.js';
 
