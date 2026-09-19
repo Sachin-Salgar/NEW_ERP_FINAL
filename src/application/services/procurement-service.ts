@@ -381,19 +381,11 @@ export class ProcurementService {
       type === 'requisition'
         ? input.status === 'SUBMITTED'
           ? PROCUREMENT_PERMISSIONS.requisitionSubmit
-          : input.status === 'APPROVED'
-            ? PROCUREMENT_PERMISSIONS.requisitionApprove
-            : input.status === 'REJECTED'
-              ? PROCUREMENT_PERMISSIONS.requisitionReject
-              : PROCUREMENT_PERMISSIONS.requisitionCancel
+          : PROCUREMENT_PERMISSIONS.requisitionCancel
         : type === 'order'
           ? input.status === 'SUBMITTED'
             ? PROCUREMENT_PERMISSIONS.purchaseOrderSubmit
-            : input.status === 'APPROVED'
-              ? PROCUREMENT_PERMISSIONS.purchaseOrderApprove
-              : input.status === 'REJECTED'
-                ? PROCUREMENT_PERMISSIONS.purchaseOrderReject
-                : PROCUREMENT_PERMISSIONS.purchaseOrderCancel
+            : PROCUREMENT_PERMISSIONS.purchaseOrderCancel
           : PROCUREMENT_PERMISSIONS.receiptCancel;
     if (actionPermission !== permission) await this.authorize(c, actionPermission);
     return this.tx.runInTransaction(async () => {
