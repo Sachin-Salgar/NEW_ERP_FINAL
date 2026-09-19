@@ -32,6 +32,17 @@ class _SalesBoundaryDetailsScreenState extends State<SalesBoundaryDetailsScreen>
     });
   }
 
+  Future<void> _requestReturnApproval() async {
+    final expectedVersion = (value?['versionNumber'] as num?)?.toInt() ?? 0;
+    final result = await service.requestReturnApproval(widget.id, expectedVersion);
+    if (!mounted) return;
+    if (result == null) {
+      await _load();
+    } else {
+      setState(() => error = result);
+    }
+  }
+
   Future<void> _transition(String action) async {
     final expectedVersion = (value?['versionNumber'] as num?)?.toInt() ?? 0;
     final result = await service.transitionBoundary(widget.kind, widget.id, action, expectedVersion);
