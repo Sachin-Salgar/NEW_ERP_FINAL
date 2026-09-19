@@ -1,11 +1,10 @@
 CREATE TABLE public.manufacturing_tools (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
  branch_id uuid NOT NULL, code varchar(80) NOT NULL, name varchar(255) NOT NULL, status varchar(20) NOT NULL DEFAULT 'AVAILABLE',
- is_deleted boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now(), created_by uuid, updated_at timestamptz, updated_by uuid,
+ is_deleted boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now(), created_by uuid, updated_at timestamptz, updated_by uuid, deleted_at timestamptz, deleted_by uuid,
  CONSTRAINT manufacturing_tool_status_check CHECK (status IN ('AVAILABLE','IN_USE','MAINTENANCE','INACTIVE')),
  CONSTRAINT manufacturing_tool_soft_delete_check CHECK ((is_deleted=false AND deleted_at IS NULL) OR (is_deleted=true AND deleted_at IS NOT NULL))
 );
-ALTER TABLE public.manufacturing_tools ADD COLUMN deleted_at timestamptz, ADD COLUMN deleted_by uuid;
 ALTER TABLE public.manufacturing_tools ADD CONSTRAINT fk_manufacturing_tool_branch_tenant FOREIGN KEY (branch_id,tenant_id) REFERENCES public.branches(id,tenant_id);
 CREATE UNIQUE INDEX uq_manufacturing_tool_code ON public.manufacturing_tools(tenant_id,branch_id,code) WHERE is_deleted=false;
 
