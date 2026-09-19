@@ -25,6 +25,7 @@ import type { AuditQueryService } from '../../../application/services/audit-quer
 import type { ItemMasterService } from '../../../application/services/item-master-service.js';
 import type { InventoryService } from '../../../application/services/inventory-service.js';
 import type { ProcurementService } from '../../../application/services/procurement-service.js';
+import type { ManufacturingMachineService } from '../../../application/services/manufacturing-machine-service.js';
 import type { ManufacturingExecutionService } from '../../../application/services/manufacturing-execution-service.js';
 import type { TaxService } from '../../../application/services/tax-service.js';
 import type { TenantAdministrationService } from '../../../application/services/tenant-administration-service.js';
