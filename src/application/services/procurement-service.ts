@@ -277,11 +277,6 @@ export class ProcurementService {
       this.repository.updateReceipt({ ...c, ...input, receiptDate: this.text(input.receiptDate, 'Receipt date') }),
     );
   }
-  transitionReceipt(c: ProcurementContext, input: { id: string; status: string; expectedVersion: number }) {
-    return this.transition(c, PROCUREMENT_PERMISSIONS.receiptWorkflow, 'receipt', input, (value) =>
-      this.repository.transitionReceipt({ ...c, ...value }),
-    );
-  }
   completeReceipt(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
     this.id(i.id, 'Receipt ID');
     return this.tx.runInTransaction(async () => {
