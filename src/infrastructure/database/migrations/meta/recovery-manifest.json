@@ -1,6 +1,7 @@
 {
   "version": 1,
   "migrations": {
+    "0014_remove_legacy_workflow_permissions": { "strategy": "forward-only-security", "destructiveDownAllowed": false, "note": "Removes legacy module-local approval permissions and role assignments after migration to the canonical Workflow/BPM engine." },
     "0013_workflow_engine": { "strategy": "restore-backup", "destructiveDownAllowed": false, "note": "Workflow definitions, instances, tasks, and decisions are restored from backup; no destructive down migration." },
     "0000_core_platform": {
       "strategy": "restore-backup",
