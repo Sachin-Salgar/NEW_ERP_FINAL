@@ -4,8 +4,6 @@ import type { ManufacturingExecutionRepository } from '../../../domain/contracts
 import { withTenantContext } from '../tenant-context.js';
 import { ValidationError, ConflictError, NotFoundError } from '../../../domain/errors.js';
 
-const map=(r:any)=>r ? {...r, plannedQuantity:r.plannedQuantity==null?undefined:Number(r.plannedQuantity), quantity:r.quantity==null?undefined:Number(r.quantity)} : null;
-
 export class PostgresManufacturingExecutionRepository implements ManufacturingExecutionRepository {
  constructor(private readonly pool:Pool, private readonly tenantContextKey='app.current_tenant_id'){}
  private tx(tenantId:string, actorUserId:string|undefined, cb:any){ return withTenantContext(this.pool,this.tenantContextKey,tenantId,cb,{userId:actorUserId}); }
