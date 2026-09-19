@@ -18,6 +18,7 @@ class ManufacturingService extends ChangeNotifier {
  Future<Map<String,dynamic>?> punchQuality(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/quality-output',body,201);
  Future<Map<String,dynamic>?> materialReturn(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/material-returns',body,201);
  Future<Map<String,dynamic>?> variance(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/variance-costs',body,201);
+ Future<Map<String,dynamic>?> updateTask(String id,Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/task-sheets/'+id+'/status',body,200);
  Future<Map<String,dynamic>?> materialRequisition(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/material-requisitions',body,201);
  Future<Map<String,dynamic>?> issueMaterial(Map<String,dynamic> body) async=>_mutate('/api/v1/manufacturing/material-requisitions/issue',body,200);
  Future<Map<String,dynamic>?> _mutate(String path,Map<String,dynamic> body,int expected) async{try{final response=await apiClient.post(path,body:body);if(response.statusCode!=expected){error=_message(response);notifyListeners();return null;}error=null;notifyListeners();return jsonDecode(response.body) as Map<String,dynamic>;}catch(e){error=e.toString().replaceFirst('Exception: ','');notifyListeners();return null;}}
