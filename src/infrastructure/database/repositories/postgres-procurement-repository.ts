@@ -384,9 +384,6 @@ export class PostgresProcurementRepository implements ProcurementRepository {
   async listReceipts(c: ProcurementContext, page: number, pageSize: number) {
     return this.list(c, 'procurement_receipts', page, pageSize, 'created_at');
   }
-  async transitionReceipt(c: ProcurementContext & { id: string; status: string; expectedVersion: number }) {
-    return this.transition(c, 'procurement_receipts', c.id, c.status, c.expectedVersion);
-  }
   private async insertLines(
     db: { query: (sql: string, values?: unknown[]) => Promise<unknown> },
     table: string,
