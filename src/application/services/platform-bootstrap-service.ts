@@ -641,5 +641,5 @@ export class PlatformBootstrapService {
 export const DEFAULT_PLATFORM_SEED = {
   subscriptionPlans: DEFAULT_SUBSCRIPTION_PLANS,
   modules: DEFAULT_MODULES,
-  permissions: DEFAULT_PERMISSIONS,
+  permissions: ALL_DEFAULT_PERMISSIONS,
 };
