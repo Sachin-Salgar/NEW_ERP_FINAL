@@ -173,11 +173,11 @@ async function main() {
           [id, tenantId, defaultBranchId, username, email, passwordHash],
         );
         await client.query(
-          `INSERT INTO identity_credentials (identity_id, provider, credential_type, secret_hash, password_changed_at, status)
-           SELECT u.identity_id, 'local', 'password', $1, NOW(), 'active'
+          `INSERT INTO identity_credentials (identity_id, provider, credential_type, secret_hash, password_changed_at, failed_attempt_count, locked_until, status)
+           SELECT u.identity_id, 'local', 'password', $1, NOW(), 0, NULL, 'active'
            FROM users u WHERE u.id = $2
            ON CONFLICT (identity_id, provider, credential_type)
-           DO UPDATE SET secret_hash = EXCLUDED.secret_hash, password_changed_at = NOW(), status = 'active', updated_at = NOW()`,
+           DO UPDATE SET secret_hash = EXCLUDED.secret_hash, password_changed_at = NOW(), failed_attempt_count = 0, locked_until = NULL, status = 'active', updated_at = NOW()`,
           [passwordHash, id],
         );
       }
