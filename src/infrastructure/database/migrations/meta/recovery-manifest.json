@@ -57,12 +57,12 @@
       "note": "Adds single-use pending login challenge storage for pre-session context selection without tenant-scoped user access. Recovery is forward-only or restore from backup."
     },
     "0011_manufacturing_machine_master": {
-      "strategy": "forward-only-domain",
+      "strategy": "restore-backup",
       "destructiveDownAllowed": false,
       "note": "Adds tenant/branch-safe Machine Master foundation for Functional Specification v1.4."
     },
     "0012_manufacturing_execution": {
-      "strategy": "forward-only-domain",
+      "strategy": "restore-backup",
       "destructiveDownAllowed": false,
       "note": "Adds machine capability, process/routing, work order, task sheet, material requisition, readiness, production, quality, material return and variance cost records."
     }
