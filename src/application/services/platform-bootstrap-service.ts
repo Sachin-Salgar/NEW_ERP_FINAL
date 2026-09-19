@@ -611,12 +611,12 @@ export class PlatformBootstrapService {
   async seedReferenceData(): Promise<ReferenceDataSummary> {
     await this.repository.seedSubscriptionPlans(DEFAULT_SUBSCRIPTION_PLANS);
     await this.repository.seedModules(DEFAULT_MODULES);
-    await this.repository.seedPermissions(DEFAULT_PERMISSIONS);
+    await this.repository.seedPermissions(ALL_DEFAULT_PERMISSIONS);
     await this.repository.seedPlatformAuthorization();
     return {
       subscriptionPlans: DEFAULT_SUBSCRIPTION_PLANS.length,
       modules: DEFAULT_MODULES.length,
-      permissions: DEFAULT_PERMISSIONS.length,
+      permissions: ALL_DEFAULT_PERMISSIONS.length,
     };
   }
 }
