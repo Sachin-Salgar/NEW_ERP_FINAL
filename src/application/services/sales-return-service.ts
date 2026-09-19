@@ -128,19 +128,8 @@ export class SalesReturnService {
     return value;
   }
   async transition(context: SalesReturnContext, id: string, status: SalesReturnStatus, expectedVersion: number) {
-    const action =
-      status === 'INSPECTED'
-        ? 'inspect'
-        : status === 'APPROVED'
-          ? 'approve'
-          : status === 'REJECTED'
-            ? 'reject'
-            : status === 'PROCESSED'
-              ? 'process'
-              : status === 'CLOSED'
-                ? 'close'
-                : 'cancel';
-    await this.authorize(context, SALES_RETURN_PERMISSIONS[action]);
+    const action = status === 'INSPECTED' ? 'inspect' : status === 'PROCESSED' ? 'process' : status === 'CLOSED' ? 'close' : 'cancel';
+    await this.authorize(context, SALES_RETURN_PERMISSIONS[action as keyof typeof SALES_RETURN_PERMISSIONS]);
     this.id(id, 'Return ID');
     this.version(expectedVersion);
     if ((status === 'APPROVED' || status === 'REJECTED') && this.workflow) {
@@ -209,6 +198,17 @@ export class SalesReturnService {
       );
       return value;
     });
+  }
+  async requestApproval(context: SalesReturnContext, id: string, expectedVersion: number) {
+    await this.authorize(context, SALES_RETURN_PERMISSIONS.approvalRequest);
+    this.id(id, 'Return ID');
+    this.version(expectedVersion);
+    if (!this.workflow) throw new ValidationError('Canonical workflow service is not configured.');
+    const current = await this.get(context, id);
+    if (current.status !== 'INSPECTED') throw new ValidationError('Sales Return must be INSPECTED before approval can be requested.');
+    const workflow = await this.workflow.startIfRequired(context, {documentType:'sales_return',action:'APPROVE',documentId:id,documentVersion:expectedVersion,operationKey:'sales-return.approval:' + id + ':' + expectedVersion});
+    if (!workflow.required) throw new ValidationError('No published workflow is configured for Sales Return approval.');
+    return Object.assign({}, current, { pendingApproval: true, workflow }) as any;
   }
   async applyWorkflowDecision(context: SalesReturnContext, input: { id: string; status: 'APPROVED' | 'REJECTED'; expectedVersion: number }) {
     this.id(input.id, 'Return ID');
