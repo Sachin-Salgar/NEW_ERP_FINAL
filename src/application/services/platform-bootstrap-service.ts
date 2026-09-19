@@ -526,16 +526,12 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
       ['order', 'create'],
       ['order', 'update'],
       ['order', 'submit'],
-      ['order', 'approve'],
-      ['order', 'reject'],
       ['order', 'cancel'],
-      ['order', 'workflow'],
       ['receipt', 'read'],
       ['receipt', 'create'],
       ['receipt', 'update'],
       ['receipt', 'complete'],
       ['receipt', 'cancel'],
-      ['receipt', 'workflow'],
     ] as const
   ).map(([resource, action]) => ({
     moduleCode: 'purchase',
