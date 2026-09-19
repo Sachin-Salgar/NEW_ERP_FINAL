@@ -29,6 +29,6 @@ describe('Manufacturing Functional Specification execution proof',()=>{
   const ready=await value.app.inject({method:'POST',url:'/api/v1/manufacturing/readiness/check',headers:h,payload:{taskSheetId:taskId,machineId,capabilityValue:50}});expect(ready.statusCode).toBe(200);expect(ready.json().readiness.passed).toBe(true);
   const output=await value.app.inject({method:'POST',url:'/api/v1/manufacturing/production-output',headers:h,payload:{taskSheetId:taskId,quantity:10,outputType:'GOOD',operationKey:'CI-WO-001-OP-10'}});expect(output.statusCode).toBe(201);
   const quality=await value.app.inject({method:'POST',url:'/api/v1/manufacturing/quality-output',headers:h,payload:{taskSheetId:taskId,inspectedQuantity:10,acceptedQuantity:9,rejectedQuantity:1,reworkQuantity:0,returnedQuantity:0}});expect(quality.statusCode).toBe(201);
-  const badQuality=await value.app.inject({method:'POST',url:'/api/v1/manufacturing/quality-output',headers:h,payload:{taskSheetId,inspectedQuantity:1,acceptedQuantity:1,rejectedQuantity:1,reworkQuantity:0,returnedQuantity:0}});expect(badQuality.statusCode).toBe(400);
+  const badQuality=await value.app.inject({method:'POST',url:'/api/v1/manufacturing/quality-output',headers:h,payload:{taskSheetId:taskId,inspectedQuantity:1,acceptedQuantity:1,rejectedQuantity:1,reworkQuantity:0,returnedQuantity:0}});expect(badQuality.statusCode).toBe(400);
  });
 });
