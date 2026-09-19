@@ -25,6 +25,7 @@ import { DiscountService } from '../../application/services/discount-service.js'
 import { SalesReportingService } from '../../application/services/sales-reporting-service.js';
 import { ItemMasterService } from '../../application/services/item-master-service.js';
 import { InventoryService } from '../../application/services/inventory-service.js';
+import { ManufacturingMachineService } from '../../application/services/manufacturing-machine-service.js';
 import { ProcurementService } from '../../application/services/procurement-service.js';
 import { TaxService } from '../../application/services/tax-service.js';
 import { SecurityAdministrationService } from '../../application/services/security-administration-service.js';
@@ -52,6 +53,7 @@ import { PostgresPricingRepository } from '../../infrastructure/database/reposit
 import { PostgresDiscountRepository } from '../../infrastructure/database/repositories/postgres-discount-repository.js';
 import { PostgresItemMasterRepository } from '../../infrastructure/database/repositories/postgres-item-master-repository.js';
 import { PostgresInventoryRepository } from '../../infrastructure/database/repositories/postgres-inventory-repository.js';
+import { PostgresManufacturingMachineRepository } from '../../infrastructure/database/repositories/postgres-manufacturing-machine-repository.js';
 import { PostgresProcurementRepository } from '../../infrastructure/database/repositories/postgres-procurement-repository.js';
 import { PostgresNotificationService } from '../../infrastructure/database/repositories/postgres-operational-services.js';
 import { AccountSecurityNotificationAdapter } from '../../application/adapters/account-security-notifications.js';
@@ -83,6 +85,7 @@ import discountRoutes from './routes/discount.js';
 import salesReportingRoutes from './routes/sales-reporting.js';
 import itemMasterRoutes from './routes/item-master.js';
 import inventoryRoutes from './routes/inventory.js';
+import manufacturingMachineRoutes from './routes/manufacturing-machines.js';
 import procurementRoutes from './routes/procurement.js';
 import taxRoutes from './routes/tax.js';
 import rbacRoutes from './routes/rbac.js';
@@ -246,6 +249,13 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   );
   const inventoryService = new InventoryService(
     new PostgresInventoryRepository(pool, config.TENANT_CONTEXT_KEY) as any,
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+    transactionRunner,
+  );
+  const manufacturingMachineService = new ManufacturingMachineService(
+    new PostgresManufacturingMachineRepository(pool, config.TENANT_CONTEXT_KEY),
     authorizationService,
     moduleAccessService,
     auditLogger,
@@ -467,6 +477,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('salesReportingService', salesReportingService);
   app.decorate('itemMasterService', itemMasterService);
   app.decorate('inventoryService', inventoryService);
+  app.decorate('manufacturingMachineService', manufacturingMachineService);
   app.decorate('procurementService', procurementService);
   app.decorate('taxService', taxService);
 
@@ -576,6 +587,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(salesReportingRoutes, { prefix: config.API_PREFIX });
   await app.register(itemMasterRoutes, { prefix: config.API_PREFIX });
   await app.register(inventoryRoutes, { prefix: config.API_PREFIX });
+  await app.register(manufacturingMachineRoutes, { prefix: config.API_PREFIX });
   await app.register(procurementRoutes, { prefix: config.API_PREFIX });
   await app.register(taxRoutes, { prefix: config.API_PREFIX });
   return app;
