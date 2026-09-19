@@ -295,8 +295,13 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
         inventoryService.fulfill(context, reservationId, idempotencyKey),
       returnStock: (context, request) => inventoryService.returnStock(context, request),
     },
+    workflowService,
   );
   workflowService.registerApprovedHandler('manufacturing_work_order','SCHEDULE',async (context,instance)=>{ await manufacturingExecutionService.scheduleWorkOrder(context,String(instance.document_id),true); });
+  workflowService.registerDecisionHandler('purchase_requisition','APPROVE','APPROVED',async (context,instance)=>{ await procurementService.transitionRequisition(context,{id:String(instance.document_id),status:'APPROVED',expectedVersion:Number(instance.document_version)}); });
+  workflowService.registerDecisionHandler('purchase_requisition','APPROVE','REJECTED',async (context,instance)=>{ await procurementService.transitionRequisition(context,{id:String(instance.document_id),status:'REJECTED',expectedVersion:Number(instance.document_version)}); });
+  workflowService.registerDecisionHandler('purchase_order','APPROVE','APPROVED',async (context,instance)=>{ await procurementService.transitionPurchaseOrder(context,{id:String(instance.document_id),status:'APPROVED',expectedVersion:Number(instance.document_version)}); });
+  workflowService.registerDecisionHandler('purchase_order','APPROVE','REJECTED',async (context,instance)=>{ await procurementService.transitionPurchaseOrder(context,{id:String(instance.document_id),status:'REJECTED',expectedVersion:Number(instance.document_version)}); });
   const orderService = new OrderService(
     new PostgresOrderRepository(pool, config.TENANT_CONTEXT_KEY) as any,
     authorizationService,
