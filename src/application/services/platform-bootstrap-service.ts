@@ -621,7 +621,15 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
   },
 ];
 
-const ALL_DEFAULT_PERMISSIONS = [...DEFAULT_PERMISSIONS, ...MANUFACTURING_PERMISSIONS];
+const WORKFLOW_PERMISSIONS: PlatformPermissionSeed[] = ([
+  ['definition','read','workflow.definition.read','View workflow definitions'],
+  ['definition','create','workflow.definition.create','Create workflow definitions'],
+  ['definition','publish','workflow.definition.publish','Publish workflow definitions'],
+  ['task','read','workflow.task.read','View workflow approval tasks'],
+  ['task','decide','workflow.task.decide','Decide workflow approval tasks'],
+] as const).map(([resource,action,permissionKey,displayName])=>({moduleCode:'core',resource,action,scope:'tenant' as const,permissionKey,displayName}));
+
+const ALL_DEFAULT_PERMISSIONS = [...DEFAULT_PERMISSIONS, ...MANUFACTURING_PERMISSIONS, ...WORKFLOW_PERMISSIONS];
 
 export class PlatformBootstrapService {
   constructor(private readonly repository: PlatformBootstrapRepository) {}
