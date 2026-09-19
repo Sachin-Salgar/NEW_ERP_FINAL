@@ -833,6 +833,7 @@ export const manufacturingMachines = pgTable(
   },
   table => ({
     uqManufacturingMachineIdTenant: uniqueIndex('uq_manufacturing_machine_id_tenant').on(table.id, table.tenantId),
+    fkManufacturingMachineBranchTenant: foreignKey({ columns: [table.branchId, table.tenantId], foreignColumns: [branches.id, branches.tenantId], name: 'fk_manufacturing_machine_branch_tenant' }),
     uqManufacturingMachineCodeActive: uniqueIndex('uq_manufacturing_machine_code_active').on(table.tenantId, table.branchId, table.code).where(sql`${table.isDeleted} = false`),
     idxManufacturingMachineList: index('idx_manufacturing_machine_list').on(table.tenantId, table.branchId, table.status, table.code, table.id).where(sql`${table.isDeleted} = false`),
     checkManufacturingMachineStatus: check('manufacturing_machine_status_check', sql`${table.status} IN ('ACTIVE','INACTIVE','MAINTENANCE')`),
