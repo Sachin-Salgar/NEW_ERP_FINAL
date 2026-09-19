@@ -134,8 +134,6 @@ const procurementRoutes: FastifyPluginAsync = async (f) => {
   );
   for (const [action, permission, method] of [
     ['submit', 'purchase.requisition.submit', 'submitRequisition'],
-    ['approve', 'purchase.requisition.approve', 'approveRequisition'],
-    ['reject', 'purchase.requisition.reject', 'rejectRequisition'],
     ['cancel', 'purchase.requisition.cancel', 'cancelRequisition'],
   ] as const)
     f.post(
@@ -208,8 +206,6 @@ const procurementRoutes: FastifyPluginAsync = async (f) => {
   );
   for (const [action, permission, method] of [
     ['submit', 'purchase.order.submit', 'submitPurchaseOrder'],
-    ['approve', 'purchase.order.approve', 'approvePurchaseOrder'],
-    ['reject', 'purchase.order.reject', 'rejectPurchaseOrder'],
     ['cancel', 'purchase.order.cancel', 'cancelPurchaseOrder'],
   ] as const)
     f.post(
