@@ -3,7 +3,7 @@ import type { AuditLogger } from '../contracts/audit.js';
 import type { AuthorizationService } from './authorization-service.js';
 import type { ModuleAccessService } from './module-access-service.js';
 import type { ManufacturingExecutionRepository } from '../../domain/contracts/manufacturing-execution.js';
-import { ForbiddenError, NotFoundError, ValidationError } from '../../domain/errors.js';
+import { ForbiddenError, ValidationError } from '../../domain/errors.js';
 
 export const MANUFACTURING_EXECUTION_PERMISSIONS = {
  capabilityRead:'manufacturing.capability.read', capabilityCreate:'manufacturing.capability.create',
