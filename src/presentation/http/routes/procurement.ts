@@ -240,17 +240,6 @@ const procurementRoutes: FastifyPluginAsync = async (f) => {
     }),
   );
   f.post(
-    '/purchase/receipts/:id/workflow',
-    { preHandler: [requireAuth, requirePermission('purchase.receipt.workflow')] },
-    async (r) => ({
-      success: true,
-      receipt: await f.procurementService.transitionReceipt(ctx(r), {
-        ...(r.body as any),
-        id: requestParam(r.params, 'id') ?? '',
-      }),
-    }),
-  );
-  f.post(
     '/purchase/receipts/:id/complete',
     { preHandler: [requireAuth, requirePermission('purchase.receipt.complete')] },
     async (r) => ({
