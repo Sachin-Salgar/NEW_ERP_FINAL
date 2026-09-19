@@ -20,7 +20,6 @@ export const PROCUREMENT_PERMISSIONS = {
   receiptUpdate: 'purchase.receipt.update',
   receiptComplete: 'purchase.receipt.complete',
   receiptCancel: 'purchase.receipt.cancel',
-  receiptWorkflow: 'purchase.receipt.workflow',
 } as const;
 
 export type ProcurementPermission = (typeof PROCUREMENT_PERMISSIONS)[keyof typeof PROCUREMENT_PERMISSIONS];
