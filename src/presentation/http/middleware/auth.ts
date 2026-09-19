@@ -144,6 +144,8 @@ function moduleCodeForPermission(permissionKey: string): string {
       return 'sales';
     case 'sales':
       return 'sales';
+    case 'workflow':
+      return 'core';
     default:
       return prefix;
   }
