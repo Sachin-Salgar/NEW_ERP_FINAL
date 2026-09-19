@@ -121,17 +121,6 @@ const procurementRoutes: FastifyPluginAsync = async (f) => {
       }),
     }),
   );
-  f.post(
-    '/purchase/requisitions/:id/workflow',
-    { preHandler: [requireAuth, requirePermission('purchase.requisition.workflow')] },
-    async (r) => ({
-      success: true,
-      requisition: await f.procurementService.transitionRequisition(ctx(r), {
-        ...(r.body as any),
-        id: requestParam(r.params, 'id') ?? '',
-      }),
-    }),
-  );
   for (const [action, permission, method] of [
     ['submit', 'purchase.requisition.submit', 'submitRequisition'],
     ['cancel', 'purchase.requisition.cancel', 'cancelRequisition'],
@@ -188,17 +177,6 @@ const procurementRoutes: FastifyPluginAsync = async (f) => {
     async (r) => ({
       success: true,
       purchaseOrder: await f.procurementService.updatePurchaseOrder(ctx(r), {
-        ...(r.body as any),
-        id: requestParam(r.params, 'id') ?? '',
-      }),
-    }),
-  );
-  f.post(
-    '/purchase/purchase-orders/:id/workflow',
-    { preHandler: [requireAuth, requirePermission('purchase.order.workflow')] },
-    async (r) => ({
-      success: true,
-      purchaseOrder: await f.procurementService.transitionPurchaseOrder(ctx(r), {
         ...(r.body as any),
         id: requestParam(r.params, 'id') ?? '',
       }),
