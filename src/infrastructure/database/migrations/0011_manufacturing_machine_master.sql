@@ -33,6 +33,7 @@ CREATE TABLE public.manufacturing_machines (
   CONSTRAINT manufacturing_machine_power_check CHECK (power IS NULL OR power >= 0),
   CONSTRAINT manufacturing_machine_soft_delete_check CHECK ((is_deleted = false AND deleted_at IS NULL) OR (is_deleted = true AND deleted_at IS NOT NULL))
 );
+ALTER TABLE public.manufacturing_machines ADD CONSTRAINT fk_manufacturing_machine_branch_tenant FOREIGN KEY (branch_id, tenant_id) REFERENCES public.branches(id, tenant_id);
 ALTER TABLE public.manufacturing_machines ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.manufacturing_machines FORCE ROW LEVEL SECURITY;
 CREATE UNIQUE INDEX uq_manufacturing_machine_id_tenant ON public.manufacturing_machines(id, tenant_id);
