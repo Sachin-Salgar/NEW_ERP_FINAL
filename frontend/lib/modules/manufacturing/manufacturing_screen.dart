@@ -20,7 +20,49 @@ class _ManufacturingScreenState extends State<ManufacturingScreen> {
   Expanded(child:Padding(padding:const EdgeInsets.all(16),child:_body())),
  ]));
  Widget _body(){switch(tab){case 0:return _machines();case 1:return _capabilities();case 2:return _process();case 3:return _workOrders();default:return _execution();}}
- Widget _machines()=>ListView(children:[const Text('FEAT-009 — Machine / Asset Master',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold)),const SizedBox(height:16),f('Machine Code',machineCode),f('Machine Name',name),f('Status (ACTIVE / INACTIVE / MAINTENANCE)',result),action('Create Machine',Icons.precision_manufacturing,()=>s.createMachine({'code':machineCode.text,'name':name.text,'status':result.text.isEmpty?'ACTIVE':result.text})),const SizedBox(height:20),...s.machines.map((x)=>Card(child:ListTile(leading:const Icon(Icons.precision_manufacturing),title:Text('${x['code']??''} — ${x['name']??''}'),subtitle:Text('Status: ${x['status']??''}'),onTap:()=>setState(()=>machineId.text='${x['id']??''}'))))]);
+ Widget _machines()=>ListView(children:[
+  const Text('Machine / Asset Master',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold)),
+  const SizedBox(height:8),
+  const Text('Branch-scoped machine master with optimistic versioning and soft-delete.',style:TextStyle(color:Colors.grey)),
+  const SizedBox(height:16),
+  f('Machine Code',machineCode),f('Machine Name',name),f('Serial Number',result),
+  f('Model',opCode),f('Manufacturer',code),f('Manufacture Year',revision),
+  f('Section',processId),f('Division',returnNo),f('Operational Group',warehouseId),
+  f('Capacity',qty),f('Capacity UOM',requiredQty),f('Power',unitCost),
+  f('Power UOM',acceptedQty),
+  DropdownButtonFormField<String>(initialValue: result.text.isEmpty?'ACTIVE':result.text,decoration:const InputDecoration(labelText:'Status',border:OutlineInputBorder()),items:const [DropdownMenuItem(value:'ACTIVE',child:Text('ACTIVE')),DropdownMenuItem(value:'INACTIVE',child:Text('INACTIVE')),DropdownMenuItem(value:'MAINTENANCE',child:Text('MAINTENANCE'))],onChanged:(v){if(v!=null)setState(()=>result.text=v);}),
+  const SizedBox(height:12),
+  Row(children:[Expanded(child:action('Create Machine',Icons.add,()=>s.createMachine({
+    'code':machineCode.text,'name':name.text,'serialNumber':result.text.isEmpty?null:result.text,
+    'model':opCode.text.isEmpty?null:opCode.text,'manufacturer':code.text.isEmpty?null:code.text,
+    'manufactureYear':int.tryParse(revision.text),'section':processId.text.isEmpty?null:processId.text,
+    'division':returnNo.text.isEmpty?null:returnNo.text,'operationalGroup':warehouseId.text.isEmpty?null:warehouseId.text,
+    'capacity':double.tryParse(qty.text),'capacityUom':requiredQty.text.isEmpty?null:requiredQty.text,
+    'power':double.tryParse(unitCost.text),'powerUom':acceptedQty.text.isEmpty?null:acceptedQty.text,
+    'status':result.text.isEmpty?'ACTIVE':result.text,'cutTimeApplicable':true,'productionMachine':true,
+  }))),const SizedBox(width:12),OutlinedButton.icon(onPressed:()=>s.refresh(),icon:const Icon(Icons.refresh),label:const Text('Refresh'))]),
+  const SizedBox(height:20),
+  if(s.machines.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(16),child:Text('No machines found.'))),
+  ...s.machines.map((x)=>Card(child:ListTile(
+    leading:const Icon(Icons.precision_manufacturing),
+    title:Text((x['code']??'').toString()+' — '+(x['name']??'').toString()),
+    subtitle:Text('Status: '+(x['status']??'').toString()+' • Version: '+(x['version']??'').toString()+' • Serial: '+(x['serialNumber']??'').toString()),
+    onTap:()=>_machineActions(x),
+  ))),
+ ]);
+ Future<void> _machineActions(Map<String,dynamic> machine) async {
+  final id='${machine['id']}';
+  final selected=await showModalBottomSheet<String>(context:context,builder:(context)=>SafeArea(child:Wrap(children:[
+    ListTile(leading:const Icon(Icons.visibility_outlined),title:const Text('Load machine details'),onTap:()=>Navigator.pop(context,'view')),
+    if(s.auth.hasPermission('manufacturing.machine.update'))ListTile(leading:const Icon(Icons.edit_outlined),title:const Text('Edit machine'),onTap:()=>Navigator.pop(context,'edit')),
+    if(s.auth.hasPermission('manufacturing.machine.delete'))ListTile(leading:const Icon(Icons.delete_outline),title:const Text('Soft delete machine'),onTap:()=>Navigator.pop(context,'delete')),
+  ])));
+  if(!mounted||selected==null)return;
+  if(selected=='view'){final detail=await s.getMachine(id);if(!mounted)return;showDialog(context:context,builder:(_)=>AlertDialog(title:Text((detail?['name']??machine['name']??'Machine').toString()),content:SingleChildScrollView(child:Text(detail.toString())),actions:[TextButton(onPressed:()=>Navigator.pop(context),child:const Text('Close'))]));}
+  if(selected=='delete'){final ok=await showDialog<bool>(context:context,builder:(_)=>AlertDialog(title:const Text('Delete machine?'),content:const Text('This performs a backend soft delete. The current version is required.'),actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('Delete'))]));if(ok==true){await s.deleteMachine(id,int.tryParse('${machine['version']}')??1);await s.refresh();setState((){});}}
+  if(selected=='edit'){_fillMachine(machine);final ok=await showDialog<bool>(context:context,builder:(_)=>AlertDialog(title:const Text('Edit machine'),content:SingleChildScrollView(child:Column(children:[f('Machine Name',name),f('Serial Number',result),f('Model',opCode),f('Manufacturer',code),f('Section',processId),f('Division',returnNo),f('Operational Group',warehouseId),f('Capacity',qty)])),actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('Save'))]));if(ok==true){await s.updateMachine(id,{'name':name.text,'serialNumber':result.text,'model':opCode.text,'manufacturer':code.text,'section':processId.text,'division':returnNo.text,'operationalGroup':warehouseId.text,'capacity':double.tryParse(qty.text),'status':'ACTIVE','expectedVersion':int.tryParse('${machine['version']}')??1,'cutTimeApplicable':true,'productionMachine':true});await s.refresh();setState((){});}}
+ }
+ void _fillMachine(Map<String,dynamic> x){machineCode.text='${x['code']??''}';name.text='${x['name']??''}';result.text='${x['serialNumber']??x['status']??'ACTIVE'}';opCode.text='${x['model']??''}';code.text='${x['manufacturer']??''}';revision.text='${x['manufactureYear']??''}';processId.text='${x['section']??''}';returnNo.text='${x['division']??''}';warehouseId.text='${x['operationalGroup']??''}';qty.text='${x['capacity']??''}';}
  Widget _capabilities()=>ListView(children:[
   const Text('FEAT-010 — Machine Capability Matrix',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold)),const SizedBox(height:16),
   f('Machine ID',machineId),f('Operation Code',opCode),f('Capability Name',name),
