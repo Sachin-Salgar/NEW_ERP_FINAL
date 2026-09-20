@@ -49,6 +49,31 @@ const DEFAULT_MODULES: PlatformModuleSeed[] = [
   { code: 'inventory', name: 'Inventory and Item Master', moduleGroup: 'Inventory', isCore: false, sortOrder: 40 },
   { code: 'sales', name: 'Sales', moduleGroup: 'Sales', isCore: false, sortOrder: 30 },
   { code: 'purchase', name: 'Procurement', moduleGroup: 'Procurement', isCore: false, sortOrder: 35 },
+  { code: 'manufacturing', name: 'Manufacturing', moduleGroup: 'Manufacturing', isCore: false, sortOrder: 50 },
+];
+
+const MANUFACTURING_PERMISSIONS: PlatformPermissionSeed[] = [
+  { moduleCode: 'manufacturing', resource: 'machine', action: 'read', scope: 'tenant', permissionKey: 'manufacturing.machine.read', displayName: 'View machines' },
+  { moduleCode: 'manufacturing', resource: 'machine', action: 'create', scope: 'tenant', permissionKey: 'manufacturing.machine.create', displayName: 'Create machines' },
+  { moduleCode: 'manufacturing', resource: 'machine', action: 'update', scope: 'tenant', permissionKey: 'manufacturing.machine.update', displayName: 'Update machines' },
+  { moduleCode: 'manufacturing', resource: 'machine', action: 'delete', scope: 'tenant', permissionKey: 'manufacturing.machine.delete', displayName: 'Delete machines' },
+  { moduleCode:'manufacturing', resource:'capability', action:'read', scope:'tenant', permissionKey:'manufacturing.capability.read', displayName:'View machine capabilities' },
+  { moduleCode:'manufacturing', resource:'capability', action:'create', scope:'tenant', permissionKey:'manufacturing.capability.create', displayName:'Create machine capabilities' },
+  { moduleCode:'manufacturing', resource:'process', action:'read', scope:'tenant', permissionKey:'manufacturing.process.read', displayName:'View product process details' },
+  { moduleCode:'manufacturing', resource:'process', action:'create', scope:'tenant', permissionKey:'manufacturing.process.create', displayName:'Create product process details and routing' },
+  { moduleCode:'manufacturing', resource:'work_order', action:'read', scope:'tenant', permissionKey:'manufacturing.work_order.read', displayName:'View work orders' },
+  { moduleCode:'manufacturing', resource:'work_order', action:'create', scope:'tenant', permissionKey:'manufacturing.work_order.create', displayName:'Create work orders' },
+  { moduleCode:'manufacturing', resource:'work_order', action:'schedule', scope:'tenant', permissionKey:'manufacturing.work_order.schedule', displayName:'Schedule work orders' },
+  { moduleCode:'manufacturing', resource:'task_sheet', action:'read', scope:'tenant', permissionKey:'manufacturing.task_sheet.read', displayName:'View task sheets' },
+  { moduleCode:'manufacturing', resource:'task_sheet', action:'update', scope:'tenant', permissionKey:'manufacturing.task_sheet.update', displayName:'Update task sheets' },
+  { moduleCode:'manufacturing', resource:'material_requisition', action:'create', scope:'tenant', permissionKey:'manufacturing.material_requisition.create', displayName:'Create material requisitions' },
+  { moduleCode:'manufacturing', resource:'material_requisition', action:'issue', scope:'tenant', permissionKey:'manufacturing.material_requisition.issue', displayName:'Issue manufacturing material' },
+  { moduleCode:'manufacturing', resource:'readiness', action:'execute', scope:'tenant', permissionKey:'manufacturing.readiness.execute', displayName:'Execute machine and tooling readiness gate' },
+  { moduleCode:'manufacturing', resource:'production', action:'punch', scope:'tenant', permissionKey:'manufacturing.production.punch', displayName:'Punch production output' },
+  { moduleCode:'manufacturing', resource:'quality', action:'punch', scope:'tenant', permissionKey:'manufacturing.quality.punch', displayName:'Punch quality output' },
+  { moduleCode:'manufacturing', resource:'material_return', action:'create', scope:'tenant', permissionKey:'manufacturing.material_return.create', displayName:'Create material return notes' },
+  { moduleCode:'manufacturing', resource:'variance', action:'create', scope:'tenant', permissionKey:'manufacturing.variance.create', displayName:'Create rework/rejection variance cost' },
+  { moduleCode:'manufacturing', resource:'variance', action:'read', scope:'tenant', permissionKey:'manufacturing.variance.read', displayName:'View rework/rejection variance cost' },
 ];
 
 const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
@@ -493,24 +518,17 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
       ['requisition', 'create'],
       ['requisition', 'update'],
       ['requisition', 'submit'],
-      ['requisition', 'approve'],
-      ['requisition', 'reject'],
       ['requisition', 'cancel'],
-      ['requisition', 'workflow'],
       ['order', 'read'],
       ['order', 'create'],
       ['order', 'update'],
       ['order', 'submit'],
-      ['order', 'approve'],
-      ['order', 'reject'],
       ['order', 'cancel'],
-      ['order', 'workflow'],
       ['receipt', 'read'],
       ['receipt', 'create'],
       ['receipt', 'update'],
       ['receipt', 'complete'],
       ['receipt', 'cancel'],
-      ['receipt', 'workflow'],
     ] as const
   ).map(([resource, action]) => ({
     moduleCode: 'purchase',
@@ -544,7 +562,7 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
     permissionKey: `sales.invoice.${action}`,
     displayName: `${action[0].toUpperCase()}${action.slice(1)} invoices`,
   })),
-  ...(['read', 'create', 'update', 'inspect', 'approve', 'reject', 'process', 'cancel', 'close'] as const).map(
+  ...(['read', 'create', 'update', 'inspect', 'approval.request', 'process', 'cancel', 'close'] as const).map(
     (action) => ({
       moduleCode: 'sales',
       resource: 'return',
@@ -596,17 +614,27 @@ const DEFAULT_PERMISSIONS: PlatformPermissionSeed[] = [
   },
 ];
 
+const WORKFLOW_PERMISSIONS: PlatformPermissionSeed[] = ([
+  ['definition','read','workflow.definition.read','View workflow definitions'],
+  ['definition','create','workflow.definition.create','Create workflow definitions'],
+  ['definition','publish','workflow.definition.publish','Publish workflow definitions'],
+  ['task','read','workflow.task.read','View workflow approval tasks'],
+  ['task','decide','workflow.task.decide','Decide workflow approval tasks'],
+] as const).map(([resource,action,permissionKey,displayName])=>({moduleCode:'core',resource,action,scope:'tenant' as const,permissionKey,displayName}));
+
+const ALL_DEFAULT_PERMISSIONS = [...DEFAULT_PERMISSIONS, ...MANUFACTURING_PERMISSIONS, ...WORKFLOW_PERMISSIONS];
+
 export class PlatformBootstrapService {
   constructor(private readonly repository: PlatformBootstrapRepository) {}
   async seedReferenceData(): Promise<ReferenceDataSummary> {
     await this.repository.seedSubscriptionPlans(DEFAULT_SUBSCRIPTION_PLANS);
     await this.repository.seedModules(DEFAULT_MODULES);
-    await this.repository.seedPermissions(DEFAULT_PERMISSIONS);
+    await this.repository.seedPermissions(ALL_DEFAULT_PERMISSIONS);
     await this.repository.seedPlatformAuthorization();
     return {
       subscriptionPlans: DEFAULT_SUBSCRIPTION_PLANS.length,
       modules: DEFAULT_MODULES.length,
-      permissions: DEFAULT_PERMISSIONS.length,
+      permissions: ALL_DEFAULT_PERMISSIONS.length,
     };
   }
 }
@@ -614,5 +642,5 @@ export class PlatformBootstrapService {
 export const DEFAULT_PLATFORM_SEED = {
   subscriptionPlans: DEFAULT_SUBSCRIPTION_PLANS,
   modules: DEFAULT_MODULES,
-  permissions: DEFAULT_PERMISSIONS,
+  permissions: ALL_DEFAULT_PERMISSIONS,
 };

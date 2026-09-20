@@ -9,6 +9,7 @@ import '../modules/item_master/item_master_service.dart';
 import '../modules/inventory/inventory_service.dart';
 import '../modules/sales/sales_service.dart';
 import '../modules/purchase/purchase_service.dart';
+import '../modules/manufacturing/manufacturing_service.dart';
 import '../modules/role/role_service.dart';
 import '../modules/user/user_service.dart';
 import '../routing/app_router_delegate.dart';
@@ -54,6 +55,12 @@ class App extends StatefulWidget {
     );
     di.registerLazySingleton(
       () => SalesService(
+        apiClient: di.get<ApiClient>(),
+        auth: di.get<AuthService>(),
+      ),
+    );
+    di.registerLazySingleton(
+      () => ManufacturingService(
         apiClient: di.get<ApiClient>(),
         auth: di.get<AuthService>(),
       ),

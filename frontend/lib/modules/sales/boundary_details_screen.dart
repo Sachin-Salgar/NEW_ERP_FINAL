@@ -32,6 +32,17 @@ class _SalesBoundaryDetailsScreenState extends State<SalesBoundaryDetailsScreen>
     });
   }
 
+  Future<void> _requestReturnApproval() async {
+    final expectedVersion = (value?['versionNumber'] as num?)?.toInt() ?? 0;
+    final result = await service.requestReturnApproval(widget.id, expectedVersion);
+    if (!mounted) return;
+    if (result == null) {
+      await _load();
+    } else {
+      setState(() => error = result);
+    }
+  }
+
   Future<void> _transition(String action) async {
     final expectedVersion = (value?['versionNumber'] as num?)?.toInt() ?? 0;
     final result = await service.transitionBoundary(widget.kind, widget.id, action, expectedVersion);
@@ -65,8 +76,8 @@ class _SalesBoundaryDetailsScreenState extends State<SalesBoundaryDetailsScreen>
                       if (widget.kind == 'returns') ...[
                         if (record['status'] == 'REQUESTED' && auth.hasPermission('sales.return.inspect'))
                           FilledButton(onPressed: () => _transition('inspect'), child: const Text('Inspect')),
-                        if (record['status'] == 'INSPECTED' && auth.hasPermission('sales.return.approve'))
-                          FilledButton(onPressed: () => _transition('approve'), child: const Text('Approve')),
+                        if (record['status'] == 'INSPECTED' && auth.hasPermission('sales.return.approval.request'))
+                          FilledButton(onPressed: () => _requestReturnApproval(), child: const Text('Request Approval')),
                         if (record['status'] == 'APPROVED' && auth.hasPermission('sales.return.process'))
                           FilledButton(onPressed: () => _transition('process'), child: const Text('Process')),
                         if (record['status'] == 'PROCESSED' && auth.hasPermission('sales.return.close'))

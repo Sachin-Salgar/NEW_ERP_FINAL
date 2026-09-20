@@ -31,6 +31,8 @@ import type { TenantBootstrapService } from '../../../application/services/tenan
 import type { PlatformAuthorizationService } from '../../../application/services/platform-authorization-service.js';
 import type { UnifiedAuthenticationService } from '../../../application/services/unified-authentication-service.js';
 import type { WorkflowService } from '../../../application/services/workflow-service.js';
+import type { ManufacturingMachineService } from '../../../application/services/manufacturing-machine-service.js';
+import type { ManufacturingExecutionService } from '../../../application/services/manufacturing-execution-service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -67,6 +69,8 @@ declare module 'fastify' {
     platformAuthorizationService: PlatformAuthorizationService;
     unifiedAuthenticationService: UnifiedAuthenticationService;
     workflowService: WorkflowService;
+    manufacturingMachineService: ManufacturingMachineService;
+    manufacturingExecutionService: ManufacturingExecutionService;
   }
   interface FastifyRequest {
     user?: AuthenticatedUser;

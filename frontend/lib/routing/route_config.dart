@@ -7,70 +7,400 @@ class AppRouteConfig {
   final String? permissionKey;
   final String? moduleCode;
   final IconData icon;
-  const AppRouteConfig({required this.path, required this.title, required this.group, required this.permissionKey, required this.moduleCode, required this.icon});
+  const AppRouteConfig({
+    required this.path,
+    required this.title,
+    required this.group,
+    required this.permissionKey,
+    required this.moduleCode,
+    required this.icon,
+  });
   bool matches(String route) => route == path || route.startsWith('$path/');
 }
 
 class AppRoutes {
   AppRoutes._();
-  static const dashboard = AppRouteConfig(path: '/dashboard', title: 'Dashboard', group: 'GENERAL', permissionKey: null, moduleCode: 'core', icon: Icons.dashboard_outlined);
-  static const customers = AppRouteConfig(path: '/customers', title: 'Customers', group: 'CRM', permissionKey: 'customer.read', moduleCode: 'crm', icon: Icons.people_alt_outlined);
-  static const inventoryItems = AppRouteConfig(path: '/inventory/items', title: 'Item Master', group: 'INVENTORY', permissionKey: 'inventory.item.read', moduleCode: 'inventory', icon: Icons.inventory_2_outlined);
-  static const inventoryFoundation = AppRouteConfig(path: '/inventory', title: 'Inventory', group: 'INVENTORY', permissionKey: 'inventory.stock.read', moduleCode: 'inventory', icon: Icons.warehouse_outlined);
-  static const salesQuotations = AppRouteConfig(path: '/sales/quotations', title: 'Sales Quotations', group: 'SALES', permissionKey: 'sales.quotation.read', moduleCode: 'sales', icon: Icons.request_quote_outlined);
-  static const salesInvoices = AppRouteConfig(path: '/sales/invoices', title: 'Sales Invoices', group: 'SALES', permissionKey: 'sales.invoice.read', moduleCode: 'sales', icon: Icons.receipt_long_outlined);
-  static const salesOrders = AppRouteConfig(path: '/sales/orders', title: 'Sales Orders', group: 'SALES', permissionKey: 'sales.order.read', moduleCode: 'sales', icon: Icons.shopping_cart_outlined);
-  static const salesDeliveries = AppRouteConfig(path: '/sales/deliveries', title: 'Sales Deliveries', group: 'SALES', permissionKey: 'sales.delivery.read', moduleCode: 'sales', icon: Icons.local_shipping_outlined);
-  static const salesReturns = AppRouteConfig(path: '/sales/returns', title: 'Sales Returns', group: 'SALES', permissionKey: 'sales.return.read', moduleCode: 'sales', icon: Icons.assignment_return_outlined);
-  static const salesCreditNotes = AppRouteConfig(path: '/sales/credit-notes', title: 'Credit Notes', group: 'SALES', permissionKey: 'sales.credit_note.read', moduleCode: 'sales', icon: Icons.note_alt_outlined);
-  static const salesReports = AppRouteConfig(path: '/sales/reports', title: 'Sales Reports', group: 'SALES', permissionKey: 'sales.reporting.read', moduleCode: 'sales', icon: Icons.analytics_outlined);
-  static const salesPricing = AppRouteConfig(path: '/sales/pricing', title: 'Sales Pricing', group: 'SALES', permissionKey: 'sales.pricing.read', moduleCode: 'sales', icon: Icons.price_change_outlined);
-  static const salesDiscounts = AppRouteConfig(path: '/sales/discounts', title: 'Sales Discounts', group: 'SALES', permissionKey: 'sales.discount.read', moduleCode: 'sales', icon: Icons.discount_outlined);
-  static const purchase = AppRouteConfig(path: '/purchase', title: 'Purchase', group: 'PURCHASE', permissionKey: 'purchase.supplier.read', moduleCode: 'purchase', icon: Icons.shopping_bag_outlined);
-  static const settings = AppRouteConfig(path: '/settings', title: 'Settings', group: 'GENERAL', permissionKey: null, moduleCode: null, icon: Icons.settings_outlined);
-  static const branches = AppRouteConfig(path: '/branches', title: 'Branches', group: 'MANAGEMENT', permissionKey: 'branch.read', moduleCode: 'branch', icon: Icons.store_outlined);
-  static const settingsBranches = AppRouteConfig(path: '/settings/branches', title: 'Branches', group: 'SETTINGS', permissionKey: 'branch.read', moduleCode: 'branch', icon: Icons.store_outlined);
-  static const settingsUsers = AppRouteConfig(path: '/settings/users', title: 'Users', group: 'SETTINGS', permissionKey: 'user.read', moduleCode: 'user-management', icon: Icons.people_outline);
-  static const settingsRoles = AppRouteConfig(path: '/settings/roles', title: 'Roles', group: 'SETTINGS', permissionKey: 'role.read', moduleCode: 'security', icon: Icons.admin_panel_settings_outlined);
-  static const settingsPermissions = AppRouteConfig(path: '/settings/permissions', title: 'Permissions', group: 'SETTINGS', permissionKey: 'permission.read', moduleCode: 'security', icon: Icons.lock_outline);
-  static const settingsSecurity = AppRouteConfig(path: '/settings/security', title: 'Security Administration', group: 'SETTINGS', permissionKey: 'security.policy.read', moduleCode: 'security', icon: Icons.security_outlined);
-  static const settingsTenant = AppRouteConfig(path: '/settings/tenant', title: 'Tenant Administration', group: 'SETTINGS', permissionKey: 'tenant.read', moduleCode: 'tenant-configuration', icon: Icons.business_outlined);
-  static const platformAdministration = AppRouteConfig(path: '/platform', title: 'Platform Administration', group: 'PLATFORM', permissionKey: 'platform.tenant.read', moduleCode: null, icon: Icons.admin_panel_settings_outlined);
-  static const users = AppRouteConfig(path: '/users', title: 'Users', group: 'MANAGEMENT', permissionKey: 'user.read', moduleCode: 'user-management', icon: Icons.people_outline);
-  static const roles = AppRouteConfig(path: '/roles', title: 'Roles', group: 'MANAGEMENT', permissionKey: 'role.read', moduleCode: 'security', icon: Icons.admin_panel_settings_outlined);
-  static const permissions = AppRouteConfig(path: '/permissions', title: 'Permissions', group: 'MANAGEMENT', permissionKey: 'permission.read', moduleCode: 'security', icon: Icons.lock_outline);
+  static const dashboard = AppRouteConfig(
+    path: '/dashboard',
+    title: 'Dashboard',
+    group: 'GENERAL',
+    permissionKey: null,
+    moduleCode: 'core',
+    icon: Icons.dashboard_outlined,
+  );
+  static const customers = AppRouteConfig(
+    path: '/customers',
+    title: 'Customers',
+    group: 'CRM',
+    permissionKey: 'customer.read',
+    moduleCode: 'crm',
+    icon: Icons.people_alt_outlined,
+  );
+  static const inventoryItems = AppRouteConfig(
+    path: '/inventory/items',
+    title: 'Item Master',
+    group: 'INVENTORY',
+    permissionKey: 'inventory.item.read',
+    moduleCode: 'inventory',
+    icon: Icons.inventory_2_outlined,
+  );
+  static const inventoryFoundation = AppRouteConfig(
+    path: '/inventory',
+    title: 'Inventory',
+    group: 'INVENTORY',
+    permissionKey: 'inventory.stock.read',
+    moduleCode: 'inventory',
+    icon: Icons.warehouse_outlined,
+  );
+  static const salesQuotations = AppRouteConfig(
+    path: '/sales/quotations',
+    title: 'Sales Quotations',
+    group: 'SALES',
+    permissionKey: 'sales.quotation.read',
+    moduleCode: 'sales',
+    icon: Icons.request_quote_outlined,
+  );
+  static const salesInvoices = AppRouteConfig(
+    path: '/sales/invoices',
+    title: 'Sales Invoices',
+    group: 'SALES',
+    permissionKey: 'sales.invoice.read',
+    moduleCode: 'sales',
+    icon: Icons.receipt_long_outlined,
+  );
+  static const salesOrders = AppRouteConfig(
+    path: '/sales/orders',
+    title: 'Sales Orders',
+    group: 'SALES',
+    permissionKey: 'sales.order.read',
+    moduleCode: 'sales',
+    icon: Icons.shopping_cart_outlined,
+  );
+  static const salesDeliveries = AppRouteConfig(
+    path: '/sales/deliveries',
+    title: 'Sales Deliveries',
+    group: 'SALES',
+    permissionKey: 'sales.delivery.read',
+    moduleCode: 'sales',
+    icon: Icons.local_shipping_outlined,
+  );
+  static const salesReturns = AppRouteConfig(
+    path: '/sales/returns',
+    title: 'Sales Returns',
+    group: 'SALES',
+    permissionKey: 'sales.return.read',
+    moduleCode: 'sales',
+    icon: Icons.assignment_return_outlined,
+  );
+  static const salesCreditNotes = AppRouteConfig(
+    path: '/sales/credit-notes',
+    title: 'Credit Notes',
+    group: 'SALES',
+    permissionKey: 'sales.credit_note.read',
+    moduleCode: 'sales',
+    icon: Icons.note_alt_outlined,
+  );
+  static const salesReports = AppRouteConfig(
+    path: '/sales/reports',
+    title: 'Sales Reports',
+    group: 'SALES',
+    permissionKey: 'sales.reporting.read',
+    moduleCode: 'sales',
+    icon: Icons.analytics_outlined,
+  );
+  static const salesPricing = AppRouteConfig(
+    path: '/sales/pricing',
+    title: 'Sales Pricing',
+    group: 'SALES',
+    permissionKey: 'sales.pricing.read',
+    moduleCode: 'sales',
+    icon: Icons.price_change_outlined,
+  );
+  static const salesDiscounts = AppRouteConfig(
+    path: '/sales/discounts',
+    title: 'Sales Discounts',
+    group: 'SALES',
+    permissionKey: 'sales.discount.read',
+    moduleCode: 'sales',
+    icon: Icons.discount_outlined,
+  );
+  static const manufacturing = AppRouteConfig(
+    path: '/manufacturing',
+    title: 'Manufacturing',
+    group: 'MANUFACTURING',
+    permissionKey: 'manufacturing.machine.read',
+    moduleCode: 'manufacturing',
+    icon: Icons.precision_manufacturing_outlined,
+  );
+  static const tax = AppRouteConfig(
+    path: '/tax',
+    title: 'Tax Configuration',
+    group: 'SALES',
+    permissionKey: 'tax.configuration.read',
+    moduleCode: 'sales',
+    icon: Icons.percent_outlined,
+  );
+  static const purchase = AppRouteConfig(
+    path: '/purchase',
+    title: 'Purchase',
+    group: 'PURCHASE',
+    permissionKey: 'purchase.supplier.read',
+    moduleCode: 'purchase',
+    icon: Icons.shopping_bag_outlined,
+  );
+  static const settings = AppRouteConfig(
+    path: '/settings',
+    title: 'Settings',
+    group: 'GENERAL',
+    permissionKey: null,
+    moduleCode: null,
+    icon: Icons.settings_outlined,
+  );
+  static const branches = AppRouteConfig(
+    path: '/branches',
+    title: 'Branches',
+    group: 'MANAGEMENT',
+    permissionKey: 'branch.read',
+    moduleCode: 'branch',
+    icon: Icons.store_outlined,
+  );
+  static const settingsBranches = AppRouteConfig(
+    path: '/settings/branches',
+    title: 'Branches',
+    group: 'SETTINGS',
+    permissionKey: 'branch.read',
+    moduleCode: 'branch',
+    icon: Icons.store_outlined,
+  );
+  static const settingsUsers = AppRouteConfig(
+    path: '/settings/users',
+    title: 'Users',
+    group: 'SETTINGS',
+    permissionKey: 'user.read',
+    moduleCode: 'user-management',
+    icon: Icons.people_outline,
+  );
+  static const settingsRoles = AppRouteConfig(
+    path: '/settings/roles',
+    title: 'Roles',
+    group: 'SETTINGS',
+    permissionKey: 'role.read',
+    moduleCode: 'security',
+    icon: Icons.admin_panel_settings_outlined,
+  );
+  static const settingsPermissions = AppRouteConfig(
+    path: '/settings/permissions',
+    title: 'Permissions',
+    group: 'SETTINGS',
+    permissionKey: 'permission.read',
+    moduleCode: 'security',
+    icon: Icons.lock_outline,
+  );
+  static const settingsMfa = AppRouteConfig(
+    path: '/settings/mfa',
+    title: 'Multi-Factor Authentication',
+    group: 'SETTINGS',
+    permissionKey: null,
+    moduleCode: 'security',
+    icon: Icons.verified_user_outlined,
+  );
+  static const settingsSecurity = AppRouteConfig(
+    path: '/settings/security',
+    title: 'Security Administration',
+    group: 'SETTINGS',
+    permissionKey: 'security.policy.read',
+    moduleCode: 'security',
+    icon: Icons.security_outlined,
+  );
+  static const settingsTenant = AppRouteConfig(
+    path: '/settings/tenant',
+    title: 'Tenant Administration',
+    group: 'SETTINGS',
+    permissionKey: 'tenant.read',
+    moduleCode: 'tenant-configuration',
+    icon: Icons.business_outlined,
+  );
+  static const platformAdministration = AppRouteConfig(
+    path: '/platform',
+    title: 'Platform Administration',
+    group: 'PLATFORM',
+    permissionKey: 'platform.tenant.read',
+    moduleCode: null,
+    icon: Icons.admin_panel_settings_outlined,
+  );
+  static const users = AppRouteConfig(
+    path: '/users',
+    title: 'Users',
+    group: 'MANAGEMENT',
+    permissionKey: 'user.read',
+    moduleCode: 'user-management',
+    icon: Icons.people_outline,
+  );
+  static const roles = AppRouteConfig(
+    path: '/roles',
+    title: 'Roles',
+    group: 'MANAGEMENT',
+    permissionKey: 'role.read',
+    moduleCode: 'security',
+    icon: Icons.admin_panel_settings_outlined,
+  );
+  static const permissions = AppRouteConfig(
+    path: '/permissions',
+    title: 'Permissions',
+    group: 'MANAGEMENT',
+    permissionKey: 'permission.read',
+    moduleCode: 'security',
+    icon: Icons.lock_outline,
+  );
 
-  static const settingsNavigation = <AppRouteConfig>[settingsBranches, settingsUsers, settingsRoles, settingsPermissions, settingsSecurity, settingsTenant];
-  static const topLevel = <AppRouteConfig>[dashboard, settings, platformAdministration, customers, inventoryItems, inventoryFoundation, salesQuotations, salesOrders, salesDeliveries, salesInvoices, salesReturns, salesCreditNotes, salesReports, salesPricing, salesDiscounts, purchase];
+  static const settingsNavigation = <AppRouteConfig>[
+    settingsBranches,
+    settingsUsers,
+    settingsRoles,
+    settingsPermissions,
+    settingsMfa,
+    settingsSecurity,
+    settingsTenant,
+  ];
+  static const topLevel = <AppRouteConfig>[
+    dashboard,
+    settings,
+    platformAdministration,
+    customers,
+    inventoryItems,
+    inventoryFoundation,
+    salesQuotations,
+    salesOrders,
+    salesDeliveries,
+    salesInvoices,
+    salesReturns,
+    salesCreditNotes,
+    salesReports,
+    salesPricing,
+    salesDiscounts,
+    tax,
+    purchase,
+    manufacturing,
+  ];
 
   static const routePermissions = <String, String?>{
     '/dashboard': null,
-    '/customers': 'customer.read', '/customers/create': 'customer.create', '/customers/details': 'customer.read', '/customers/edit': 'customer.update',
-    '/inventory/items': 'inventory.item.read', '/inventory': 'inventory.stock.read',
-    '/sales/quotations': 'sales.quotation.read', '/sales/quotations/create': 'sales.quotation.create', '/sales/quotations/details': 'sales.quotation.read', '/sales/quotations/edit': 'sales.quotation.update',
-    '/sales/invoices': 'sales.invoice.read', '/sales/invoices/create': 'sales.invoice.create', '/sales/invoices/details': 'sales.invoice.read',
-    '/sales/orders': 'sales.order.read', '/sales/deliveries': 'sales.delivery.read', '/sales/deliveries/create': 'sales.delivery.create',
-    '/sales/returns': 'sales.return.read', '/sales/returns/create': 'sales.return.create', '/sales/returns/details': 'sales.return.read',
-    '/sales/credit-notes': 'sales.credit_note.read', '/sales/credit-notes/create': 'sales.credit_note.create', '/sales/credit-notes/details': 'sales.credit_note.read',
-    '/sales/reports': 'sales.reporting.read', '/sales/pricing': 'sales.pricing.read', '/sales/pricing/create': 'sales.pricing.create', '/sales/discounts': 'sales.discount.read', '/sales/discounts/create': 'sales.discount.create',
+    '/customers': 'customer.read',
+    '/customers/create': 'customer.create',
+    '/customers/details': 'customer.read',
+    '/customers/edit': 'customer.update',
+    '/inventory/items': 'inventory.item.read',
+    '/inventory': 'inventory.stock.read',
+    '/sales/quotations': 'sales.quotation.read',
+    '/sales/quotations/create': 'sales.quotation.create',
+    '/sales/quotations/details': 'sales.quotation.read',
+    '/sales/quotations/edit': 'sales.quotation.update',
+    '/sales/invoices': 'sales.invoice.read',
+    '/sales/invoices/create': 'sales.invoice.create',
+    '/sales/invoices/details': 'sales.invoice.read',
+    '/sales/orders': 'sales.order.read',
+    '/sales/deliveries': 'sales.delivery.read',
+    '/sales/deliveries/create': 'sales.delivery.create',
+    '/sales/returns': 'sales.return.read',
+    '/sales/returns/create': 'sales.return.create',
+    '/sales/returns/details': 'sales.return.read',
+    '/sales/credit-notes': 'sales.credit_note.read',
+    '/sales/credit-notes/create': 'sales.credit_note.create',
+    '/sales/credit-notes/details': 'sales.credit_note.read',
+    '/sales/reports': 'sales.reporting.read',
+    '/sales/pricing': 'sales.pricing.read',
+    '/sales/pricing/create': 'sales.pricing.create',
+    '/sales/discounts': 'sales.discount.read',
+    '/sales/discounts/create': 'sales.discount.create',
+    '/tax': 'tax.configuration.read',
     '/purchase': 'purchase.supplier.read',
-    '/settings/branches': 'branch.read', '/settings/branches/create': 'branch.create', '/settings/branches/details': 'branch.read', '/settings/branches/edit': 'branch.update',
-    '/settings/users': 'user.read', '/settings/users/create': 'user.create', '/settings/users/details': 'user.read',
-    '/settings/roles': 'role.read', '/settings/roles/create': 'role.create', '/settings/roles/permissions': 'role_permission.read', '/settings/roles/edit': 'role.update',
-    '/settings/permissions': 'permission.read', '/settings/permissions/details': 'permission.read',
-    '/settings/security': 'security.policy.read', '/settings/tenant': 'tenant.read',
-    '/settings': null, '/platform': 'platform.tenant.read', '/branches': 'branch.read', '/branches/create': 'branch.create', '/branches/details': 'branch.read', '/branches/edit': 'branch.update',
-    '/users': 'user.read', '/users/create': 'user.create', '/users/details': 'user.read',
-    '/roles': 'role.read', '/roles/create': 'role.create', '/roles/edit': 'role.update', '/permissions': 'permission.read',
+    '/manufacturing': 'manufacturing.machine.read',
+    '/settings/branches': 'branch.read',
+    '/settings/branches/create': 'branch.create',
+    '/settings/branches/details': 'branch.read',
+    '/settings/branches/edit': 'branch.update',
+    '/settings/users': 'user.read',
+    '/settings/users/create': 'user.create',
+    '/settings/users/details': 'user.read',
+    '/settings/roles': 'role.read',
+    '/settings/roles/create': 'role.create',
+    '/settings/roles/permissions': 'role_permission.read',
+    '/settings/roles/edit': 'role.update',
+    '/settings/permissions': 'permission.read',
+    '/settings/permissions/details': 'permission.read',
+    '/settings/security': 'security.policy.read',
+    '/settings/mfa': null,
+    '/settings/tenant': 'tenant.read',
+    '/settings': null,
+    '/platform': 'platform.tenant.read',
+    '/branches': 'branch.read',
+    '/branches/create': 'branch.create',
+    '/branches/details': 'branch.read',
+    '/branches/edit': 'branch.update',
+    '/users': 'user.read',
+    '/users/create': 'user.create',
+    '/users/details': 'user.read',
+    '/roles': 'role.read',
+    '/roles/create': 'role.create',
+    '/roles/edit': 'role.update',
+    '/permissions': 'permission.read',
   };
 
   static const _legacyAliases = <String, String>{
-    '/branches': '/settings/branches', '/branches/create': '/settings/branches/create', '/branches/details': '/settings/branches/details', '/branches/edit': '/settings/branches/edit',
-    '/users': '/settings/users', '/users/create': '/settings/users/create', '/users/details': '/settings/users/details', '/roles': '/settings/roles', '/roles/create': '/settings/roles/create', '/roles/edit': '/settings/roles/edit', '/permissions': '/settings/permissions',
+    '/branches': '/settings/branches',
+    '/branches/create': '/settings/branches/create',
+    '/branches/details': '/settings/branches/details',
+    '/branches/edit': '/settings/branches/edit',
+    '/users': '/settings/users',
+    '/users/create': '/settings/users/create',
+    '/users/details': '/settings/users/details',
+    '/roles': '/settings/roles',
+    '/roles/create': '/settings/roles/create',
+    '/roles/edit': '/settings/roles/edit',
+    '/permissions': '/settings/permissions',
   };
-  static String _remapLegacy(String path) { for (final entry in _legacyAliases.entries) { if (path == entry.key) return entry.value; if (path.startsWith('${entry.key}/')) return '${entry.value}${path.substring(entry.key.length)}'; } return path; }
-  static bool isSettingsRoute(String route) => normalize(route).startsWith('/settings');
-  static String normalize(String path) { if (path.isEmpty || path == '/') return '/dashboard'; final trimmed = path.endsWith('/') && path.length > 1 ? path.substring(0, path.length - 1) : path; return _remapLegacy(trimmed); }
-  static String canonicalTopLevel(String route) { final normalized = normalize(route); for (final config in topLevel) { if (config.matches(normalized)) return config.path; } if (isSettingsRoute(normalized)) return settings.path; for (final config in [branches, customers]) { if (config.matches(normalized)) return config.path; } return dashboard.path; }
-  static AppRouteConfig forRoute(String route) { final normalized = normalize(route); for (final config in settingsNavigation) { if (config.matches(normalized)) return config; } for (final config in topLevel) { if (config.matches(normalized)) return config; } for (final config in [branches, customers]) { if (config.matches(normalized)) return config; } return dashboard; }
+  static String _remapLegacy(String path) {
+    for (final entry in _legacyAliases.entries) {
+      if (path == entry.key) return entry.value;
+      if (path.startsWith('${entry.key}/'))
+        return '${entry.value}${path.substring(entry.key.length)}';
+    }
+    return path;
+  }
+
+  static bool isSettingsRoute(String route) =>
+      normalize(route).startsWith('/settings');
+  static String normalize(String path) {
+    if (path.isEmpty || path == '/') return '/dashboard';
+    final trimmed = path.endsWith('/') && path.length > 1
+        ? path.substring(0, path.length - 1)
+        : path;
+    return _remapLegacy(trimmed);
+  }
+
+  static String canonicalTopLevel(String route) {
+    final normalized = normalize(route);
+    for (final config in topLevel) {
+      if (config.matches(normalized)) return config.path;
+    }
+    if (isSettingsRoute(normalized)) return settings.path;
+    for (final config in [branches, customers]) {
+      if (config.matches(normalized)) return config.path;
+    }
+    return dashboard.path;
+  }
+
+  static AppRouteConfig forRoute(String route) {
+    final normalized = normalize(route);
+    for (final config in settingsNavigation) {
+      if (config.matches(normalized)) return config;
+    }
+    for (final config in topLevel) {
+      if (config.matches(normalized)) return config;
+    }
+    for (final config in [branches, customers]) {
+      if (config.matches(normalized)) return config;
+    }
+    return dashboard;
+  }
 }

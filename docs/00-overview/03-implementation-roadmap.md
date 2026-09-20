@@ -178,6 +178,23 @@ Remaining blockers and residuals:
 - Purchase returns, RFQ/supplier quotations, vendor invoices, and payment
   processing remain outside Purchase v1 and are not part of this task.
 
+## Workflow/BPM architecture audit — 2026-09-19
+
+- Audited the central Workflow/BPM architecture, ADR-0043, Procurement module architecture, Sales module architecture, Sales Workflow integration specification, and Manufacturing module architecture against the executable branch implementation.
+- **Procurement:** the code removal is aligned with the higher-level Workflow/BPM architecture and ADR-0043. Procurement retains domain lifecycle operations while canonical Workflow/BPM owns configurable approval decisions. The Procurement module architecture's old bounded-implementation text was stale because it still described direct approve/reject transitions and workflow permissions; that documentation has now been reconciled to the canonical engine.
+- **Sales Return:** the direct approve/reject endpoints and permissions were removed. The Sales Return service now requests canonical workflow approval and applies APPROVED/REJECTED through an explicit module callback. The Sales Workflow specification previously said NOT CONNECTED; that was stale relative to approved ADR-0043 and has now been reconciled to the bounded implemented integration.
+- **Manufacturing:** the Work Order Scheduling approval gate already uses the canonical Workflow/BPM engine; no second module-local approval engine was introduced by this change.
+- **Canonical engine:** workflow definitions/instances/tasks/decisions remain in the shared Workflow/BPM layer. Business modules remain authoritative for business state and invariants. The current foundation remains bounded; ADR-0043 capabilities such as parallel approval levels, dynamic routing, delegation, escalation/SLA, and affected-level restart are not claimed implemented.
+- **Legacy approval surface audit:** the removed Procurement and Sales Return approval endpoints/permissions are absent from the branch source/bootstrap fixtures, and migration 0014 removes the legacy permission records. Domain lifecycle transitions and non-approval operations remain module-owned.
+- **Procurement no-workflow behavior:** when no published approval workflow is configured, submission is treated as requiring no approval and the module completes the domain transition to APPROVED. When a published workflow exists, submission remains SUBMITTED until the canonical workflow callback applies the outcome. This preserves configurable approval policy without restoring module-local approval endpoints.
+
+Validation for this audit is **PENDING** until the currently running GitHub Backend CI and Postgres integration workflows complete. The AI Workflow Validation run for the latest documentation commit has already succeeded. Vercel remains an unrelated build-rate-limit/plan failure.
+
+## Workflow/BPM adoption
+
+- **IMPLEMENTED — canonical engine foundation and bounded integrations.** Manufacturing Work Order Scheduling, Procurement Requisition/Purchase Order approval, and Sales Return approval request/decision integration use the shared Workflow/BPM capability. Module-local approval decision endpoints are not permitted; modules retain only domain lifecycle transitions and explicit workflow integration callbacks.
+- Advanced BPM capabilities defined by ADR-0043 (parallel approval levels, dynamic rule evaluation, delegation, escalation/SLA, affected-level restart, etc.) remain future vertical slices and are not represented as completed functionality.
+
 ## 3. Tenancy, identity and authentication
 
 | Area                                       | Status                               | Current implementation / remaining work                                                                                                                                            |
@@ -261,18 +278,18 @@ Project Management is explicitly removed/deferred and is not an implementation t
 | -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1        | Core Enterprise    | **COMPLETED WITH KNOWN VALIDATION RESIDUAL — READY FOR SALES**                                                                                                                                                        |
 | 2        | Sales              | **PARTIAL — QUOTATION, ORDER, DELIVERY, INVOICE, RETURN, CREDIT NOTE, PRICING, AND DISCOUNT BOUNDED FOUNDATIONS IMPLEMENTED** — [Sales specification package](../08-business-modules/03-sales-module-architecture.md) |
-| 3        | Procurement        | **COMPLETE** — bounded Purchase v1 backend/frontend slice and dedicated API, RLS, transaction, Inventory, idempotency, concurrency, authorization, Flutter, and repository validation are complete.   |
+| 3        | Procurement        | **COMPLETE** — bounded Purchase v1 backend/frontend slice and dedicated API, RLS, transaction, Inventory, idempotency, concurrency, authorization, Flutter, and repository validation are complete; configurable Requisition/Purchase Order approvals now use the canonical Workflow/BPM engine and legacy direct approve/reject endpoints are removed.   |
 | 4        | Inventory          | **PARTIAL — ITEM MASTER, WAREHOUSE, STOCK, RESERVATION, FULFILLMENT, AND RETURN MOVEMENT FOUNDATION IMPLEMENTED; ADVANCED OPERATIONS REMAIN DEFERRED**                                                                |
-| 5        | Manufacturing      | **PENDING**                                                                                                                                                                                                           |
+| 5        | Manufacturing      | **IMPLEMENTED — Functional Specification v1.4 FEAT-009 through FEAT-011 and FEAT-001 through FEAT-008 execution foundation implemented; configurable Workflow/BPM approval gate integrated for Work Order Scheduling; advanced OEE/analytics, HR, maintenance planning, and broader manufacturing optimization remain outside this slice.**                                                                                                                                                                                                           |
 | 6        | Finance            | **PARTIAL — bounded posting foundation implemented; broader accounting remains pending**                                                                                                                              |
 | 7        | Human Resources    | **PENDING**                                                                                                                                                                                                           |
 | 8        | CRM                | **PARTIAL** — Customer foundation and HTTP API are implemented; contacts, leads, opportunities, activities, and broader CRM capabilities remain pending.                                                              |
 | 9        | Quality Management | **PENDING**                                                                                                                                                                                                           |
 | 10       | Asset Maintenance  | **PENDING**                                                                                                                                                                                                           |
 | 11       | BI & Analytics     | **PENDING**                                                                                                                                                                                                           |
-| 12       | Workflow / BPM     | **PENDING**                                                                                                                                                                                                           |
+| 12       | Workflow / BPM     | **IMPLEMENTED — canonical tenant-scoped configurable approval engine foundation (definitions, versioning, role-based sequential approval tasks, approve/reject/return, segregation-of-duties guard, audit hook, and business-operation callback) added; additional module handlers and richer conditional routing remain to be integrated where applicable.**                                                                                                                                                                                                           |
 
-Business modules must not open until the Core Enterprise gate is completed unless an approved architectural decision changes the sequence.
+Business modules must not open until the Core Enterprise gate is completed unless an approved architectural decision changes the sequence. Manufacturing implementation is being delivered from the Functional Specification v1.4 in dependency order; current status is not treated as complete until repository and CI evidence exists.
 
 ### Current Sales implementation step
 
@@ -403,3 +420,28 @@ updates, so CI is the authoritative clean-database evidence for this branch.
 ## 10. Reconciliation summary
 
 The Core Enterprise frontend has the planned persistent shell and Router 2.0 implementation with shared navigation metadata and authorization readiness handling. **Core Enterprise is implementation/security ready for progression to Sales, with Browser Matrix E2E retained as a known validation residual.** This residual must not be described as a green browser matrix or as completed production deployment evidence.
+
+### Functional Specification v1.4 implementation trace
+
+Functional Specification v1.4 manufacturing slice status: FEAT-009 Machine / Asset Master, FEAT-010 Machine Process Capability Matrix, FEAT-011 Product Process Details / Routing, FEAT-001 Work Order / Scheduling, FEAT-002 Task Sheet / Route Card, FEAT-003 Material Requisition / Issue, FEAT-004 Machine & Tooling Readiness Gate, FEAT-005 Production Output Punching, FEAT-006 Quality Output Punching, FEAT-007 Material Return Note, and FEAT-008 Rework / Rejection Variance Cost are implemented in the feature branch with tenant-safe persistence, authorization, audit logging, transaction boundaries, PostgreSQL RLS, idempotency where applicable, and Flutter execution UI. CI and integration validation are intentionally deferred until the full implementation slice is complete.
+
+
+## Frontend Functional UI Reconciliation — 2026-09-20
+
+- **Scope:** reconciled the branch's newly implemented Functional Specification v1.4 backend additions against the Flutter UI, following `.ai/authority.md`, `.ai/workflows/feature-development.md`, and `.ai/workflows/canonical-workflow-bpm.md`.
+- **Evidence inspected:** manufacturing machine/execution routes and services, workflow routes/service/contracts, existing Flutter manufacturing/workflow clients/screens, frontend route metadata, and the branch's main-vs-feature diff.
+- **Implemented:** ManufacturingService now exposes machine get/update/soft-delete operations in addition to the existing creation/execution APIs. Manufacturing UI now exposes the machine master fields, status, version-aware edit/delete actions, and machine detail loading instead of only machine creation.
+- **Validation:** GitHub Frontend CI and PostgreSQL Integration CI were triggered for commit `b40ff11be1aff70247464fef1c2260860c2f75d9`; both were running at reconciliation time. No pass is claimed until the runs complete.
+- **Remaining UI gap identified:** the canonical Workflow/BPM UI is present for inbox/definition creation/publishing/decisions, but the current backend ADR-0043 foundation is intentionally bounded. Advanced BPM capabilities are not to be fabricated in the frontend. Audit Query filtering/pagination remains a separate UI enhancement and is not claimed complete by this step.
+- **Immediate next step:** complete the remaining frontend reconciliation against backend routes added by the current feature branch, prioritizing the bounded audit-query UI and any backend capability with no corresponding navigable Flutter surface, then run Flutter analyze/test and CI again.
+
+
+## Frontend Functional UI Reconciliation — 2026-09-20 (continued)
+
+- Re-audited backend route surfaces against the current Flutter branch instead of assuming prior gaps remained open.
+- Confirmed Item Master is already implemented and routed at `/inventory/items`; tenant administration, RBAC role/permission administration, user-role/effective-permission surfaces, MFA, tax configuration, security/audit query, and the existing platform administration foundations are also present.
+- Implemented the remaining concrete platform tenant lifecycle gap in `frontend/lib/modules/platform/platform_administration_screen.dart`: platform tenant creation/bootstrap, tenant edit, activate/deactivate/suspend/reactivate, guarded deletion, and refresh/error handling are now exposed against the canonical `/api/v1/platform/tenants*` endpoints.
+- The implementation preserves the existing architecture boundary: platform tenant lifecycle remains a platform capability and does not introduce a second tenant/workflow engine in the frontend.
+- Commit: `ab561046e6291219b10e3847861b8b7180d11d21`.
+- CI status at reconciliation: AI Workflow Validation passed; Backend CI, PostgreSQL Integration CI, and Frontend CI were still running. No green claim is made until those runs complete.
+- Audit Query is already present in the current Security Administration UI, so it was not duplicated.

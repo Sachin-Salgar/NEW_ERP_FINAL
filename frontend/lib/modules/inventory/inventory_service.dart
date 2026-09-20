@@ -10,6 +10,7 @@ class InventoryService extends ChangeNotifier {
 
   final ApiClient apiClient;
   final AuthService auth;
+
   List<Map<String, dynamic>> warehouses = [];
   List<Map<String, dynamic>> stock = [];
   List<Map<String, dynamic>> reservations = [];
@@ -17,11 +18,6 @@ class InventoryService extends ChangeNotifier {
   String? error;
 
   Future<void> refresh() async {
-    if (auth.currentTenantId == null || auth.currentTenantId!.isEmpty) {
-      error = 'Tenant context is missing.';
-      notifyListeners();
-      return;
-    }
     loading = true;
     error = null;
     notifyListeners();
@@ -45,11 +41,58 @@ class InventoryService extends ChangeNotifier {
     }
   }
 
-  Future<String?> createWarehouse(String code, String name) async {
-    final response = await apiClient.post('/api/v1/inventory/warehouses', body: {'code': code, 'name': name});
-    if (response.statusCode != 201) return _message(response);
-    await refresh();
-    return null;
+  Future<String?> createWarehouse(String code, String name) async =>
+      _mutate('/api/v1/inventory/warehouses', {'code': code, 'name': name}, 201);
+
+  Future<String?> updateWarehouse(
+    String id,
+    String name,
+    String status,
+    int expectedVersion,
+  ) async =>
+      _mutate('/api/v1/inventory/warehouses/$id', {
+        'name': name,
+        'status': status,
+        'expectedVersion': expectedVersion,
+      }, 200, method: 'patch');
+
+  Future<String?> receiveStock(Map<String, dynamic> body) async =>
+      _mutate('/api/v1/inventory/stock/receipts', body, 201);
+
+  Future<String?> createReservation(Map<String, dynamic> body) async =>
+      _mutate('/api/v1/inventory/reservations', body, 201);
+
+  Future<String?> releaseReservation(String id, String idempotencyKey) async =>
+      _mutate('/api/v1/inventory/reservations/$id/release', {
+        'idempotencyKey': idempotencyKey,
+      }, 200);
+
+  Future<String?> fulfillReservation(String id, String idempotencyKey) async =>
+      _mutate('/api/v1/inventory/reservations/$id/fulfill', {
+        'idempotencyKey': idempotencyKey,
+      }, 200);
+
+  Future<String?> returnStock(Map<String, dynamic> body) async =>
+      _mutate('/api/v1/inventory/stock/returns', body, 201);
+
+  Future<String?> _mutate(
+    String path,
+    Map<String, dynamic> body,
+    int expected, {
+    String method = 'post',
+  }) async {
+    try {
+      final response = method == 'patch'
+          ? await apiClient.patch(path, body: body)
+          : await apiClient.post(path, body: body);
+      if (response.statusCode != expected) {
+        return _message(response);
+      }
+      await refresh();
+      return null;
+    } catch (e) {
+      return e.toString().replaceFirst('Exception: ', '');
+    }
   }
 
   List<Map<String, dynamic>> _list(dynamic response, String key) {
@@ -62,7 +105,9 @@ class InventoryService extends ChangeNotifier {
   String _message(dynamic response) {
     try {
       final body = jsonDecode(response.body);
-      if (body is Map && body['message'] is String) return body['message'] as String;
+      if (body is Map && body['message'] is String) {
+        return body['message'] as String;
+      }
     } catch (_) {}
     return 'Request failed (HTTP ${response.statusCode}).';
   }

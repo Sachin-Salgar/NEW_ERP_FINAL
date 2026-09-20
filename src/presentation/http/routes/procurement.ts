@@ -121,33 +121,20 @@ const procurementRoutes: FastifyPluginAsync = async (f) => {
       }),
     }),
   );
-  f.post(
-    '/purchase/requisitions/:id/workflow',
-    { preHandler: [requireAuth, requirePermission('purchase.requisition.workflow')] },
-    async (r) => ({
-      success: true,
-      requisition: await f.procurementService.transitionRequisition(ctx(r), {
-        ...(r.body as any),
-        id: requestParam(r.params, 'id') ?? '',
-      }),
-    }),
-  );
   for (const [action, permission, method] of [
     ['submit', 'purchase.requisition.submit', 'submitRequisition'],
-    ['approve', 'purchase.requisition.approve', 'approveRequisition'],
-    ['reject', 'purchase.requisition.reject', 'rejectRequisition'],
     ['cancel', 'purchase.requisition.cancel', 'cancelRequisition'],
   ] as const)
     f.post(
       `/purchase/requisitions/:id/${action}`,
       { preHandler: [requireAuth, requirePermission(permission)] },
-      async (r) => ({
-        success: true,
-        requisition: await (f.procurementService as any)[method](ctx(r), {
+      async (r) => {
+        const result = await (f.procurementService as any)[method](ctx(r), {
           ...(r.body as any),
           id: requestParam(r.params, 'id') ?? '',
-        }),
-      }),
+        });
+        return { success: true, ...(action === 'submit' ? (result.requisition ? result : { requisition: result, workflow: { required: false, approved: true, instance: null } }) : { requisition: result }) };
+      }
     );
   f.post(
     '/purchase/purchase-orders',
@@ -195,33 +182,20 @@ const procurementRoutes: FastifyPluginAsync = async (f) => {
       }),
     }),
   );
-  f.post(
-    '/purchase/purchase-orders/:id/workflow',
-    { preHandler: [requireAuth, requirePermission('purchase.order.workflow')] },
-    async (r) => ({
-      success: true,
-      purchaseOrder: await f.procurementService.transitionPurchaseOrder(ctx(r), {
-        ...(r.body as any),
-        id: requestParam(r.params, 'id') ?? '',
-      }),
-    }),
-  );
   for (const [action, permission, method] of [
     ['submit', 'purchase.order.submit', 'submitPurchaseOrder'],
-    ['approve', 'purchase.order.approve', 'approvePurchaseOrder'],
-    ['reject', 'purchase.order.reject', 'rejectPurchaseOrder'],
     ['cancel', 'purchase.order.cancel', 'cancelPurchaseOrder'],
   ] as const)
     f.post(
       `/purchase/purchase-orders/:id/${action}`,
       { preHandler: [requireAuth, requirePermission(permission)] },
-      async (r) => ({
-        success: true,
-        purchaseOrder: await (f.procurementService as any)[method](ctx(r), {
+      async (r) => {
+        const result = await (f.procurementService as any)[method](ctx(r), {
           ...(r.body as any),
           id: requestParam(r.params, 'id') ?? '',
-        }),
-      }),
+        });
+        return { success: true, ...(action === 'submit' ? (result.purchaseOrder ? result : { purchaseOrder: result, workflow: { required: false, approved: true, instance: null } }) : { purchaseOrder: result }) };
+      }
     );
   f.post(
     '/purchase/receipts',
@@ -263,17 +237,6 @@ const procurementRoutes: FastifyPluginAsync = async (f) => {
         ...(r.body as Record<string, unknown>),
         id: requestParam(r.params, 'id') ?? '',
       } as Parameters<typeof f.procurementService.updateReceipt>[1]),
-    }),
-  );
-  f.post(
-    '/purchase/receipts/:id/workflow',
-    { preHandler: [requireAuth, requirePermission('purchase.receipt.workflow')] },
-    async (r) => ({
-      success: true,
-      receipt: await f.procurementService.transitionReceipt(ctx(r), {
-        ...(r.body as any),
-        id: requestParam(r.params, 'id') ?? '',
-      }),
     }),
   );
   f.post(

@@ -1,6 +1,6 @@
 # Sales Approval and Workflow Integration Specification
 
-**Status:** NOT CONNECTED — PROVIDER-NEUTRAL SALES BOUNDARY
+**Status:** IMPLEMENTED — CANONICAL WORKFLOW/BPM INTEGRATION FOR SALES RETURN
 **Owner:** Workflow platform; Sales remains domain owner
 
 ## 1. Purpose and scope
@@ -12,18 +12,17 @@ decision.
 
 ## 2. Required contract
 
-Workflow must publish a provider-neutral contract containing:
+The canonical platform Workflow/BPM contract provides the implemented bounded integration. Sales Return uses:
 
-- start/retrieve/cancel workflow instance;
-- document type, document ID, tenant, Branch where applicable, and `version_number`;
-- approval decision, actor, timestamp, comments, and decision version;
-- pending task/approval state;
-- idempotency key and correlation ID;
-- failure classification and retryability.
+- document type `sales_return` and action `APPROVE`;
+- tenant, Branch, document ID, and document version context;
+- idempotent workflow start through the canonical operation key;
+- pending task state and canonical approval decision;
+- module callback/application-service handling of APPROVED or REJECTED decisions.
 
-Synchronous versus asynchronous behavior, callback/event shape, timeout,
-retry, compensation, and whether a workflow decision may transition a Sales
-document are **BUSINESS DECISION REQUIRED**.
+The shared workflow engine owns workflow definitions, tasks, assignments, approval decisions, and workflow audit. Sales remains authoritative for the Sales Return record and applies the resulting decision through its application service.
+
+The current bounded implementation uses a synchronous application callback after the canonical workflow decision is committed. Fully atomic cross-component state changes, asynchronous retries/compensation, delegation, escalation, and richer rule evaluation remain governed future extensions under ADR-0043.
 
 ## 3. Sales persistence and security
 
@@ -47,12 +46,8 @@ Flutter displays server-authoritative approval/task state and only authorized
 actions. Tests cover stale decisions, replayed callbacks, cross-tenant
 callbacks, RLS, rollback, audit, and provider failure.
 
-Sales lifecycle approval points remain implemented in the Sales-owned document
-state machines. The generic Workflow/BPM provider is **NOT CONNECTED**; the
-provider-neutral boundary is defined in `sales-workflow.ts`. Approval hierarchy,
-task assignment, escalation, callbacks, and asynchronous behavior remain
-**PENDING DEPENDENCY**.
+Sales Return approval is now connected to the canonical Workflow/BPM engine. Sales owns the `REQUESTED`, `INSPECTED`, `APPROVED`, `REJECTED`, `PROCESSED`, `CLOSED`, and `CANCELLED` business states and their invariants; Workflow owns the configurable approval orchestration and decision task. The Sales Return application service applies APPROVED/REJECTED outcomes through an explicit callback. Direct module-local approve/reject endpoints and permissions are removed.
 
 ## IMPLEMENTATION STATUS
 
-**NOT CONNECTED**.
+**IMPLEMENTED — BOUNDED SALES RETURN WORKFLOW INTEGRATION**. The integration is limited to the currently implemented Workflow/BPM foundation described by ADR-0043; future workflow capabilities are not implied.

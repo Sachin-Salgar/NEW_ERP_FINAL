@@ -58,13 +58,7 @@ describe('Purchase v1 receipt transaction and API hardening', () => {
       payload: { expectedVersion: requisition.version ?? 1 },
     });
     expect(submittedRequisition.statusCode).toBe(200);
-    const approvedRequisition = await value.app.inject({
-      method: 'POST',
-      url: `/api/v1/purchase/requisitions/${requisition.id}/approve`,
-      headers: authA,
-      payload: { expectedVersion: submittedRequisition.json().requisition.version },
-    });
-    expect(approvedRequisition.statusCode).toBe(200);
+    expect(submittedRequisition.json().requisition.status).toBe('APPROVED');
 
     const orderResponse = await value.app.inject({
       method: 'POST',
@@ -86,13 +80,7 @@ describe('Purchase v1 receipt transaction and API hardening', () => {
       payload: { expectedVersion: order.version ?? 1 },
     });
     expect(submittedOrder.statusCode).toBe(200);
-    const approvedOrder = await value.app.inject({
-      method: 'POST',
-      url: `/api/v1/purchase/purchase-orders/${order.id}/approve`,
-      headers: authA,
-      payload: { expectedVersion: submittedOrder.json().purchaseOrder.version },
-    });
-    expect(approvedOrder.statusCode).toBe(200);
+    expect(submittedOrder.json().purchaseOrder.status).toBe('APPROVED');
 
     const operationKey = `purchase-receipt-${itemId}`;
     const receiptResponse = await value.app.inject({
@@ -199,12 +187,8 @@ describe('Purchase v1 receipt transaction and API hardening', () => {
       headers: authA,
       payload: { expectedVersion: 1 },
     });
-    await value.app.inject({
-      method: 'POST',
-      url: `/api/v1/purchase/purchase-orders/${orderId}/approve`,
-      headers: authA,
-      payload: { expectedVersion: submitted.json().purchaseOrder.version },
-    });
+    expect(submitted.statusCode).toBe(200);
+    expect(submitted.json().purchaseOrder.status).toBe('APPROVED');
     const invalidWarehouseId = uuidV7();
     const receipt = await value.app.inject({
       method: 'POST',

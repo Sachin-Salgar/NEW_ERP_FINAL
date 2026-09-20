@@ -35,6 +35,7 @@ Determine whether the request is clarification/documentation, bug fix, feature, 
 6. Read the relevant authoritative architecture, standards, module, database, security, and business documentation.
 7. Inspect the current implementation for the affected module and direct dependencies.
 8. Inspect relevant tests, fixtures, migrations, configuration, API contracts, and integration points.
+9. For approval/process orchestration changes, read `.ai/workflows/canonical-workflow-bpm.md`, the central Workflow/BPM architecture, the affected module architecture, and applicable approved ADRs before changing approval endpoints, permissions, states, or persistence.
 
 Do not ingest the entire repository merely because the task is broad. Expand the inspection boundary only when dependency evidence requires it.
 

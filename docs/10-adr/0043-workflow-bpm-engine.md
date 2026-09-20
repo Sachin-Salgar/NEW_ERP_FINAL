@@ -204,6 +204,12 @@ workflows, a workflow designer UI, an external BPM provider, or an external
 message broker. Implementation shall proceed as bounded vertical slices while
 preserving Procurement ownership and the existing platform contracts.
 
+## Current Implementation Status (2026-09-19)
+
+The current branch implements the canonical Workflow/BPM foundation and bounded approval integrations for Manufacturing, Procurement, and Sales Return. The implemented foundation currently covers versioned definitions, publication, tenant/branch-scoped instances and tasks, role-based approval assignment, configurable required approval counts for a sequential level, approve/reject/return decisions, requester self-approval prevention, decision audit, and module callbacks.
+
+The following ADR capabilities remain future extensions and are not claimed as implemented by this foundation: parallel approval levels, condition/rule evaluation beyond the current definition shape, dynamic approver resolution, delegation, escalation/SLA timers, affected-level restart, cancellation policy execution, notification/scheduler integration, and fully atomic document/workflow state changes across independent transaction boundaries. New module work must use the canonical engine while these capabilities are added incrementally through explicit vertical slices.
+
 ## Decision Status
 
 **Approved**

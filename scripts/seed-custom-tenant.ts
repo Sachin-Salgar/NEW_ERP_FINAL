@@ -173,10 +173,30 @@ async function main() {
           [id, tenantId, defaultBranchId, username, email, passwordHash],
         );
         await client.query(
-          `UPDATE identity_credentials c
-           SET secret_hash = $1, password_changed_at = NOW(), updated_at = NOW()
-           FROM users u WHERE u.id = $2 AND c.identity_id = u.identity_id`,
+          `INSERT INTO identity_credentials (identity_id, provider, credential_type, secret_hash, password_changed_at, failed_attempt_count, locked_until, status)
+           SELECT u.identity_id, 'local', 'password', $1, NOW(), 0, NULL, 'active'
+           FROM users u WHERE u.id = $2
+           ON CONFLICT (identity_id, provider, credential_type)
+           DO UPDATE SET secret_hash = EXCLUDED.secret_hash, password_changed_at = NOW(), failed_attempt_count = 0, locked_until = NULL, status = 'active', updated_at = NOW()`,
           [passwordHash, id],
+        );
+      }
+      for (const [id, username, email] of users) {
+        await client.query(
+          `INSERT INTO auth_login_identifiers (identifier_type, identifier, tenant_id, user_id, identity_id, is_active)
+           SELECT 'username', $1::citext, u.tenant_id, u.id, u.identity_id, true
+           FROM users u WHERE u.id = $2
+           ON CONFLICT (identifier_type, identifier)
+           DO UPDATE SET tenant_id = EXCLUDED.tenant_id, user_id = EXCLUDED.user_id, identity_id = EXCLUDED.identity_id, is_active = true`,
+          [username, id],
+        );
+        await client.query(
+          `INSERT INTO auth_login_identifiers (identifier_type, identifier, tenant_id, user_id, identity_id, is_active)
+           SELECT 'email', $1::citext, u.tenant_id, u.id, u.identity_id, true
+           FROM users u WHERE u.id = $2
+           ON CONFLICT (identifier_type, identifier)
+           DO UPDATE SET tenant_id = EXCLUDED.tenant_id, user_id = EXCLUDED.user_id, identity_id = EXCLUDED.identity_id, is_active = true`,
+          [email, id],
         );
       }
 

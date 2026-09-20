@@ -815,3 +815,30 @@ export const schema = {
 };
 
 export * from './rls.js';
+
+/** Manufacturing / Asset Master: machine capability identity owned by a tenant branch. */
+export const manufacturingMachines = pgTable(
+  'manufacturing_machines',
+  {
+    id: uuid('id').primaryKey().defaultRandom(), tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    branchId: uuid('branch_id').notNull(), code: varchar('code', { length: 50 }).notNull(), name: varchar('name', { length: 255 }).notNull(),
+    serialNumber: varchar('serial_number', { length: 150 }), model: varchar('model', { length: 150 }), manufacturer: varchar('manufacturer', { length: 150 }),
+    manufactureYear: integer('manufacture_year'), section: varchar('section', { length: 150 }), division: varchar('division', { length: 150 }),
+    operationalGroup: varchar('operational_group', { length: 150 }), capacity: numeric('capacity', { precision: 18, scale: 4 }), capacityUom: varchar('capacity_uom', { length: 30 }),
+    power: numeric('power', { precision: 18, scale: 4 }), powerUom: varchar('power_uom', { length: 30 }),
+    cutTimeApplicable: boolean('cut_time_applicable').notNull().default(true), productionMachine: boolean('production_machine').notNull().default(false),
+    fixedAssetId: uuid('fixed_asset_id'), status: varchar('status', { length: 20 }).notNull().default('ACTIVE'), isDeleted: boolean('is_deleted').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(), createdBy: uuid('created_by'), updatedAt: timestamp('updated_at', { withTimezone: true }), updatedBy: uuid('updated_by'),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }), deletedBy: uuid('deleted_by'), version: integer('version').notNull().default(1),
+  },
+  table => ({
+    uqManufacturingMachineIdTenant: uniqueIndex('uq_manufacturing_machine_id_tenant').on(table.id, table.tenantId),
+    fkManufacturingMachineBranchTenant: foreignKey({ columns: [table.branchId, table.tenantId], foreignColumns: [branches.id, branches.tenantId], name: 'fk_manufacturing_machine_branch_tenant' }),
+    uqManufacturingMachineCodeActive: uniqueIndex('uq_manufacturing_machine_code_active').on(table.tenantId, table.branchId, table.code).where(sql`${table.isDeleted} = false`),
+    idxManufacturingMachineList: index('idx_manufacturing_machine_list').on(table.tenantId, table.branchId, table.status, table.code, table.id).where(sql`${table.isDeleted} = false`),
+    checkManufacturingMachineStatus: check('manufacturing_machine_status_check', sql`${table.status} IN ('ACTIVE','INACTIVE','MAINTENANCE')`),
+    checkManufacturingMachineCapacity: check('manufacturing_machine_capacity_check', sql`${table.capacity} IS NULL OR ${table.capacity} >= 0`),
+    checkManufacturingMachinePower: check('manufacturing_machine_power_check', sql`${table.power} IS NULL OR ${table.power} >= 0`),
+    checkManufacturingMachineSoftDelete: check('manufacturing_machine_soft_delete_check', sql`((${table.isDeleted} = false AND ${table.deletedAt} IS NULL) OR (${table.isDeleted} = true AND ${table.deletedAt} IS NOT NULL))`),
+  }),
+);

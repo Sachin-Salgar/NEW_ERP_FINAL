@@ -30,11 +30,14 @@ import '../modules/sales/sales_admin_details_screen.dart';
 import '../modules/sales/document_list_screen.dart';
 import '../modules/sales/document_details_screen.dart';
 import '../modules/purchase/purchase_screen.dart';
+import '../modules/manufacturing/manufacturing_screen.dart';
 import '../modules/dashboard/dashboard_screen.dart';
 import '../modules/permission/permission_detail_screen.dart';
 import '../modules/permission/permission_list_screen.dart';
 import '../modules/permission/role_permission_screen.dart';
 import '../modules/security/security_administration_screen.dart';
+import '../modules/security/mfa_screen.dart';
+import '../modules/tax/tax_configuration_screen.dart';
 import '../modules/tenant/tenant_administration_screen.dart';
 import '../modules/platform/platform_administration_screen.dart';
 import '../modules/role/create_screen.dart';
@@ -396,9 +399,7 @@ class AppRouter {
         builder: (context) => _protected(
           context,
           routeName: path,
-          child: BranchDetailsScreen(
-            branchId: branchId,
-          ),
+          child: BranchDetailsScreen(branchId: branchId),
         ),
       );
     }
@@ -410,9 +411,7 @@ class AppRouter {
         builder: (context) => _protected(
           context,
           routeName: path,
-          child: EditBranchScreen(
-            branchId: branchId,
-          ),
+          child: EditBranchScreen(branchId: branchId),
         ),
       );
     }
@@ -499,6 +498,15 @@ class AppRouter {
             context,
             routeName: '/customers',
             child: const CustomerListScreen(),
+          ),
+        );
+      case '/manufacturing':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/manufacturing',
+            child: const ManufacturingScreen(),
           ),
         );
       case '/purchase':
@@ -707,6 +715,24 @@ class AppRouter {
             child: const PermissionListScreen(),
           ),
         );
+      case '/tax':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/tax',
+            child: const TaxConfigurationScreen(),
+          ),
+        );
+      case '/settings/mfa':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/settings/mfa',
+            child: const MfaScreen(),
+          ),
+        );
       case '/settings/security':
         return MaterialPageRoute(
           settings: settings,
@@ -870,9 +896,7 @@ class _RouteAuthorizationGateState extends State<_RouteAuthorizationGate> {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(24),
-          child: Text(
-            'This module is not enabled for the current tenant.',
-          ),
+          child: Text('This module is not enabled for the current tenant.'),
         ),
       );
     }

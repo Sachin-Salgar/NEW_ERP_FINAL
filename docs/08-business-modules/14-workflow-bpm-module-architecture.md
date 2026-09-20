@@ -280,6 +280,29 @@ These are architectural extension points, not claims that the capabilities are c
 
 AI-generated workflow changes must not be published automatically where they could alter authorization, financial controls, compliance rules, or other high-impact behavior without the required human governance.
 
+## 19.1 Current Implementation Alignment
+
+The repository now treats Workflow/BPM as a single canonical platform capability for configurable approvals. Manufacturing Work Order Scheduling and Procurement Requisition/Purchase Order approval are integrated through the canonical workflow service. Procurement's former module-local approve/reject HTTP actions and approval permissions are removed; submit/cancel remain domain lifecycle operations, while approval decisions are applied back to Procurement through explicit workflow integration methods.
+
+Sales Return approval is also integrated with the canonical workflow capability when an applicable published workflow exists. Its domain lifecycle remains authoritative; Workflow coordinates the authorization decision and the Sales Return service applies the resulting APPROVED or REJECTED transition.
+
+Module-local lifecycle/state transitions are not themselves considered separate workflow engines. A module may retain domain invariants and state transition logic, but configurable approval routing, human approval tasks, decision history, and approval policy must use the canonical Workflow/BPM capability.
+
+New modules must integrate with the canonical workflow contracts rather than introducing module-specific approval engines or approval endpoints. Where a domain needs a lifecycle state that the generic workflow outcome model does not yet represent, the domain state must be extended explicitly rather than mapping an unrelated workflow outcome such as RETURN to an incorrect business status.
+
+
+## 20.1 Canonicalization Audit — 2026-09-19
+
+The implementation has been tightened so approval routing is not exposed through module-local approval endpoints or permissions.
+
+- Procurement Requisition and Purchase Order approval/rejection are initiated by submission and, when a published canonical workflow exists, resolved by the Workflow/BPM task decision. Their domain services retain only domain lifecycle operations such as submit and cancel plus the explicit workflow decision callback.
+- Procurement Receipt retains domain completion/cancellation behavior; its former generic `/workflow` endpoint and `purchase.receipt.workflow` permission are removed because it was a module-local transition surface rather than a canonical BPM workflow.
+- Sales Return approval/rejection is exposed through the canonical workflow request/task path. The module retains inspection, processing, closing, and cancellation as domain lifecycle operations. The former direct approve/reject permission surface is removed.
+- Legacy approval permissions are removed by migration `0014_remove_legacy_workflow_permissions.sql`, including existing role assignments to those permissions.
+- New modules must not add `approve`, `reject`, or generic `workflow` endpoints for configurable approvals. They must register a canonical Workflow/BPM operation and a domain callback/handler while keeping domain invariants in the owning module.
+
+This establishes the repository rule: **one canonical Workflow/BPM engine; many domain lifecycle implementations; no module-local configurable approval engine.**
+
 ## 19. Implementation Rules for AI-Assisted Development
 
 AI-assisted implementation must:
@@ -300,3 +323,13 @@ AI-assisted implementation must:
 Workflow/BPM is a reusable enterprise orchestration capability within the modular-monolith ERP architecture. The platform owns workflow execution capabilities, while business modules remain authoritative for their domain records and define how those capabilities are used.
 
 The architecture supports configurable workflows, human tasks, approvals, business rules, SLAs, event-driven automation, monitoring, RPA integration, and governed low-code extensions without turning those capabilities into independent business systems or bypassing module ownership.
+
+## 20. Implementation Audit — 2026-09-19
+
+The repository audit distinguishes the documented target architecture from executable implementation. Procurement already contains module-local requisition and purchase-order state-transition endpoints (`workflow`, `submit`, `approve`, `reject`, `cancel`) and downstream approval-state enforcement. Before this change there was no shared executable Workflow/BPM definition/instance/task/decision persistence layer.
+
+This branch now adds the canonical shared workflow foundation in migration 0013 and the corresponding repository/service/HTTP routes. Workflow definitions are tenant-scoped, versioned, publishable, and keyed by document type + action + optional branch scope. Published definitions create sequential role-based approval tasks. Decisions support APPROVE, REJECT, and RETURN; requester self-approval is blocked; duplicate decisions by the same user are blocked; required approval counts and sequential steps are enforced; completed approval invokes a registered domain handler.
+
+Manufacturing Work Order Scheduling is the first bounded integration: when no published workflow exists, scheduling behaves exactly as before; when a published `manufacturing_work_order / SCHEDULE` definition exists, scheduling creates a pending approval instance and does not create the scheduled task sheets until the workflow reaches APPROVED. The approved callback invokes the existing scheduling operation through its normal authorization/service boundary.
+
+This is deliberately not represented as a second manufacturing approval engine. The configurable policy lives in the shared Workflow/BPM layer. Additional domain operations must register an approved-operation handler before a workflow definition can safely gate that operation. Rich expression-based conditional routing, delegation/escalation, SLA timers, notifications, and a dedicated Flutter workflow designer are not claimed as implemented by this slice.

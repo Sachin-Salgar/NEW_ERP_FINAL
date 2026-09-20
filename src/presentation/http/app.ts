@@ -25,6 +25,8 @@ import { DiscountService } from '../../application/services/discount-service.js'
 import { SalesReportingService } from '../../application/services/sales-reporting-service.js';
 import { ItemMasterService } from '../../application/services/item-master-service.js';
 import { InventoryService } from '../../application/services/inventory-service.js';
+import { ManufacturingMachineService } from '../../application/services/manufacturing-machine-service.js';
+import { ManufacturingExecutionService } from '../../application/services/manufacturing-execution-service.js';
 import { ProcurementService } from '../../application/services/procurement-service.js';
 import { TaxService } from '../../application/services/tax-service.js';
 import { SecurityAdministrationService } from '../../application/services/security-administration-service.js';
@@ -52,12 +54,16 @@ import { PostgresPricingRepository } from '../../infrastructure/database/reposit
 import { PostgresDiscountRepository } from '../../infrastructure/database/repositories/postgres-discount-repository.js';
 import { PostgresItemMasterRepository } from '../../infrastructure/database/repositories/postgres-item-master-repository.js';
 import { PostgresInventoryRepository } from '../../infrastructure/database/repositories/postgres-inventory-repository.js';
+import { PostgresManufacturingMachineRepository } from '../../infrastructure/database/repositories/postgres-manufacturing-machine-repository.js';
+import { PostgresManufacturingExecutionRepository } from '../../infrastructure/database/repositories/postgres-manufacturing-execution-repository.js';
 import { PostgresProcurementRepository } from '../../infrastructure/database/repositories/postgres-procurement-repository.js';
 import { PostgresNotificationService } from '../../infrastructure/database/repositories/postgres-operational-services.js';
 import { PostgresSchedulerService } from '../../infrastructure/database/repositories/postgres-operational-services.js';
 import { PostgresWorkflowRepository } from '../../infrastructure/database/repositories/postgres-workflow-repository.js';
 import { WorkflowService } from '../../application/services/workflow-service.js';
 import workflowRoutes from './routes/workflow.js';
+import manufacturingMachineRoutes from './routes/manufacturing-machines.js';
+import manufacturingExecutionRoutes from './routes/manufacturing-execution.js';
 import { AccountSecurityNotificationAdapter } from '../../application/adapters/account-security-notifications.js';
 import { buildErrorHandler } from '../../infrastructure/http/error-handler.js';
 import { applyCorrelationIdHooks } from '../../infrastructure/http/correlation-id.js';
@@ -250,6 +256,13 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   );
   const inventoryService = new InventoryService(
     new PostgresInventoryRepository(pool, config.TENANT_CONTEXT_KEY) as any,
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+    transactionRunner,
+  );
+  const manufacturingMachineService = new ManufacturingMachineService(
+    new PostgresManufacturingMachineRepository(pool, config.TENANT_CONTEXT_KEY),
     authorizationService,
     moduleAccessService,
     auditLogger,
@@ -449,6 +462,14 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     notificationService,
     schedulerService,
   );
+  const manufacturingExecutionService = new ManufacturingExecutionService(
+    new PostgresManufacturingExecutionRepository(pool, config.TENANT_CONTEXT_KEY),
+    authorizationService,
+    moduleAccessService,
+    auditLogger,
+    transactionRunner,
+    workflowService,
+  );
   workflowServiceRef.current = workflowService;
   const accountSecurityService = new AccountSecurityService(
     accountSecurityRepository,
@@ -492,6 +513,8 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('salesReportingService', salesReportingService);
   app.decorate('itemMasterService', itemMasterService);
   app.decorate('inventoryService', inventoryService);
+  app.decorate('manufacturingMachineService', manufacturingMachineService);
+  app.decorate('manufacturingExecutionService', manufacturingExecutionService);
   app.decorate('procurementService', procurementService);
   app.decorate('workflowService', workflowService);
   app.decorate('taxService', taxService);
@@ -602,6 +625,8 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(salesReportingRoutes, { prefix: config.API_PREFIX });
   await app.register(itemMasterRoutes, { prefix: config.API_PREFIX });
   await app.register(inventoryRoutes, { prefix: config.API_PREFIX });
+  await app.register(manufacturingMachineRoutes, { prefix: config.API_PREFIX });
+  await app.register(manufacturingExecutionRoutes, { prefix: config.API_PREFIX });
   await app.register(procurementRoutes, { prefix: config.API_PREFIX });
   await app.register(workflowRoutes, { prefix: config.API_PREFIX });
   await app.register(taxRoutes, { prefix: config.API_PREFIX });

@@ -92,6 +92,7 @@ describe('custom tenant seed vertical slice', () => {
     const login = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
+      headers: { 'x-tenant-id': tenantId },
       payload: { identifier: 'administrator', password: administratorPassword },
     });
     expect(login.statusCode).toBe(200);
@@ -104,7 +105,7 @@ describe('custom tenant seed vertical slice', () => {
     const me = await app.inject({
       method: 'GET',
       url: '/api/v1/auth/me',
-      headers: { authorization: `Bearer ${loginBody.accessToken}` },
+      headers: { authorization: `Bearer ${loginBody.accessToken}`, 'x-tenant-id': tenantId },
     });
     expect(me.statusCode).toBe(200);
     expect(me.json().user.id).toBe(loginBody.user.id);
@@ -112,7 +113,7 @@ describe('custom tenant seed vertical slice', () => {
     const authorizedOperation = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/register',
-      headers: { authorization: `Bearer ${loginBody.accessToken}` },
+      headers: { authorization: `Bearer ${loginBody.accessToken}`, 'x-tenant-id': tenantId },
       payload: {
         username: `seed-check-${randomBytes(8).toString('hex')}`,
         email: `seed-check-${randomBytes(8).toString('hex')}@example.com`,

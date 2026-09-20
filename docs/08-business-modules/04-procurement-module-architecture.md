@@ -172,8 +172,10 @@ When implementing Procurement features, AI must:
 The current bounded implementation exposes the Purchase module under the `purchase`
 module code and `/api/v1/purchase/*` resource namespace. It includes tenant- and
 tenant-scoped suppliers, purchase requisitions, purchase orders, and
-purchase receipts. Requisitions and orders support draft, submit, approve,
-reject, and cancel transitions with optimistic version checks. Receipts support
+purchase receipts. Requisitions and orders own draft, submit, and cancel lifecycle
+transitions with optimistic version checks. Configurable approval decisions are
+orchestrated by the canonical Workflow/BPM capability and applied back to the
+Procurement-owned record through the Procurement application service. Receipts support
 partial and repeated receipt creation by operation key and post accepted
 quantities through the Inventory receipt contract in the same transaction.
 
@@ -182,7 +184,8 @@ tenant/context ownership constraints, audit columns, and
 versioned updates. The Flutter Purchase workspace provides paginated/searchable
 supplier, requisition, order, and receipt views with create/edit/detail actions
 and permission-gated lifecycle controls. The public permission namespace is
-`purchase.*`, including resource-specific create/update and workflow actions.
+`purchase.*`, including resource-specific create/update and lifecycle actions;
+approval execution uses the canonical `workflow.*` permissions.
 Receipts require an approved active order, reject quantities beyond the
 outstanding order balance, support partial/multiple receipts, and complete
 idempotently through the Inventory boundary. Receipt drafts are preparation
@@ -194,15 +197,16 @@ The bounded v1 lifecycle is:
 
 ```text
 Supplier: ACTIVE -> inactive (soft delete)
-Requisition: DRAFT -> SUBMITTED -> APPROVED
- SUBMITTED -> REJECTED or CANCELLED
-Purchase Order: DRAFT -> SUBMITTED -> APPROVED
- SUBMITTED -> REJECTED or CANCELLED
+Requisition: DRAFT -> SUBMITTED -> [canonical Workflow/BPM approval] -> APPROVED
+ SUBMITTED -> [canonical Workflow/BPM rejection] or CANCELLED
+Purchase Order: DRAFT -> SUBMITTED -> [canonical Workflow/BPM approval] -> APPROVED
+ SUBMITTED -> [canonical Workflow/BPM rejection] or CANCELLED
 Receipt: DRAFT -> COMPLETED, or DRAFT -> CANCELLED
 ```
 
-Completed and cancelled receipts are immutable. Workflow mutations use
-optimistic version checks, and only the completion operation posts inventory.
+Completed and cancelled receipts are immutable. Procurement lifecycle mutations use
+optimistic version checks. Canonical Workflow/BPM decisions return through Procurement
+application-service handlers, and only the completion operation posts inventory.
 Receipt completion locks the approved purchase order while rechecking completed
 quantities, preventing concurrent completions from exceeding the order balance.
 Receipt status changes and Inventory receipt movements commit or roll back as one

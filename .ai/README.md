@@ -34,7 +34,11 @@ AI workflow files in `.ai/` explain **how an AI coding assistant should navigate
 - `workflows/feature-development.md` — mandatory feature-development lifecycle.
 - `workflows/repository-maintenance.md` — scanner/index maintenance lifecycle.
 
-### 4. Deterministic tooling
+### 4. Canonical Workflow/BPM operating rule
+
+- `workflows/canonical-workflow-bpm.md` — mandatory AI operating rule for the single canonical Workflow/BPM engine. Workflow owns configurable approval/process orchestration; business modules own business state and invariants.
+
+### 5. Deterministic tooling
 
 - `tools/ai/repository_scanner.py` — inventories repository structure and lightweight documentation metadata without an LLM.
 - `tools/ai/validate_ai_workflow.py` — validates that the AI workflow contract and required authority entry points exist.
