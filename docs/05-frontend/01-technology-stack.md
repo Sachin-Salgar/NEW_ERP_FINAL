@@ -28,7 +28,7 @@ The technologies described here constitute the current official technology stack
 | Validation | Zod | Current project-supported version | Runtime schema validation |
 | Authentication | JWT | Standard | Token-based authentication |
 | Version Control | Git | Current supported release | Distributed version control |
-| Package Manager | pnpm | Repository-selected version | Reproducible dependency management |
+| Package Manager | npm | Repository-selected version | Reproducible dependency management |
 | Monorepo Tool | Turborepo | Only where adopted by the repository | Build orchestration for multi-package repositories |
 | IDE | Visual Studio Code | Current supported release | Primary development environment |
 | Containerization | Docker | Current supported release | Consistent environments and deployment |
@@ -136,9 +136,9 @@ Future identity capabilities such as MFA, OIDC, SAML, or device trust require ex
 
 Git is the source-control system. Branching, review, and commit practices are governed by repository development workflow documentation.
 
-### pnpm
+### npm
 
-pnpm is the selected Node.js package manager where used by the repository. The lockfile and package manifests are authoritative for dependency resolution.
+npm is the selected Node.js package manager for the backend and CI/deployment workflows. The package manifest and `package-lock.json` are authoritative for dependency resolution.
 
 ### Turborepo
 

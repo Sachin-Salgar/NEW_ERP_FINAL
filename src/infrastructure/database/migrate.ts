@@ -25,6 +25,7 @@ const migrationChecks: Record<string, (client: Client) => Promise<boolean>> = {
   '0005_finance': (client) => tableExists(client, 'finance_postings'),
   '0006_tax': (client) => tableExists(client, 'tax_rules'),
   '0010_pending_login_challenges': pendingLoginChallengesMatchMigration,
+  '0011_workflow_purchase_order': (client) => tableExists(client, 'workflow_instances'),
 };
 
 async function tableExists(client: Client, tableName: string): Promise<boolean> {

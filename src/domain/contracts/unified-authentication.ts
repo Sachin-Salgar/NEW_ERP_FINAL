@@ -7,9 +7,11 @@ export interface TenantLoginContext {
   tenantId: string;
   tenantName: string;
   identityId: string;
+  userId: string;
   identitySecurityVersion: number;
   membershipSecurityVersion: number;
   tenantSecurityVersion: number;
+  userSecurityVersion: number;
 }
 
 export interface AuthorizedTenantLoginContext extends TenantLoginContext {
@@ -91,4 +93,10 @@ export interface UnifiedLoginResult {
     label: string;
   }>;
   pendingSelectionToken?: string;
+}
+
+export function compareUsableLoginContexts(left: UsableLoginContext, right: UsableLoginContext): number {
+  const leftKey = `${left.contextType}:${left.contextId}`;
+  const rightKey = `${right.contextType}:${right.contextId}`;
+  return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
 }

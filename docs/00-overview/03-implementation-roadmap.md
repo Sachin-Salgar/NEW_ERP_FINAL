@@ -3,8 +3,8 @@
 **Status:** Living implementation roadmap  
 **Authority:** Architecture documents and Approved ADRs define the intended system; this document records what is actually implemented and what remains to be validated or built.
 
-**Last reconciled:** 2026-09-10
-**Branch:** `main`
+**Last reconciled:** 2026-09-12
+**Branch:** `ai/audit-fixes-2026-09`
 
 ## Status definitions
 
@@ -27,7 +27,7 @@ application user currently belongs to exactly one tenant and normal login
 establishes that tenant automatically. Tenant switching and post-login tenant
 switching remain unsupported.
 
-**ADR-0042 is Accepted architecture. Phase 1 backend implementation is complete
+**ADR-0042 is Approved architecture. Phase 1 backend implementation is complete
 for identity-wide usable-context resolution, pending-selection challenges, and
 context-specific session issuance. Phase 2 Flutter integration is also complete,
 including direct tenant/platform routing and pending context selection.**
@@ -41,18 +41,66 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 ## 2. Current checkpoint
 
 **Current phase:** Unified Login Phase 1 backend and Phase 2 Flutter integration
-are complete. The next implementation step is the bounded Procurement Purchase
-v1 hardening and validation pass. Sales remains a partial module with bounded
+are complete. The bounded Audit Query / Read API slice is implemented and
+validated. The approved Workflow/BPM foundation is now implemented through the
+bounded Procurement Purchase Order integration, with full workflow integration
+validation still pending. Sales remains a partial module with bounded
 foundations implemented; its remaining capabilities require their separate
 specifications and dependency boundaries before implementation is selected.
 
 ### Validation evidence captured
 
+- Audit branch `ai/audit-fixes-2026-09` adds the documented `erp_app` bootstrap
+  before migrations, standardizes integration CI on Node 22 and `npm ci`,
+  seeds active local password credentials for both E2E identities, and aligns
+  ADR-0042 challenge snapshots and canonical context ordering with the domain
+  contract.
+- On the audit branch, `npm ci`, `npm run typecheck`, `npm run build`,
+  `npm run lint -- --no-fix`, `npm run db:verify-recovery`,
+  `npm run test:unit`, the focused migration/security integration tests,
+  `flutter analyze`, and the full Flutter test suite pass. The full
+  PostgreSQL integration suite remains unavailable against the configured
+  shared local database because it contains invalid stale identity data and
+  encounters concurrent RLS setup updates; no database was modified to bypass
+  those failures.
+- GitHub Actions integration run **34677762985** on the audit branch passed
+  database setup, migrations, fixture seeding, backend startup, admin E2E,
+  limited-user E2E, and browser navigation matrix E2E. AI Workflow Validation
+  run **34677763002** also passed.
+- Subsequent audit commits `495b448` and `9a1776b` corrected release-test
+  database URL resolution and provisioned the non-login, non-superuser,
+  non-RLS-bypassing `erp_app` role in every remaining backend integration
+  workflow. GitHub Actions integration run **34678706337** and AI Workflow
+  Validation run **34678706323** both passed on commit `9a1776b`.
+- The ADR terminology audit confirmed `Approved` as the only authoritative
+  binding status vocabulary. ADR-0037, ADR-0038, ADR-0039, and ADR-0042,
+  their index reference, and the ADR-0042 roadmap reference now use
+  `Approved`; ADR-0043 is now indexed and the next available identifier is
+  ADR-0044.
+  ADR-0032 has no status metadata and ADR-0025 through ADR-0039 are absent
+  from the ADR index; these remain governance/documentation follow-ups because
+  the repository does not provide enough authoritative metadata to invent
+  their status or index scope.
 - `npx vitest run tests/integration/authentication-flow.test.ts tests/integration/rbac-role-permissions.test.ts --reporter=basic` → exit code 0 on the current `main` branch.
 - ADR-0041 defines the branch working-context and authorization model. The
   implementation is in place on the feature branch, with unit, typecheck, lint,
   build, and diff validation passing; database-backed branch authorization proof
   remains pending.
+- The bounded Audit Query / Read API uses the existing
+  `/api/v1/security/audit-logs` route and `security.audit_log.read` permission,
+  adds repository-backed tenant-scoped filtering for actor, action, resource,
+  correlation ID, and timestamp range, deterministic timestamp/ID ordering, and
+  page/page_size pagination. Unit tests, the PostgreSQL audit atomicity/RLS
+  integration test, typecheck, build, lint, AI workflow validation, repository
+  scanning, and `git diff --check` pass. No migration was required because the
+  existing audit query indexes cover the approved filters.
+- ADR-0043's bounded Purchase Order workflow integration adds branch-specific
+  versioned configuration, workflow instances/levels/tasks/decisions,
+  delegation, durable escalation state, Procurement integration, platform
+  configuration permission, API routes, PostgreSQL RLS, and focused unit tests.
+  Typecheck, build, lint, unit tests, migration-role fidelity, and Purchase API
+  integration tests pass. Broader workflow-specific PostgreSQL proofs remain
+  validation pending.
 - GitHub Actions run **33486274877**, workflow `CI - Integration Tests (Postgres)`, commit `8dd4d17edd3f050a66c1bd2c25e47597fda21a95` → **success**.
 - The successful CI run completed the Postgres setup/migration/fixture/backend startup path and both Flutter Web E2E steps: **Run admin E2E test → success** and **Run limited-user E2E test → success**.
 - This CI run validates the repository-controlled test environment; it does not use or depend on future managed deployment configuration.
@@ -91,6 +139,9 @@ specifications and dependency boundaries before implementation is selected.
 ### Remaining work and residuals
 
 - Broader browser E2E verification remains a known validation residual; no functional or security assertion failure is evidenced.
+- No authoritative retention or cleanup period is defined for expired or
+  consumed `pending_login_challenges`; lifecycle policy remains a documentation
+  and governance gap, so no purge mechanism has been invented.
 - Production deployment and operational security evidence remains deployment-only.
 - Full business-module implementation.
 
@@ -325,7 +376,14 @@ The current verification pass must cover:
 11. Browser route deep-link, back/forward, refresh, and shell-persistence verification.
 12. Final security and Core Enterprise audit after technical verification.
 
-**Current evidence:** On commit `53ec31ddd635b5b1c0a971e4f060f055da2f67a2`, Backend CI run `33948006381` passed dependency audit, lint, generated-doc verification, migration recovery verification, typecheck, unit tests, build, Docker build, and Trivy. Postgres run `33948006417` passed database setup, migrations, fixtures, backend startup, admin E2E, and limited-user E2E; only the browser navigation matrix failed with a post-test `FocusManager was used after being disposed` assertion.
+**Current evidence:** The audit branch has passed local dependency installation,
+typecheck, lint, build, unit, focused migration/security integration, migration
+recovery, Flutter analyzer, and Flutter tests. GitHub Actions run
+`34677762985` passed database setup, migrations, fixtures, backend startup,
+admin E2E, limited-user E2E, and browser navigation matrix E2E; AI Workflow
+Validation run `34677763002` passed as well. The full local PostgreSQL suite
+still encounters stale shared-database contamination and concurrent RLS setup
+updates, so CI is the authoritative clean-database evidence for this branch.
 
 **Roadmap rule:** a verification item is not marked COMPLETED until actual repository/CI/deployment evidence supports it.
 

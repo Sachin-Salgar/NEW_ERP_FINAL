@@ -27,6 +27,7 @@ import type {
   TenantLoginContext,
   UsableLoginContexts,
 } from '../../../domain/contracts/unified-authentication.js';
+import { compareUsableLoginContexts } from '../../../domain/contracts/unified-authentication.js';
 
 export class PostgresPlatformRepository
   implements
@@ -172,6 +173,24 @@ export class PostgresPlatformRepository
 
     const contexts: Array<TenantLoginContext | PlatformLoginContext> = [];
     for (const row of membershipResult.rows) {
+      const userResult = await withTenantContext(
+        this.pool,
+        this.tenantContextKey,
+        row.tenantId,
+        (client) =>
+          client.query(
+            `SELECT id AS "userId", version AS "userSecurityVersion"
+               FROM users
+              WHERE tenant_id = $1
+                AND identity_id = $2
+                AND status = 'active'
+                AND is_deleted = false
+              LIMIT 1`,
+            [row.tenantId, identityId],
+          ),
+      );
+      const user = userResult.rows[0];
+      if (!user) continue;
       contexts.push({
         contextType: 'tenant',
         contextId: row.tenantMembershipId,
@@ -179,9 +198,11 @@ export class PostgresPlatformRepository
         tenantId: row.tenantId,
         tenantName: row.tenantName,
         identityId,
+        userId: user.userId,
         identitySecurityVersion: Number(identity.identitySecurityVersion ?? 1),
         membershipSecurityVersion: Number(row.membershipSecurityVersion ?? 1),
         tenantSecurityVersion: Number(row.tenantSecurityVersion ?? 1),
+        userSecurityVersion: Number(user.userSecurityVersion ?? 1),
       });
     }
     for (const row of platformResult.rows) {
@@ -195,7 +216,7 @@ export class PostgresPlatformRepository
         platformSecurityVersion: Number(row.membershipSecurityVersion ?? 1),
       });
     }
-    contexts.sort((a, b) => `${a.contextType}:${a.contextId}`.localeCompare(`${b.contextType}:${b.contextId}`));
+    contexts.sort(compareUsableLoginContexts);
     return {
       identityId,
       identitySecurityVersion: Number(identity.identitySecurityVersion ?? 1),
@@ -582,6 +603,7 @@ export class PostgresPlatformRepository
       ['platform', 'security', '*', 'platform.security.manage', 'Manage platform security'],
       ['platform', 'audit', 'read', 'platform.audit.read', 'Read platform audit'],
       ['platform', 'audit', 'export', 'platform.audit.export', 'Export platform audit'],
+      ['workflow', 'configuration', 'manage', 'workflow.configuration.manage', 'Manage workflow configuration'],
     ] as const;
     for (const [moduleCode, resource, action, permissionKey, displayName] of permissions) {
       await this.pool.query(

@@ -9,6 +9,7 @@ import {
   type ProcurementPermission,
   type ProcurementRepository,
 } from '../../domain/contracts/procurement.js';
+import type { ProcurementWorkflowPort } from '../../domain/contracts/workflow.js';
 import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../../domain/errors.js';
 
 export class ProcurementService {
@@ -25,6 +26,7 @@ export class ProcurementService {
     private readonly audit: AuditLogger,
     private readonly tx: { runInTransaction<T>(callback: () => Promise<T>): Promise<T> },
     private readonly inventory: InventoryDependencyPort,
+    private readonly workflow?: ProcurementWorkflowPort,
   ) {}
 
   createSupplier(c: ProcurementContext, input: { name: string; code?: string; email?: string }) {
@@ -203,13 +205,27 @@ export class ProcurementService {
     );
   }
   submitPurchaseOrder(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
+    let workflowResult: { status: string } | undefined;
     return this.transition(
       c,
       PROCUREMENT_PERMISSIONS.purchaseOrderSubmit,
       'order',
       { ...i, status: 'SUBMITTED' },
       (v) => this.repository.transitionPurchaseOrder({ ...c, ...v }),
-    );
+      async (result) => {
+        if (!this.workflow) return;
+        const nextVersion = Number((result as { version?: number }).version ?? i.expectedVersion + 1);
+        workflowResult = await this.workflow.onDocumentSubmitted(
+          c,
+          'PURCHASE_ORDER',
+          i.id,
+          nextVersion,
+          `purchase-order-submit:${i.id}:${nextVersion}`,
+        );
+      },
+    ).then(async (result) => {
+      return workflowResult ? { ...(result as Record<string, unknown>), workflow: workflowResult } : result;
+    });
   }
   approvePurchaseOrder(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
     return this.transition(
@@ -388,6 +404,7 @@ export class ProcurementService {
     type: string,
     input: { id: string; status: string; expectedVersion: number },
     fn: (value: { id: string; status: string; expectedVersion: number }) => Promise<unknown>,
+    after?: (result: unknown) => Promise<void>,
   ) {
     this.id(input.id, `${type} ID`);
     if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1)
@@ -440,6 +457,7 @@ export class ProcurementService {
       const result = await fn(input);
       if (result === null || result === undefined)
         throw new ValidationError(`${type} was modified concurrently or is no longer available.`);
+      if (after) await after(result);
       return result;
     });
   }

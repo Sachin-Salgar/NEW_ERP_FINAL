@@ -1,7 +1,7 @@
 # ADR-0038: Bounded Tax Foundation
 
 - Date: 2026-09-05
-- Status: Accepted
+- Status: Approved
 
 ## Decision
 

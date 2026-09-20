@@ -12,6 +12,18 @@ const listQuery = z.object({
   userId: z.string().uuid().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
+const auditQuery = z.object({
+  actorUserId: z.string().uuid().optional(),
+  action: z.string().trim().min(1).max(160).optional(),
+  resourceType: z.string().trim().min(1).max(120).optional(),
+  resourceId: z.string().trim().min(1).max(255).optional(),
+  from: z.string().datetime({ offset: true }).transform((value) => new Date(value)).optional(),
+  to: z.string().datetime({ offset: true }).transform((value) => new Date(value)).optional(),
+  correlationId: z.string().trim().min(1).max(255).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  page_size: z.coerce.number().int().min(1).max(100).default(20),
+  order: z.enum(['asc', 'desc']).default('desc'),
+});
 
 const securityAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get(
@@ -120,7 +132,19 @@ const securityAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
         summary: 'Read tenant audit logs',
         security: [{ bearerAuth: [] }],
         response: {
-          200: toJsonSchema(z.object({ success: z.literal(true), logs: z.array(z.unknown()) })),
+          200: toJsonSchema(
+            z.object({
+              success: z.literal(true),
+              logs: z.array(z.unknown()),
+              metadata: z.object({
+                page: z.number().int(),
+                page_size: z.number().int(),
+                total: z.number().int(),
+                total_pages: z.number().int(),
+                order: z.enum(['asc', 'desc']),
+              }),
+            }),
+          ),
           401: toJsonSchema(errorResponseSchema),
         },
       },
@@ -128,9 +152,22 @@ const securityAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request) => {
       if (!request.tenantId) throw new ValidationError('Tenant context is required.');
-      const query = listQuery.parse(request.query);
-      const logs = await request.server.securityAdministrationService.listAuditLogs(request.tenantId, query.limit, 0);
-      return { success: true as const, logs };
+      const query = auditQuery.parse(request.query);
+      const result = await request.server.auditQueryService.list(
+        { tenantId: request.tenantId, userId: request.user!.id },
+        { ...query, pageSize: query.page_size },
+      );
+      return {
+        success: true as const,
+        logs: result.items,
+        metadata: {
+          page: query.page,
+          page_size: query.page_size,
+          total: result.total,
+          total_pages: Math.ceil(result.total / query.page_size),
+          order: query.order,
+        },
+      };
     },
   );
 

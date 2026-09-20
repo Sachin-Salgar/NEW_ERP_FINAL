@@ -26,3 +26,38 @@ export interface AuditRecordOptions {
 export interface AuditLogger {
   record(event: AuditEvent, options?: AuditRecordOptions): Promise<void>;
 }
+
+export interface AuditLogRecord {
+  id: string;
+  tenantId: string;
+  actorUserId: string | null;
+  action: string;
+  resourceType: string;
+  resourceId: string | null;
+  outcome: AuditOutcome;
+  correlationId: string | null;
+  metadata: AuditMetadata;
+  createdAt: Date;
+}
+
+export interface AuditQuery {
+  page: number;
+  pageSize: number;
+  order: 'asc' | 'desc';
+  actorUserId?: string;
+  action?: string;
+  resourceType?: string;
+  resourceId?: string;
+  from?: Date;
+  to?: Date;
+  correlationId?: string;
+}
+
+export interface AuditQueryResult {
+  items: AuditLogRecord[];
+  total: number;
+}
+
+export interface AuditRepository {
+  list(tenantId: string, query: AuditQuery): Promise<AuditQueryResult>;
+}

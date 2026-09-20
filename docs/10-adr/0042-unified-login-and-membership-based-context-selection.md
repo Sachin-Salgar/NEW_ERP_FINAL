@@ -1,8 +1,8 @@
 # ADR-0042: Unified Login and Membership-Based Context Selection
 
 **Date**: 2026-09-10
-**Status**: Accepted
-**Approval**: Accepted by the Architecture Review Board
+**Status**: Approved
+**Approval**: Approved by the Architecture Review Board
 
 ## 1. Decision
 

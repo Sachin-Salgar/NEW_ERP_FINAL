@@ -93,6 +93,33 @@ async function main() {
     );
 
     await client.query(
+      `INSERT INTO tenant_memberships (identity_id, tenant_id, status, activated_at, revoked_at)
+       VALUES ($1, $3, 'active', NOW(), NULL), ($2, $3, 'active', NOW(), NULL)
+       ON CONFLICT (identity_id, tenant_id) DO UPDATE
+         SET status = 'active',
+             activated_at = COALESCE(tenant_memberships.activated_at, EXCLUDED.activated_at),
+             revoked_at = NULL,
+             updated_at = NOW()`,
+      [ADMIN_IDENTITY_ID, LIMITED_IDENTITY_ID, TENANT_ID],
+    );
+
+    await client.query(
+      `INSERT INTO identity_credentials (
+        identity_id, provider, credential_type, secret_hash, status, password_changed_at, created_at, updated_at
+      )
+      VALUES ($1, 'local', 'password', $3, 'active', NOW(), NOW(), NOW()),
+             ($2, 'local', 'password', $3, 'active', NOW(), NOW(), NOW())
+      ON CONFLICT (identity_id, provider, credential_type) DO UPDATE
+        SET secret_hash = EXCLUDED.secret_hash,
+            status = 'active',
+            failed_attempt_count = 0,
+            locked_until = NULL,
+            password_changed_at = EXCLUDED.password_changed_at,
+            updated_at = NOW()`,
+      [ADMIN_IDENTITY_ID, LIMITED_IDENTITY_ID, passwordHash],
+    );
+
+    await client.query(
       `INSERT INTO users (id, tenant_id, default_branch_id, username, email, password_hash, status, identity_id, created_at)
        VALUES ($1, $2, $3, 'e2e@example.com', $4, $5, 'active', $6, NOW()),
               ($7, $2, $3, 'e2e-limited', $8, $5, 'active', $9, NOW())
@@ -115,52 +142,26 @@ async function main() {
       `INSERT INTO auth_login_identifiers (identifier_type, identifier, tenant_id, user_id, identity_id)
        VALUES ('email', $1, $2, $3, $6), ('username', 'e2e@example.com', $2, $3, $6),
               ('email', $4, $2, $5, $7), ('username', 'e2e-limited', $2, $5, $7)
-       ON CONFLICT (identifier_type, identifier) DO UPDATE SET user_id = EXCLUDED.user_id, tenant_id = EXCLUDED.tenant_id, is_active = true`,
+       ON CONFLICT (identifier_type, identifier) DO UPDATE SET user_id = EXCLUDED.user_id, tenant_id = EXCLUDED.tenant_id, identity_id = EXCLUDED.identity_id, is_active = true`,
       [ADMIN_EMAIL, TENANT_ID, ADMIN_USER_ID, LIMITED_EMAIL, LIMITED_USER_ID, ADMIN_IDENTITY_ID, LIMITED_IDENTITY_ID],
     );
 
     const adminPermissions = [
-      'tenant.read',
-      'branch.read',
-      'branch.create',
-      'branch.update',
-      'branch.activate',
-      'branch.deactivate',
-      'user.read',
-      'user.create',
-      'user.update',
-      'user.activate',
-      'user.deactivate',
-      'role.read',
-      'role.create',
-      'role.update',
-      'role.activate',
-      'role.deactivate',
-      'role_permission.read',
-      'role_permission.grant',
-      'role_permission.revoke',
-      'permission.read',
-      'security.session.read',
-      'security.session.revoke',
-      'security.session.revoke_all',
-      'customer.read',
-      'customer.create',
-      'customer.update',
-      'customer.delete',
+      'tenant.read', 'branch.read', 'branch.create', 'branch.update', 'branch.activate', 'branch.deactivate',
+      'user.read', 'user.create', 'user.update', 'user.activate', 'user.deactivate',
+      'role.read', 'role.create', 'role.update', 'role.activate', 'role.deactivate',
+      'role_permission.read', 'role_permission.grant', 'role_permission.revoke', 'permission.read',
+      'security.session.read', 'security.session.revoke', 'security.session.revoke_all',
+      'customer.read', 'customer.create', 'customer.update', 'customer.delete',
     ];
     const limitedPermissions = ['branch.read', 'user.read'];
     for (const permissionKey of [...new Set([...adminPermissions, ...limitedPermissions])]) {
       const [resource, action] = permissionKey.split('.');
       const moduleCode =
-        resource === 'tenant'
-          ? 'tenant-configuration'
-          : resource === 'user'
-            ? 'user-management'
-            : resource === 'branch'
-              ? 'branch'
-              : resource === 'customer'
-                ? 'crm'
-                : 'security';
+        resource === 'tenant' ? 'tenant-configuration' :
+        resource === 'user' ? 'user-management' :
+        resource === 'branch' ? 'branch' :
+        resource === 'customer' ? 'crm' : 'security';
       await client.query(
         `INSERT INTO permissions (id, module_code, resource, action, scope, permission_key, display_name, description, is_system)
          VALUES ($1, $2, $3, $4, 'tenant', $5, $5, $6, false)
@@ -193,6 +194,41 @@ async function main() {
        ON CONFLICT (user_id, branch_id, tenant_id) DO NOTHING`,
       [TENANT_ID, ADMIN_USER_ID, BRANCH_ID, LIMITED_USER_ID],
     );
+
+    const fixtureCheck = await client.query(
+      `SELECT i.identity_id, c.secret_hash, m.id AS membership_id, u.id AS user_id
+         FROM auth_login_identifiers i
+         JOIN identity_credentials c
+           ON c.identity_id = i.identity_id
+          AND c.provider = 'local'
+          AND c.credential_type = 'password'
+          AND c.status = 'active'
+         JOIN tenant_memberships m
+           ON m.identity_id = i.identity_id
+          AND m.tenant_id = $1
+          AND m.status = 'active'
+          AND m.revoked_at IS NULL
+         JOIN users u
+           ON u.identity_id = i.identity_id
+          AND u.tenant_id = $1
+          AND u.status = 'active'
+          AND u.is_deleted = false
+        WHERE i.identifier_type = 'email'
+          AND i.identifier IN ($2, $3)
+          AND i.is_active = true`,
+      [TENANT_ID, ADMIN_EMAIL, LIMITED_EMAIL],
+    );
+    const fixturePasswords = await Promise.all(
+      fixtureCheck.rows.map(async (row) => ({
+        identityId: row.identity_id,
+        hashLength: row.secret_hash.length,
+        hashPrefix: row.secret_hash.slice(0, 4),
+        matches: await bcrypt.compare(PASSWORD, row.secret_hash),
+      })),
+    );
+    if (fixtureCheck.rowCount !== 2 || !fixturePasswords.every((fixture) => fixture.matches)) {
+      throw new Error('E2E authentication fixture verification failed.');
+    }
 
     await client.query('COMMIT');
     console.log('E2E seed completed successfully.');

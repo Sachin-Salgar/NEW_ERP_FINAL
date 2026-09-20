@@ -116,7 +116,7 @@ describe('unified authentication', () => {
   });
 
   it('returns only a pending challenge for multiple usable contexts', async () => {
-    const { service, repository, tenantAuthenticationService } = buildService([tenantContext(), platformContext()]);
+    const { service, repository, tenantAuthenticationService } = buildService([platformContext(), tenantContext()]);
     const result = await service.authenticate('alice@example.com', 'password');
     expect(result.resolution).toBe('SELECT');
     expect(result.pendingSelectionToken).toMatch(/^[0-9a-f-]+\.[A-Za-z0-9_-]+$/);
@@ -131,6 +131,16 @@ describe('unified authentication', () => {
     expect(repository.createPlatformSession).not.toHaveBeenCalled();
     expect(tenantAuthenticationService.authenticateTenantContext).not.toHaveBeenCalled();
     expect(repository.resolveUsableLoginContexts).toHaveBeenCalledWith(identityId);
+    expect(repository.createPendingLoginChallenge.mock.calls[0][0].contextSnapshot.contexts.map(
+      (context: { contextType: string; contextId: string }) => `${context.contextType}:${context.contextId}`,
+    )).toEqual([
+      `platform:${platformMembershipId}`,
+      `tenant:${tenantMembershipId}`,
+    ]);
+    expect(repository.createPendingLoginChallenge.mock.calls[0][0].contextSnapshot.contexts[1]).toMatchObject({
+      userId: tenantContext().userId,
+      userSecurityVersion: tenantContext().userSecurityVersion,
+    });
   });
 
   it('creates a platform session directly for one usable platform context', async () => {

@@ -8,6 +8,7 @@ import type {
   UsableLoginContext,
   UsableLoginContexts,
 } from '../../domain/contracts/unified-authentication.js';
+import { compareUsableLoginContexts } from '../../domain/contracts/unified-authentication.js';
 import type { UnifiedAuthenticationRepository, PasswordHasher, TokenService } from '../contracts/security.js';
 import type { AuthenticationService } from './authentication-service.js';
 
@@ -56,7 +57,9 @@ function contextSnapshot(context: UsableLoginContext, contextRef: string) {
       membershipSecurityVersion: context.membershipSecurityVersion,
       tenantId: context.tenantId,
       tenantMembershipId: context.tenantMembershipId,
+      userId: context.userId,
       tenantSecurityVersion: context.tenantSecurityVersion,
+      userSecurityVersion: context.userSecurityVersion,
       contextRef,
     };
   }
@@ -78,7 +81,7 @@ function makeSnapshot(
   snapshot: PendingLoginChallengeSnapshot;
   descriptors: UnifiedLoginResult['contexts'];
 } {
-  const offered = resolved.contexts.map((context) => {
+  const offered = [...resolved.contexts].sort(compareUsableLoginContexts).map((context) => {
     const existing = existingReferences?.find(
       (reference) =>
         reference.contextType === context.contextType && reference.contextId === context.contextId,
