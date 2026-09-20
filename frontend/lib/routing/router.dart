@@ -37,6 +37,7 @@ import '../modules/permission/permission_detail_screen.dart';
 import '../modules/permission/permission_list_screen.dart';
 import '../modules/permission/role_permission_screen.dart';
 import '../modules/security/security_administration_screen.dart';
+import '../modules/security/mfa_screen.dart';
 import '../modules/tenant/tenant_administration_screen.dart';
 import '../modules/platform/platform_administration_screen.dart';
 import '../modules/role/create_screen.dart';
@@ -714,6 +715,15 @@ class AppRouter {
             context,
             routeName: '/settings/permissions',
             child: const PermissionListScreen(),
+          ),
+        );
+      case '/settings/mfa':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/settings/mfa',
+            child: const MfaScreen(),
           ),
         );
       case '/settings/security':
