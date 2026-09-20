@@ -77,22 +77,82 @@ class _InventoryFoundationScreenState extends State<InventoryFoundationScreen> {
     );
   }
 
-  Widget _section(String title, List<Map<String, dynamic>> rows, List<String> fields) {
+  Widget _actionBar() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        if (service.auth.hasPermission('inventory.warehouse.create'))
+          FilledButton.icon(
+            onPressed: _createWarehouse,
+            icon: const Icon(Icons.warehouse_outlined),
+            label: const Text('Add Warehouse'),
+          ),
+        if (service.auth.hasPermission('inventory.stock.receive'))
+          OutlinedButton.icon(
+            onPressed: _receiveStock,
+            icon: const Icon(Icons.move_to_inbox_outlined),
+            label: const Text('Receive Stock'),
+          ),
+        if (service.auth.hasPermission('inventory.reservation.create'))
+          OutlinedButton.icon(
+            onPressed: _createReservation,
+            icon: const Icon(Icons.bookmark_add_outlined),
+            label: const Text('Reserve Stock'),
+          ),
+        if (service.auth.hasPermission('inventory.stock.return'))
+          OutlinedButton.icon(
+            onPressed: _returnStock,
+            icon: const Icon(Icons.keyboard_return_outlined),
+            label: const Text('Return Stock'),
+          ),
+      ],
+    );
+  }
+
+  Widget _section(
+    String title,
+    List<Map<String, dynamic>> rows,
+    List<String> fields,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Card(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(padding: const EdgeInsets.all(16), child: Text('$title (${rows.length})', style: Theme.of(context).textTheme.titleMedium)),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                '\$title (${rows.length})',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
             if (rows.isEmpty)
-              const Padding(padding: EdgeInsets.all(16), child: Text('No records found.'))
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('No records found.'),
+              )
             else
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  columns: fields.map((field) => DataColumn(label: Text(field))).toList(),
-                  rows: rows.map((row) => DataRow(cells: fields.map((field) => DataCell(Text('${row[field] ?? ''}'))).toList())).toList(),
+                  columns: fields
+                      .map((field) => DataColumn(label: Text(field)))
+                      .toList(),
+                  rows: rows
+                      .map(
+                        (row) => DataRow(
+                          cells: fields
+                              .map(
+                                (field) => DataCell(
+                                  Text('${row[field] ?? ''}'),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      )
+                      .toList(),
                 ),
               ),
           ],
