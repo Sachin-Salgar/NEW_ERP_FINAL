@@ -15,6 +15,10 @@ export class WorkflowService implements ProcurementWorkflowPort {
     private readonly tx: { runInTransaction<T>(callback: () => Promise<T>): Promise<T> },
     private readonly procurement: {
       transitionPurchaseOrder: (context: ProcurementContext, input: { id: string; status: string; expectedVersion: number }) => Promise<unknown>;
+      transitionPurchaseOrderFromWorkflow?: (
+        context: ProcurementContext,
+        input: { id: string; status: 'APPROVED' | 'REJECTED' | 'DRAFT'; expectedVersion: number },
+      ) => Promise<unknown>;
     },
     private readonly notifications?: NotificationServicePort,
     private readonly scheduler?: SchedulerServicePort,
@@ -56,7 +60,11 @@ export class WorkflowService implements ProcurementWorkflowPort {
       return { status: 'SUBMITTED' };
     }
     if (!definition.approvalRequired) {
-      await this.procurement.transitionPurchaseOrder(context, { id: documentId, status: 'APPROVED', expectedVersion });
+      await this.transitionPurchaseOrderFromWorkflow(context, {
+        id: documentId,
+        status: 'APPROVED',
+        expectedVersion,
+      });
       return { status: 'APPROVED' };
     }
     const instance = await this.repository.createInstance(context, definition, documentType, documentId, expectedVersion, operationKey);
@@ -103,12 +111,13 @@ export class WorkflowService implements ProcurementWorkflowPort {
     const result = await this.tx.runInTransaction(async () => {
       const decisionResult = await this.repository.decide(context, instanceId, taskId, decision, expectedVersion, operationKey);
       if (decisionResult.documentStatus && decisionResult.documentId && decisionResult.documentVersion) {
-        await this.procurement.transitionPurchaseOrder(context, {
+        await this.transitionPurchaseOrderFromWorkflow(context, {
           id: decisionResult.documentId,
-          status: decisionResult.documentStatus,
+          status: decisionResult.documentStatus as 'APPROVED' | 'REJECTED' | 'DRAFT',
           expectedVersion: decisionResult.documentVersion,
         });
       }
+
       return decisionResult;
     });
     await this.audit.record({ tenantId: context.tenantId, actorUserId: context.userId, action: `workflow.${decision.toLowerCase()}`, resourceType: 'workflow_instance', resourceId: instanceId, outcome: 'success' }, { requireTransaction: false });
@@ -125,6 +134,17 @@ export class WorkflowService implements ProcurementWorkflowPort {
       });
     }
     return result;
+  }
+
+  private transitionPurchaseOrderFromWorkflow(
+    context: ProcurementContext,
+    input: { id: string; status: 'APPROVED' | 'REJECTED' | 'DRAFT'; expectedVersion: number },
+  ) {
+    return this.procurement.transitionPurchaseOrderFromWorkflow
+      ? this.procurement.transitionPurchaseOrderFromWorkflow(context, input)
+      : this.procurement.transitionPurchaseOrder
+        ? this.procurement.transitionPurchaseOrder(context, input)
+        : Promise.reject(new ValidationError('Workflow procurement transition is not configured.'));
   }
 
   async decide(context: ProcurementContext, instanceId: string, taskId: string, decision: 'APPROVE' | 'REJECT' | 'CORRECTION', expectedVersion: number, operationKey: string) {

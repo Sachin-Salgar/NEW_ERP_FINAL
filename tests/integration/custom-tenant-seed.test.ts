@@ -130,4 +130,3 @@ describe('custom tenant seed vertical slice', () => {
     expect(platformOperation.statusCode).toBe(403);
   });
 });
-

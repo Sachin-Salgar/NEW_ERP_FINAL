@@ -181,6 +181,15 @@ async function main() {
           [passwordHash, id],
         );
       }
+      await client.query(
+        `INSERT INTO tenant_memberships (identity_id, tenant_id, status, activated_at)
+         SELECT DISTINCT u.identity_id, u.tenant_id, 'active'::membership_status_enum, NOW()
+         FROM users u
+         WHERE u.id = ANY($1::uuid[])
+         ON CONFLICT (identity_id, tenant_id)
+         DO UPDATE SET status = 'active', revoked_at = NULL, suspended_at = NULL, activated_at = COALESCE(tenant_memberships.activated_at, NOW()), updated_at = NOW()`,
+        [userIds],
+      );
       for (const [id, username, email] of users) {
         await client.query(
           `INSERT INTO auth_login_identifiers (identifier_type, identifier, tenant_id, user_id, identity_id, is_active)

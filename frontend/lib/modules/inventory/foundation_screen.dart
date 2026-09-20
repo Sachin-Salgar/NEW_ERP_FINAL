@@ -9,7 +9,8 @@ class InventoryFoundationScreen extends StatefulWidget {
   const InventoryFoundationScreen({super.key});
 
   @override
-  State<InventoryFoundationScreen> createState() => _InventoryFoundationScreenState();
+  State<InventoryFoundationScreen> createState() =>
+      _InventoryFoundationScreenState();
 }
 
 class _InventoryFoundationScreenState extends State<InventoryFoundationScreen> {
@@ -38,8 +39,12 @@ class _InventoryFoundationScreenState extends State<InventoryFoundationScreen> {
                     sliver: SliverToBoxAdapter(
                       child: ErpPageHeader(
                         title: 'Inventory Foundation',
-                        subtitle: 'Warehouses, stock balances, and reservations',
-                        breadcrumbs: const [ErpBreadcrumbItem(label: 'Dashboard'), ErpBreadcrumbItem(label: 'Inventory')],
+                        subtitle:
+                            'Warehouses, stock balances, and reservations',
+                        breadcrumbs: const [
+                          ErpBreadcrumbItem(label: 'Dashboard'),
+                          ErpBreadcrumbItem(label: 'Inventory'),
+                        ],
                         actions: [
                           FilledButton.icon(
                             onPressed: () => _createWarehouse(context),
@@ -51,9 +56,15 @@ class _InventoryFoundationScreenState extends State<InventoryFoundationScreen> {
                     ),
                   ),
                   if (inventory.loading && inventory.warehouses.isEmpty)
-                    const SliverFillRemaining(hasScrollBody: false, child: Center(child: CircularProgressIndicator()))
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(child: CircularProgressIndicator()),
+                    )
                   else if (inventory.error != null)
-                    SliverFillRemaining(hasScrollBody: false, child: Center(child: Text(inventory.error!)))
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(child: Text(inventory.error!)),
+                    )
                   else
                     SliverPadding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -61,9 +72,30 @@ class _InventoryFoundationScreenState extends State<InventoryFoundationScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _section('Warehouses', inventory.warehouses, const ['code', 'name', 'status', 'version'], onRow: _editWarehouse),
-                            _section('Stock balances', inventory.stock, const ['warehouseId', 'itemId', 'onHandQuantity', 'reservedQuantity', 'availableQuantity']),
-                            _section('Reservations', inventory.reservations, const ['sourceType', 'sourceId', 'quantity', 'status'], onRow: _reservationActions),
+                            _section('Warehouses', inventory.warehouses, const [
+                              'code',
+                              'name',
+                              'status',
+                              'version',
+                            ], onRow: _editWarehouse),
+                            _section('Stock balances', inventory.stock, const [
+                              'warehouseId',
+                              'itemId',
+                              'onHandQuantity',
+                              'reservedQuantity',
+                              'availableQuantity',
+                            ]),
+                            _section(
+                              'Reservations',
+                              inventory.reservations,
+                              const [
+                                'sourceType',
+                                'sourceId',
+                                'quantity',
+                                'status',
+                              ],
+                              onRow: _reservationActions,
+                            ),
                           ],
                         ),
                       ),
@@ -74,39 +106,6 @@ class _InventoryFoundationScreenState extends State<InventoryFoundationScreen> {
           );
         },
       ),
-    );
-  }
-
-  Widget _actionBar() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        if (service.auth.hasPermission('inventory.warehouse.create'))
-          FilledButton.icon(
-            onPressed: _createWarehouse,
-            icon: const Icon(Icons.warehouse_outlined),
-            label: const Text('Add Warehouse'),
-          ),
-        if (service.auth.hasPermission('inventory.stock.receive'))
-          OutlinedButton.icon(
-            onPressed: _receiveStock,
-            icon: const Icon(Icons.move_to_inbox_outlined),
-            label: const Text('Receive Stock'),
-          ),
-        if (service.auth.hasPermission('inventory.reservation.create'))
-          OutlinedButton.icon(
-            onPressed: _createReservation,
-            icon: const Icon(Icons.bookmark_add_outlined),
-            label: const Text('Reserve Stock'),
-          ),
-        if (service.auth.hasPermission('inventory.stock.return'))
-          OutlinedButton.icon(
-            onPressed: _returnStock,
-            icon: const Icon(Icons.keyboard_return_outlined),
-            label: const Text('Return Stock'),
-          ),
-      ],
     );
   }
 
@@ -145,20 +144,18 @@ class _InventoryFoundationScreenState extends State<InventoryFoundationScreen> {
                   rows: rows
                       .map(
                         (row) => DataRow(
-                          cells: fields
-                              .map(
-                                (field) => DataCell(
-                                  Text('${row[field] ?? ''}'),
-                                ),
-                              )
-                              .toList(),
-                          if (onRow != null)
-                            DataCell(
-                              IconButton(
-                                onPressed: () => onRow(row),
-                                icon: const Icon(Icons.more_horiz),
-                              ),
+                          cells: [
+                            ...fields.map(
+                              (field) => DataCell(Text('${row[field] ?? ''}')),
                             ),
+                            if (onRow != null)
+                              DataCell(
+                                IconButton(
+                                  onPressed: () => onRow(row),
+                                  icon: const Icon(Icons.more_horiz),
+                                ),
+                              ),
+                          ],
                         ),
                       )
                       .toList(),
@@ -177,133 +174,45 @@ class _InventoryFoundationScreenState extends State<InventoryFoundationScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Add Warehouse'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: code, decoration: const InputDecoration(labelText: 'Code')),
-          TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
-        ]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: code,
+              decoration: const InputDecoration(labelText: 'Code'),
+            ),
+            TextField(
+              controller: name,
+              decoration: const InputDecoration(labelText: 'Name'),
+            ),
+          ],
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () async { final error = await service.createWarehouse(code.text, name.text); if (dialogContext.mounted) { if (error == null) Navigator.pop(dialogContext, true); else ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(error))); } }, child: const Text('Save')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final error = await service.createWarehouse(code.text, name.text);
+              if (dialogContext.mounted) {
+                if (error == null)
+                  Navigator.pop(dialogContext, true);
+                else
+                  ScaffoldMessenger.of(dialogContext)
+                      .showSnackBar(SnackBar(content: Text(error)));
+              }
+            },
+            child: const Text('Save'),
+          ),
         ],
       ),
     );
     code.dispose();
     name.dispose();
-    if (result == true && context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Warehouse created.')));
-  }
-  Future<void> _receiveStock() async {
-    final data = await _movementDialog('Receive Stock');
-    if (data == null) return;
-    final error = await service.receiveStock(data);
-    _showResult(error, 'Stock received.');
-  }
-
-  Future<void> _createReservation() async {
-    final data = await _movementDialog('Reserve Stock');
-    if (data == null) return;
-    data['idempotencyKey'] =
-        'ui-${DateTime.now().microsecondsSinceEpoch}';
-    final error = await service.createReservation(data);
-    _showResult(error, 'Stock reserved.');
-  }
-
-  Future<void> _returnStock() async {
-    final data = await _movementDialog('Return Stock');
-    if (data == null) return;
-    data['idempotencyKey'] =
-        'ui-${DateTime.now().microsecondsSinceEpoch}';
-    final error = await service.returnStock(data);
-    _showResult(error, 'Stock returned.');
-  }
-
-  Future<Map<String, dynamic>?> _movementDialog(String title) async {
-    final warehouse = TextEditingController();
-    final item = TextEditingController();
-    final quantity = TextEditingController();
-    final sourceType = TextEditingController(text: 'MANUAL');
-    final sourceId = TextEditingController();
-
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(title),
-        content: SingleChildScrollView(
-          child: Column(
-            children: [
-              _field(warehouse, 'Warehouse ID'),
-              _field(item, 'Item ID'),
-              _field(
-                quantity,
-                'Quantity',
-                keyboardType: TextInputType.number,
-              ),
-              _field(sourceType, 'Source Type'),
-              _field(sourceId, 'Source ID'),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (warehouse.text.isEmpty ||
-                  item.text.isEmpty ||
-                  quantity.text.isEmpty ||
-                  sourceId.text.isEmpty) {
-                return;
-              }
-              Navigator.pop(dialogContext, {
-                'warehouseId': warehouse.text.trim(),
-                'itemId': item.text.trim(),
-                'quantity': double.tryParse(quantity.text) ?? 0,
-                'sourceType': sourceType.text.trim(),
-                'sourceId': sourceId.text.trim(),
-              });
-            },
-            child: const Text('Submit'),
-          ),
-        ],
-      ),
-    );
-
-    for (final controller in [
-      warehouse,
-      item,
-      quantity,
-      sourceType,
-      sourceId,
-    ]) {
-      controller.dispose();
-    }
-    return result;
-  }
-
-  void _showResult(String? error, String success) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(error ?? success)),
-    );
-  }
-
-  Widget _field(
-    TextEditingController controller,
-    String label, {
-    TextInputType? keyboardType,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-        ),
-      ),
-    );
+    if (result == true && context.mounted)
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Warehouse created.')));
   }
 
   Future<void> _editWarehouse(Map<String, dynamic> row) async {
@@ -327,10 +236,7 @@ class _InventoryFoundationScreenState extends State<InventoryFoundationScreen> {
                 decoration: const InputDecoration(labelText: 'Status'),
                 items: const [
                   DropdownMenuItem(value: 'ACTIVE', child: Text('ACTIVE')),
-                  DropdownMenuItem(
-                    value: 'INACTIVE',
-                    child: Text('INACTIVE'),
-                  ),
+                  DropdownMenuItem(value: 'INACTIVE', child: Text('INACTIVE')),
                 ],
                 onChanged: (value) {
                   if (value != null) setDialogState(() => status = value);
@@ -355,9 +261,8 @@ class _InventoryFoundationScreenState extends State<InventoryFoundationScreen> {
                 if (error == null) {
                   Navigator.pop(dialogContext, true);
                 } else {
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    SnackBar(content: Text(error)),
-                  );
+                  ScaffoldMessenger.of(dialogContext)
+                      .showSnackBar(SnackBar(content: Text(error)));
                 }
               },
               child: const Text('Save'),
@@ -368,9 +273,8 @@ class _InventoryFoundationScreenState extends State<InventoryFoundationScreen> {
     );
     name.dispose();
     if (result == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Warehouse updated.')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Warehouse updated.')));
     }
   }
 
@@ -417,4 +321,9 @@ class _InventoryFoundationScreenState extends State<InventoryFoundationScreen> {
     );
   }
 
+  void _showResult(String? error, String success) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(error ?? success)));
+  }
 }

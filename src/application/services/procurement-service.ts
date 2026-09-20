@@ -126,24 +126,6 @@ export class ProcurementService {
       (v) => this.repository.transitionRequisition({ ...c, ...v }),
     );
   }
-  approveRequisition(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
-    return this.transition(
-      c,
-      PROCUREMENT_PERMISSIONS.requisitionApprove,
-      'requisition',
-      { ...i, status: 'APPROVED' },
-      (v) => this.repository.transitionRequisition({ ...c, ...v }),
-    );
-  }
-  rejectRequisition(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
-    return this.transition(
-      c,
-      PROCUREMENT_PERMISSIONS.requisitionReject,
-      'requisition',
-      { ...i, status: 'REJECTED' },
-      (v) => this.repository.transitionRequisition({ ...c, ...v }),
-    );
-  }
   cancelRequisition(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
     return this.transition(
       c,
@@ -204,6 +186,12 @@ export class ProcurementService {
       this.repository.transitionPurchaseOrder({ ...c, ...value }),
     );
   }
+  transitionPurchaseOrderFromWorkflow(
+    c: ProcurementContext,
+    input: { id: string; status: 'APPROVED' | 'REJECTED' | 'DRAFT'; expectedVersion: number },
+  ) {
+    return this.repository.transitionPurchaseOrder({ ...c, ...input });
+  }
   submitPurchaseOrder(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
     let workflowResult: { status: string } | undefined;
     return this.transition(
@@ -224,22 +212,18 @@ export class ProcurementService {
         );
       },
     ).then(async (result) => {
-      return workflowResult ? { ...(result as Record<string, unknown>), workflow: workflowResult } : result;
+      if (!workflowResult) return result;
+      const value = result as Record<string, unknown>;
+      const purchaseOrder = value.purchaseOrder as Record<string, unknown> | undefined;
+      return {
+        ...value,
+        status: workflowResult.status,
+        ...(purchaseOrder
+          ? { purchaseOrder: { ...purchaseOrder, status: workflowResult.status } }
+          : {}),
+        workflow: workflowResult,
+      };
     });
-  }
-  approvePurchaseOrder(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
-    return this.transition(
-      c,
-      PROCUREMENT_PERMISSIONS.purchaseOrderApprove,
-      'order',
-      { ...i, status: 'APPROVED' },
-      (v) => this.repository.transitionPurchaseOrder({ ...c, ...v }),
-    );
-  }
-  rejectPurchaseOrder(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
-    return this.transition(c, PROCUREMENT_PERMISSIONS.purchaseOrderReject, 'order', { ...i, status: 'REJECTED' }, (v) =>
-      this.repository.transitionPurchaseOrder({ ...c, ...v }),
-    );
   }
   cancelPurchaseOrder(c: ProcurementContext, i: { id: string; expectedVersion: number }) {
     return this.transition(

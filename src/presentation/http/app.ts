@@ -458,6 +458,8 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     transactionRunner,
     {
       transitionPurchaseOrder: (context, input) => procurementService.transitionPurchaseOrder(context, input),
+      transitionPurchaseOrderFromWorkflow: (context, input) =>
+        procurementService.transitionPurchaseOrderFromWorkflow(context, input),
     },
     notificationService,
     schedulerService,

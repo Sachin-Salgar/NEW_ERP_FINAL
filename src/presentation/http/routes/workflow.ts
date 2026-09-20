@@ -54,7 +54,7 @@ const workflowRoutes: FastifyPluginAsync = async (fastify) => {
     success: true,
     workflow: await fastify.workflowService.getInstance(context(request), requestParam(request.params, 'id') ?? ''),
   }));
-  fastify.post('/workflow/instances/:id/tasks/:taskId/decision', { preHandler: [requireAuth, requirePermission('purchase.order.workflow')] }, async (request) => {
+  fastify.post('/workflow/instances/:id/tasks/:taskId/decision', { preHandler: [requireAuth, requirePermission('workflow.task.decide')] }, async (request) => {
     const body = request.body as Record<string, any>;
     const decision = String(body.decision ?? '').toUpperCase();
     if (!['APPROVE', 'REJECT', 'CORRECTION'].includes(decision)) throw new ValidationError('Invalid workflow decision.');
@@ -67,11 +67,11 @@ const workflowRoutes: FastifyPluginAsync = async (fastify) => {
       String(body.operationKey ?? ''),
     ) };
   });
-  fastify.post('/workflow/delegations', { preHandler: [requireAuth, requirePermission('purchase.order.workflow')] }, async (request) => ({
+  fastify.post('/workflow/delegations', { preHandler: [requireAuth, requirePermission('workflow.task.decide')] }, async (request) => ({
     success: true,
     delegation: await fastify.workflowService.createDelegation(context(request), request.body as any),
   }));
-  fastify.post('/workflow/delegations/:id/revoke', { preHandler: [requireAuth, requirePermission('purchase.order.workflow')] }, async (request) => ({
+  fastify.post('/workflow/delegations/:id/revoke', { preHandler: [requireAuth, requirePermission('workflow.task.decide')] }, async (request) => ({
     success: true,
     revoked: await fastify.workflowService.revokeDelegation(context(request), requestParam(request.params, 'id') ?? ''),
   }));

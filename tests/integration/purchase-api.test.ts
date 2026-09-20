@@ -12,6 +12,27 @@ describe('Purchase v1 receipt transaction and API hardening', () => {
 
   it('completes the approved-order receipt flow, is idempotent, and maps stale versions to 409', async () => {
     value = await fixture();
+    const workflowDefinitionId = uuidV7();
+    const workflowVersionId = uuidV7();
+    await value.adminPool.query(
+      `INSERT INTO workflow_definitions (id, tenant_id, branch_id, document_type, name, created_by)
+       VALUES ($1, $2, $3, 'PURCHASE_ORDER', 'Integration auto-approval', $4)
+       ON CONFLICT (tenant_id, branch_id, document_type, name) DO UPDATE SET name = EXCLUDED.name`,
+      [workflowDefinitionId, value.tenantA.tenantId, value.tenantA.branchId, value.tenantA.userId],
+    );
+    const definition = await value.adminPool.query<{ id: string }>(
+      `SELECT id FROM workflow_definitions
+       WHERE tenant_id = $1 AND branch_id = $2 AND document_type = 'PURCHASE_ORDER' AND name = 'Integration auto-approval'`,
+      [value.tenantA.tenantId, value.tenantA.branchId],
+    );
+    await value.adminPool.query(
+      `INSERT INTO workflow_definition_versions
+         (id, tenant_id, workflow_definition_id, version, status, approval_required, allow_correction, allow_delegation, definition_json, created_by)
+       VALUES ($1, $2, $3, 1, 'ACTIVE', false, false, false, '[]'::jsonb, $4)
+       ON CONFLICT (workflow_definition_id, version)
+       DO UPDATE SET status = 'ACTIVE', approval_required = false, definition_json = '[]'::jsonb`,
+      [workflowVersionId, value.tenantA.tenantId, definition.rows[0].id, value.tenantA.userId],
+    );
     const tokenA = await login(value.app, value.tenantASeed, value.tenantA.tenantId);
     const authA = headers(tokenA, value.tenantA.tenantId);
     const itemId = uuidV7();
@@ -58,7 +79,7 @@ describe('Purchase v1 receipt transaction and API hardening', () => {
       payload: { expectedVersion: requisition.version ?? 1 },
     });
     expect(submittedRequisition.statusCode).toBe(200);
-    expect(submittedRequisition.json().requisition.status).toBe('APPROVED');
+    expect(submittedRequisition.json().requisition.status).toBe('SUBMITTED');
 
     const orderResponse = await value.app.inject({
       method: 'POST',

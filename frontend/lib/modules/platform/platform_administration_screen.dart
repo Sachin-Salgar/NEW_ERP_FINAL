@@ -33,7 +33,9 @@ class _PlatformAdministrationScreenState
   Future<List<Map<String, dynamic>>> _loadTenants() async {
     final response = await _client.get('/api/v1/platform/tenants');
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Platform tenant access denied (\${response.statusCode}).');
+      throw Exception(
+        'Platform tenant access denied (${response.statusCode}).',
+      );
     }
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;
     return (decoded['tenants'] as List<dynamic>? ?? const [])
@@ -45,7 +47,7 @@ class _PlatformAdministrationScreenState
     Future<List<Map<String, dynamic>>> list(String path, String key) async {
       final response = await _client.get(path);
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw Exception('Platform access denied (\${response.statusCode}).');
+        throw Exception('Platform access denied (${response.statusCode}).');
       }
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       return (decoded[key] as List<dynamic>? ?? const [])
@@ -55,9 +57,11 @@ class _PlatformAdministrationScreenState
 
     final members = await list('/api/v1/platform/members', 'members');
     final roles = await list('/api/v1/platform/roles', 'roles');
-    final policyResponse = await _client.get('/api/v1/platform/security-policy');
-    final policy = policyResponse.statusCode >= 200 &&
-            policyResponse.statusCode < 300
+    final policyResponse = await _client.get(
+      '/api/v1/platform/security-policy',
+    );
+    final policy =
+        policyResponse.statusCode >= 200 && policyResponse.statusCode < 300
         ? ((jsonDecode(policyResponse.body) as Map<String, dynamic>)['policy']
                   as Map<String, dynamic>? ??
               const {})
@@ -71,11 +75,12 @@ class _PlatformAdministrationScreenState
   ) async {
     final id = tenant['id']?.toString();
     if (id == null || id.isEmpty) return;
-    final response = await _client.post('/api/v1/platform/tenants/\$id/\$action');
+    final response = await _client.post(
+      '/api/v1/platform/tenants/\$id/\$action',
+    );
     if (response.statusCode >= 400 && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response.body)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(response.body)));
       return;
     }
     if (mounted) {
@@ -86,15 +91,14 @@ class _PlatformAdministrationScreenState
   Future<void> _deleteTenant(Map<String, dynamic> tenant) async {
     final id = tenant['id']?.toString();
     if (id == null || id.isEmpty) return;
-    final name = tenant['displayName']?.toString() ??
-        tenant['name']?.toString() ??
-        id;
+    final name =
+        tenant['displayName']?.toString() ?? tenant['name']?.toString() ?? id;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete tenant?'),
         content: Text(
-          'This permanently invokes the guarded platform tenant deletion for "\$name". Continue?',
+          'This permanently invokes the guarded platform tenant deletion for "$name". Continue?',
         ),
         actions: [
           TextButton(
@@ -112,14 +116,12 @@ class _PlatformAdministrationScreenState
     final response = await _client.delete('/api/v1/platform/tenants/\$id');
     if (!mounted) return;
     if (response.statusCode >= 400) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response.body)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(response.body)));
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Tenant deleted.')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Tenant deleted.')));
     setState(_reload);
   }
 
@@ -198,9 +200,8 @@ class _PlatformAdministrationScreenState
               );
               if (!dialogContext.mounted) return;
               if (response.statusCode >= 400) {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  SnackBar(content: Text(response.body)),
-                );
+                ScaffoldMessenger.of(dialogContext)
+                    .showSnackBar(SnackBar(content: Text(response.body)));
                 return;
               }
               Navigator.pop(dialogContext, true);
@@ -258,7 +259,9 @@ class _PlatformAdministrationScreenState
                 ),
                 TextField(
                   controller: branch,
-                  decoration: const InputDecoration(labelText: 'Default branch *'),
+                  decoration: const InputDecoration(
+                    labelText: 'Default branch *',
+                  ),
                 ),
                 const Divider(),
                 const Align(
@@ -284,11 +287,15 @@ class _PlatformAdministrationScreenState
                 const Divider(),
                 TextField(
                   controller: roleCode,
-                  decoration: const InputDecoration(labelText: 'Administrator role code'),
+                  decoration: const InputDecoration(
+                    labelText: 'Administrator role code',
+                  ),
                 ),
                 TextField(
                   controller: roleName,
-                  decoration: const InputDecoration(labelText: 'Administrator role name'),
+                  decoration: const InputDecoration(
+                    labelText: 'Administrator role name',
+                  ),
                 ),
               ],
             ),
@@ -324,9 +331,8 @@ class _PlatformAdministrationScreenState
               );
               if (!dialogContext.mounted) return;
               if (response.statusCode < 200 || response.statusCode >= 300) {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  SnackBar(content: Text(response.body)),
-                );
+                ScaffoldMessenger.of(dialogContext)
+                    .showSnackBar(SnackBar(content: Text(response.body)));
                 return;
               }
               Navigator.pop(dialogContext, true);
@@ -399,9 +405,8 @@ class _PlatformAdministrationScreenState
               if (response.statusCode == 201) {
                 Navigator.pop(dialogContext, true);
               } else {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  SnackBar(content: Text(response.body)),
-                );
+                ScaffoldMessenger.of(dialogContext)
+                    .showSnackBar(SnackBar(content: Text(response.body)));
               }
             },
             child: const Text('Create'),
@@ -444,26 +449,25 @@ class _PlatformAdministrationScreenState
     );
     if (selected == null) return;
     final response = await _client.patch(
-      '/api/v1/platform/members/\${member['id']}',
+      '/api/v1/platform/members/${member['id']}',
       body: {'status': selected},
     );
     if (response.statusCode >= 400 && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response.body)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(response.body)));
     }
     if (mounted) setState(_reload);
   }
 
   Future<void> _editPolicy(Map<String, dynamic> policy) async {
     final session = TextEditingController(
-      text: '\${policy['sessionLifetimeMinutes'] ?? 60}',
+      text: '${policy['sessionLifetimeMinutes'] ?? 60}',
     );
     final failed = TextEditingController(
-      text: '\${policy['maxFailedLoginAttempts'] ?? 5}',
+      text: '${policy['maxFailedLoginAttempts'] ?? 5}',
     );
     final lockout = TextEditingController(
-      text: '\${policy['lockoutMinutes'] ?? 15}',
+      text: '${policy['lockoutMinutes'] ?? 15}',
     );
     var mfa = policy['mfaRequired'] == true;
     final result = await showDialog<bool>(
@@ -529,9 +533,8 @@ class _PlatformAdministrationScreenState
     failed.dispose();
     lockout.dispose();
     if (response.statusCode >= 400 && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response.body)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(response.body)));
     }
     if (mounted) setState(_reload);
   }
@@ -539,7 +542,7 @@ class _PlatformAdministrationScreenState
   Future<List<Map<String, dynamic>>> _loadAudit() async {
     final response = await _client.get('/api/v1/platform/audit');
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Platform audit access denied (\${response.statusCode}).');
+      throw Exception('Platform audit access denied (${response.statusCode}).');
     }
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;
     return (decoded['events'] as List<dynamic>? ?? const [])
@@ -549,7 +552,8 @@ class _PlatformAdministrationScreenState
 
   Widget _tenantCard(Map<String, dynamic> tenant) {
     final status = tenant['status']?.toString() ?? 'unknown';
-    final name = tenant['displayName']?.toString() ??
+    final name =
+        tenant['displayName']?.toString() ??
         tenant['name']?.toString() ??
         tenant['id']?.toString() ??
         'Tenant';
@@ -557,7 +561,7 @@ class _PlatformAdministrationScreenState
       child: ListTile(
         title: Text(name),
         subtitle: Text(
-          '\${tenant['slug'] ?? ''} • \${tenant['subdomain'] ?? ''} • Status: \$status',
+          '${tenant['slug'] ?? ''} • ${tenant['subdomain'] ?? ''} • Status: $status',
         ),
         isThreeLine: true,
         trailing: PopupMenuButton<String>(
@@ -655,8 +659,10 @@ class _PlatformAdministrationScreenState
                   const Expanded(
                     child: Text(
                       'Tenants',
-                      style:
-                          TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   FilledButton.icon(
@@ -675,8 +681,10 @@ class _PlatformAdministrationScreenState
                   const Expanded(
                     child: Text(
                       'Platform Members',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   IconButton(
@@ -696,7 +704,7 @@ class _PlatformAdministrationScreenState
                   }
                   final members =
                       (memberSnapshot.data?['members'] as List<dynamic>? ??
-                          const []);
+                      const []);
                   return Column(
                     children: [
                       for (final member
@@ -704,7 +712,7 @@ class _PlatformAdministrationScreenState
                         ListTile(
                           title: Text(member['identityId']?.toString() ?? ''),
                           subtitle: Text(
-                            '\${member['status'] ?? ''} • Roles: \${member['roles'] ?? ''}',
+                            '${member['status'] ?? ''} • Roles: ${member['roles'] ?? ''}',
                           ),
                           trailing: IconButton(
                             icon: const Icon(Icons.edit_outlined),
@@ -723,8 +731,10 @@ class _PlatformAdministrationScreenState
                   const Expanded(
                     child: Text(
                       'Platform Roles',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   FilledButton.icon(
@@ -740,7 +750,7 @@ class _PlatformAdministrationScreenState
                   final overview =
                       overviewSnapshot.data ?? const <String, dynamic>{};
                   return Text(
-                    '\${(overview['roles'] as List<dynamic>? ?? const []).length} platform roles available.',
+                    '${(overview['roles'] as List<dynamic>? ?? const []).length} platform roles available.',
                   );
                 },
               ),
@@ -788,9 +798,9 @@ class _PlatformAdministrationScreenState
                       for (final event in events.take(50))
                         ListTile(
                           dense: true,
-                          title: Text('\${event['action'] ?? ''}'),
+                          title: Text('${event['action'] ?? ''}'),
                           subtitle: Text(
-                            '\${event['resourceType'] ?? ''} • \${event['resourceId'] ?? ''} • \${event['createdAt'] ?? ''}',
+                            '${event['resourceType'] ?? ''} • ${event['resourceId'] ?? ''} • ${event['createdAt'] ?? ''}',
                           ),
                         ),
                       if (events.isEmpty)

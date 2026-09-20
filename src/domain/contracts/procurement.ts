@@ -20,7 +20,7 @@ export const PROCUREMENT_PERMISSIONS = {
   purchaseOrderApprove: 'purchase.order.approve',
   purchaseOrderReject: 'purchase.order.reject',
   purchaseOrderCancel: 'purchase.order.cancel',
-  purchaseOrderWorkflow: 'purchase.order.workflow',
+  purchaseOrderWorkflow: 'workflow.task.decide',
   receiptRead: 'purchase.receipt.read',
   receiptCreate: 'purchase.receipt.create',
   receiptUpdate: 'purchase.receipt.update',
