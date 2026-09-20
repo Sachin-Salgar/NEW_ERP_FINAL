@@ -3,7 +3,7 @@
 **Status:** Living implementation roadmap  
 **Authority:** Architecture documents and Approved ADRs define the intended system; this document records what is actually implemented and what remains to be validated or built.
 
-**Last reconciled:** 2026-09-10
+**Last reconciled:** 2026-09-12
 **Branch:** `ai/audit-fixes-2026-09`
 
 ## Status definitions
@@ -41,10 +41,12 @@ The old host/deployment **TenantResolver is retired** and is not a current imple
 ## 2. Current checkpoint
 
 **Current phase:** Unified Login Phase 1 backend and Phase 2 Flutter integration
-are complete. The bounded Audit Query / Read API slice is now implemented and
-validated. Sales remains a partial module with bounded foundations implemented;
-its remaining capabilities require their separate specifications and dependency
-boundaries before implementation is selected.
+are complete. The bounded Audit Query / Read API slice is implemented and
+validated. The approved Workflow/BPM foundation is now implemented through the
+bounded Procurement Purchase Order integration, with full workflow integration
+validation still pending. Sales remains a partial module with bounded
+foundations implemented; its remaining capabilities require their separate
+specifications and dependency boundaries before implementation is selected.
 
 ### Validation evidence captured
 
@@ -73,7 +75,8 @@ boundaries before implementation is selected.
 - The ADR terminology audit confirmed `Approved` as the only authoritative
   binding status vocabulary. ADR-0037, ADR-0038, ADR-0039, and ADR-0042,
   their index reference, and the ADR-0042 roadmap reference now use
-  `Approved`; the next available identifier is corrected to ADR-0043.
+  `Approved`; ADR-0043 is now indexed and the next available identifier is
+  ADR-0044.
   ADR-0032 has no status metadata and ADR-0025 through ADR-0039 are absent
   from the ADR index; these remain governance/documentation follow-ups because
   the repository does not provide enough authoritative metadata to invent
@@ -91,6 +94,13 @@ boundaries before implementation is selected.
   integration test, typecheck, build, lint, AI workflow validation, repository
   scanning, and `git diff --check` pass. No migration was required because the
   existing audit query indexes cover the approved filters.
+- ADR-0043's bounded Purchase Order workflow integration adds branch-specific
+  versioned configuration, workflow instances/levels/tasks/decisions,
+  delegation, durable escalation state, Procurement integration, platform
+  configuration permission, API routes, PostgreSQL RLS, and focused unit tests.
+  Typecheck, build, lint, unit tests, migration-role fidelity, and Purchase API
+  integration tests pass. Broader workflow-specific PostgreSQL proofs remain
+  validation pending.
 - GitHub Actions run **33486274877**, workflow `CI - Integration Tests (Postgres)`, commit `8dd4d17edd3f050a66c1bd2c25e47597fda21a95` → **success**.
 - The successful CI run completed the Postgres setup/migration/fixture/backend startup path and both Flutter Web E2E steps: **Run admin E2E test → success** and **Run limited-user E2E test → success**.
 - This CI run validates the repository-controlled test environment; it does not use or depend on future managed deployment configuration.

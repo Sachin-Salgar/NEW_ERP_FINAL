@@ -54,6 +54,10 @@ import { PostgresItemMasterRepository } from '../../infrastructure/database/repo
 import { PostgresInventoryRepository } from '../../infrastructure/database/repositories/postgres-inventory-repository.js';
 import { PostgresProcurementRepository } from '../../infrastructure/database/repositories/postgres-procurement-repository.js';
 import { PostgresNotificationService } from '../../infrastructure/database/repositories/postgres-operational-services.js';
+import { PostgresSchedulerService } from '../../infrastructure/database/repositories/postgres-operational-services.js';
+import { PostgresWorkflowRepository } from '../../infrastructure/database/repositories/postgres-workflow-repository.js';
+import { WorkflowService } from '../../application/services/workflow-service.js';
+import workflowRoutes from './routes/workflow.js';
 import { AccountSecurityNotificationAdapter } from '../../application/adapters/account-security-notifications.js';
 import { buildErrorHandler } from '../../infrastructure/http/error-handler.js';
 import { applyCorrelationIdHooks } from '../../infrastructure/http/correlation-id.js';
@@ -251,6 +255,8 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     auditLogger,
     transactionRunner,
   );
+  const workflowServiceRef: { current?: WorkflowService } = {};
+  const procurementServiceRef: { current?: ProcurementService } = {};
   const procurementService = new ProcurementService(
     new PostgresProcurementRepository(pool, config.TENANT_CONTEXT_KEY),
     authorizationService,
@@ -270,7 +276,14 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
         inventoryService.fulfill(context, reservationId, idempotencyKey),
       returnStock: (context, request) => inventoryService.returnStock(context, request),
     },
+    {
+      onDocumentSubmitted: (...args) => workflowServiceRef.current!.onDocumentSubmitted(...args),
+      onPurchaseOrderSubmitted: (...args) => workflowServiceRef.current!.onPurchaseOrderSubmitted(...args),
+      transitionPurchaseOrder: (context, purchaseOrderId, status, expectedVersion): Promise<unknown> =>
+        procurementServiceRef.current!.transitionPurchaseOrder(context, { id: purchaseOrderId, status, expectedVersion }),
+    },
   );
+  procurementServiceRef.current = procurementService;
   const orderService = new OrderService(
     new PostgresOrderRepository(pool, config.TENANT_CONTEXT_KEY) as any,
     authorizationService,
@@ -425,6 +438,18 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
 
   const accountSecurityRepository = new PostgresAccountSecurityRepository(pool, config.TENANT_CONTEXT_KEY);
   const notificationService = new PostgresNotificationService(pool, config.TENANT_CONTEXT_KEY);
+  const schedulerService = new PostgresSchedulerService(pool, config.TENANT_CONTEXT_KEY);
+  const workflowService = new WorkflowService(
+    new PostgresWorkflowRepository(pool, config.TENANT_CONTEXT_KEY),
+    auditLogger,
+    transactionRunner,
+    {
+      transitionPurchaseOrder: (context, input) => procurementService.transitionPurchaseOrder(context, input),
+    },
+    notificationService,
+    schedulerService,
+  );
+  workflowServiceRef.current = workflowService;
   const accountSecurityService = new AccountSecurityService(
     accountSecurityRepository,
     passwordHasher,
@@ -468,6 +493,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('itemMasterService', itemMasterService);
   app.decorate('inventoryService', inventoryService);
   app.decorate('procurementService', procurementService);
+  app.decorate('workflowService', workflowService);
   app.decorate('taxService', taxService);
 
   app.addHook('onReady', async () => {
@@ -577,6 +603,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(itemMasterRoutes, { prefix: config.API_PREFIX });
   await app.register(inventoryRoutes, { prefix: config.API_PREFIX });
   await app.register(procurementRoutes, { prefix: config.API_PREFIX });
+  await app.register(workflowRoutes, { prefix: config.API_PREFIX });
   await app.register(taxRoutes, { prefix: config.API_PREFIX });
   return app;
 }

@@ -14,6 +14,13 @@ The ERP contains multiple business documents and processes that may require appr
 
 The ERP will provide a generic, configurable, branch-specific Workflow/BPM engine. It can be attached to supported ERP business document types. Individual modules determine which document types expose workflow configuration; the workflow platform remains generic. Workflow configuration is managed by the Global Administrator and is branch-specific.
 
+The first and only integration authorized by this ADR amendment is Purchase Order
+within Procurement. Procurement remains the authoritative owner of Purchase Order
+data, persistence, and document lifecycle. Workflow owns workflow definitions,
+versioned definitions, instances, approval levels, assignments, decisions,
+delegation, and escalation state, and must integrate with Procurement through an
+explicit application/domain contract rather than writing Procurement tables.
+
 ## Workflow Configuration
 
 Each supported workflow may configure:
@@ -29,6 +36,33 @@ Each supported workflow may configure:
 - cancellation behavior.
 
 A workflow may explicitly require approval or allow the underlying module lifecycle to proceed without an approval workflow.
+
+For the bounded Purchase Order integration, configuration scope is exactly
+tenant + branch + document/workflow type. There is no tenant-wide fallback,
+inheritance, cross-branch workflow, or cross-tenant workflow. Configuration
+versions use `DRAFT -> VALIDATED -> ACTIVE -> SUPERSEDED/RETIRED`; invalid
+versions cannot activate, only one active version applies to a branch/document
+combination, and existing instances remain pinned to their starting version.
+Activation and effective dating reuse the Enterprise Configuration Framework.
+The platform permission `workflow.configuration.manage` is required for
+configuration administration.
+
+The bounded Purchase Order profile uses `approval_required`, parallel approval
+levels, and `ALL` or `ANY` completion policies. A submitted Purchase Order with
+approval disabled completes workflow without approval tasks and may become
+`APPROVED`; an approval-required order becomes approved only after every level
+is satisfied. Rejection permanently ends the current instance and sets the
+Purchase Order to `REJECTED`. Correction returns the order to `DRAFT` while
+retaining the historical instance; every later submission creates a new
+instance. Where restart is configured, only affected levels restart.
+
+Delegation is validity-bound, authorized, revocable, expiring, and
+non-recursive. Escalation uses the existing durable Scheduler Service with
+calendar time (weekends and holidays do not pause it), durable idempotent state,
+and the existing Notification Service for notification intents. Protected
+Procurement and Workflow transitions, audit records, and required outbox records
+share the existing UnitOfWork boundary. Workflow actions are idempotent and
+concurrency-safe through existing optimistic checks and row locking patterns.
 
 ## Rule Model
 
@@ -152,10 +186,23 @@ Individual modules must define their document-specific workflow configuration an
 20. Concurrent/duplicate workflow actions cannot produce invalid state transitions.
 21. Workflow state transitions preserve required ERP transaction boundaries.
 22. No workflow operation bypasses authorization of the underlying business document.
+23. The first implementation is limited to Purchase Order integration.
+24. Purchase Order submission starts a branch-specific workflow, and every
+    resubmission starts a new historical instance.
+25. Workflow does not directly mutate Procurement private tables.
+26. Configuration administration requires `workflow.configuration.manage` in a
+    platform-authenticated context.
+27. Delegation, escalation, notification intents, audit, idempotency, and
+    concurrency use the existing platform contracts.
 
 ## Implementation Guidance
 
-This ADR authorizes implementation of a generic Workflow/BPM foundation but does not authorize implementation of every possible ERP workflow simultaneously. Implementation shall proceed as bounded vertical slices, beginning with the smallest reusable workflow configuration and execution capability whose business-document integration is explicitly specified by the roadmap/module contract. Module-specific workflow behavior requires authoritative module business rules and document lifecycle definitions.
+This ADR authorizes implementation of the generic Workflow/BPM foundation only
+through the bounded Purchase Order integration described above. It does not
+authorize implementation of Sales, HR, Manufacturing, Quality, or other ERP
+workflows, a workflow designer UI, an external BPM provider, or an external
+message broker. Implementation shall proceed as bounded vertical slices while
+preserving Procurement ownership and the existing platform contracts.
 
 ## Decision Status
 

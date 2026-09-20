@@ -603,6 +603,7 @@ export class PostgresPlatformRepository
       ['platform', 'security', '*', 'platform.security.manage', 'Manage platform security'],
       ['platform', 'audit', 'read', 'platform.audit.read', 'Read platform audit'],
       ['platform', 'audit', 'export', 'platform.audit.export', 'Export platform audit'],
+      ['workflow', 'configuration', 'manage', 'workflow.configuration.manage', 'Manage workflow configuration'],
     ] as const;
     for (const [moduleCode, resource, action, permissionKey, displayName] of permissions) {
       await this.pool.query(
