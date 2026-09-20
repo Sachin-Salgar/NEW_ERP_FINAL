@@ -414,3 +414,13 @@ The Core Enterprise frontend has the planned persistent shell and Router 2.0 imp
 ### Functional Specification v1.4 implementation trace
 
 Functional Specification v1.4 manufacturing slice status: FEAT-009 Machine / Asset Master, FEAT-010 Machine Process Capability Matrix, FEAT-011 Product Process Details / Routing, FEAT-001 Work Order / Scheduling, FEAT-002 Task Sheet / Route Card, FEAT-003 Material Requisition / Issue, FEAT-004 Machine & Tooling Readiness Gate, FEAT-005 Production Output Punching, FEAT-006 Quality Output Punching, FEAT-007 Material Return Note, and FEAT-008 Rework / Rejection Variance Cost are implemented in the feature branch with tenant-safe persistence, authorization, audit logging, transaction boundaries, PostgreSQL RLS, idempotency where applicable, and Flutter execution UI. CI and integration validation are intentionally deferred until the full implementation slice is complete.
+
+
+## Frontend Functional UI Reconciliation — 2026-09-20
+
+- **Scope:** reconciled the branch's newly implemented Functional Specification v1.4 backend additions against the Flutter UI, following `.ai/authority.md`, `.ai/workflows/feature-development.md`, and `.ai/workflows/canonical-workflow-bpm.md`.
+- **Evidence inspected:** manufacturing machine/execution routes and services, workflow routes/service/contracts, existing Flutter manufacturing/workflow clients/screens, frontend route metadata, and the branch's main-vs-feature diff.
+- **Implemented:** ManufacturingService now exposes machine get/update/soft-delete operations in addition to the existing creation/execution APIs. Manufacturing UI now exposes the machine master fields, status, version-aware edit/delete actions, and machine detail loading instead of only machine creation.
+- **Validation:** GitHub Frontend CI and PostgreSQL Integration CI were triggered for commit `b40ff11be1aff70247464fef1c2260860c2f75d9`; both were running at reconciliation time. No pass is claimed until the runs complete.
+- **Remaining UI gap identified:** the canonical Workflow/BPM UI is present for inbox/definition creation/publishing/decisions, but the current backend ADR-0043 foundation is intentionally bounded. Advanced BPM capabilities are not to be fabricated in the frontend. Audit Query filtering/pagination remains a separate UI enhancement and is not claimed complete by this step.
+- **Immediate next step:** complete the remaining frontend reconciliation against backend routes added by the current feature branch, prioritizing the bounded audit-query UI and any backend capability with no corresponding navigable Flutter surface, then run Flutter analyze/test and CI again.
