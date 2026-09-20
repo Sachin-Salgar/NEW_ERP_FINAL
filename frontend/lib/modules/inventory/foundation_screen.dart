@@ -61,9 +61,9 @@ class _InventoryFoundationScreenState extends State<InventoryFoundationScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _section('Warehouses', inventory.warehouses, const ['code', 'name', 'status']),
+                            _section('Warehouses', inventory.warehouses, const ['code', 'name', 'status', 'version'], onRow: _editWarehouse),
                             _section('Stock balances', inventory.stock, const ['warehouseId', 'itemId', 'onHandQuantity', 'reservedQuantity', 'availableQuantity']),
-                            _section('Reservations', inventory.reservations, const ['sourceType', 'sourceId', 'quantity', 'status']),
+                            _section('Reservations', inventory.reservations, const ['sourceType', 'sourceId', 'quantity', 'status'], onRow: _reservationActions),
                           ],
                         ),
                       ),
@@ -113,8 +113,9 @@ class _InventoryFoundationScreenState extends State<InventoryFoundationScreen> {
   Widget _section(
     String title,
     List<Map<String, dynamic>> rows,
-    List<String> fields,
-  ) {
+    List<String> fields, {
+    void Function(Map<String, dynamic>)? onRow,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Card(
@@ -137,9 +138,10 @@ class _InventoryFoundationScreenState extends State<InventoryFoundationScreen> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  columns: fields
-                      .map((field) => DataColumn(label: Text(field)))
-                      .toList(),
+                  columns: [
+                    ...fields.map((field) => DataColumn(label: Text(field))),
+                    if (onRow != null) const DataColumn(label: Text('Actions')),
+                  ],
                   rows: rows
                       .map(
                         (row) => DataRow(
@@ -150,6 +152,13 @@ class _InventoryFoundationScreenState extends State<InventoryFoundationScreen> {
                                 ),
                               )
                               .toList(),
+                          if (onRow != null)
+                            DataCell(
+                              IconButton(
+                                onPressed: () => onRow(row),
+                                icon: const Icon(Icons.more_horiz),
+                              ),
+                            ),
                         ),
                       )
                       .toList(),
@@ -294,6 +303,117 @@ class _InventoryFoundationScreenState extends State<InventoryFoundationScreen> {
           border: const OutlineInputBorder(),
         ),
       ),
+    );
+  }
+
+  Future<void> _editWarehouse(Map<String, dynamic> row) async {
+    if (!service.auth.hasPermission('inventory.warehouse.update')) return;
+    final name = TextEditingController(text: '${row['name'] ?? ''}');
+    var status = '${row['status'] ?? 'ACTIVE'}';
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Edit Warehouse'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: name,
+                decoration: const InputDecoration(labelText: 'Name'),
+              ),
+              DropdownButtonFormField<String>(
+                initialValue: status,
+                decoration: const InputDecoration(labelText: 'Status'),
+                items: const [
+                  DropdownMenuItem(value: 'ACTIVE', child: Text('ACTIVE')),
+                  DropdownMenuItem(
+                    value: 'INACTIVE',
+                    child: Text('INACTIVE'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) setDialogState(() => status = value);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final error = await service.updateWarehouse(
+                  '${row['id']}',
+                  name.text.trim(),
+                  status,
+                  (row['version'] as num?)?.toInt() ?? 1,
+                );
+                if (!dialogContext.mounted) return;
+                if (error == null) {
+                  Navigator.pop(dialogContext, true);
+                } else {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    SnackBar(content: Text(error)),
+                  );
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+    name.dispose();
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Warehouse updated.')),
+      );
+    }
+  }
+
+  Future<void> _reservationActions(Map<String, dynamic> row) async {
+    final actions = <String>[];
+    if (service.auth.hasPermission('inventory.reservation.release') &&
+        row['status'] == 'RESERVED') {
+      actions.add('release');
+    }
+    if (service.auth.hasPermission('inventory.reservation.fulfill') &&
+        row['status'] == 'RESERVED') {
+      actions.add('fulfill');
+    }
+    if (actions.isEmpty) return;
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final action in actions)
+              ListTile(
+                title: Text(
+                  action == 'release'
+                      ? 'Release reservation'
+                      : 'Fulfill reservation',
+                ),
+                onTap: () => Navigator.pop(context, action),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (selected == null) return;
+    final key = 'ui-${DateTime.now().microsecondsSinceEpoch}';
+    final error = selected == 'release'
+        ? await service.releaseReservation('${row['id']}', key)
+        : await service.fulfillReservation('${row['id']}', key);
+    _showResult(
+      error,
+      selected == 'release'
+          ? 'Reservation released.'
+          : 'Reservation fulfilled.',
     );
   }
 
