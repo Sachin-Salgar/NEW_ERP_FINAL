@@ -28,6 +28,7 @@ class AppRoutes {
   static const salesDiscounts = AppRouteConfig(path: '/sales/discounts', title: 'Sales Discounts', group: 'SALES', permissionKey: 'sales.discount.read', moduleCode: 'sales', icon: Icons.discount_outlined);
   static const manufacturing = AppRouteConfig(path: '/manufacturing', title: 'Manufacturing', group: 'MANUFACTURING', permissionKey: 'manufacturing.machine.read', moduleCode: 'manufacturing', icon: Icons.precision_manufacturing_outlined);
   static const workflow = AppRouteConfig(path: '/workflow', title: 'Workflow & BPM', group: 'GENERAL', permissionKey: 'workflow.task.read', moduleCode: 'core', icon: Icons.account_tree_outlined);
+  static const tax = AppRouteConfig(path: '/tax', title: 'Tax Configuration', group: 'SALES', permissionKey: 'tax.configuration.read', moduleCode: 'sales', icon: Icons.percent_outlined);
   static const purchase = AppRouteConfig(path: '/purchase', title: 'Purchase', group: 'PURCHASE', permissionKey: 'purchase.supplier.read', moduleCode: 'purchase', icon: Icons.shopping_bag_outlined);
   static const settings = AppRouteConfig(path: '/settings', title: 'Settings', group: 'GENERAL', permissionKey: null, moduleCode: null, icon: Icons.settings_outlined);
   static const branches = AppRouteConfig(path: '/branches', title: 'Branches', group: 'MANAGEMENT', permissionKey: 'branch.read', moduleCode: 'branch', icon: Icons.store_outlined);
@@ -44,7 +45,7 @@ class AppRoutes {
   static const permissions = AppRouteConfig(path: '/permissions', title: 'Permissions', group: 'MANAGEMENT', permissionKey: 'permission.read', moduleCode: 'security', icon: Icons.lock_outline);
 
   static const settingsNavigation = <AppRouteConfig>[settingsBranches, settingsUsers, settingsRoles, settingsPermissions, settingsMfa, settingsSecurity, settingsTenant];
-  static const topLevel = <AppRouteConfig>[workflow,dashboard, settings, platformAdministration, customers, inventoryItems, inventoryFoundation, salesQuotations, salesOrders, salesDeliveries, salesInvoices, salesReturns, salesCreditNotes, salesReports, salesPricing, salesDiscounts, purchase, manufacturing];
+  static const topLevel = <AppRouteConfig>[workflow,dashboard, settings, platformAdministration, customers, inventoryItems, inventoryFoundation, salesQuotations, salesOrders, salesDeliveries, salesInvoices, salesReturns, salesCreditNotes, salesReports, salesPricing, salesDiscounts, tax, purchase, manufacturing];
 
   static const routePermissions = <String, String?>{
     '/dashboard': null,
@@ -56,7 +57,7 @@ class AppRoutes {
     '/sales/returns': 'sales.return.read', '/sales/returns/create': 'sales.return.create', '/sales/returns/details': 'sales.return.read',
     '/sales/credit-notes': 'sales.credit_note.read', '/sales/credit-notes/create': 'sales.credit_note.create', '/sales/credit-notes/details': 'sales.credit_note.read',
     '/sales/reports': 'sales.reporting.read', '/sales/pricing': 'sales.pricing.read', '/sales/pricing/create': 'sales.pricing.create', '/sales/discounts': 'sales.discount.read', '/sales/discounts/create': 'sales.discount.create',
-    '/purchase': 'purchase.supplier.read', '/manufacturing': 'manufacturing.machine.read', '/workflow': 'workflow.task.read',
+    '/tax': 'tax.configuration.read', '/purchase': 'purchase.supplier.read', '/manufacturing': 'manufacturing.machine.read', '/workflow': 'workflow.task.read',
     '/settings/branches': 'branch.read', '/settings/branches/create': 'branch.create', '/settings/branches/details': 'branch.read', '/settings/branches/edit': 'branch.update',
     '/settings/users': 'user.read', '/settings/users/create': 'user.create', '/settings/users/details': 'user.read',
     '/settings/roles': 'role.read', '/settings/roles/create': 'role.create', '/settings/roles/permissions': 'role_permission.read', '/settings/roles/edit': 'role.update',
