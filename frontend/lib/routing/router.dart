@@ -38,6 +38,7 @@ import '../modules/permission/permission_list_screen.dart';
 import '../modules/permission/role_permission_screen.dart';
 import '../modules/security/security_administration_screen.dart';
 import '../modules/security/mfa_screen.dart';
+import '../modules/tax/tax_configuration_screen.dart';
 import '../modules/tenant/tenant_administration_screen.dart';
 import '../modules/platform/platform_administration_screen.dart';
 import '../modules/role/create_screen.dart';
@@ -717,6 +718,8 @@ class AppRouter {
             child: const PermissionListScreen(),
           ),
         );
+      case '/tax':
+        return MaterialPageRoute(settings: settings, builder: (context) => _protected(context, routeName: '/tax', child: const TaxConfigurationScreen()));
       case '/settings/mfa':
         return MaterialPageRoute(
           settings: settings,
