@@ -103,6 +103,7 @@ class _PlatformAdministrationScreenState
                 ),
                 IconButton(onPressed: _reload, icon: const Icon(Icons.refresh)),
               ],
+            ),
             FutureBuilder<Map<String, dynamic>>(
               future: _overview,
               builder: (context, memberSnapshot) {
