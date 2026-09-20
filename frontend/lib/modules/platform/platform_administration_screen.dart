@@ -103,9 +103,6 @@ class _PlatformAdministrationScreenState
                 ),
                 IconButton(onPressed: _reload, icon: const Icon(Icons.refresh)),
               ],
-            ),
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
             FutureBuilder<Map<String, dynamic>>(
               future: _overview,
               builder: (context, memberSnapshot) {
@@ -137,8 +134,20 @@ class _PlatformAdministrationScreenState
               },
             ),
             const SizedBox(height: 12),
-            Row(children:[Expanded(child:const Text('Platform Roles',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold))),FilledButton.icon(onPressed:_createRole,icon:const Icon(Icons.add),label:const Text('New Role'))]),
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Platform Roles',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                FilledButton.icon(
+                  onPressed: _createRole,
+                  icon: const Icon(Icons.add),
+                  label: const Text('New Role'),
+                ),
+              ],
             ),
             FutureBuilder<Map<String, dynamic>>(
               future: _overview,
