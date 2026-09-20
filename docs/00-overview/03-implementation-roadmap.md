@@ -424,3 +424,14 @@ Functional Specification v1.4 manufacturing slice status: FEAT-009 Machine / Ass
 - **Validation:** GitHub Frontend CI and PostgreSQL Integration CI were triggered for commit `b40ff11be1aff70247464fef1c2260860c2f75d9`; both were running at reconciliation time. No pass is claimed until the runs complete.
 - **Remaining UI gap identified:** the canonical Workflow/BPM UI is present for inbox/definition creation/publishing/decisions, but the current backend ADR-0043 foundation is intentionally bounded. Advanced BPM capabilities are not to be fabricated in the frontend. Audit Query filtering/pagination remains a separate UI enhancement and is not claimed complete by this step.
 - **Immediate next step:** complete the remaining frontend reconciliation against backend routes added by the current feature branch, prioritizing the bounded audit-query UI and any backend capability with no corresponding navigable Flutter surface, then run Flutter analyze/test and CI again.
+
+
+## Frontend Functional UI Reconciliation — 2026-09-20 (continued)
+
+- Re-audited backend route surfaces against the current Flutter branch instead of assuming prior gaps remained open.
+- Confirmed Item Master is already implemented and routed at `/inventory/items`; tenant administration, RBAC role/permission administration, user-role/effective-permission surfaces, MFA, tax configuration, security/audit query, and the existing platform administration foundations are also present.
+- Implemented the remaining concrete platform tenant lifecycle gap in `frontend/lib/modules/platform/platform_administration_screen.dart`: platform tenant creation/bootstrap, tenant edit, activate/deactivate/suspend/reactivate, guarded deletion, and refresh/error handling are now exposed against the canonical `/api/v1/platform/tenants*` endpoints.
+- The implementation preserves the existing architecture boundary: platform tenant lifecycle remains a platform capability and does not introduce a second tenant/workflow engine in the frontend.
+- Commit: `ab561046e6291219b10e3847861b8b7180d11d21`.
+- CI status at reconciliation: AI Workflow Validation passed; Backend CI, PostgreSQL Integration CI, and Frontend CI were still running. No green claim is made until those runs complete.
+- Audit Query is already present in the current Security Administration UI, so it was not duplicated.
