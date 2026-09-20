@@ -182,4 +182,119 @@ class _InventoryFoundationScreenState extends State<InventoryFoundationScreen> {
     name.dispose();
     if (result == true && context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Warehouse created.')));
   }
+  Future<void> _receiveStock() async {
+    final data = await _movementDialog('Receive Stock');
+    if (data == null) return;
+    final error = await service.receiveStock(data);
+    _showResult(error, 'Stock received.');
+  }
+
+  Future<void> _createReservation() async {
+    final data = await _movementDialog('Reserve Stock');
+    if (data == null) return;
+    data['idempotencyKey'] =
+        'ui-${DateTime.now().microsecondsSinceEpoch}';
+    final error = await service.createReservation(data);
+    _showResult(error, 'Stock reserved.');
+  }
+
+  Future<void> _returnStock() async {
+    final data = await _movementDialog('Return Stock');
+    if (data == null) return;
+    data['idempotencyKey'] =
+        'ui-${DateTime.now().microsecondsSinceEpoch}';
+    final error = await service.returnStock(data);
+    _showResult(error, 'Stock returned.');
+  }
+
+  Future<Map<String, dynamic>?> _movementDialog(String title) async {
+    final warehouse = TextEditingController();
+    final item = TextEditingController();
+    final quantity = TextEditingController();
+    final sourceType = TextEditingController(text: 'MANUAL');
+    final sourceId = TextEditingController();
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: SingleChildScrollView(
+          child: Column(
+            children: [
+              _field(warehouse, 'Warehouse ID'),
+              _field(item, 'Item ID'),
+              _field(
+                quantity,
+                'Quantity',
+                keyboardType: TextInputType.number,
+              ),
+              _field(sourceType, 'Source Type'),
+              _field(sourceId, 'Source ID'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (warehouse.text.isEmpty ||
+                  item.text.isEmpty ||
+                  quantity.text.isEmpty ||
+                  sourceId.text.isEmpty) {
+                return;
+              }
+              Navigator.pop(dialogContext, {
+                'warehouseId': warehouse.text.trim(),
+                'itemId': item.text.trim(),
+                'quantity': double.tryParse(quantity.text) ?? 0,
+                'sourceType': sourceType.text.trim(),
+                'sourceId': sourceId.text.trim(),
+              });
+            },
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+
+    for (final controller in [
+      warehouse,
+      item,
+      quantity,
+      sourceType,
+      sourceId,
+    ]) {
+      controller.dispose();
+    }
+    return result;
+  }
+
+  void _showResult(String? error, String success) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error ?? success)),
+    );
+  }
+
+  Widget _field(
+    TextEditingController controller,
+    String label, {
+    TextInputType? keyboardType,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+      ),
+    );
+  }
+
 }
