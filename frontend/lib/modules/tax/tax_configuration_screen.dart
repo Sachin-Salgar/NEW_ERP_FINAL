@@ -43,7 +43,7 @@ class _TaxConfigurationScreenState extends State<TaxConfigurationScreen> {
       TextFormField(controller:rate,keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:const InputDecoration(labelText:'Rate (%)'),validator:(v)=>num.tryParse(v??'')==null?'Enter a number':null),
       if(existing==null) TextFormField(controller:from,decoration:const InputDecoration(labelText:'Effective from (YYYY-MM-DD)'),validator:(v)=>v==null||v.trim().isEmpty?'Required':null),
       if(existing!=null) TextFormField(controller:to,decoration:const InputDecoration(labelText:'Effective to (optional)')),
-    ]))),actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:const Text('Cancel')),FilledButton(onPressed:()=>{if(key.currentState!.validate())Navigator.pop(c,true)},child:const Text('Save'))]));
+    ]))),actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:const Text('Cancel')),FilledButton(onPressed:(){if(key.currentState!.validate())Navigator.pop(c,true)},child:const Text('Save'))]));
     if(result!=true)return;
     final body={'name':name.text.trim(),'rate':num.parse(rate.text.trim()),if(to.text.trim().isNotEmpty)'effectiveTo':to.text.trim(),if(existing==null)...{'code':code.text.trim(),'effectiveFrom':from.text.trim()}};
     final r=existing==null?await _api.post('/api/v1/tax/rules',body:body):await _api.patch('/api/v1/tax/rules/${existing['id']}',body:{...body,'expectedVersion':existing['version']??1});
