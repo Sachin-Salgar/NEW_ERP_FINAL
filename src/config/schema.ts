@@ -122,14 +122,6 @@ export function resolveDatabaseUrl(env: NodeJS.ProcessEnv = process.env, options
 
 export function resolvePlatformDatabaseUrl(
   env: NodeJS.ProcessEnv = process.env,
-  options: { required: true },
-): string;
-export function resolvePlatformDatabaseUrl(
-  env?: NodeJS.ProcessEnv,
-  options?: { required?: false },
-): string | undefined;
-export function resolvePlatformDatabaseUrl(
-  env: NodeJS.ProcessEnv = process.env,
   options: { required?: boolean } = {},
 ): string | undefined {
   const value = env.PLATFORM_DATABASE_URL?.trim();
