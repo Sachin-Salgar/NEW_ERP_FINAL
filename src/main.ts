@@ -11,7 +11,16 @@ import { verifyPlatformSecurity } from './infrastructure/database/platform-secur
 
 async function bootstrap(): Promise<void> {
   const config = loadConfig();
-  const platformDatabaseUrl = resolvePlatformDatabaseUrl(process.env, { required: config.isProduction });
+  // Production must use the dedicated platform executor credential.
+  // Local/test environments may intentionally reuse DATABASE_URL when no dedicated
+  // platform credential is configured; production never falls back to it.
+  const platformDatabaseUrl =
+    resolvePlatformDatabaseUrl(process.env, { required: config.isProduction }) ??
+    (config.isProduction ? undefined : config.DATABASE_URL);
+
+  if (!platformDatabaseUrl) {
+    throw new Error('PLATFORM_DATABASE_URL is required in production.');
+  }
   const pool = createDatabasePool(config);
   const platformPool = createDatabasePoolFromUrl(platformDatabaseUrl, {
     min: config.DATABASE_POOL_MIN,
