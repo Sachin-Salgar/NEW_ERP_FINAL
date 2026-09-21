@@ -493,7 +493,14 @@ class AppRouter {
           ),
         );
       case '/hr':
-        return MaterialPageRoute(settings: settings,builder: (context)=>_protected(context,routeName:'/hr',child:const HrScreen()));
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/hr',
+            child: const HrScreen(),
+          ),
+        );
       case '/customers':
         return MaterialPageRoute(
           settings: settings,
