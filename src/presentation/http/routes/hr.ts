@@ -110,8 +110,11 @@ const hrRoutes: FastifyPluginAsync = async (fastify) => {
           email: String(body.email),
           password: String(body.password),
           defaultBranchId:
-              body.defaultBranchId ?? request.user!.branchId ?? null,
-          roleCode: body.roleCode ?? 'member',
+            typeof body.defaultBranchId === 'string'
+              ? body.defaultBranchId
+              : request.user!.branchId ?? null,
+          roleCode:
+            typeof body.roleCode === 'string' ? body.roleCode : 'member',
         },
       );
       const employee = await fastify.hrService.linkUser(
