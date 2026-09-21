@@ -58,6 +58,19 @@ void main() {
       expect(customers.title, 'Customers');
       expect(customers.permissionKey, 'customer.read');
       expect(customers.moduleCode, 'crm');
+
+      final manufacturingMachines = AppRoutes.forRoute('/manufacturing/machines');
+      expect(manufacturingMachines.title, 'Machines');
+      expect(manufacturingMachines.permissionKey, 'manufacturing.machine.read');
+      expect(manufacturingMachines.moduleCode, 'manufacturing');
+
+      final manufacturingExecution = AppRoutes.forRoute('/manufacturing/execution');
+      expect(manufacturingExecution.title, 'Production Execution');
+      expect(
+        manufacturingExecution.permissionKey,
+        'manufacturing.task_sheet.read',
+      );
+      expect(manufacturingExecution.moduleCode, 'manufacturing');
     });
 
     test('keeps all settings child routes under the settings layout', () {
