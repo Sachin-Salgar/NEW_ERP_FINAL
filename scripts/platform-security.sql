@@ -201,8 +201,8 @@ REVOKE ALL ON FUNCTION public.platform_delete_tenant(uuid) FROM erp, erp_app;
 GRANT EXECUTE ON FUNCTION public.platform_update_tenant_status(uuid, text) TO erp_platform_executor;
 GRANT EXECUTE ON FUNCTION public.platform_delete_tenant(uuid) TO erp_platform_executor;
 
-REVOKE CREATE ON SCHEMA public FROM erp_procedure_owner;
 RESET ROLE;
+REVOKE CREATE ON SCHEMA public FROM erp_procedure_owner;
 
 DROP POLICY IF EXISTS tenant_isolation_policy ON public.user_sessions;
 CREATE POLICY tenant_isolation_policy ON public.user_sessions
