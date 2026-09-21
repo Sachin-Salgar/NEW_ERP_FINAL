@@ -160,10 +160,9 @@ END $;
 -- dedicated owner role for function replacement and ACL changes.
 SET LOCAL ROLE erp_procedure_owner;
 -- CREATE OR REPLACE preserves the existing function owner. On managed Render
--- PostgreSQL the bootstrap operator may not own these functions and cannot
--- transfer ownership. The security contract requires the existing owner to be
--- erp_procedure_owner; a superuser/operator bootstrap must establish ownership
--- once, while subsequent application startups only verify it.
+-- PostgreSQL the bootstrap operator may administer the owner role but is not
+-- itself the function owner, so perform owner-only function operations under
+-- the dedicated procedure-owner role.
 DO $platform$
 BEGIN
   IF EXISTS (
@@ -190,16 +189,13 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Function platform_delete_tenant must be owned by erp_procedure_owner; managed bootstrap cannot transfer ownership.';
   END IF;
-END $;
+END $platform$;
+
 GRANT SELECT, UPDATE ON public.tenants TO erp_procedure_owner;
 GRANT SELECT ON public.users, public.branches, public.audit_events TO erp_procedure_owner;
-DO $$
-DECLARE
-  bootstrap_role text := current_user;
-BEGIN
-  EXECUTE format('REVOKE erp_procedure_owner FROM %I', bootstrap_role);
-END $platform$;
+
 RESET ROLE;
+
 REVOKE ALL ON FUNCTION public.platform_update_tenant_status(uuid, text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.platform_delete_tenant(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.platform_update_tenant_status(uuid, text) FROM erp, erp_app;
