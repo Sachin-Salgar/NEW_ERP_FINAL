@@ -33,8 +33,10 @@ export class HrService {
    if(search){params.push('%'+search.trim()+'%');const sf=kind==='employees'?'COALESCE(employee_no,first_name,last_name,work_email,\'\')':['departments','positions','businessUnits','divisions','sections','teams','shifts','leaveTypes','leavePolicies','salaryComponents','salaryStructures','payrollPeriods','requisitions','candidates','performanceCycles','trainingPrograms','statutoryRules'].includes(kind)?'COALESCE(code,name,\'\')':'COALESCE(status,\'\')';where+=' AND '+sf+' ILIKE $2';}
    if(['employees','departments','positions','shifts'].includes(kind))where+=' AND COALESCE(is_deleted,false)=false';
    const count=(await client.query('SELECT count(*)::int AS total FROM public.'+table+' WHERE '+where,params)).rows[0].total;
-   const limitIndex=params.length+1, offsetIndex=params.length+2; params.push(pageSize,(page-1)*pageSize);
-   const rows=(await client.query('SELECT * FROM public.'+table+' WHERE '+where+' ORDER BY id DESC LIMIT 
+   const limitIndex=params.length+1, offsetIndex=params.length+2;
+   params.push(pageSize,(page-1)*pageSize);
+   const sql='SELECT * FROM public.'+table+' WHERE '+where+' ORDER BY id DESC LIMIT $'+limitIndex+'::int OFFSET $'+offsetIndex+'::int';
+   const rows=(await client.query(sql,params)).rows;
    return{items:rows,total:Number(count)};
   });
  }
