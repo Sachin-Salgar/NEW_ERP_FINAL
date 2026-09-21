@@ -1,5 +1,6 @@
 import { Client } from 'pg';
 
+import { createDatabaseClientOptions } from './connection.js';
 import { runPlatformSecurityBootstrap } from './platform-security.js';
 
 export async function runPlatformSecurityBootstrapFromEnv(): Promise<void> {
@@ -10,7 +11,10 @@ export async function runPlatformSecurityBootstrapFromEnv(): Promise<void> {
     );
   }
 
-  const client = new Client({ connectionString: databaseUrl });
+  const sslMode = process.env.DATABASE_SSL_MODE === 'disable' ? 'disable' : 'require';
+  const client = new Client(
+    createDatabaseClientOptions(databaseUrl, sslMode, process.env.DATABASE_SSL_CA),
+  );
   try {
     await client.connect();
     await runPlatformSecurityBootstrap(client, { requireErp: true });
