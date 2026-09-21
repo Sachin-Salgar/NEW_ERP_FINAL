@@ -19,32 +19,20 @@ BEGIN
 
   SELECT oid INTO procedure_owner FROM pg_roles WHERE rolname = 'erp_procedure_owner';
   SELECT oid INTO platform_executor FROM pg_roles WHERE rolname = 'erp_platform_executor';
-  FOR member_name, granted_role IN
-    SELECT member.rolname, granted.rolname
-    FROM pg_auth_members memberships
-    JOIN pg_roles member ON member.oid = memberships.member
-    JOIN pg_roles granted ON granted.oid = memberships.roleid
-    WHERE member.rolname IN ('erp', 'erp_app', 'erp_platform_executor', 'erp_procedure_owner')
-       OR granted.rolname IN ('erp', 'erp_app', 'erp_platform_executor', 'erp_procedure_owner')
-  LOOP
-    EXECUTE format('REVOKE %I FROM %I', granted_role, member_name);
-  END LOOP;
-  -- The bootstrap operator may have inherited these memberships from an earlier
-  -- bootstrap attempt. Remove them explicitly; ownership is independent of role membership.
-  EXECUTE format('REVOKE erp FROM %I', current_user);
-  EXECUTE format('REVOKE erp_app FROM %I', current_user);
-  EXECUTE format('REVOKE erp_platform_executor FROM %I', current_user);
-  EXECUTE format('REVOKE erp_procedure_owner FROM %I', current_user);
-
-  ALTER ROLE erp_procedure_owner
-    NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
-  ALTER ROLE erp_platform_executor
-    LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
-  ALTER ROLE erp_app
-    LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
-  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'erp') THEN
-    ALTER ROLE erp
-      LOGIN NOSUPERUSER NOCREATEDB CREATEROLE NOREPLICATION NOBYPASSRLS;
+  -- Render's managed database owner is not necessarily a PostgreSQL superuser.
+  -- Only a superuser can change the SUPERUSER attribute, so do not make
+  -- application startup depend on ALTER ROLE when the roles already exist.
+  IF (SELECT rolsuper FROM pg_roles WHERE rolname = current_user) THEN
+    ALTER ROLE erp_procedure_owner
+      NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+    ALTER ROLE erp_platform_executor
+      LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+    ALTER ROLE erp_app
+      LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'erp') THEN
+      ALTER ROLE erp
+        LOGIN NOSUPERUSER NOCREATEDB CREATEROLE NOREPLICATION NOBYPASSRLS;
+    END IF;
   END IF;
   IF EXISTS (
     SELECT 1
@@ -211,3 +199,24 @@ CREATE POLICY platform_session_insert_policy ON public.user_sessions
     AND platform_membership_id IS NOT NULL
     AND current_setting('app.platform_session_enabled', true) = 'true'
   );
+
+
+-- Membership cleanup is intentionally last. A non-superuser bootstrap operator
+-- may administer memberships when it has ADMIN OPTION, but it must retain any
+-- temporary role membership until function ownership and grants are complete.
+DO $$
+DECLARE
+  member_name text;
+  granted_role text;
+BEGIN
+  FOR member_name, granted_role IN
+    SELECT member.rolname, granted.rolname
+    FROM pg_auth_members memberships
+    JOIN pg_roles member ON member.oid = memberships.member
+    JOIN pg_roles granted ON granted.oid = memberships.roleid
+    WHERE member.rolname IN ('erp', 'erp_app', 'erp_platform_executor', 'erp_procedure_owner')
+       OR granted.rolname IN ('erp', 'erp_app', 'erp_platform_executor', 'erp_procedure_owner')
+  LOOP
+    EXECUTE format('REVOKE %I FROM %I', granted_role, member_name);
+  END LOOP;
+END $$;
