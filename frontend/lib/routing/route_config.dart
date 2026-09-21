@@ -445,6 +445,15 @@ class AppRoutes {
     for (final config in settingsNavigation) {
       if (config.matches(normalized)) return config;
     }
+    for (final config in [
+      manufacturingMachines,
+      manufacturingCapabilities,
+      manufacturingRouting,
+      manufacturingWorkOrders,
+      manufacturingExecution,
+    ]) {
+      if (config.matches(normalized)) return config;
+    }
     for (final config in topLevel) {
       if (config.matches(normalized)) return config;
     }
