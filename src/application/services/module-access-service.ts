@@ -76,14 +76,36 @@ export class ModuleAccessService {
       if (!module) return null;
       if (!enabled && module.isCore) throw new ValidationError('Core modules cannot be disabled.');
       const result = await client.query(
-        `UPDATE tenant_modules
-            SET enabled = $3,
-                enabled_at = CASE WHEN $3 THEN NOW() ELSE enabled_at END,
-                enabled_by = CASE WHEN $3 THEN $4 ELSE enabled_by END,
-                disabled_at = CASE WHEN $3 THEN NULL ELSE NOW() END,
-                disabled_by = CASE WHEN $3 THEN NULL ELSE $4 END
-          WHERE tenant_id = $1 AND module_id = $2
-        RETURNING enabled`,
+        `INSERT INTO tenant_modules (
+            tenant_id, module_id, enabled,
+            enabled_at, enabled_by, disabled_at, disabled_by
+          )
+          VALUES (
+            $1, $2, $3,
+            CASE WHEN $3 THEN NOW() ELSE NULL END,
+            CASE WHEN $3 THEN $4 ELSE NULL END,
+            CASE WHEN $3 THEN NULL ELSE NOW() END,
+            CASE WHEN $3 THEN $4 ELSE NULL END
+          )
+          ON CONFLICT (tenant_id, module_id) DO UPDATE
+            SET enabled = EXCLUDED.enabled,
+                enabled_at = CASE
+                  WHEN EXCLUDED.enabled THEN NOW()
+                  ELSE tenant_modules.enabled_at
+                END,
+                enabled_by = CASE
+                  WHEN EXCLUDED.enabled THEN EXCLUDED.enabled_by
+                  ELSE tenant_modules.enabled_by
+                END,
+                disabled_at = CASE
+                  WHEN EXCLUDED.enabled THEN NULL
+                  ELSE NOW()
+                END,
+                disabled_by = CASE
+                  WHEN EXCLUDED.enabled THEN NULL
+                  ELSE EXCLUDED.disabled_by
+                END
+          RETURNING enabled`,
         [tenantId, module.id, enabled, actorUserId],
       );
       if (!result.rows[0]?.enabled) return null;

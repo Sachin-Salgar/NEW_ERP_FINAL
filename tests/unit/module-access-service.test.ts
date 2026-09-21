@@ -39,6 +39,16 @@ describe('ModuleAccessService', () => {
     ]);
   });
 
+  it('creates a missing entitlement row when enabling a tenant module', async () => {
+    const { service, query } = createService([{ rows: [moduleRow] }, { rows: [{ enabled: true }] }]);
+
+    await expect(service.setTenantModule('tenant-1', 'sales', true, 'user-1')).resolves.toEqual({
+      ...moduleRow,
+      enabled: true,
+    });
+    expect(query.mock.calls[1][0]).toContain('ON CONFLICT (tenant_id, module_id) DO UPDATE');
+  });
+
   it('returns enabled=true when enabling a tenant module', async () => {
     const { service } = createService([{ rows: [moduleRow] }, { rows: [{ enabled: true }] }]);
 
