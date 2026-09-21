@@ -2,6 +2,11 @@
 -- employee skills/documents/relations and onboarding/exit history.
 BEGIN;
 
+UPDATE public.modules SET is_core=true WHERE code='hr';
+INSERT INTO public.tenant_modules(tenant_id,module_id,enabled,enabled_at)
+SELECT t.id,m.id,true,NOW() FROM public.tenants t CROSS JOIN public.modules m WHERE m.code='hr'
+ON CONFLICT (tenant_id,module_id) DO UPDATE SET enabled=true,enabled_at=COALESCE(public.tenant_modules.enabled_at,NOW()),disabled_at=NULL,disabled_by=NULL;
+
 CREATE TABLE IF NOT EXISTS public.hr_business_units (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
  code varchar(50) NOT NULL, name varchar(150) NOT NULL, legal_entity_reference varchar(100), status varchar(20) NOT NULL DEFAULT 'ACTIVE',
