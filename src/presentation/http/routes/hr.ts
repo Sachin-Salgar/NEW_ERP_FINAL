@@ -172,6 +172,23 @@ const hrRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   fastify.post(
+    '/hr/employees/:id/leave-balances/initialize',
+    { preHandler: [requireAuth] },
+    async (request) => {
+      const body = (request.body ?? {}) as { year?: number };
+      const year = typeof body.year === 'number' ? body.year : new Date().getUTCFullYear();
+      return {
+        success: true,
+        balances: await fastify.hrService.initializeLeaveBalances(
+          context(request),
+          requestParam(request.params, 'id') ?? '',
+          year,
+        ),
+      };
+    },
+  );
+
+  fastify.post(
     '/hr/payroll-runs/:id/calculate',
     { preHandler: [requireAuth] },
     async (request) => ({
