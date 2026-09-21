@@ -1,18 +1,11 @@
 #!/bin/sh
 set -eu
 
-if [ "${PLATFORM_SECURITY_BOOTSTRAP_ON_START:-false}" = "true" ]; then
-  if [ -z "${PLATFORM_SECURITY_DATABASE_URL:-}" ]; then
-    echo "PLATFORM_SECURITY_DATABASE_URL is required when PLATFORM_SECURITY_BOOTSTRAP_ON_START=true" >&2
-    exit 1
-  fi
-
-  echo "Running idempotent platform security bootstrap..."
-  node dist/infrastructure/database/platform-security-bootstrap.js
-
-  # Do not expose the privileged bootstrap credential to the application process.
-  unset PLATFORM_SECURITY_DATABASE_URL
-  unset PLATFORM_SECURITY_BOOTSTRAP_ON_START
+# Runtime must never receive the privileged platform-security credential.
+if [ "${NODE_ENV:-production}" = "production" ] && [ -n "${PLATFORM_SECURITY_DATABASE_URL:-}" ]; then
+  echo "PLATFORM_SECURITY_DATABASE_URL must not be configured on the Render web service." >&2
+  echo "Run the one-time platform security bootstrap outside the application runtime." >&2
+  exit 1
 fi
 
 exec node dist/main.js
