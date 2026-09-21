@@ -76,7 +76,7 @@ BEGIN
     JOIN pg_roles member ON member.oid = memberships.member
     WHERE member.oid <> (SELECT datdba FROM pg_database WHERE datname = current_database())
       AND (
-        granted.rolname IN ('erp_procedure_owner', 'erp_platform_executor')
+        granted.rolname IN ('erp', 'erp_app', 'erp_procedure_owner', 'erp_platform_executor')
         OR member.rolname IN ('erp', 'erp_app', 'erp_procedure_owner', 'erp_platform_executor')
       )
   LOOP
