@@ -104,6 +104,7 @@ END $$;
 -- The managed Render bootstrap operator may administer the role membership but is
 -- not itself the owner of the security-definer functions. Switch into the
 -- dedicated owner role for function replacement and ACL changes.
+GRANT CREATE ON SCHEMA public TO erp_procedure_owner;
 SET LOCAL ROLE erp_procedure_owner;
 CREATE OR REPLACE FUNCTION public.platform_update_tenant_status(target_tenant uuid, requested_status text)
 RETURNS void
@@ -200,6 +201,7 @@ REVOKE ALL ON FUNCTION public.platform_delete_tenant(uuid) FROM erp, erp_app;
 GRANT EXECUTE ON FUNCTION public.platform_update_tenant_status(uuid, text) TO erp_platform_executor;
 GRANT EXECUTE ON FUNCTION public.platform_delete_tenant(uuid) TO erp_platform_executor;
 
+REVOKE CREATE ON SCHEMA public FROM erp_procedure_owner;
 RESET ROLE;
 
 DROP POLICY IF EXISTS tenant_isolation_policy ON public.user_sessions;
