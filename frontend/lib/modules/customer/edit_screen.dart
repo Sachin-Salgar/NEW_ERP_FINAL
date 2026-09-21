@@ -40,19 +40,11 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (loading)
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     if (!auth.hasPermission('customer.update')) {
-      return const Scaffold(
-        body: Center(
-          child: Text('You do not have permission to edit customers.'),
-        ),
-      );
+      return const Scaffold(body: Center(child: Text('You do not have permission to edit customers.')));
     }
-    if (customer == null)
-      return Scaffold(
-        body: Center(child: Text(error ?? 'Customer not found.')),
-      );
+    if (customer == null) return Scaffold(body: Center(child: Text(error ?? 'Customer not found.')));
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Customer')),
       body: CustomerForm(
@@ -60,14 +52,8 @@ class _EditCustomerScreenState extends State<EditCustomerScreen> {
         submitLabel: 'Save changes',
         onSubmit: (name, fields) async {
           fields['expectedVersion'] = customer!['version'];
-          final updated = await service.updateCustomer(
-            widget.id,
-            name,
-            fields: fields,
-          );
-          return updated == null
-              ? (service.error ?? 'Failed to update customer.')
-              : null;
+          final updated = await service.updateCustomer(widget.id, name, fields: fields);
+          return updated == null ? (service.error ?? 'Failed to update customer.') : null;
         },
       ),
     );

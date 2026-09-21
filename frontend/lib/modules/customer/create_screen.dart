@@ -13,18 +13,13 @@ class CreateCustomerScreen extends StatelessWidget {
     final service = GetIt.instance.get<CustomerService>();
     final auth = GetIt.instance.get<AuthService>();
     if (!auth.hasPermission('customer.create')) {
-      return const Scaffold(
-        body: Center(
-          child: Text('You do not have permission to create customers.'),
-        ),
-      );
+      return const Scaffold(body: Center(child: Text('You do not have permission to create customers.')));
     }
     return Scaffold(
       appBar: AppBar(title: const Text('Create Customer')),
       body: CustomerForm(
         submitLabel: 'Create customer',
-        onSubmit: (name, fields) =>
-            service.createCustomer(name, fields: fields),
+        onSubmit: (name, fields) => service.createCustomer(name, fields: fields),
       ),
     );
   }
