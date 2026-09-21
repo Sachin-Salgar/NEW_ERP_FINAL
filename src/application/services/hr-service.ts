@@ -61,7 +61,7 @@ export class HrService {
     const earning=Number(e.gross)*payable+Number(adj.earnings)+reimbursement; const deductions=Number(adj.deductions)+loan; grossTotal+=earning; deductionTotal+=deductions;
     await client.query('INSERT INTO hr_payslips(id,tenant_id,payroll_run_id,employee_id,gross,deductions,net,earnings,deduction_details,attendance_snapshot,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,\'CALCULATED\')',[uuidV7(),c.tenantId,runId,e.id,earning,deductions,earning-deductions,JSON.stringify({salary:Number(e.gross),adjustments:Number(adj.earnings),reimbursements:reimbursement,componentValues:e.component_values}),JSON.stringify({adjustments:Number(adj.deductions),loan}),JSON.stringify({attendanceDays:attendance,periodDays:days,payableFactor:payable})]);
    }
-   return(await client.query("UPDATE hr_payroll_runs SET employee_count=$2,gross_total=$3,deduction_total=$4,net_total=$3-$4,status='CALCULATED',calculated_at=NOW() WHERE id=$1 RETURNING *",[runId,emps.length,grossTotal,deductionTotal])).rows[0];
+   return(await client.query("UPDATE hr_payroll_runs SET employee_count=$2,gross_total=$3,deduction_total=$4,net_total=$3::numeric-$4::numeric,status='CALCULATED',calculated_at=NOW() WHERE id=$1 RETURNING *",[runId,emps.length,grossTotal,deductionTotal])).rows[0];
   });
  }
 
