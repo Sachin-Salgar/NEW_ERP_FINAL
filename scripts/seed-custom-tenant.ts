@@ -71,6 +71,17 @@ async function main() {
         [tenantId],
       );
 
+      // Provision this deployment tenant from the module catalog. Module
+      // entitlement is tenant data and must not be inferred by the frontend.
+      await client.query(
+        `INSERT INTO tenant_modules (tenant_id, module_id, enabled, enabled_at)
+         SELECT $1, id, true, NOW()
+           FROM modules
+          ON CONFLICT (tenant_id, module_id) DO UPDATE
+            SET enabled = true, enabled_at = NOW(), disabled_at = NULL, disabled_by = NULL`,
+        [tenantId],
+      );
+
       const branches = [
         ['Pune', 'Pune', true, true, 'Pune'],
         ['Chatrapati Sambhaji Nagar (CSN)', 'CSN', false, false, 'Chhatrapati Sambhajinagar'],
@@ -104,6 +115,7 @@ async function main() {
 
       const adminPermissions = [
         'tenant.read',
+        'tenant.update',
         'branch.read',
         'branch.create',
         'branch.update',
