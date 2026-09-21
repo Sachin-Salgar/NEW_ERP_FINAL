@@ -98,9 +98,7 @@ builds the Flutter web output and rewrites browser routes to the frontend entry
 point; it does not establish tenant identity or connect directly to PostgreSQL.
 The backend endpoint and CORS allowlist remain deployment configuration concerns.
 
-Future managed deployments select their PostgreSQL endpoint and TLS behavior
-through environment configuration. No final production provider is selected by
-this repository.
+Production is currently deployed using Vercel for Flutter Web, Render for the Fastify backend, and Render PostgreSQL. The architecture remains provider-portable; provider-specific operational facts are recorded in `docs/07-devops/12-current-deployment-topology.md`.
 
 For migration `0009` and later, local/self-hosted and managed-provider
 provisioning are deliberately separated.
@@ -114,8 +112,7 @@ PostgreSQL available
   → start the application with DATABASE_URL using erp_app
 ```
 
-For Render PostgreSQL, the privileged bootstrap is a one-time operator action
-and is NOT part of web-service startup:
+For the current Render PostgreSQL deployment, the privileged bootstrap is an operator action and is NOT part of web-service startup:
 
 ```text
 Render PostgreSQL
@@ -155,7 +152,7 @@ verification refuses to serve traffic.
 
 Dependency installation in deployment must use the repository lockfile consistently with its manifest and must preserve frozen/reproducible lockfile validation. A stale lockfile is a release defect; disabling frozen-lockfile validation is not an acceptable workaround.
 
-The repository does not claim production evidence for worker supervision, external providers, key rotation, backup restoration, database-role separation for pre-authentication lookup, registry attestations, or graceful shutdown until those checks are executed in the target environment.
+The repository does not claim production evidence for worker supervision, external providers, key rotation, backup restoration, database-role separation for pre-authentication lookup, registry attestations, or graceful shutdown until those checks are executed in the target environment. Current provider-specific evidence and known role/ownership drift are recorded in `docs/07-devops/13-deployment-audit-2026-09-21.md`.
 
 ## Cross References
 
@@ -165,3 +162,5 @@ The repository does not claim production evidence for worker supervision, extern
 - [CI/CD Pipeline](./05-ci-cd-pipeline.md)
 - [Backup & Disaster Recovery](./09-backup-disaster-recovery.md)
 - [Observability](./08-observability.md)
+- [Current Deployment Topology](./12-current-deployment-topology.md)
+- [Deployment Audit 2026-09-21](./13-deployment-audit-2026-09-21.md)
