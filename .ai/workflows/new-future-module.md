@@ -171,3 +171,17 @@ A module is complete only when:
 `Architecture + Domain + Persistence + Entitlement + Authorization + API + Workflow (if applicable) + UI Navigation + Tests + Deployment + Documentation`
 
 Tenant entitlement is product architecture, not an optional deployment detail.
+
+
+## Identity, user account, and employee access boundary
+
+When a module introduces people, workforce records, or ERP access, keep the concepts separate:
+
+- **Identity** represents the authenticated person/account across contexts.
+- **Tenant membership** grants that identity access to a tenant and is required for tenant context.
+- **User account** represents the tenant-scoped ERP account used by existing authorization and application records.
+- **Employee/person records** belong to the HR domain when that domain is implemented; they are not a second authentication system.
+
+Creating an ERP user must provision the tenant user account and its tenant membership atomically. Login identifiers and credentials must remain bound to the same identity. Granting ERP access to an employee must be an explicit authorization operation; an HR employee record must not automatically imply ERP access.
+
+Do not create a parallel employee-login, member-login, or module-specific user table. When the HR Employee master is implemented, it must reference the canonical identity/access model rather than duplicating authentication data.
