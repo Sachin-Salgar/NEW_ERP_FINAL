@@ -1,3 +1,4 @@
+/** Canonical tenant-scoped HR service: employee, time, leave, payroll, talent and compliance operations. */
 import { validate as isUuid, v7 as uuidV7 } from 'uuid';
 import type { Pool } from 'pg';
 import { ForbiddenError, NotFoundError, ValidationError } from '../../domain/errors.js';
