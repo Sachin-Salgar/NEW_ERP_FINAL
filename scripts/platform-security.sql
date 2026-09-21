@@ -273,5 +273,26 @@ CREATE POLICY platform_session_insert_policy ON public.user_sessions
   );
 
 
+-- Remove unintended application-role memberships while preserving the
+-- managed Render bootstrap operator's own memberships.
+DO $
+DECLARE
+  member_name text;
+  granted_role text;
+BEGIN
+  FOR member_name, granted_role IN
+    SELECT member.rolname, granted.rolname
+    FROM pg_auth_members memberships
+    JOIN pg_roles member ON member.oid = memberships.member
+    JOIN pg_roles granted ON granted.oid = memberships.roleid
+    WHERE member.rolname <> current_user
+      AND (
+        member.rolname IN ('erp', 'erp_app', 'erp_platform_executor', 'erp_procedure_owner')
+        OR granted.rolname IN ('erp', 'erp_app', 'erp_platform_executor', 'erp_procedure_owner')
+      )
+  LOOP
+    EXECUTE format('REVOKE %I FROM %I', granted_role, member_name);
+  END LOOP;
+END $;
 -- Render's managed database owner retains its own administrative role
 -- memberships. Application roles are not granted to one another.
