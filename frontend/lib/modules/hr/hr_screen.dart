@@ -20,7 +20,54 @@ class _HrScreenState extends State<HrScreen>{
  String _title(String resource){for(final t in tabs)if(t['resource']==resource)return t['title']!;return _label(resource);}
  String _primary(Map<String,dynamic> r){for(final k in['employee_no','code','name','title','requisition_no','period_code','status']){if(r[k]!=null&&r[k].toString().isNotEmpty)return r[k].toString();}return r['id']?.toString()??'Record';}
  String _secondary(Map<String,dynamic> r)=>[r['first_name'],r['last_name'],r['work_email'],r['employment_status'],r['status']].where((x)=>x!=null&&x.toString().isNotEmpty).join(' • ');
- Widget _workspace(String resource){final rows=service.data[resource]??const [];final fieldsList=_formFields(resource);return ListView(children:[Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[Text(_title(resource),style:const TextStyle(fontSize:22,fontWeight:FontWeight.bold)),IconButton(onPressed:()=>service.load(resource),icon:const Icon(Icons.refresh))]),const SizedBox(height:12),Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[Text('Create / Configure',style:Theme.of(context).textTheme.titleMedium),const SizedBox(height:10),...fieldsList.map((x)=>_field(x,multiline:x=='reason'||x=='description'||x=='justification'||x=='details'||x=='payload')),FilledButton.icon(onPressed:()=>_create(resource),icon:const Icon(Icons.add),label:Text('Create '+_title(resource)+' record'))])),const SizedBox(height:16),if(service.loading)const Center(child:CircularProgressIndicator()),if(service.error!=null)Text(service.error!,style:const TextStyle(color:Colors.red)),Text(rows.length.toString()+' records',style:Theme.of(context).textTheme.titleSmall),...rows.map((row)=>Card(child:ListTile(title:Text(_primary(row)),subtitle:Text(_secondary(row))))) ]);}
+ Widget _workspace(String resource) {
+  final rows = service.data[resource] ?? const <Map<String, dynamic>>[];
+  final formFields = _formFields(resource);
+  final children = <Widget>[
+    Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(_title(resource), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        IconButton(onPressed: () => service.load(resource), icon: const Icon(Icons.refresh)),
+      ],
+    ),
+    const SizedBox(height: 12),
+    Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Create / Configure', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 10),
+            for (final field in formFields)
+              _field(field, multiline: field == 'reason' || field == 'description' || field == 'justification' || field == 'details' || field == 'payload'),
+            FilledButton.icon(
+              onPressed: () => _create(resource),
+              icon: const Icon(Icons.add),
+              label: Text('Create ' + _title(resource) + ' record'),
+            ),
+          ],
+        ),
+      ),
+    ),
+    const SizedBox(height: 16),
+  ];
+  if (service.loading) children.add(const Center(child: CircularProgressIndicator()));
+  if (service.error != null) children.add(Text(service.error!, style: const TextStyle(color: Colors.red)));
+  children.add(Text(rows.length.toString() + ' records', style: Theme.of(context).textTheme.titleSmall));
+  for (final row in rows) {
+    children.add(
+      Card(
+        child: ListTile(
+          title: Text(_primary(row)),
+          subtitle: Text(_secondary(row)),
+        ),
+      ),
+    );
+  }
+  return ListView(children: children);
+ }
  Widget _reports(){return Card(child:Padding(padding:const EdgeInsets.all(20),child:Text('Workforce analytics: headcount, active/exited employees and department manpower are available from the HR analytics endpoint.')));}
  @override Widget build(BuildContext context){final resource=tabs[tab]['resource']!;return Scaffold(appBar:AppBar(title:const Text('Human Resources')),body:Column(children:[SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:tabs.asMap().entries.map((e)=>Padding(padding:const EdgeInsets.all(4),child:ChoiceChip(label:Text(e.value['title']!),selected:tab==e.key,onSelected:(_){setState(()=>tab=e.key);_loadTab();}))).toList())),Expanded(child:Padding(padding:const EdgeInsets.all(16),child:resource=='analytics/workforce'?_reports():_workspace(resource))) ]));}
 }
