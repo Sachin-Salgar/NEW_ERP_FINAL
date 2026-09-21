@@ -98,10 +98,10 @@ END $$;
 -- The Render-managed database owner already has SET access to the dedicated
 -- procedure-owner role it created. Do not mutate the managed owner's memberships.
 GRANT CREATE ON SCHEMA public TO erp_procedure_owner;
-DO $
+DO $$
 BEGIN
   EXECUTE format('GRANT erp_procedure_owner TO %I WITH SET TRUE', current_user);
-END $;
+END $$;
 SET LOCAL ROLE erp_procedure_owner;
 CREATE OR REPLACE FUNCTION public.platform_update_tenant_status(target_tenant uuid, requested_status text)
 RETURNS void
@@ -199,10 +199,10 @@ GRANT EXECUTE ON FUNCTION public.platform_update_tenant_status(uuid, text) TO er
 GRANT EXECUTE ON FUNCTION public.platform_delete_tenant(uuid) TO erp_platform_executor;
 
 RESET ROLE;
-DO $
+DO $$
 BEGIN
   EXECUTE format('GRANT erp_procedure_owner TO %I WITH SET FALSE', current_user);
-END $;
+END $$;
 REVOKE CREATE ON SCHEMA public FROM erp_procedure_owner;
 
 DROP POLICY IF EXISTS tenant_isolation_policy ON public.user_sessions;
