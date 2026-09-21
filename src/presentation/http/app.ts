@@ -27,6 +27,7 @@ import { ItemMasterService } from '../../application/services/item-master-servic
 import { InventoryService } from '../../application/services/inventory-service.js';
 import { ManufacturingMachineService } from '../../application/services/manufacturing-machine-service.js';
 import { ManufacturingExecutionService } from '../../application/services/manufacturing-execution-service.js';
+import { HrService } from '../../application/services/hr-service.js';
 import { ProcurementService } from '../../application/services/procurement-service.js';
 import { TaxService } from '../../application/services/tax-service.js';
 import { SecurityAdministrationService } from '../../application/services/security-administration-service.js';
@@ -64,6 +65,7 @@ import { WorkflowService } from '../../application/services/workflow-service.js'
 import workflowRoutes from './routes/workflow.js';
 import manufacturingMachineRoutes from './routes/manufacturing-machines.js';
 import manufacturingExecutionRoutes from './routes/manufacturing-execution.js';
+import hrRoutes from './routes/hr.js';
 import { AccountSecurityNotificationAdapter } from '../../application/adapters/account-security-notifications.js';
 import { buildErrorHandler } from '../../infrastructure/http/error-handler.js';
 import { applyCorrelationIdHooks } from '../../infrastructure/http/correlation-id.js';
@@ -464,6 +466,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     notificationService,
     schedulerService,
   );
+  const hrService = new HrService(pool, config.TENANT_CONTEXT_KEY, authorizationService, moduleAccessService);
   const manufacturingExecutionService = new ManufacturingExecutionService(
     new PostgresManufacturingExecutionRepository(pool, config.TENANT_CONTEXT_KEY),
     authorizationService,
@@ -517,6 +520,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('inventoryService', inventoryService);
   app.decorate('manufacturingMachineService', manufacturingMachineService);
   app.decorate('manufacturingExecutionService', manufacturingExecutionService);
+  app.decorate('hrService', hrService);
   app.decorate('procurementService', procurementService);
   app.decorate('workflowService', workflowService);
   app.decorate('taxService', taxService);
@@ -629,6 +633,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   await app.register(inventoryRoutes, { prefix: config.API_PREFIX });
   await app.register(manufacturingMachineRoutes, { prefix: config.API_PREFIX });
   await app.register(manufacturingExecutionRoutes, { prefix: config.API_PREFIX });
+  await app.register(hrRoutes, { prefix: config.API_PREFIX });
   await app.register(procurementRoutes, { prefix: config.API_PREFIX });
   await app.register(workflowRoutes, { prefix: config.API_PREFIX });
   await app.register(taxRoutes, { prefix: config.API_PREFIX });
