@@ -172,6 +172,7 @@ class AppRoutes {
     moduleCode: 'manufacturing',
     icon: Icons.play_circle_outline,
   );
+  static const hr = AppRouteConfig(path: '/hr', title: 'Human Resources', group: 'HR', permissionKey: 'hr.employee.read', moduleCode: 'hr', icon: Icons.badge_outlined);
   static const tax = AppRouteConfig(
     path: '/tax',
     title: 'Tax Configuration',
@@ -326,10 +327,12 @@ class AppRoutes {
     manufacturingRouting,
     manufacturingWorkOrders,
     manufacturingExecution,
+    hr,
   ];
 
   static const routePermissions = <String, String?>{
     '/dashboard': null,
+    '/hr': 'hr.employee.read',
     '/customers': 'customer.read',
     '/customers/create': 'customer.create',
     '/customers/details': 'customer.read',
