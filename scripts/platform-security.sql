@@ -102,6 +102,17 @@ DO $$
 BEGIN
   EXECUTE format('GRANT erp_procedure_owner TO %I WITH SET TRUE', current_user);
 END $$;
+-- In local/CI PostgreSQL, the privileged bootstrap operator can transfer
+-- existing lifecycle-function ownership to the dedicated procedure-owner role.
+-- Render's managed owner is not a superuser, so production requires these
+-- functions to already be owned by erp_procedure_owner.
+DO $owner_transfer$
+BEGIN
+  IF (SELECT rolsuper FROM pg_roles WHERE rolname = current_user) THEN
+    ALTER FUNCTION public.platform_update_tenant_status(uuid, text) OWNER TO erp_procedure_owner;
+    ALTER FUNCTION public.platform_delete_tenant(uuid) OWNER TO erp_procedure_owner;
+  END IF;
+END $owner_transfer$;
 SET LOCAL ROLE erp_procedure_owner;
 CREATE OR REPLACE FUNCTION public.platform_update_tenant_status(target_tenant uuid, requested_status text)
 RETURNS void
