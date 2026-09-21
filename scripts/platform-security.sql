@@ -160,7 +160,7 @@ END $$;
 -- transfer ownership. The security contract requires the existing owner to be
 -- erp_procedure_owner; a superuser/operator bootstrap must establish ownership
 -- once, while subsequent application startups only verify it.
-DO $
+DO $platform$
 BEGIN
   IF EXISTS (
     SELECT 1
@@ -194,7 +194,7 @@ DECLARE
   bootstrap_role text := current_user;
 BEGIN
   EXECUTE format('REVOKE erp_procedure_owner FROM %I', bootstrap_role);
-END $$;
+END $platform$;
 REVOKE ALL ON FUNCTION public.platform_update_tenant_status(uuid, text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.platform_delete_tenant(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.platform_update_tenant_status(uuid, text) FROM erp, erp_app;
