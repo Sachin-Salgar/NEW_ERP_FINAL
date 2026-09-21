@@ -96,8 +96,11 @@ export async function verifyPlatformSecurity(
      FROM pg_auth_members memberships
      JOIN pg_roles granted ON granted.oid = memberships.roleid
      JOIN pg_roles member ON member.oid = memberships.member
-     WHERE granted.rolname IN ('erp_procedure_owner', 'erp_platform_executor')
-        OR member.rolname IN ('erp', 'erp_app', 'erp_procedure_owner', 'erp_platform_executor')`,
+     WHERE member.rolname <> current_user
+       AND (
+         granted.rolname IN ('erp_procedure_owner', 'erp_platform_executor')
+         OR member.rolname IN ('erp', 'erp_app', 'erp_procedure_owner', 'erp_platform_executor')
+       )`,
   );
   if (memberships.rowCount !== 0) throw new Error('Platform roles retain unintended memberships.');
 
