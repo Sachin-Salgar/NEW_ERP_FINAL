@@ -3,8 +3,8 @@
 **Status:** Living implementation roadmap  
 **Authority:** Architecture documents and Approved ADRs define the intended system; this document records what is actually implemented and what remains to be validated or built.
 
-**Last reconciled:** 2026-09-12
-**Branch:** `ai/audit-fixes-2026-09`
+**Last reconciled:** 2026-09-21
+**Branch:** `audit/deployment-architecture-2026-09-21`
 
 ## Status definitions
 
@@ -445,3 +445,16 @@ Functional Specification v1.4 manufacturing slice status: FEAT-009 Machine / Ass
 - Commit: `ab561046e6291219b10e3847861b8b7180d11d21`.
 - CI status at reconciliation: AI Workflow Validation passed; Backend CI, PostgreSQL Integration CI, and Frontend CI were still running. No green claim is made until those runs complete.
 - Audit Query is already present in the current Security Administration UI, so it was not duplicated.
+
+
+## Deployment Architecture Audit — 2026-09-21
+
+- **Scope:** audited local PostgreSQL, GitHub CI PostgreSQL, Vercel Flutter Web, Render backend, Render PostgreSQL, database roles, migration runner, platform-security bootstrap, deployment manifests, environment configuration, and `.ai` workflows.
+- **Verified production:** Vercel frontend at `https://erp.salgar.in`, Render backend `NEW_ERP_FINAL`, Render PostgreSQL 18 database `erp_database_c17z`. Production authentication was verified after the CORS and application-grant incident was corrected.
+- **Role audit:** `erp_app`, `erp_platform_executor`, and `erp_procedure_owner` runtime/security boundaries remain enforced. The Render-managed `erp_user` owner has provider-managed memberships that are intentionally excluded from application-role normalization.
+- **Drift identified:** live Render application objects are owned by `erp_user`, while the intended architecture describes `erp` as the migration/object-creating role. This is recorded as deployment drift and is not being silently changed.
+- **Documentation alignment:** added `docs/07-devops/12-current-deployment-topology.md` and `docs/07-devops/13-deployment-audit-2026-09-21.md`; updated `docs/07-devops/01-deployment-architecture.md` to identify the actual Vercel + Render production topology while preserving provider portability.
+- **AI workflow alignment:** added `.ai/workflows/deployment.md` covering environment boundaries, Vercel, Render, PostgreSQL roles, migration safety, production change sequencing, and required deployment evidence.
+- **Validation:** live Render catalog inspection, repository configuration inspection, and current production authentication were verified. Existing GitHub checks for commit `46bc4c2d26179de4a79a79be0ea82c42c215df67` were green.
+- **Remaining deployment risk:** before the next production schema-changing release, verify the actual object-creating migration role and its default privileges in Render. Do not transfer ownership or weaken RLS as an implicit fix.
+- **Immediate next step:** resolve the Render migration/object-owner contract through an explicit operator decision and update the deployment runbook before the next production schema migration.
