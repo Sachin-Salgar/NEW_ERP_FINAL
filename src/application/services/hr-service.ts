@@ -70,4 +70,82 @@ export class HrService {
  async employeeExit(c:HrContext,employeeId:string,exitDate:string,reason?:string){await this.auth(c,'employee','update');if(!isUuid(employeeId)||!exitDate)throw new ValidationError('Employee and exit date are required.');return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{const q=await client.query("UPDATE hr_employees SET employment_status='EXITED',exit_date=$1,updated_at=NOW(),version=version+1 WHERE id=$2 AND tenant_id=$3 RETURNING *",[exitDate,employeeId,c.tenantId]);if(!q.rowCount)throw new NotFoundError('Employee not found.');await client.query("INSERT INTO hr_employment_history(id,tenant_id,employee_id,effective_from,action,notes,created_by) VALUES($1,$2,$3,$4,'EXIT',$5,$6)",[uuidV7(),c.tenantId,employeeId,exitDate,reason??null,c.userId]);return q.rows[0];});}
  async linkUser(c:HrContext,employeeId:string,userId:string){await this.auth(c,'employee','grant_access');if(!isUuid(employeeId)||!isUuid(userId))throw new ValidationError('Invalid employee or user id.');return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{const u=(await client.query('SELECT id,identity_id FROM users WHERE id=$1 AND tenant_id=$2 AND is_deleted=false',[userId,c.tenantId])).rows[0];if(!u)throw new NotFoundError('ERP user not found.');const q=await client.query('UPDATE hr_employees SET user_id=$1,identity_id=$2,updated_at=NOW(),version=version+1 WHERE id=$3 AND tenant_id=$4 RETURNING *',[u.id,u.identity_id,employeeId,c.tenantId]);if(!q.rowCount)throw new NotFoundError('Employee not found.');return q.rows[0];});}
  async workforceSummary(c:HrContext){await this.auth(c,'analytics','read');return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{const head=(await client.query("SELECT count(*)::int total,count(*) FILTER(WHERE employment_status='ACTIVE')::int active,count(*) FILTER(WHERE employment_status='EXITED')::int exited FROM hr_employees WHERE tenant_id=$1 AND is_deleted=false",[c.tenantId])).rows[0];const departments=(await client.query("SELECT d.id,d.code,d.name,count(e.id)::int headcount FROM hr_departments d LEFT JOIN hr_employees e ON e.department_id=d.id AND e.tenant_id=d.tenant_id AND e.is_deleted=false AND e.employment_status='ACTIVE' WHERE d.tenant_id=$1 AND d.is_deleted=false GROUP BY d.id,d.code,d.name ORDER BY d.name",[c.tenantId])).rows;return{headcount:head,departments};});}
+ async approvePayroll(c:HrContext,runId:string){
+  await this.auth(c,'payroll','approve'); if(!isUuid(runId))throw new ValidationError('Invalid payroll run id.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const q=await client.query("UPDATE public.hr_payroll_runs SET status='APPROVED',approved_at=NOW(),approved_by=$1 WHERE id=$2 AND tenant_id=$3 AND status='CALCULATED' RETURNING *",[c.userId,runId,c.tenantId]);
+   if(!q.rowCount)throw new ValidationError('Payroll run must be CALCULATED before approval.'); return q.rows[0];
+  });
+ }
+ async postPayrollToFinance(c:HrContext,runId:string){
+  await this.auth(c,'payroll','close'); if(!isUuid(runId))throw new ValidationError('Invalid payroll run id.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const run=(await client.query("SELECT * FROM public.hr_payroll_runs WHERE id=$1 AND tenant_id=$2 AND status='CLOSED'",[runId,c.tenantId])).rows[0];
+   if(!run)throw new ValidationError('Payroll run must be CLOSED before finance posting.');
+   const existing=(await client.query('SELECT * FROM public.hr_finance_postings WHERE payroll_run_id=$1 AND tenant_id=$2',[runId,c.tenantId])).rows[0];
+   if(existing)return existing;
+   return (await client.query("INSERT INTO public.hr_finance_postings(id,tenant_id,payroll_run_id,posting_reference,status,payload) VALUES($1,$2,$3,$4,'PENDING',$5) RETURNING *",[uuidV7(),c.tenantId,runId,'HR-PAYROLL-'+runId,JSON.stringify({gross:run.gross_total,deductions:run.deduction_total,net:run.net_total})])).rows[0];
+  });
+ }
+ async runLeaveAccrual(c:HrContext,year:number){
+  await this.auth(c,'leave_accrual_run','create'); if(!Number.isInteger(year)||year<2000||year>2200)throw new ValidationError('Valid year is required.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const existing=(await client.query('SELECT * FROM public.hr_leave_accrual_runs WHERE tenant_id=$1 AND year=$2 ORDER BY run_date DESC LIMIT 1',[c.tenantId,year])).rows[0];
+   if(existing)return existing;
+   const types=(await client.query("SELECT id,annual_entitlement,accrual_method FROM public.hr_leave_types WHERE tenant_id=$1 AND status='ACTIVE'",[c.tenantId])).rows;
+   const employees=(await client.query("SELECT id FROM public.hr_employees WHERE tenant_id=$1 AND is_deleted=false AND employment_status='ACTIVE'",[c.tenantId])).rows;
+   for(const e of employees)for(const t of types){
+    const bal=(await client.query('SELECT * FROM public.hr_leave_balances WHERE tenant_id=$1 AND employee_id=$2 AND leave_type_id=$3 AND year=$4 FOR UPDATE',[c.tenantId,e.id,t.id,year])).rows[0];
+    const accrued=String(t.accrual_method).toUpperCase()==='MONTHLY'?Number(t.annual_entitlement)/12:Number(t.annual_entitlement);
+    if(bal)await client.query('UPDATE public.hr_leave_balances SET accrued=accrued+$1 WHERE id=$2',[accrued,bal.id]);
+    else await client.query('INSERT INTO public.hr_leave_balances(id,tenant_id,employee_id,leave_type_id,year,opening,accrued,used,encashed,adjusted) VALUES($1,$2,$3,$4,$5,0,$6,0,0,0)',[uuidV7(),c.tenantId,e.id,t.id,year,accrued]);
+   }
+   return (await client.query("INSERT INTO public.hr_leave_accrual_runs(id,tenant_id,year,run_date,status,created_by) VALUES($1,$2,$3,CURRENT_DATE,'COMPLETED',$4) RETURNING *",[uuidV7(),c.tenantId,year,c.userId])).rows[0];
+  });
+ }
+ async encashLeave(c:HrContext,employeeId:string,leaveTypeId:string,year:number,days:number,amount:number){
+  await this.auth(c,'leave_encashment','create'); if(!isUuid(employeeId)||!isUuid(leaveTypeId)||days<=0||amount<0)throw new ValidationError('Valid employee, leave type, days and amount are required.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const bal=(await client.query('SELECT * FROM public.hr_leave_balances WHERE tenant_id=$1 AND employee_id=$2 AND leave_type_id=$3 AND year=$4 FOR UPDATE',[c.tenantId,employeeId,leaveTypeId,year])).rows[0];
+   if(!bal)throw new ValidationError('Leave balance is not initialized.');
+   const available=Number(bal.opening)+Number(bal.accrued)+Number(bal.adjusted)-Number(bal.used)-Number(bal.encashed);
+   if(available<days)throw new ValidationError('Insufficient leave balance for encashment.');
+   await client.query('UPDATE public.hr_leave_balances SET encashed=encashed+$1 WHERE id=$2',[days,bal.id]);
+   return (await client.query("INSERT INTO public.hr_leave_encashments(id,tenant_id,employee_id,leave_type_id,year,days,amount,status,approved_by,approved_at) VALUES($1,$2,$3,$4,$5,$6,$7,'APPROVED',$8,NOW()) RETURNING *",[uuidV7(),c.tenantId,employeeId,leaveTypeId,year,days,amount,c.userId])).rows[0];
+  });
+ }
+ async approveAttendanceRegularization(c:HrContext,id:string){
+  await this.auth(c,'attendance_regularization','update'); if(!isUuid(id))throw new ValidationError('Invalid regularization id.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const r=(await client.query("UPDATE public.hr_attendance_regularizations SET status='APPROVED',approved_by=$1,approved_at=NOW() WHERE id=$2 AND tenant_id=$3 AND status IN ('DRAFT','SUBMITTED','PENDING') RETURNING *",[c.userId,id,c.tenantId])).rows[0];
+   if(!r)throw new NotFoundError('Attendance regularization not found.');
+   if(r.attendance_id)await client.query('UPDATE public.hr_attendance SET check_in=$1,check_out=$2,status=CASE WHEN $1 IS NULL THEN status ELSE \'PRESENT\' END,updated_at=NOW() WHERE id=$3 AND tenant_id=$4',[r.requested_check_in,r.requested_check_out,r.attendance_id,c.tenantId]);
+   return r;
+  });
+ }
+ async calculateOvertime(c:HrContext,employeeId:string,attendanceId:string,minutes:number,rate:number){
+  await this.auth(c,'overtime_record','create'); if(!isUuid(employeeId)||!isUuid(attendanceId)||minutes<0||rate<0)throw new ValidationError('Valid overtime inputs are required.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const a=(await client.query('SELECT attendance_date FROM public.hr_attendance WHERE id=$1 AND employee_id=$2 AND tenant_id=$3',[attendanceId,employeeId,c.tenantId])).rows[0];
+   if(!a)throw new NotFoundError('Attendance record not found.');
+   return (await client.query("INSERT INTO public.hr_overtime_records(id,tenant_id,employee_id,attendance_id,work_date,minutes,rate,amount,status) VALUES($1,$2,$3,$4,$5,$6,$7,$6*$7,'APPROVED') RETURNING *",[uuidV7(),c.tenantId,employeeId,attendanceId,a.attendance_date,minutes,rate])).rows[0];
+  });
+ }
+ async acceptOffer(c:HrContext,id:string){
+  await this.auth(c,'job_offer','update'); if(!isUuid(id))throw new ValidationError('Invalid offer id.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{const q=await client.query("UPDATE public.hr_job_offers SET status='ACCEPTED',accepted_at=NOW() WHERE id=$1 AND tenant_id=$2 AND status IN ('DRAFT','OFFERED','SENT') RETURNING *",[id,c.tenantId]);if(!q.rowCount)throw new NotFoundError('Offer not found or not actionable.');return q.rows[0];});
+ }
+ async completeTraining(c:HrContext,id:string,score?:number){
+  await this.auth(c,'training_enrollment','update'); if(!isUuid(id))throw new ValidationError('Invalid enrollment id.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{const q=await client.query("UPDATE public.hr_training_enrollments SET status='COMPLETED',attendance_percent=GREATEST(attendance_percent,100) WHERE id=$1 AND tenant_id=$2 RETURNING *",[id,c.tenantId]);if(!q.rowCount)throw new NotFoundError('Training enrollment not found.');if(score!==undefined)await client.query('INSERT INTO public.hr_training_assessments(id,tenant_id,enrollment_id,assessment_date,score,passed) VALUES($1,$2,$3,CURRENT_DATE,$4,$5)',[uuidV7(),c.tenantId,id,score,score>=50]);return q.rows[0];});
+ }
+ async createExitSettlement(c:HrContext,employeeId:string,exitRecordId?:string){
+  await this.auth(c,'payroll_settlement','create'); if(!isUuid(employeeId))throw new ValidationError('Invalid employee id.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const salary=(await client.query('SELECT gross_monthly FROM public.hr_employee_salary WHERE tenant_id=$1 AND employee_id=$2 ORDER BY effective_from DESC LIMIT 1',[c.tenantId,employeeId])).rows[0];
+   const gross=Number(salary?.gross_monthly??0);
+   return (await client.query("INSERT INTO public.hr_payroll_settlements(id,tenant_id,employee_id,exit_record_id,settlement_date,earnings,deductions,net_amount,status,details) VALUES($1,$2,$3,$4,CURRENT_DATE,$5,0,$5,'CALCULATED',$6) RETURNING *",[uuidV7(),c.tenantId,employeeId,exitRecordId??null,gross,JSON.stringify({source:'latest_salary',note:'Final settlement is a calculation boundary; statutory/gratuity rules remain configuration-driven.'})])).rows[0];
+  });
+ }
+
 }
