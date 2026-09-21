@@ -1,5 +1,78 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
-import '../../core/network/api_client.dart';
+
 import '../../core/auth/auth_service.dart';
-class HrService extends ChangeNotifier { final ApiClient apiClient; final AuthService auth; HrService({required this.apiClient,required this.auth}); bool loading=false; String? error; List<Map<String,dynamic>> employees=[]; Future<void> loadEmployees() async {loading=true;error=null;notifyListeners();try{final r=await apiClient.get('/api/v1/hr/employees?page=1&page_size=100');if(r.statusCode!=200)throw Exception(r.body);final b=jsonDecode(r.body) as Map<String,dynamic>;employees=((b['items'] as List?)??const[]).map((x)=>Map<String,dynamic>.from(x as Map)).toList();}catch(e){error=e.toString();}finally{loading=false;notifyListeners();}} Future<Map<String,dynamic>> createEmployee(Map<String,dynamic> body) async {final r=await apiClient.post('/api/v1/hr/employees',body: body);if(r.statusCode<200||r.statusCode>=300)throw Exception(r.body);await loadEmployees();return Map<String,dynamic>.from(jsonDecode(r.body)['record']);} Future<Map<String,dynamic>> create(String resource,Map<String,dynamic> body) async {final r=await apiClient.post('/api/v1/hr/'+resource,body: body);if(r.statusCode<200||r.statusCode>=300)throw Exception(r.body);return Map<String,dynamic>.from(jsonDecode(r.body)['record']);} Future<void> punch(String id,bool inPunch) async {final r=await apiClient.post('/api/v1/hr/attendance/'+id+(inPunch?'/check-in':'/check-out'),body: {});if(r.statusCode<200||r.statusCode>=300)throw Exception(r.body);}}
+import '../../core/network/api_client.dart';
+
+class HrService extends ChangeNotifier {
+  final ApiClient apiClient;
+  final AuthService auth;
+
+  HrService({required this.apiClient, required this.auth});
+
+  bool loading = false;
+  String? error;
+  List<Map<String, dynamic>> employees = [];
+
+  Future<void> loadEmployees() async {
+    loading = true;
+    error = null;
+    notifyListeners();
+    try {
+      final response =
+          await apiClient.get('/api/v1/hr/employees?page=1&page_size=100');
+      if (response.statusCode != 200) {
+        throw Exception(response.body);
+      }
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      employees = ((body['items'] as List?) ?? const [])
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList();
+    } catch (e) {
+      error = e.toString();
+    } finally {
+      loading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, dynamic>> createEmployee(
+    Map<String, dynamic> body,
+  ) async {
+    final response =
+        await apiClient.post('/api/v1/hr/employees', body: body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(response.body);
+    }
+    await loadEmployees();
+    return Map<String, dynamic>.from(
+      (jsonDecode(response.body) as Map<String, dynamic>)['record'] as Map,
+    );
+  }
+
+  Future<Map<String, dynamic>> create(
+    String resource,
+    Map<String, dynamic> body,
+  ) async {
+    final response =
+        await apiClient.post('/api/v1/hr/$resource', body: body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(response.body);
+    }
+    return Map<String, dynamic>.from(
+      (jsonDecode(response.body) as Map<String, dynamic>)['record'] as Map,
+    );
+  }
+
+  Future<void> punch(String employeeId, bool checkIn) async {
+    final suffix = checkIn ? '/check-in' : '/check-out';
+    final response = await apiClient.post(
+      '/api/v1/hr/attendance/$employeeId$suffix',
+      body: const {},
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(response.body);
+    }
+  }
+}
