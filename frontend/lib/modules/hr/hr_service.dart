@@ -76,4 +76,24 @@ class HrService extends ChangeNotifier {
       throw Exception(response.body);
     }
   }
+  Future<List<Map<String, dynamic>>> listResource(String resource) async {
+    final response =
+        await apiClient.get('/api/v1/hr/$resource?page=1&page_size=100');
+    if (response.statusCode != 200) {
+      throw Exception(response.body);
+    }
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    return ((body['items'] as List?) ?? const [])
+        .map((item) => Map<String, dynamic>.from(item as Map))
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> workforceSummary() async {
+    final response = await apiClient.get('/api/v1/hr/analytics/workforce');
+    if (response.statusCode != 200) {
+      throw Exception(response.body);
+    }
+    return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+  }
 }
+
