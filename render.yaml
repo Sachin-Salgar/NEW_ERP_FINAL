@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: NEW_ERP_FINAL
+    runtime: docker
+    repo: https://github.com/Sachin-Salgar/NEW_ERP_FINAL.git
+    branch: main
+    region: singapore
+    autoDeployTrigger: commit
+    dockerfilePath: ./Dockerfile
+    dockerCommand: sh /app/scripts/render-start.sh
+    healthCheckPath: /api/v1/health/live
+    # Keep existing service plan, environment variables, domains, scaling,
+    # and database associations unchanged unless explicitly declared here.
+    envVars:
+      - key: PLATFORM_SECURITY_BOOTSTRAP_ON_START
+        value: "true"
