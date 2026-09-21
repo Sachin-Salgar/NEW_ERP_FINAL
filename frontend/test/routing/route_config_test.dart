@@ -59,12 +59,14 @@ void main() {
       expect(customers.permissionKey, 'customer.read');
       expect(customers.moduleCode, 'crm');
 
-      final manufacturingMachines = AppRoutes.forRoute('/manufacturing/machines');
+      final manufacturingMachines =
+          AppRoutes.forRoute('/manufacturing/machines');
       expect(manufacturingMachines.title, 'Machines');
       expect(manufacturingMachines.permissionKey, 'manufacturing.machine.read');
       expect(manufacturingMachines.moduleCode, 'manufacturing');
 
-      final manufacturingExecution = AppRoutes.forRoute('/manufacturing/execution');
+      final manufacturingExecution =
+          AppRoutes.forRoute('/manufacturing/execution');
       expect(manufacturingExecution.title, 'Production Execution');
       expect(
         manufacturingExecution.permissionKey,
