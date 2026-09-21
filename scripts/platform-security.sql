@@ -154,7 +154,7 @@ DECLARE
   bootstrap_role text := current_user;
 BEGIN
   EXECUTE format('GRANT erp_procedure_owner TO %I WITH ADMIN OPTION', bootstrap_role);
-END $;
+END $$;
 -- The managed Render bootstrap operator may administer the role membership but is
 -- not itself the owner of the security-definer functions. Switch into the
 -- dedicated owner role for function replacement and ACL changes.
