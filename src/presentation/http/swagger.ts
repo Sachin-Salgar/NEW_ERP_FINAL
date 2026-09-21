@@ -12,7 +12,7 @@ export function toJsonSchema(schema: z.ZodTypeAny, name?: string) {
 }
 
 const idParams = (names: string[]) =>
-  z.object(Object.fromEntries(names.map((name) => [name, name === 'code' ? z.string().min(1) : z.string().uuid()])));
+  z.object(Object.fromEntries(names.map((name) => [name, name === 'code' || name === 'resource' ? z.string().min(1) : z.string().uuid()])));
 
 export function schemaForRoute(method: string, url: string) {
   const normalizedUrl = url.replace(/^\/(?:api\/v\d+\/)?/, '/');
