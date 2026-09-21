@@ -29,6 +29,13 @@ BEGIN
   LOOP
     EXECUTE format('REVOKE %I FROM %I', granted_role, member_name);
   END LOOP;
+  -- The bootstrap operator may have inherited these memberships from an earlier
+  -- bootstrap attempt. Remove them explicitly; ownership is independent of role membership.
+  EXECUTE format('REVOKE erp FROM %I', current_user);
+  EXECUTE format('REVOKE erp_app FROM %I', current_user);
+  EXECUTE format('REVOKE erp_platform_executor FROM %I', current_user);
+  EXECUTE format('REVOKE erp_procedure_owner FROM %I', current_user);
+
   ALTER ROLE erp_procedure_owner
     NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
   ALTER ROLE erp_platform_executor
