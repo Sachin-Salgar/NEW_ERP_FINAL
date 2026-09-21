@@ -81,7 +81,7 @@ describe('custom tenant seed vertical slice', () => {
       membershipCount: 3,
       roleAssignmentCount: 3,
       branchCount: 4,
-      enabledModuleCount: 10,
+      enabledModuleCount: 11,
       manufacturingEnabled: 1,
     });
 
