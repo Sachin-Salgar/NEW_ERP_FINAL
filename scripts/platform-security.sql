@@ -154,7 +154,11 @@ DECLARE
   bootstrap_role text := current_user;
 BEGIN
   EXECUTE format('GRANT erp_procedure_owner TO %I WITH ADMIN OPTION', bootstrap_role);
-END $$;
+END $;
+-- The managed Render bootstrap operator may administer the role membership but is
+-- not itself the owner of the security-definer functions. Switch into the
+-- dedicated owner role for function replacement and ACL changes.
+SET LOCAL ROLE erp_procedure_owner;
 -- CREATE OR REPLACE preserves the existing function owner. On managed Render
 -- PostgreSQL the bootstrap operator may not own these functions and cannot
 -- transfer ownership. The security contract requires the existing owner to be
@@ -195,6 +199,7 @@ DECLARE
 BEGIN
   EXECUTE format('REVOKE erp_procedure_owner FROM %I', bootstrap_role);
 END $platform$;
+RESET ROLE;
 REVOKE ALL ON FUNCTION public.platform_update_tenant_status(uuid, text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.platform_delete_tenant(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.platform_update_tenant_status(uuid, text) FROM erp, erp_app;
