@@ -62,6 +62,11 @@ GRANT USAGE ON SCHEMA public TO erp_app, erp_platform_executor, erp_procedure_ow
 REVOKE CREATE ON SCHEMA public FROM PUBLIC, erp_app, erp_platform_executor, erp_procedure_owner;
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM erp_platform_executor, erp_procedure_owner;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM erp_platform_executor, erp_procedure_owner;
+-- Re-establish the procedure owner's deliberately minimal data access after the
+-- blanket revocation above. These are the only tables the SECURITY DEFINER
+-- lifecycle procedures are allowed to inspect/update directly.
+GRANT SELECT, UPDATE ON public.tenants TO erp_procedure_owner;
+GRANT SELECT ON public.users, public.branches, public.audit_events TO erp_procedure_owner;
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM erp_app;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM erp_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO erp_app;
