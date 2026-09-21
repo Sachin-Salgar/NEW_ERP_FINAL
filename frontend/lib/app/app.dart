@@ -66,7 +66,12 @@ class App extends StatefulWidget {
         auth: di.get<AuthService>(),
       ),
     );
-    di.registerLazySingleton(() => HrService(apiClient: di.get<ApiClient>(), auth: di.get<AuthService>()));
+    di.registerLazySingleton(
+      () => HrService(
+        apiClient: di.get<ApiClient>(),
+        auth: di.get<AuthService>(),
+      ),
+    );
     di.registerLazySingleton(
       () => PurchaseService(
         apiClient: di.get<ApiClient>(),
