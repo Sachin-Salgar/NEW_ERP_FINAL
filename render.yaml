@@ -9,8 +9,10 @@ services:
     dockerfilePath: ./Dockerfile
     dockerCommand: sh /app/scripts/render-start.sh
     healthCheckPath: /api/v1/health/live
-    # Keep existing service plan, environment variables, domains, scaling,
-    # and database associations unchanged unless explicitly declared here.
-    envVars:
-      - key: PLATFORM_SECURITY_BOOTSTRAP_ON_START
-        value: "true"
+    # Database provisioning and migrations are intentionally NOT part of
+    # application startup. Privileged database credentials must never be
+    # exposed to the running web service.
+    # Provision the database once with the documented operator workflow,
+    # then provide only DATABASE_URL (erp_app) and PLATFORM_DATABASE_URL
+    # (erp_platform_executor) to this service.
+    envVars: []
