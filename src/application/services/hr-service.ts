@@ -33,7 +33,7 @@ export class HrService {
   const mapping:Record<string,string>={HR_LEAVE_REQUEST:'leaveRequests',HR_RECRUITMENT_REQUISITION:'requisitions',HR_PAYROLL_RUN:'payrollRuns',HR_ATTENDANCE_CORRECTION:'attendanceCorrections',HR_EMPLOYEE_REQUEST:'employeeRequests',HR_PAYROLL_REIMBURSEMENT:'payrollReimbursements',HR_PAYROLL_LOAN:'payrollLoans'};
   const kind=mapping[documentType]; if(!kind)throw new ValidationError('Unsupported HR workflow document.');
   const table=TABLES[kind]; const finalStatus=status==='APPROVED'?'APPROVED':status==='REJECTED'?'REJECTED':'CORRECTION';
-  const updated=await withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{const q=await client.query('UPDATE public.'+table+' SET status=$1,approved_by=$2,approved_at=NOW() WHERE id=$3 AND tenant_id=$4 RETURNING *',[finalStatus,c.userId,documentId,c.tenantId]);if(!q.rowCount)throw new NotFoundError('HR workflow record not found.');return q.rows[0];});
+  const updated=await withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{const sql=documentType==='HR_LEAVE_REQUEST'?'UPDATE public.'+table+' SET status=$1,approved_by=$2,approved_at=NOW() WHERE id=$3 AND tenant_id=$4 RETURNING *':'UPDATE public.'+table+' SET status=$1 WHERE id=$2 AND tenant_id=$3 RETURNING *';const params=documentType==='HR_LEAVE_REQUEST'?[finalStatus,c.userId,documentId,c.tenantId]:[finalStatus,documentId,c.tenantId];const q=await client.query(sql,params);if(!q.rowCount)throw new NotFoundError('HR workflow record not found.');return q.rows[0];});
   if(documentType==='HR_LEAVE_REQUEST'&&finalStatus==='APPROVED')await this.consumeLeave(c,documentId);
   return updated;
  }
