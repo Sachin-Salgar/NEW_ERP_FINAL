@@ -98,10 +98,12 @@ END $$;
 -- The Render-managed database owner already has SET access to the dedicated
 -- procedure-owner role it created. Do not mutate the managed owner's memberships.
 GRANT CREATE ON SCHEMA public TO erp_procedure_owner;
-DO $$
+DO $
 BEGIN
-  EXECUTE format('GRANT erp_procedure_owner TO %I WITH SET TRUE', current_user);
-END $$;
+  IF NOT (SELECT rolsuper FROM pg_roles WHERE rolname = current_user) THEN
+    EXECUTE format('GRANT erp_procedure_owner TO %I WITH SET TRUE', current_user);
+  END IF;
+END $;
 -- In local/CI PostgreSQL, the privileged bootstrap operator can transfer
 -- existing lifecycle-function ownership to the dedicated procedure-owner role.
 -- Render's managed owner is not a superuser, so production requires these
@@ -210,18 +212,12 @@ GRANT EXECUTE ON FUNCTION public.platform_update_tenant_status(uuid, text) TO er
 GRANT EXECUTE ON FUNCTION public.platform_delete_tenant(uuid) TO erp_platform_executor;
 
 RESET ROLE;
-DO $
+DO $$
 BEGIN
-  -- Local/CI bootstrap runs as a superuser and temporarily grants SET access
-  -- so it can administer the procedure-owner role. Remove that temporary
-  -- membership before verification. Render's managed owner is not a
-  -- superuser, so its pre-existing managed membership is left untouched.
-  IF (SELECT rolsuper FROM pg_roles WHERE rolname = current_user) THEN
-    EXECUTE format('REVOKE erp_procedure_owner FROM %I', current_user);
-  ELSE
+  IF NOT (SELECT rolsuper FROM pg_roles WHERE rolname = current_user) THEN
     EXECUTE format('GRANT erp_procedure_owner TO %I WITH SET FALSE', current_user);
   END IF;
-END $;
+END $$;
 REVOKE CREATE ON SCHEMA public FROM erp_procedure_owner;
 
 DROP POLICY IF EXISTS tenant_isolation_policy ON public.user_sessions;
