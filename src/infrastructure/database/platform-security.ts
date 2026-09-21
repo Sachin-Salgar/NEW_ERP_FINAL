@@ -96,7 +96,7 @@ export async function verifyPlatformSecurity(
      FROM pg_auth_members memberships
      JOIN pg_roles granted ON granted.oid = memberships.roleid
      JOIN pg_roles member ON member.oid = memberships.member
-     WHERE member.rolname <> current_user
+     WHERE member.oid <> (SELECT datdba FROM pg_database WHERE datname = current_database())
        AND (
          granted.rolname IN ('erp_procedure_owner', 'erp_platform_executor')
          OR member.rolname IN ('erp', 'erp_app', 'erp_procedure_owner', 'erp_platform_executor')
