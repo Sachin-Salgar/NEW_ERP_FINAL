@@ -98,12 +98,12 @@ END $$;
 -- The Render-managed database owner already has SET access to the dedicated
 -- procedure-owner role it created. Do not mutate the managed owner's memberships.
 GRANT CREATE ON SCHEMA public TO erp_procedure_owner;
-DO $
+DO $$
 BEGIN
   IF NOT (SELECT rolsuper FROM pg_roles WHERE rolname = current_user) THEN
     EXECUTE format('GRANT erp_procedure_owner TO %I WITH SET TRUE', current_user);
   END IF;
-END $;
+END $$;
 -- In local/CI PostgreSQL, the privileged bootstrap operator can transfer
 -- existing lifecycle-function ownership to the dedicated procedure-owner role.
 -- Render's managed owner is not a superuser, so production requires these
