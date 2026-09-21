@@ -471,7 +471,13 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     config.TENANT_CONTEXT_KEY,
     authorizationService,
     moduleAccessService,
+    workflowService,
   );
+  for (const documentType of ['HR_LEAVE_REQUEST','HR_RECRUITMENT_REQUISITION','HR_PAYROLL_RUN','HR_ATTENDANCE_CORRECTION','HR_EMPLOYEE_REQUEST','HR_PAYROLL_REIMBURSEMENT','HR_PAYROLL_LOAN']) {
+    workflowService.registerDocumentHandler(documentType, (context, documentId, status) =>
+      hrService.applyWorkflowDecision(context, documentType, documentId, status),
+    );
+  }
   const manufacturingExecutionService = new ManufacturingExecutionService(
     new PostgresManufacturingExecutionRepository(pool, config.TENANT_CONTEXT_KEY),
     authorizationService,
