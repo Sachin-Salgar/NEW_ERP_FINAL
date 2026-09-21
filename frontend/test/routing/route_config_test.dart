@@ -63,10 +63,7 @@ void main() {
         '/manufacturing/machines',
       );
       expect(manufacturingMachines.title, 'Machines');
-      expect(
-        manufacturingMachines.permissionKey,
-        'manufacturing.machine.read',
-      );
+      expect(manufacturingMachines.permissionKey, 'manufacturing.machine.read');
       expect(manufacturingMachines.moduleCode, 'manufacturing');
 
       final manufacturingExecution = AppRoutes.forRoute(
