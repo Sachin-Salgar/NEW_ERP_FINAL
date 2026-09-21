@@ -183,11 +183,56 @@ class _HrScreenState extends State<HrScreen> {
   }
 
   Widget _modulePlaceholder(String name) {
-    return Center(
-      child: Text(
-        name + ' workspace',
-        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
-      ),
+    const resources = <String>[
+      'attendance',
+      'leaveRequests',
+      'payrollRuns',
+      'requisitions',
+      'performanceReviews',
+      'trainingRecords',
+      'compliance',
+    ];
+    final resource = resources[tab - 1];
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: service.listResource(resource),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text(snapshot.error.toString()));
+        }
+        final records = snapshot.data ?? const [];
+        return ListView(
+          children: [
+            Text(
+              name,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text('Records: ' + records.length.toString()),
+            const SizedBox(height: 12),
+            ...records.map(
+              (record) => Card(
+                child: ListTile(
+                  title: Text(
+                    (record['name'] ??
+                            record['code'] ??
+                            record['status'] ??
+                            record['id'] ??
+                            '')
+                        .toString(),
+                  ),
+                  subtitle: Text(record.toString()),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
