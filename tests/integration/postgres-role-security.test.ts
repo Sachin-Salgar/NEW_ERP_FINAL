@@ -14,6 +14,7 @@ const adminUrl = resolveIntegrationAdminDatabaseUrl();
 const testUrl = resolveDatabaseUrl(process.env, { forTest: true });
 const rolePassword = randomBytes(24).toString('base64url');
 const reverseMembershipRole = `erp_security_parent_${process.pid}`;
+const bootstrapMembershipRole = `erp_security_member_${process.pid}`;
 const erpDefaultTable = `security_default_erp_${process.pid}`;
 const securitySequence = `security_default_sequence_${process.pid}`;
 const unrelatedFunction = `security_unrelated_postgres_${process.pid}`;
@@ -101,11 +102,18 @@ describe('PostgreSQL platform security boundary', () => {
         $$;
       `);
       await client.query('GRANT EXECUTE ON FUNCTION public.platform_update_tenant_status(uuid, text) TO erp, erp_app');
-      await client.query('REVOKE EXECUTE ON FUNCTION public.platform_update_tenant_status(uuid, text) FROM erp_platform_executor');
+      await client.query(
+        'REVOKE EXECUTE ON FUNCTION public.platform_update_tenant_status(uuid, text) FROM erp_platform_executor',
+      );
       await client.query('GRANT erp_procedure_owner, erp_platform_executor TO erp WITH ADMIN OPTION');
       await client.query(`DROP ROLE IF EXISTS ${reverseMembershipRole}`);
       await client.query(`CREATE ROLE ${reverseMembershipRole} NOLOGIN`);
       await client.query(`GRANT ${reverseMembershipRole} TO erp_procedure_owner`);
+      await client.query(`DROP ROLE IF EXISTS ${bootstrapMembershipRole}`);
+      await client.query(`CREATE ROLE ${bootstrapMembershipRole} NOLOGIN`);
+      await client.query(
+        `GRANT erp, erp_app, erp_platform_executor, erp_procedure_owner TO ${bootstrapMembershipRole}`,
+      );
       await client.query('ALTER DEFAULT PRIVILEGES FOR ROLE erp GRANT EXECUTE ON FUNCTIONS TO PUBLIC');
       await client.query(`ALTER DEFAULT PRIVILEGES FOR ROLE erp GRANT SELECT ON TABLES TO erp_app`);
       await client.query('GRANT CREATE ON SCHEMA public TO erp');
@@ -128,7 +136,6 @@ describe('PostgreSQL platform security boundary', () => {
     } finally {
       client.release();
     }
-
   });
 
   afterAll(async () => {
@@ -138,6 +145,7 @@ describe('PostgreSQL platform security boundary', () => {
       await cleanup.query(`DROP SEQUENCE IF EXISTS public.${securitySequence}`);
       await cleanup.query(`DROP FUNCTION IF EXISTS public.${unrelatedFunction}()`);
       await cleanup.query(`DROP ROLE IF EXISTS ${reverseMembershipRole}`);
+      await cleanup.query(`DROP ROLE IF EXISTS ${bootstrapMembershipRole}`);
       await cleanup.query('DROP ROLE IF EXISTS erp_security_bootstrap_test');
     } finally {
       cleanup.release();
@@ -266,6 +274,16 @@ describe('PostgreSQL platform security boundary', () => {
        WHERE member.rolname IN ('erp_procedure_owner', 'erp_platform_executor')`,
     );
     expect(reverseMembership.rows).toEqual([]);
+
+    const platformMemberships = await admin.query(
+      `SELECT member.rolname AS member, granted.rolname AS granted_role
+       FROM pg_auth_members memberships
+       JOIN pg_roles member ON member.oid = memberships.member
+       JOIN pg_roles granted ON granted.oid = memberships.roleid
+       WHERE member.rolname IN ('erp', 'erp_app', 'erp_platform_executor', 'erp_procedure_owner')
+          OR granted.rolname IN ('erp', 'erp_app', 'erp_platform_executor', 'erp_procedure_owner')`,
+    );
+    expect(platformMemberships.rows).toEqual([]);
   });
 
   it('enforces tenant RLS for the application role and restricts procedures', async () => {

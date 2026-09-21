@@ -5,7 +5,7 @@ DECLARE
   procedure_owner oid;
   platform_executor oid;
   member_name text;
-  bootstrap_role text := current_user;
+  granted_role text;
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'erp_app') THEN
     CREATE ROLE erp_app NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION NOLOGIN;
@@ -19,32 +19,15 @@ BEGIN
 
   SELECT oid INTO procedure_owner FROM pg_roles WHERE rolname = 'erp_procedure_owner';
   SELECT oid INTO platform_executor FROM pg_roles WHERE rolname = 'erp_platform_executor';
-  FOR member_name IN
-    SELECT member.rolname
-    FROM pg_auth_members
-    JOIN pg_roles member ON member.oid = pg_auth_members.member
-    WHERE pg_auth_members.roleid IN (procedure_owner, platform_executor)
+  FOR member_name, granted_role IN
+    SELECT member.rolname, granted.rolname
+    FROM pg_auth_members memberships
+    JOIN pg_roles member ON member.oid = memberships.member
+    JOIN pg_roles granted ON granted.oid = memberships.roleid
+    WHERE member.rolname IN ('erp', 'erp_app', 'erp_platform_executor', 'erp_procedure_owner')
+       OR granted.rolname IN ('erp', 'erp_app', 'erp_platform_executor', 'erp_procedure_owner')
   LOOP
-    EXECUTE format(
-      'REVOKE erp_procedure_owner FROM %I',
-      member_name
-    );
-    EXECUTE format('REVOKE erp_platform_executor FROM %I', member_name);
-  END LOOP;
-  FOR member_name IN
-    SELECT dedicated.rolname
-    FROM pg_roles dedicated
-    WHERE dedicated.oid IN (procedure_owner, platform_executor)
-  LOOP
-    FOR bootstrap_role IN
-      SELECT granted.rolname
-      FROM pg_auth_members memberships
-      JOIN pg_roles granted ON granted.oid = memberships.roleid
-      JOIN pg_roles dedicated ON dedicated.oid = memberships.member
-      WHERE dedicated.rolname = member_name
-    LOOP
-      EXECUTE format('REVOKE %I FROM %I', bootstrap_role, member_name);
-    END LOOP;
+    EXECUTE format('REVOKE %I FROM %I', granted_role, member_name);
   END LOOP;
   ALTER ROLE erp_procedure_owner
     NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
