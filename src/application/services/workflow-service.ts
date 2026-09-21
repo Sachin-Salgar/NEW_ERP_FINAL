@@ -22,7 +22,15 @@ export class WorkflowService implements ProcurementWorkflowPort {
     },
     private readonly notifications?: NotificationServicePort,
     private readonly scheduler?: SchedulerServicePort,
-  ) {}
+  ) {
+    this.documentHandlers = new Map();
+  }
+
+  private readonly documentHandlers: Map<string, (context: ProcurementContext, documentId: string, status: 'APPROVED' | 'REJECTED' | 'CORRECTION') => Promise<unknown>>;
+
+  registerDocumentHandler(documentType: string, handler: (context: ProcurementContext, documentId: string, status: 'APPROVED' | 'REJECTED' | 'CORRECTION') => Promise<unknown>) {
+    this.documentHandlers.set(documentType, handler);
+  }
 
   async createDefinition(context: ProcurementContext, input: Omit<WorkflowDefinitionInput, 'tenantId' | 'branchId'>) {
     if (input.approvalRequired && input.levels.length === 0) throw new ValidationError('Approval-required workflows need at least one approval level.');
@@ -60,11 +68,9 @@ export class WorkflowService implements ProcurementWorkflowPort {
       return { status: 'SUBMITTED' };
     }
     if (!definition.approvalRequired) {
-      await this.transitionPurchaseOrderFromWorkflow(context, {
-        id: documentId,
-        status: 'APPROVED',
-        expectedVersion,
-      });
+      const handler = this.documentHandlers.get(documentType);
+      if (handler) await handler(context, documentId, 'APPROVED');
+      else await this.transitionPurchaseOrderFromWorkflow(context, { id: documentId, status: 'APPROVED', expectedVersion });
       return { status: 'APPROVED' };
     }
     const instance = await this.repository.createInstance(context, definition, documentType, documentId, expectedVersion, operationKey);
@@ -111,11 +117,13 @@ export class WorkflowService implements ProcurementWorkflowPort {
     const result = await this.tx.runInTransaction(async () => {
       const decisionResult = await this.repository.decide(context, instanceId, taskId, decision, expectedVersion, operationKey);
       if (decisionResult.documentStatus && decisionResult.documentId && decisionResult.documentVersion) {
-        await this.transitionPurchaseOrderFromWorkflow(context, {
-          id: decisionResult.documentId,
-          status: decisionResult.documentStatus as 'APPROVED' | 'REJECTED' | 'DRAFT',
-          expectedVersion: decisionResult.documentVersion,
-        });
+        const handler = this.documentHandlers.get(decisionResult.documentType ?? '');
+        if (handler) {
+          const status = decisionResult.documentStatus as 'APPROVED' | 'REJECTED' | 'CORRECTION';
+          await handler(context, decisionResult.documentId, status);
+        } else {
+          await this.transitionPurchaseOrderFromWorkflow(context, { id: decisionResult.documentId, status: decisionResult.documentStatus as 'APPROVED' | 'REJECTED' | 'DRAFT', expectedVersion: decisionResult.documentVersion });
+        }
       }
 
       return decisionResult;
