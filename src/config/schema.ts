@@ -27,6 +27,10 @@ export const appConfigSchema = z.object({
   LOG_LEVEL: z.enum(logLevels).default('info'),
   DATABASE_URL: z.string().trim().min(1),
   DATABASE_SSL_MODE: z.enum(databaseSslModes).default('require'),
+  DATABASE_SSL_CA: z
+    .string()
+    .transform((value) => value.replaceAll('\\n', '\n'))
+    .optional(),
   DATABASE_POOL_MIN: z.coerce.number().int().min(0).default(1),
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).default(25),
   JWT_SECRET: z.string().trim().min(32).default('development-jwt-secret-change-me'),

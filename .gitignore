@@ -30,3 +30,4 @@ probe-*.ts
 .tmp-bootstrap-output.json
 
 .env.local
+.render-postgres-ca.pem

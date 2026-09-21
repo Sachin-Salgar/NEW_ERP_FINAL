@@ -14,6 +14,7 @@
 | `LOG_LEVEL` | `fatal` \| `error` \| `warn` \| `info` \| `debug` \| `trace` | No | `info` | Minimum application log level. |
 | `DATABASE_URL` | string | Yes | — | Primary PostgreSQL connection URL. Required. |
 | `DATABASE_SSL_MODE` | `disable` \| `require` | No | `require` | PostgreSQL TLS mode used by the application connection pool. |
+| `DATABASE_SSL_CA` | string | No | — | Optional PEM certificate chain for managed PostgreSQL TLS validation. |
 | `DATABASE_POOL_MIN` | number | No | `1` | Minimum desired PostgreSQL pool size. |
 | `DATABASE_POOL_MAX` | number | No | `25` | Maximum PostgreSQL pool size. |
 | `JWT_SECRET` | string | No | `development-jwt-secret-change-me` | HS256 signing secret and temporary legacy verification secret during an explicitly enabled RS256 migration window. |
@@ -54,6 +55,7 @@ These variables are used by development, testing, or PostgreSQL tooling but are 
 - When `JWT_SIGNING_ALGORITHM=RS256`, `JWT_RS256_KEYS_JSON` must contain exactly one active signing key plus any verification-only overlap keys. Retired keys are not published in JWKS or accepted for verification.
 - `JWT_ACCEPT_LEGACY_HS256=true` is only for the controlled migration window and requires a real legacy secret in production.
 - `DATABASE_SSL_MODE` defaults to `require`. Local PostgreSQL development may use `disable`; managed deployments must select the mode appropriate to their provider/network boundary.
+- When `DATABASE_SSL_MODE=require` and the managed provider's CA is not in the runtime trust store, provide `DATABASE_SSL_CA`; certificate validation remains enabled.
 - Production platform procedures use `PLATFORM_DATABASE_URL` with the separately provisioned `erp_platform_executor` credential. The normal application pool must never receive that credential.
 - Tenant identity is not configured through an environment variable. Tenant context is derived by the application and propagated to PostgreSQL using `TENANT_CONTEXT_KEY`; do not bypass the established RLS flow.
 - Keep secrets in deployment/environment secret stores. Do not commit real credentials or private signing keys to repository files.

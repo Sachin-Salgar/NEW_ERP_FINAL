@@ -5,6 +5,10 @@ import { createDatabaseClientOptions, getDatabaseSslOptions } from '../../src/in
 describe('database connection policy', () => {
   it('validates certificates whenever TLS is required', () => {
     expect(getDatabaseSslOptions('require')).toEqual({ rejectUnauthorized: true });
+    expect(getDatabaseSslOptions('require', '-----BEGIN CERTIFICATE-----')).toEqual({
+      rejectUnauthorized: true,
+      ca: '-----BEGIN CERTIFICATE-----',
+    });
     expect(getDatabaseSslOptions('disable')).toBeUndefined();
   });
 
@@ -17,6 +21,9 @@ describe('database connection policy', () => {
       connectionString: 'postgresql://db.internal/app',
       ssl: undefined,
     });
+    expect(createDatabaseClientOptions('postgresql://db.render/app', 'require', 'render-ca')).toEqual({
+      connectionString: 'postgresql://db.render/app',
+      ssl: { rejectUnauthorized: true, ca: 'render-ca' },
+    });
   });
 });
-

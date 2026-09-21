@@ -6,13 +6,23 @@ export type DatabasePool = Pool;
 
 export type DatabaseSslMode = 'disable' | 'require';
 
-export function getDatabaseSslOptions(sslMode: DatabaseSslMode): { rejectUnauthorized: true } | undefined {
-  return sslMode === 'require' ? { rejectUnauthorized: true } : undefined;
+export function getDatabaseSslOptions(
+  sslMode: DatabaseSslMode,
+  certificateAuthority?: string,
+): { rejectUnauthorized: true; ca?: string } | undefined {
+  if (sslMode === 'disable') return undefined;
+  return certificateAuthority ? { rejectUnauthorized: true, ca: certificateAuthority } : { rejectUnauthorized: true };
 }
 
 export function createDatabasePoolFromUrl(
   databaseUrl: string,
-  options: { min?: number; max?: number; applicationName?: string; sslMode?: DatabaseSslMode } = {},
+  options: {
+    min?: number;
+    max?: number;
+    applicationName?: string;
+    sslMode?: DatabaseSslMode;
+    certificateAuthority?: string;
+  } = {},
 ): Pool {
   return new Pool({
     connectionString: databaseUrl,
@@ -22,7 +32,7 @@ export function createDatabasePoolFromUrl(
     idleTimeoutMillis: 30000,
     statement_timeout: 30000,
     application_name: options.applicationName,
-    ssl: getDatabaseSslOptions(options.sslMode ?? 'require'),
+    ssl: getDatabaseSslOptions(options.sslMode ?? 'require', options.certificateAuthority),
   });
 }
 
@@ -32,13 +42,18 @@ export function createDatabasePool(config: AppConfig): Pool {
     max: config.DATABASE_POOL_MAX,
     applicationName: config.APP_NAME,
     sslMode: config.DATABASE_SSL_MODE,
+    certificateAuthority: config.DATABASE_SSL_CA,
   });
 }
 
-export function createDatabaseClientOptions(databaseUrl: string, sslMode: DatabaseSslMode = 'require') {
+export function createDatabaseClientOptions(
+  databaseUrl: string,
+  sslMode: DatabaseSslMode = 'require',
+  certificateAuthority?: string,
+) {
   return {
     connectionString: databaseUrl,
-    ssl: getDatabaseSslOptions(sslMode),
+    ssl: getDatabaseSslOptions(sslMode, certificateAuthority),
   };
 }
 

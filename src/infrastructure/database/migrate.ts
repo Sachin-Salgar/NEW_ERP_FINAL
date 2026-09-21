@@ -69,11 +69,7 @@ async function pendingLoginChallengesMatchMigration(client: Client): Promise<boo
       WHERE n.nspname = 'public'
         AND c.relname = 'pending_login_challenges'`,
   );
-  if (
-    table.rows.length !== 1 ||
-    table.rows[0].relrowsecurity ||
-    table.rows[0].relforcerowsecurity
-  ) {
+  if (table.rows.length !== 1 || table.rows[0].relrowsecurity || table.rows[0].relforcerowsecurity) {
     return false;
   }
 
@@ -112,14 +108,17 @@ async function pendingLoginChallengesMatchMigration(client: Client): Promise<boo
         column.column_default?.replace(/\s+/g, ''),
         column.character_maximum_length,
       ]),
-    ) !== JSON.stringify(expectedColumns.map(([name, dataType, udt, nullable, defaultValue, length]) => [
-      name,
-      dataType,
-      udt,
-      nullable,
-      typeof defaultValue === 'string' ? defaultValue.replace(/\s+/g, '') : defaultValue,
-      length,
-    ]))
+    ) !==
+    JSON.stringify(
+      expectedColumns.map(([name, dataType, udt, nullable, defaultValue, length]) => [
+        name,
+        dataType,
+        udt,
+        nullable,
+        typeof defaultValue === 'string' ? defaultValue.replace(/\s+/g, '') : defaultValue,
+        length,
+      ]),
+    )
   ) {
     return false;
   }
@@ -144,7 +143,10 @@ async function pendingLoginChallengesMatchMigration(client: Client): Promise<boo
     ['pending_login_challenges_pkey', 'PRIMARY KEY (challenge_id)'],
     ['pending_login_challenges_secret_hash_key', 'UNIQUE (secret_hash)'],
   ];
-  if (JSON.stringify(constraints.rows.map((constraint) => [constraint.conname, constraint.definition])) !== JSON.stringify(expectedConstraints)) {
+  if (
+    JSON.stringify(constraints.rows.map((constraint) => [constraint.conname, constraint.definition])) !==
+    JSON.stringify(expectedConstraints)
+  ) {
     return false;
   }
 
@@ -156,12 +158,26 @@ async function pendingLoginChallengesMatchMigration(client: Client): Promise<boo
       ORDER BY indexname`,
   );
   const expectedIndexes = [
-    ['pending_login_challenges_identity_expiry_idx', 'CREATE INDEX pending_login_challenges_identity_expiry_idx ON public.pending_login_challenges USING btree (identity_id, expires_at)'],
-    ['pending_login_challenges_pkey', 'CREATE UNIQUE INDEX pending_login_challenges_pkey ON public.pending_login_challenges USING btree (challenge_id)'],
-    ['pending_login_challenges_secret_hash_key', 'CREATE UNIQUE INDEX pending_login_challenges_secret_hash_key ON public.pending_login_challenges USING btree (secret_hash)'],
-    ['pending_login_challenges_unconsumed_expiry_idx', 'CREATE INDEX pending_login_challenges_unconsumed_expiry_idx ON public.pending_login_challenges USING btree (expires_at) WHERE (consumed_at IS NULL)'],
+    [
+      'pending_login_challenges_identity_expiry_idx',
+      'CREATE INDEX pending_login_challenges_identity_expiry_idx ON public.pending_login_challenges USING btree (identity_id, expires_at)',
+    ],
+    [
+      'pending_login_challenges_pkey',
+      'CREATE UNIQUE INDEX pending_login_challenges_pkey ON public.pending_login_challenges USING btree (challenge_id)',
+    ],
+    [
+      'pending_login_challenges_secret_hash_key',
+      'CREATE UNIQUE INDEX pending_login_challenges_secret_hash_key ON public.pending_login_challenges USING btree (secret_hash)',
+    ],
+    [
+      'pending_login_challenges_unconsumed_expiry_idx',
+      'CREATE INDEX pending_login_challenges_unconsumed_expiry_idx ON public.pending_login_challenges USING btree (expires_at) WHERE (consumed_at IS NULL)',
+    ],
   ];
-  if (JSON.stringify(indexes.rows.map((index) => [index.indexname, index.indexdef])) !== JSON.stringify(expectedIndexes)) {
+  if (
+    JSON.stringify(indexes.rows.map((index) => [index.indexname, index.indexdef])) !== JSON.stringify(expectedIndexes)
+  ) {
     return false;
   }
 
@@ -232,7 +248,11 @@ export async function runMigrations(databaseUrl?: string, sslMode?: DatabaseSslM
   const config = databaseUrl ? undefined : loadConfig();
   const resolvedUrl = databaseUrl ?? config!.DATABASE_URL;
   const client = new Client(
-    createDatabaseClientOptions(resolvedUrl, sslMode ?? config?.DATABASE_SSL_MODE ?? 'require'),
+    createDatabaseClientOptions(
+      resolvedUrl,
+      sslMode ?? config?.DATABASE_SSL_MODE ?? 'require',
+      config?.DATABASE_SSL_CA,
+    ),
   );
 
   try {

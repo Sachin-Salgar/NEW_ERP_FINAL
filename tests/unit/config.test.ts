@@ -31,6 +31,16 @@ describe('parseAppConfig', () => {
     expect(() => resolveDatabaseSslMode({ DATABASE_SSL_MODE: 'plaintext' })).toThrow('Invalid DATABASE_SSL_MODE');
   });
 
+  it('normalizes escaped newlines in an environment-provided database CA', () => {
+    const config = parseAppConfig({
+      NODE_ENV: 'test',
+      DATABASE_URL: 'postgresql://db.example/app',
+      DATABASE_SSL_CA: 'BEGIN\\nEND',
+    });
+
+    expect(config.DATABASE_SSL_CA).toBe('BEGIN\nEND');
+  });
+
   it('requires DATABASE_URL from the configured local environment', () => {
     expect(() =>
       parseAppConfig({
@@ -111,4 +121,3 @@ describe('parseAppConfig', () => {
     ).toThrow('JWT_SECRET must be configured for production HS256 compatibility deployments.');
   });
 });
-
