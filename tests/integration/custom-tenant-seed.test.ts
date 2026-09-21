@@ -57,6 +57,7 @@ describe('custom tenant seed vertical slice', () => {
       tenantCount: number;
       identityCount: number;
       userCount: number;
+      membershipCount: number;
       roleAssignmentCount: number;
       branchCount: number;
       enabledModuleCount: number;
@@ -66,6 +67,7 @@ describe('custom tenant seed vertical slice', () => {
          (SELECT COUNT(*)::int FROM tenants WHERE id = $1) AS "tenantCount",
          (SELECT COUNT(*)::int FROM identities i JOIN users u ON u.identity_id = i.id WHERE u.tenant_id = $1 AND u.username IN ('administrator', 'admin', 'manager')) AS "identityCount",
          (SELECT COUNT(*)::int FROM users WHERE tenant_id = $1 AND username IN ('administrator', 'admin', 'manager')) AS "userCount",
+         (SELECT COUNT(*)::int FROM tenant_memberships tm JOIN identities i ON i.id = tm.identity_id JOIN users u ON u.identity_id = i.id AND u.tenant_id = tm.tenant_id WHERE tm.tenant_id = $1 AND tm.status = 'active' AND u.username IN ('administrator', 'admin', 'manager')) AS "membershipCount",
          (SELECT COUNT(*)::int FROM user_roles ur JOIN users u ON u.id = ur.user_id WHERE ur.tenant_id = $1 AND u.username IN ('administrator', 'admin', 'manager')) AS "roleAssignmentCount",
          (SELECT COUNT(*)::int FROM branches WHERE tenant_id = $1 AND is_deleted = false) AS "branchCount",
          (SELECT COUNT(*)::int FROM tenant_modules WHERE tenant_id = $1 AND enabled = true) AS "enabledModuleCount",
@@ -76,6 +78,7 @@ describe('custom tenant seed vertical slice', () => {
       tenantCount: 1,
       identityCount: 3,
       userCount: 3,
+      membershipCount: 3,
       roleAssignmentCount: 3,
       branchCount: 4,
       enabledModuleCount: 10,
