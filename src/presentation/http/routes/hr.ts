@@ -202,6 +202,16 @@ const hrRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/hr/payroll-runs/:id/close',{preHandler:[requireAuth]},async request=>({success:true,payrollRun:await fastify.hrService.closePayroll(context(request),requestParam(request.params,'id')??'')}));
   fastify.post('/hr/attendance/:id/finalize',{preHandler:[requireAuth]},async request=>({success:true,attendance:await fastify.hrService.finalizeAttendance(context(request),requestParam(request.params,'id')??'')}));
   fastify.post('/hr/employees/:id/exit',{preHandler:[requireAuth]},async request=>{const body=request.body as Record<string,unknown>;return{success:true,employee:await fastify.hrService.employeeExit(context(request),requestParam(request.params,'id')??'',String(body.exitDate??''),typeof body.reason==='string'?body.reason:undefined)};});
+  fastify.post('/hr/payroll-runs/:id/approve',{preHandler:[requireAuth]},async request=>({success:true,payrollRun:await fastify.hrService.approvePayroll(context(request),requestParam(request.params,'id')??'')}));
+  fastify.post('/hr/payroll-runs/:id/post-finance',{preHandler:[requireAuth]},async request=>({success:true,posting:await fastify.hrService.postPayrollToFinance(context(request),requestParam(request.params,'id')??'')}));
+  fastify.post('/hr/leave/accrual',{preHandler:[requireAuth]},async request=>{const body=request.body as {year?:number};return{success:true,run:await fastify.hrService.runLeaveAccrual(context(request),Number(body.year))};});
+  fastify.post('/hr/leave/encash',{preHandler:[requireAuth]},async request=>{const b=request.body as Record<string,unknown>;return{success:true,encashment:await fastify.hrService.encashLeave(context(request),String(b.employeeId),String(b.leaveTypeId),Number(b.year),Number(b.days),Number(b.amount))};});
+  fastify.post('/hr/attendance-regularizations/:id/approve',{preHandler:[requireAuth]},async request=>({success:true,regularization:await fastify.hrService.approveAttendanceRegularization(context(request),requestParam(request.params,'id')??'')}));
+  fastify.post('/hr/overtime',{preHandler:[requireAuth]},async request=>{const b=request.body as Record<string,unknown>;return{success:true,overtime:await fastify.hrService.calculateOvertime(context(request),String(b.employeeId),String(b.attendanceId),Number(b.minutes),Number(b.rate))};});
+  fastify.post('/hr/job-offers/:id/accept',{preHandler:[requireAuth]},async request=>({success:true,offer:await fastify.hrService.acceptOffer(context(request),requestParam(request.params,'id')??'')}));
+  fastify.post('/hr/training-enrollments/:id/complete',{preHandler:[requireAuth]},async request=>{const b=request.body as {score?:number};return{success:true,enrollment:await fastify.hrService.completeTraining(context(request),requestParam(request.params,'id')??'',typeof b.score==='number'?b.score:undefined)};});
+  fastify.post('/hr/employees/:id/final-settlement',{preHandler:[requireAuth]},async request=>{const b=request.body as {exitRecordId?:string};return{success:true,settlement:await fastify.hrService.createExitSettlement(context(request),requestParam(request.params,'id')??'',b.exitRecordId)};});
+
   fastify.get('/hr/analytics/workforce',{preHandler:[requireAuth]},async request=>({success:true,...await fastify.hrService.workforceSummary(context(request))}));
 
 };
