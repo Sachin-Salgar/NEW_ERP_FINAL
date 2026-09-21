@@ -155,10 +155,38 @@ DECLARE
 BEGIN
   EXECUTE format('GRANT erp_procedure_owner TO %I WITH ADMIN OPTION', bootstrap_role);
 END $$;
-ALTER FUNCTION public.platform_update_tenant_status(uuid, text) OWNER TO erp_procedure_owner;
-ALTER FUNCTION public.platform_delete_tenant(uuid) OWNER TO erp_procedure_owner;
-ALTER FUNCTION public.platform_update_tenant_status(uuid, text) SET search_path = pg_catalog, public;
-ALTER FUNCTION public.platform_delete_tenant(uuid) SET search_path = pg_catalog, public;
+-- CREATE OR REPLACE preserves the existing function owner. On managed Render
+-- PostgreSQL the bootstrap operator may not own these functions and cannot
+-- transfer ownership. The security contract requires the existing owner to be
+-- erp_procedure_owner; a superuser/operator bootstrap must establish ownership
+-- once, while subsequent application startups only verify it.
+DO $
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    JOIN pg_roles r ON r.oid = p.proowner
+    WHERE n.nspname = 'public'
+      AND p.proname = 'platform_update_tenant_status'
+      AND pg_get_function_identity_arguments(p.oid) = 'target_tenant uuid, requested_status text'
+      AND r.rolname <> 'erp_procedure_owner'
+  ) THEN
+    RAISE EXCEPTION 'Function platform_update_tenant_status must be owned by erp_procedure_owner; managed bootstrap cannot transfer ownership.';
+  END IF;
+  IF EXISTS (
+    SELECT 1
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    JOIN pg_roles r ON r.oid = p.proowner
+    WHERE n.nspname = 'public'
+      AND p.proname = 'platform_delete_tenant'
+      AND pg_get_function_identity_arguments(p.oid) = 'target_tenant uuid'
+      AND r.rolname <> 'erp_procedure_owner'
+  ) THEN
+    RAISE EXCEPTION 'Function platform_delete_tenant must be owned by erp_procedure_owner; managed bootstrap cannot transfer ownership.';
+  END IF;
+END $;
 GRANT SELECT, UPDATE ON public.tenants TO erp_procedure_owner;
 GRANT SELECT ON public.users, public.branches, public.audit_events TO erp_procedure_owner;
 DO $$
