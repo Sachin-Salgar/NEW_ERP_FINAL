@@ -466,7 +466,12 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     notificationService,
     schedulerService,
   );
-  const hrService = new HrService(pool, config.TENANT_CONTEXT_KEY, authorizationService, moduleAccessService);
+  const hrService = new HrService(
+    pool,
+    config.TENANT_CONTEXT_KEY,
+    authorizationService,
+    moduleAccessService,
+  );
   const manufacturingExecutionService = new ManufacturingExecutionService(
     new PostgresManufacturingExecutionRepository(pool, config.TENANT_CONTEXT_KEY),
     authorizationService,
