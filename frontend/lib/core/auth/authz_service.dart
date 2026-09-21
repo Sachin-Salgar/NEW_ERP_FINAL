@@ -21,7 +21,11 @@ class AuthZService with ChangeNotifier {
   /// refresh is in flight. This prevents route transitions from temporarily
   /// looking unauthorized while the same user's effective permissions are
   /// being refreshed.
-  Future<List<String>> loadPermissions(ApiClient apiClient, String userId, {bool force = false}) async {
+  Future<List<String>> loadPermissions(
+    ApiClient apiClient,
+    String userId, {
+    bool force = false,
+  }) async {
     final existingPending = _pendingLoads[userId];
     if (!force && existingPending != null) {
       return existingPending;
@@ -37,8 +41,13 @@ class AuthZService with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    final future = _loadPermissionsCore(apiClient, userId, previousPermissions, previousUserId)
-        .whenComplete(() {
+    final future =
+        _loadPermissionsCore(
+          apiClient,
+          userId,
+          previousPermissions,
+          previousUserId,
+        ).whenComplete(() {
           if (_loadingUserId == userId) {
             _loadingUserId = null;
           }
@@ -58,7 +67,9 @@ class AuthZService with ChangeNotifier {
     String? previousUserId,
   ) async {
     try {
-      final resp = await apiClient.get('/api/v1/rbac/users/$userId/effective-permissions');
+      final resp = await apiClient.get(
+        '/api/v1/rbac/users/$userId/effective-permissions',
+      );
       if (resp.statusCode != 200) {
         if (previousUserId != userId) {
           _permissions = null;

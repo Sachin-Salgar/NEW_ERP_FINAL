@@ -40,20 +40,38 @@ void main() {
   testWidgets('roles render', (WidgetTester tester) async {
     final client = MockClient((request) async {
       if (request.url.path.contains('/rbac/roles')) {
-        return http.Response(jsonEncode({
-          'success': true,
-          'roles': [
-            {'id': 'r1', 'code': 'admin', 'name': 'Admin', 'description': 'Administrator', 'isSystem': true},
-            {'id': 'r2', 'code': 'user', 'name': 'User', 'description': 'Regular user', 'isSystem': false},
-          ]
-        }), 200);
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'roles': [
+              {
+                'id': 'r1',
+                'code': 'admin',
+                'name': 'Admin',
+                'description': 'Administrator',
+                'isSystem': true,
+              },
+              {
+                'id': 'r2',
+                'code': 'user',
+                'name': 'User',
+                'description': 'Regular user',
+                'isSystem': false,
+              },
+            ],
+          }),
+          200,
+        );
       }
       if (request.url.path.contains('effective-permissions')) {
-        return http.Response(jsonEncode({
-          'success': true,
-          'userId': 'user-1',
-          'permissions': ['role.read']
-        }), 200);
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'userId': 'user-1',
+            'permissions': ['role.read'],
+          }),
+          200,
+        );
       }
       return http.Response('not found', 404);
     });
@@ -62,7 +80,11 @@ void main() {
     GetIt.instance.registerSingleton<ApiClient>(api);
 
     final authz = AuthZService();
-    final auth = AuthService(secureStorage: _MemorySecureStorage(), apiClientFactory: (baseUrl) => api, authzService: authz);
+    final auth = AuthService(
+      secureStorage: _MemorySecureStorage(),
+      apiClientFactory: (baseUrl) => api,
+      authzService: authz,
+    );
     GetIt.instance.registerSingleton<AuthService>(auth);
     await authz.loadPermissions(api, 'user-1');
 
@@ -88,13 +110,20 @@ void main() {
 
     // Do not load role.read permission
     final authz = AuthZService();
-    final auth = AuthService(secureStorage: _MemorySecureStorage(), apiClientFactory: (baseUrl) => api, authzService: authz);
+    final auth = AuthService(
+      secureStorage: _MemorySecureStorage(),
+      apiClientFactory: (baseUrl) => api,
+      authzService: authz,
+    );
     GetIt.instance.registerSingleton<AuthService>(auth);
 
     await tester.pumpWidget(MaterialApp(home: RoleListScreen()));
     await tester.pumpAndSettle();
 
-    expect(find.text('You do not have permission to view roles.'), findsOneWidget);
+    expect(
+      find.text('You do not have permission to view roles.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('empty response', (WidgetTester tester) async {
@@ -103,11 +132,14 @@ void main() {
         return http.Response(jsonEncode({'success': true, 'roles': []}), 200);
       }
       if (request.url.path.contains('effective-permissions')) {
-        return http.Response(jsonEncode({
-          'success': true,
-          'userId': 'user-1',
-          'permissions': ['role.read']
-        }), 200);
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'userId': 'user-1',
+            'permissions': ['role.read'],
+          }),
+          200,
+        );
       }
       return http.Response('not found', 404);
     });
@@ -116,7 +148,11 @@ void main() {
     GetIt.instance.registerSingleton<ApiClient>(api);
 
     final authz = AuthZService();
-    final auth = AuthService(secureStorage: _MemorySecureStorage(), apiClientFactory: (baseUrl) => api, authzService: authz);
+    final auth = AuthService(
+      secureStorage: _MemorySecureStorage(),
+      apiClientFactory: (baseUrl) => api,
+      authzService: authz,
+    );
     GetIt.instance.registerSingleton<AuthService>(auth);
     await authz.loadPermissions(api, 'user-1');
 
@@ -133,11 +169,14 @@ void main() {
         return http.Response('server error', 500);
       }
       if (request.url.path.contains('effective-permissions')) {
-        return http.Response(jsonEncode({
-          'success': true,
-          'userId': 'user-1',
-          'permissions': ['role.read']
-        }), 200);
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'userId': 'user-1',
+            'permissions': ['role.read'],
+          }),
+          200,
+        );
       }
       return http.Response('not found', 404);
     });
@@ -146,7 +185,11 @@ void main() {
     GetIt.instance.registerSingleton<ApiClient>(api);
 
     final authz = AuthZService();
-    final auth = AuthService(secureStorage: _MemorySecureStorage(), apiClientFactory: (baseUrl) => api, authzService: authz);
+    final auth = AuthService(
+      secureStorage: _MemorySecureStorage(),
+      apiClientFactory: (baseUrl) => api,
+      authzService: authz,
+    );
     GetIt.instance.registerSingleton<AuthService>(auth);
     await authz.loadPermissions(api, 'user-1');
 

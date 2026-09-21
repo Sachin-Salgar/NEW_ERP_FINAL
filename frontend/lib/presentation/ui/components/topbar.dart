@@ -31,15 +31,16 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
           builder: (context) => IconButton(
             tooltip: isDesktop
                 ? (navigationCollapsed
-                    ? 'Expand navigation'
-                    : 'Collapse navigation')
+                      ? 'Expand navigation'
+                      : 'Collapse navigation')
                 : 'Open navigation',
             icon: Icon(
               navigationCollapsed
                   ? Icons.menu_open_rounded
                   : Icons.menu_rounded,
             ),
-            onPressed: onMenuPressed ??
+            onPressed:
+                onMenuPressed ??
                 () {
                   Scaffold.of(context).openDrawer();
                 },
@@ -68,10 +69,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
         if (actions != null)
           Padding(
             padding: const EdgeInsets.only(left: 4, right: 12),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: actions!,
-            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: actions!),
           ),
       ],
     );

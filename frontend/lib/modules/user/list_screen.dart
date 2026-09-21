@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+
 import '../../core/auth/auth_service.dart';
 import 'user_service.dart';
 import '../../presentation/ui/components/page_header.dart';
@@ -50,7 +51,7 @@ class _UserListScreenState extends State<UserListScreen> {
           final users = service.users;
           final isSettingsRoute =
               ModalRoute.of(context)?.settings.name?.startsWith('/settings') ??
-                  false;
+              false;
           final breadcrumbs = <ErpBreadcrumbItem>[
             ErpBreadcrumbItem(
               label: isSettingsRoute ? 'Settings' : 'Dashboard',
@@ -101,15 +102,14 @@ class _UserListScreenState extends State<UserListScreen> {
                               children: users
                                   .map(
                                     (u) => ListTile(
-                                      contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 20,
-                                        vertical: 6,
-                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 20,
+                                            vertical: 6,
+                                          ),
                                       leading: CircleAvatar(
                                         child: Text(
-                                          (u['username'] ??
-                                                  u['email'] ??
-                                                  '?')
+                                          (u['username'] ?? u['email'] ?? '?')
                                               .toString()
                                               .substring(0, 1)
                                               .toUpperCase(),
@@ -165,7 +165,9 @@ class _UserListScreenState extends State<UserListScreen> {
                                       ),
                                       DataCell(Text(u['email'] ?? '—')),
                                       DataCell(
-                                        Text((u['status'] ?? 'Active').toString()),
+                                        Text(
+                                          (u['status'] ?? 'Active').toString(),
+                                        ),
                                       ),
                                       DataCell(
                                         IconButton(

@@ -223,8 +223,11 @@ class _PurchaseScreenState extends State<PurchaseScreen>
         : type.substring(0, type.length - 1);
     return [
       if (status == 'DRAFT' && auth.hasPermission('purchase.$singular.submit'))
-        const PopupMenuItem(value: 'submit', child: Text('Submit for approval')),
-      
+        const PopupMenuItem(
+          value: 'submit',
+          child: Text('Submit for approval'),
+        ),
+
       if ((status == 'DRAFT' || status == 'SUBMITTED') &&
           auth.hasPermission('purchase.$singular.cancel'))
         const PopupMenuItem(value: 'cancel', child: Text('Cancel')),
@@ -258,8 +261,19 @@ class _PurchaseScreenState extends State<PurchaseScreen>
       return;
     }
     if (!await _confirm('Apply the $action action to this document?')) return;
-    await service.workflow(type, '${item['id']}', action == 'cancel' ? 'CANCELLED' : 'SUBMITTED', (item['version'] as num?)?.toInt() ?? 1, action: action);
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Submitted. Approvals are handled in Workflow & BPM.')));
+    await service.workflow(
+      type,
+      '${item['id']}',
+      action == 'cancel' ? 'CANCELLED' : 'SUBMITTED',
+      (item['version'] as num?)?.toInt() ?? 1,
+      action: action,
+    );
+    if (mounted)
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Submitted. Approvals are handled in Workflow & BPM.'),
+        ),
+      );
   }
 
   Future<bool> _confirm(String message) async {

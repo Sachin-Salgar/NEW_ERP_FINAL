@@ -21,10 +21,12 @@ class TestApp extends StatelessWidget {
 
 void registerTestServices({required ApiClient apiClient}) {
   FlutterSecureStorage.setMockInitialValues({});
-  if (!GetIt.instance.isRegistered<ApiClient>()) GetIt.instance.registerSingleton<ApiClient>(apiClient);
+  if (!GetIt.instance.isRegistered<ApiClient>())
+    GetIt.instance.registerSingleton<ApiClient>(apiClient);
   // Ensure a single AuthZService instance is shared with AuthService
   final authz = AuthZService();
-  if (!GetIt.instance.isRegistered<AuthZService>()) GetIt.instance.registerSingleton<AuthZService>(authz);
+  if (!GetIt.instance.isRegistered<AuthZService>())
+    GetIt.instance.registerSingleton<AuthZService>(authz);
   if (!GetIt.instance.isRegistered<AuthService>()) {
     GetIt.instance.registerSingleton<AuthService>(
       AuthService(authzService: authz, apiClientFactory: (_) => apiClient),

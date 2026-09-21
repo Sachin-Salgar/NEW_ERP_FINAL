@@ -17,16 +17,26 @@ void main() {
     GetIt.instance.reset();
   });
 
-  testWidgets('Create form renders with required fields and submit button', (WidgetTester tester) async {
+  testWidgets('Create form renders with required fields and submit button', (
+    WidgetTester tester,
+  ) async {
     final mockClient = MockClient((request) async {
       // Allow permission fetch if requested
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.create']}), 200);
+        return http.Response(
+          jsonEncode({
+            'permissions': ['role.create'],
+          }),
+          200,
+        );
       }
       return http.Response('{}', 200);
     });
 
-    final apiClient = ApiClient(baseUrl: 'http://example.com', httpClient: mockClient);
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.com',
+      httpClient: mockClient,
+    );
     registerTestServices(apiClient: apiClient);
 
     // Give user the role.create permission so form is accessible
@@ -40,7 +50,9 @@ void main() {
     expect(find.text('Create'), findsOneWidget);
   });
 
-  testWidgets('Permission denied hides create form', (WidgetTester tester) async {
+  testWidgets('Permission denied hides create form', (
+    WidgetTester tester,
+  ) async {
     final mockClient = MockClient((request) async {
       if (request.url.path.contains('/effective-permissions')) {
         return http.Response(jsonEncode({'permissions': []}), 200);
@@ -48,7 +60,10 @@ void main() {
       return http.Response('{}', 200);
     });
 
-    final apiClient = ApiClient(baseUrl: 'http://example.com', httpClient: mockClient);
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.com',
+      httpClient: mockClient,
+    );
     registerTestServices(apiClient: apiClient);
 
     // No role.create permission
@@ -58,26 +73,45 @@ void main() {
     await tester.pumpWidget(TestApp(child: const RoleCreateScreen()));
     await tester.pumpAndSettle();
 
-    expect(find.text('You do not have permission to create roles.'), findsOneWidget);
+    expect(
+      find.text('You do not have permission to create roles.'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('Successful creation posts expected payload and shows success', (WidgetTester tester) async {
+  testWidgets('Successful creation posts expected payload and shows success', (
+    WidgetTester tester,
+  ) async {
     late Map<String, dynamic> capturedBody;
 
     final mockClient = MockClient((request) async {
-      if (request.method == 'POST' && request.url.path.contains('/rbac/roles')) {
+      if (request.method == 'POST' &&
+          request.url.path.contains('/rbac/roles')) {
         capturedBody = jsonDecode(request.body) as Map<String, dynamic>;
-        return http.Response(jsonEncode({'role': {...capturedBody, 'id': 'r1'}}), 200);
+        return http.Response(
+          jsonEncode({
+            'role': {...capturedBody, 'id': 'r1'},
+          }),
+          200,
+        );
       }
 
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.create']}), 200);
+        return http.Response(
+          jsonEncode({
+            'permissions': ['role.create'],
+          }),
+          200,
+        );
       }
 
       return http.Response('{}', 200);
     });
 
-    final apiClient = ApiClient(baseUrl: 'http://example.com', httpClient: mockClient);
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.com',
+      httpClient: mockClient,
+    );
     registerTestServices(apiClient: apiClient);
 
     final authz = GetIt.instance.get<AuthZService>();
@@ -88,7 +122,10 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField).at(0), 'analyst');
     await tester.enterText(find.byType(TextFormField).at(1), 'Analyst');
-    await tester.enterText(find.byType(TextFormField).at(2), 'Some description');
+    await tester.enterText(
+      find.byType(TextFormField).at(2),
+      'Some description',
+    );
 
     await tester.tap(find.text('Create'));
     await tester.pumpAndSettle();
@@ -101,15 +138,25 @@ void main() {
     expect(find.text('Role created'), findsOneWidget);
   });
 
-  testWidgets('Client-side validation prevents empty submit', (WidgetTester tester) async {
+  testWidgets('Client-side validation prevents empty submit', (
+    WidgetTester tester,
+  ) async {
     final mockClient = MockClient((request) async {
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.create']}), 200);
+        return http.Response(
+          jsonEncode({
+            'permissions': ['role.create'],
+          }),
+          200,
+        );
       }
       return http.Response('{}', 200);
     });
 
-    final apiClient = ApiClient(baseUrl: 'http://example.com', httpClient: mockClient);
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.com',
+      httpClient: mockClient,
+    );
     registerTestServices(apiClient: apiClient);
 
     final authz = GetIt.instance.get<AuthZService>();
@@ -125,18 +172,32 @@ void main() {
     expect(find.text('Role name is required.'), findsOneWidget);
   });
 
-  testWidgets('Backend validation error displayed', (WidgetTester tester) async {
+  testWidgets('Backend validation error displayed', (
+    WidgetTester tester,
+  ) async {
     final mockClient = MockClient((request) async {
-      if (request.method == 'POST' && request.url.path.contains('/rbac/roles')) {
-        return http.Response(jsonEncode({'message': 'Validation failed: code invalid'}), 400);
+      if (request.method == 'POST' &&
+          request.url.path.contains('/rbac/roles')) {
+        return http.Response(
+          jsonEncode({'message': 'Validation failed: code invalid'}),
+          400,
+        );
       }
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.create']}), 200);
+        return http.Response(
+          jsonEncode({
+            'permissions': ['role.create'],
+          }),
+          200,
+        );
       }
       return http.Response('{}', 200);
     });
 
-    final apiClient = ApiClient(baseUrl: 'http://example.com', httpClient: mockClient);
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.com',
+      httpClient: mockClient,
+    );
     registerTestServices(apiClient: apiClient);
 
     final authz = GetIt.instance.get<AuthZService>();
@@ -157,16 +218,25 @@ void main() {
 
   testWidgets('403 Forbidden handled gracefully', (WidgetTester tester) async {
     final mockClient = MockClient((request) async {
-      if (request.method == 'POST' && request.url.path.contains('/rbac/roles')) {
+      if (request.method == 'POST' &&
+          request.url.path.contains('/rbac/roles')) {
         return http.Response('Forbidden', 403);
       }
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.create']}), 200);
+        return http.Response(
+          jsonEncode({
+            'permissions': ['role.create'],
+          }),
+          200,
+        );
       }
       return http.Response('{}', 200);
     });
 
-    final apiClient = ApiClient(baseUrl: 'http://example.com', httpClient: mockClient);
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.com',
+      httpClient: mockClient,
+    );
     registerTestServices(apiClient: apiClient);
 
     final authz = GetIt.instance.get<AuthZService>();
@@ -186,16 +256,25 @@ void main() {
 
   testWidgets('Server error handled gracefully', (WidgetTester tester) async {
     final mockClient = MockClient((request) async {
-      if (request.method == 'POST' && request.url.path.contains('/rbac/roles')) {
+      if (request.method == 'POST' &&
+          request.url.path.contains('/rbac/roles')) {
         return http.Response('Internal Server Error', 500);
       }
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.create']}), 200);
+        return http.Response(
+          jsonEncode({
+            'permissions': ['role.create'],
+          }),
+          200,
+        );
       }
       return http.Response('{}', 200);
     });
 
-    final apiClient = ApiClient(baseUrl: 'http://example.com', httpClient: mockClient);
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.com',
+      httpClient: mockClient,
+    );
     registerTestServices(apiClient: apiClient);
 
     final authz = GetIt.instance.get<AuthZService>();

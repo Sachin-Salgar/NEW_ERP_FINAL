@@ -14,7 +14,12 @@ class AppShell extends StatefulWidget {
   final GlobalKey<NavigatorState> navigatorKey;
   final GlobalKey<NavigatorState> rootNavigatorKey;
 
-  const AppShell({super.key, required this.child, required this.navigatorKey, required this.rootNavigatorKey});
+  const AppShell({
+    super.key,
+    required this.child,
+    required this.navigatorKey,
+    required this.rootNavigatorKey,
+  });
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -24,21 +29,23 @@ class _AppShellState extends State<AppShell> {
   bool _sidebarCollapsed = false;
 
   List<AppRouteConfig> _navigationItems(AuthService auth) {
-    return AppRoutes.topLevel.where((item) {
-      if (item.path == '/settings') {
-        return AppRoutes.settingsNavigation.any((settingsItem) {
-          final permission = settingsItem.permissionKey;
-          final module = settingsItem.moduleCode;
+    return AppRoutes.topLevel
+        .where((item) {
+          if (item.path == '/settings') {
+            return AppRoutes.settingsNavigation.any((settingsItem) {
+              final permission = settingsItem.permissionKey;
+              final module = settingsItem.moduleCode;
+              return (permission == null || auth.hasPermission(permission)) &&
+                  (module == null || auth.hasModule(module));
+            });
+          }
+
+          final permission = item.permissionKey;
+          final module = item.moduleCode;
           return (permission == null || auth.hasPermission(permission)) &&
               (module == null || auth.hasModule(module));
-        });
-      }
-
-      final permission = item.permissionKey;
-      final module = item.moduleCode;
-      return (permission == null || auth.hasPermission(permission)) &&
-          (module == null || auth.hasModule(module));
-    }).toList(growable: false);
+        })
+        .toList(growable: false);
   }
 
   void _handleNavigate(String route) {
@@ -49,7 +56,8 @@ class _AppShellState extends State<AppShell> {
     final navigator = widget.navigatorKey.currentState;
     if (navigator == null) return;
 
-    if (navigator.canPop() || current.startsWith('/settings/') && target.startsWith('/settings/')) {
+    if (navigator.canPop() ||
+        current.startsWith('/settings/') && target.startsWith('/settings/')) {
       navigator.pushNamedAndRemoveUntil(target, (route) => false);
       return;
     }
@@ -59,13 +67,17 @@ class _AppShellState extends State<AppShell> {
 
   Future<void> _logout(AuthService auth) async => auth.logout();
 
-  void _toggleSidebar() => setState(() => _sidebarCollapsed = !_sidebarCollapsed);
+  void _toggleSidebar() =>
+      setState(() => _sidebarCollapsed = !_sidebarCollapsed);
 
   @override
   Widget build(BuildContext context) {
     final auth = GetIt.instance.get<AuthService>();
     return AnimatedBuilder(
-      animation: Listenable.merge([auth.authzService, AppRouteState.currentRoute]),
+      animation: Listenable.merge([
+        auth.authzService,
+        AppRouteState.currentRoute,
+      ]),
       builder: (context, _) => _buildShell(context, auth),
     );
   }
@@ -74,20 +86,28 @@ class _AppShellState extends State<AppShell> {
     final navItems = _navigationItems(auth);
     final width = MediaQuery.sizeOf(context).width;
     final isDesktop = width >= 1100;
-    final route = AppRoutes.normalize(AppRouteState.currentRoute.value ?? '/dashboard');
+    final route = AppRoutes.normalize(
+      AppRouteState.currentRoute.value ?? '/dashboard',
+    );
     final routeConfig = AppRoutes.forRoute(route);
     final isSettingsRoute = AppRoutes.isSettingsRoute(route);
 
     if (isDesktop) {
       final content = isSettingsRoute
-          ? SettingsShell(selectedRoute: route, onSelect: _handleNavigate, child: widget.child)
+          ? SettingsShell(
+              selectedRoute: route,
+              onSelect: _handleNavigate,
+              child: widget.child,
+            )
           : Column(
               children: [
                 TopBar(
                   title: routeConfig.title,
                   onMenuPressed: _toggleSidebar,
                   navigationCollapsed: _sidebarCollapsed,
-                  actions: [if (auth.currentUser != null) const ProfileContextMenu()],
+                  actions: [
+                    if (auth.currentUser != null) const ProfileContextMenu(),
+                  ],
                 ),
                 Expanded(child: widget.child),
               ],
@@ -102,7 +122,11 @@ class _AppShellState extends State<AppShell> {
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeInOut,
               width: _sidebarCollapsed ? 76 : width / 6,
-              child: Sidebar(collapsed: _sidebarCollapsed, selectedRoute: route, onSelect: _handleNavigate),
+              child: Sidebar(
+                collapsed: _sidebarCollapsed,
+                selectedRoute: route,
+                onSelect: _handleNavigate,
+              ),
             ),
             Expanded(
               child: isSettingsRoute
@@ -112,10 +136,17 @@ class _AppShellState extends State<AppShell> {
                           title: routeConfig.title,
                           onMenuPressed: _toggleSidebar,
                           navigationCollapsed: _sidebarCollapsed,
-                          actions: [if (auth.currentUser != null) const ProfileContextMenu()],
+                          actions: [
+                            if (auth.currentUser != null)
+                              const ProfileContextMenu(),
+                          ],
                         ),
                         Expanded(
-                          child: SettingsShell(selectedRoute: route, onSelect: _handleNavigate, child: widget.child),
+                          child: SettingsShell(
+                            selectedRoute: route,
+                            onSelect: _handleNavigate,
+                            child: widget.child,
+                          ),
                         ),
                       ],
                     )
@@ -141,16 +172,20 @@ class _AppShellState extends State<AppShell> {
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  children: navItems.map((item) => ListTile(
-                    leading: Icon(item.icon),
-                    title: Text(item.title),
-                    selected: item.matches(route),
-                    selectedColor: Theme.of(context).colorScheme.primary,
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      _handleNavigate(item.path);
-                    },
-                  )).toList(),
+                  children: navItems
+                      .map(
+                        (item) => ListTile(
+                          leading: Icon(item.icon),
+                          title: Text(item.title),
+                          selected: item.matches(route),
+                          selectedColor: Theme.of(context).colorScheme.primary,
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            _handleNavigate(item.path);
+                          },
+                        ),
+                      )
+                      .toList(),
                 ),
               ),
               Divider(height: 1, color: Theme.of(context).dividerColor),
@@ -164,7 +199,11 @@ class _AppShellState extends State<AppShell> {
         ),
       ),
       body: isSettingsRoute
-          ? SettingsShell(selectedRoute: route, onSelect: _handleNavigate, child: widget.child)
+          ? SettingsShell(
+              selectedRoute: route,
+              onSelect: _handleNavigate,
+              child: widget.child,
+            )
           : widget.child,
     );
   }
@@ -181,8 +220,14 @@ class _BrandHeader extends StatelessWidget {
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(color: theme.colorScheme.primary, borderRadius: BorderRadius.circular(10)),
-            child: Icon(Icons.grid_view_rounded, color: theme.colorScheme.onPrimary),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              Icons.grid_view_rounded,
+              color: theme.colorScheme.onPrimary,
+            ),
           ),
           const SizedBox(width: 12),
           Text('NEW ERP', style: theme.textTheme.titleLarge),

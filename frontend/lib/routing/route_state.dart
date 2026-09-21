@@ -5,8 +5,9 @@ import 'package:flutter/material.dart';
 class AppRouteState {
   AppRouteState._();
 
-  static final ValueNotifier<String?> currentRoute =
-      ValueNotifier<String?>('/dashboard');
+  static final ValueNotifier<String?> currentRoute = ValueNotifier<String?>(
+    '/dashboard',
+  );
 }
 
 class AppRouteObserver extends NavigatorObserver {

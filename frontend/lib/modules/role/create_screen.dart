@@ -35,10 +35,25 @@ class _RoleCreateScreenState extends State<RoleCreateScreen> {
 
     return ChangeNotifierProvider(
       create: (_) => RoleService(apiClient: GetIt.instance.get<ApiClient>()),
-      child: Consumer<RoleService>(builder: (context, svc, _) {
-        final hasPermission = auth.hasPermission('role.create');
+      child: Consumer<RoleService>(
+        builder: (context, svc, _) {
+          final hasPermission = auth.hasPermission('role.create');
 
-        if (!hasPermission) {
+          if (!hasPermission) {
+            return Scaffold(
+              appBar: AppBar(
+                leading: IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.arrow_back_outlined),
+                ),
+                title: const Text('Create Role'),
+              ),
+              body: const Center(
+                child: Text('You do not have permission to create roles.'),
+              ),
+            );
+          }
+
           return Scaffold(
             appBar: AppBar(
               leading: IconButton(
@@ -47,80 +62,88 @@ class _RoleCreateScreenState extends State<RoleCreateScreen> {
               ),
               title: const Text('Create Role'),
             ),
-            body: const Center(child: Text('You do not have permission to create roles.')),
-          );
-        }
-
-        return Scaffold(
-          appBar: AppBar(
-            leading: IconButton(
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.arrow_back_outlined),
-            ),
-            title: const Text('Create Role'),
-          ),
-          body: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextFormField(
-                    controller: _codeCtrl,
-                    decoration: const InputDecoration(labelText: 'Code'),
-                    textInputAction: TextInputAction.next,
-                    validator: (v) {
-                      if (v == null || v.trim().isEmpty) return 'Role code is required.';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _nameCtrl,
-                    decoration: const InputDecoration(labelText: 'Name'),
-                    textInputAction: TextInputAction.next,
-                    validator: (v) {
-                      if (v == null || v.trim().isEmpty) return 'Role name is required.';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _descCtrl,
-                    decoration: const InputDecoration(labelText: 'Description (optional)'),
-                    textInputAction: TextInputAction.done,
-                    maxLines: 2,
-                  ),
-                  const SizedBox(height: 20),
-                  if (svc.error != null) ...[
-                    Text('Error: ${svc.error}', style: const TextStyle(color: Colors.red)),
+            body: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextFormField(
+                      controller: _codeCtrl,
+                      decoration: const InputDecoration(labelText: 'Code'),
+                      textInputAction: TextInputAction.next,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty)
+                          return 'Role code is required.';
+                        return null;
+                      },
+                    ),
                     const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _nameCtrl,
+                      decoration: const InputDecoration(labelText: 'Name'),
+                      textInputAction: TextInputAction.next,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty)
+                          return 'Role name is required.';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _descCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Description (optional)',
+                      ),
+                      textInputAction: TextInputAction.done,
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 20),
+                    if (svc.error != null) ...[
+                      Text(
+                        'Error: ${svc.error}',
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    ElevatedButton(
+                      onPressed: svc.isLoading
+                          ? null
+                          : () async {
+                              if (!_formKey.currentState!.validate()) return;
+
+                              final code = _codeCtrl.text.trim();
+                              final name = _nameCtrl.text.trim();
+                              final desc = _descCtrl.text.trim();
+
+                              final created = await svc.createRole(
+                                code: code,
+                                name: name,
+                                description: desc.isEmpty ? null : desc,
+                              );
+                              if (created != null) {
+                                // Show success (do not auto-pop) — keep on screen so tests can assert success message
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Role created')),
+                                );
+                              }
+                            },
+                      child: svc.isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Create'),
+                    ),
                   ],
-                  ElevatedButton(
-                    onPressed: svc.isLoading
-                        ? null
-                        : () async {
-                            if (!_formKey.currentState!.validate()) return;
-
-                            final code = _codeCtrl.text.trim();
-                            final name = _nameCtrl.text.trim();
-                            final desc = _descCtrl.text.trim();
-
-                            final created = await svc.createRole(code: code, name: name, description: desc.isEmpty ? null : desc);
-                            if (created != null) {
-                              // Show success (do not auto-pop) — keep on screen so tests can assert success message
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Role created')));
-                            }
-                          },
-                    child: svc.isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Create'),
-                  )
-                ],
+                ),
               ),
             ),
-          ),
-        );
-      }),
+          );
+        },
+      ),
     );
   }
 }

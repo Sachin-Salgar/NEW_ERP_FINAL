@@ -8,10 +8,12 @@ import 'sales_service.dart';
 class CreateSalesQuotationScreen extends StatefulWidget {
   const CreateSalesQuotationScreen({super.key});
   @override
-  State<CreateSalesQuotationScreen> createState() => _CreateSalesQuotationScreenState();
+  State<CreateSalesQuotationScreen> createState() =>
+      _CreateSalesQuotationScreenState();
 }
 
-class _CreateSalesQuotationScreenState extends State<CreateSalesQuotationScreen> {
+class _CreateSalesQuotationScreenState
+    extends State<CreateSalesQuotationScreen> {
   final formKey = GlobalKey<FormState>();
   final dateController = TextEditingController();
   final validUntilController = TextEditingController();
@@ -47,7 +49,15 @@ class _CreateSalesQuotationScreenState extends State<CreateSalesQuotationScreen>
 
   @override
   void dispose() {
-    for (final c in [dateController, validUntilController, notesController, descriptionController, quantityController, unitPriceController, unitController]) {
+    for (final c in [
+      dateController,
+      validUntilController,
+      notesController,
+      descriptionController,
+      quantityController,
+      unitPriceController,
+      unitController,
+    ]) {
       c.dispose();
     }
     super.dispose();
@@ -58,29 +68,43 @@ class _CreateSalesQuotationScreenState extends State<CreateSalesQuotationScreen>
       if (customerId == null) setState(() => error = 'Customer is required.');
       return;
     }
-    setState(() { submitting = true; error = null; });
+    setState(() {
+      submitting = true;
+      error = null;
+    });
     final result = await service.createQuotation({
       'customerId': customerId,
       'quotationDate': dateController.text,
       'validUntil': validUntilController.text,
-      'notes': notesController.text.trim().isEmpty ? null : notesController.text.trim(),
-      'items': [{
-        'lineNumber': 1,
-        'description': descriptionController.text.trim(),
-        'quantity': num.parse(quantityController.text),
-        'unitPrice': num.parse(unitPriceController.text),
-        'unitOfMeasure': unitController.text.trim(),
-      }],
+      'notes': notesController.text.trim().isEmpty
+          ? null
+          : notesController.text.trim(),
+      'items': [
+        {
+          'lineNumber': 1,
+          'description': descriptionController.text.trim(),
+          'quantity': num.parse(quantityController.text),
+          'unitPrice': num.parse(unitPriceController.text),
+          'unitOfMeasure': unitController.text.trim(),
+        },
+      ],
     });
     if (!mounted) return;
-    setState(() { submitting = false; error = result; });
+    setState(() {
+      submitting = false;
+      error = result;
+    });
     if (result == null) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     if (!auth.hasPermission('sales.quotation.create')) {
-      return const Scaffold(body: Center(child: Text('You do not have permission to create quotations.')));
+      return const Scaffold(
+        body: Center(
+          child: Text('You do not have permission to create quotations.'),
+        ),
+      );
     }
     return Scaffold(
       appBar: AppBar(title: const Text('Create Sales Quotation')),
@@ -92,29 +116,73 @@ class _CreateSalesQuotationScreenState extends State<CreateSalesQuotationScreen>
             DropdownButtonFormField<String>(
               initialValue: customerId,
               decoration: const InputDecoration(labelText: 'Customer'),
-              items: customers.map((customer) => DropdownMenuItem<String>(
-                value: customer['id'] as String,
-                child: Text(customer['name'] as String),
-              )).toList(),
+              items: customers
+                  .map(
+                    (customer) => DropdownMenuItem<String>(
+                      value: customer['id'] as String,
+                      child: Text(customer['name'] as String),
+                    ),
+                  )
+                  .toList(),
               onChanged: (value) => setState(() => customerId = value),
-              validator: (_) => customerId == null ? 'Customer is required.' : null,
+              validator: (_) =>
+                  customerId == null ? 'Customer is required.' : null,
             ),
-            TextFormField(controller: dateController, decoration: const InputDecoration(labelText: 'Quotation date'), validator: _required),
-            TextFormField(controller: validUntilController, decoration: const InputDecoration(labelText: 'Valid until'), validator: _required),
-            TextFormField(controller: notesController, decoration: const InputDecoration(labelText: 'Notes')),
-            TextFormField(controller: descriptionController, decoration: const InputDecoration(labelText: 'Item description'), validator: _required),
-            TextFormField(controller: quantityController, decoration: const InputDecoration(labelText: 'Quantity'), keyboardType: TextInputType.number, validator: _number),
-            TextFormField(controller: unitPriceController, decoration: const InputDecoration(labelText: 'Unit price'), keyboardType: TextInputType.number, validator: _number),
-            TextFormField(controller: unitController, decoration: const InputDecoration(labelText: 'Unit of measure'), validator: _required),
-            if (error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(error!, style: const TextStyle(color: Colors.red))),
+            TextFormField(
+              controller: dateController,
+              decoration: const InputDecoration(labelText: 'Quotation date'),
+              validator: _required,
+            ),
+            TextFormField(
+              controller: validUntilController,
+              decoration: const InputDecoration(labelText: 'Valid until'),
+              validator: _required,
+            ),
+            TextFormField(
+              controller: notesController,
+              decoration: const InputDecoration(labelText: 'Notes'),
+            ),
+            TextFormField(
+              controller: descriptionController,
+              decoration: const InputDecoration(labelText: 'Item description'),
+              validator: _required,
+            ),
+            TextFormField(
+              controller: quantityController,
+              decoration: const InputDecoration(labelText: 'Quantity'),
+              keyboardType: TextInputType.number,
+              validator: _number,
+            ),
+            TextFormField(
+              controller: unitPriceController,
+              decoration: const InputDecoration(labelText: 'Unit price'),
+              keyboardType: TextInputType.number,
+              validator: _number,
+            ),
+            TextFormField(
+              controller: unitController,
+              decoration: const InputDecoration(labelText: 'Unit of measure'),
+              validator: _required,
+            ),
+            if (error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(error!, style: const TextStyle(color: Colors.red)),
+              ),
             const SizedBox(height: 24),
-            FilledButton(onPressed: submitting ? null : submit, child: Text(submitting ? 'Saving...' : 'Create quotation')),
+            FilledButton(
+              onPressed: submitting ? null : submit,
+              child: Text(submitting ? 'Saving...' : 'Create quotation'),
+            ),
           ],
         ),
       ),
     );
   }
 
-  String? _required(String? value) => value == null || value.trim().isEmpty ? 'Required.' : null;
-  String? _number(String? value) => value == null || num.tryParse(value) == null ? 'Enter a valid number.' : null;
+  String? _required(String? value) =>
+      value == null || value.trim().isEmpty ? 'Required.' : null;
+  String? _number(String? value) => value == null || num.tryParse(value) == null
+      ? 'Enter a valid number.'
+      : null;
 }

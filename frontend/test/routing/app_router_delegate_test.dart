@@ -10,7 +10,10 @@ void main() {
     });
 
     test('remaps legacy routes to the canonical settings location', () {
-      expect(AppRouterDelegate.normalizePath('/branches/'), '/settings/branches');
+      expect(
+        AppRouterDelegate.normalizePath('/branches/'),
+        '/settings/branches',
+      );
       expect(AppRouterDelegate.normalizePath('/roles/'), '/settings/roles');
     });
   });
@@ -25,9 +28,7 @@ void main() {
       '/settings/branches',
     );
     expect(
-      await parser.parseRouteInformation(
-        RouteInformation(uri: Uri(path: '/')),
-      ),
+      await parser.parseRouteInformation(RouteInformation(uri: Uri(path: '/'))),
       '/dashboard',
     );
   });

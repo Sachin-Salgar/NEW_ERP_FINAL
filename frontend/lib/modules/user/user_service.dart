@@ -117,10 +117,7 @@ class UserService extends ChangeNotifier {
       throw const FormatException('Invalid user access response');
     }
 
-    List<Map<String, dynamic>> parseEntries(
-      Object? value,
-      String entryType,
-    ) {
+    List<Map<String, dynamic>> parseEntries(Object? value, String entryType) {
       final entries = value as List<dynamic>;
       return entries.map((entry) {
         if (entry is! Map) {

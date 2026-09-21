@@ -15,7 +15,8 @@ class RoleService extends ChangeNotifier {
   bool fetchedOnce = false;
   String? error;
 
-  RoleService({required this.apiClient}) : auth = GetIt.instance.get<AuthService>();
+  RoleService({required this.apiClient})
+    : auth = GetIt.instance.get<AuthService>();
 
   Future<void> fetchRoles() async {
     isLoading = true;
@@ -46,17 +47,24 @@ class RoleService extends ChangeNotifier {
   }
 
   /// Create a new role with the given payload. Returns created role map on success or null on failure.
-  Future<Map<String, dynamic>?> createRole({required String code, required String name, String? description}) async {
+  Future<Map<String, dynamic>?> createRole({
+    required String code,
+    required String name,
+    String? description,
+  }) async {
     isLoading = true;
     error = null;
     notifyListeners();
 
     try {
-      final resp = await apiClient.post('/api/v1/rbac/roles', body: {
-        'code': code,
-        'name': name,
-        if (description != null) 'description': description,
-      });
+      final resp = await apiClient.post(
+        '/api/v1/rbac/roles',
+        body: {
+          'code': code,
+          'name': name,
+          if (description != null) 'description': description,
+        },
+      );
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
         final body = jsonDecode(resp.body) as Map<String, dynamic>;
@@ -125,7 +133,13 @@ class RoleService extends ChangeNotifier {
   }
 
   /// Update an existing role. Returns updated role on success, null on failure.
-  Future<Map<String, dynamic>?> updateRole({required String roleId, String? code, String? name, String? description, bool? isSystem}) async {
+  Future<Map<String, dynamic>?> updateRole({
+    required String roleId,
+    String? code,
+    String? name,
+    String? description,
+    bool? isSystem,
+  }) async {
     isLoading = true;
     error = null;
     notifyListeners();
@@ -138,7 +152,10 @@ class RoleService extends ChangeNotifier {
         if (isSystem != null) 'isSystem': isSystem,
       };
 
-      final resp = await apiClient.patch('/api/v1/rbac/roles/$roleId', body: body);
+      final resp = await apiClient.patch(
+        '/api/v1/rbac/roles/$roleId',
+        body: body,
+      );
 
       if (resp.statusCode == 200) {
         final respBody = jsonDecode(resp.body) as Map<String, dynamic>;
@@ -182,11 +199,15 @@ class RoleService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final resp = await apiClient.get('/api/v1/rbac/roles/$roleId/permissions');
+      final resp = await apiClient.get(
+        '/api/v1/rbac/roles/$roleId/permissions',
+      );
       if (resp.statusCode == 200) {
         final body = jsonDecode(resp.body) as Map<String, dynamic>;
         final list = (body['permissions'] as List<dynamic>?) ?? [];
-        return List<Map<String, dynamic>>.from(list.map((e) => Map<String, dynamic>.from(e as Map)));
+        return List<Map<String, dynamic>>.from(
+          list.map((e) => Map<String, dynamic>.from(e as Map)),
+        );
       }
 
       if (resp.statusCode == 403) {
@@ -206,13 +227,19 @@ class RoleService extends ChangeNotifier {
   }
 
   /// Replace the full permission set for a role in a single atomic backend transaction.
-  Future<int> replacePermissionsForRole(String roleId, List<String> permissionKeys) async {
+  Future<int> replacePermissionsForRole(
+    String roleId,
+    List<String> permissionKeys,
+  ) async {
     isLoading = true;
     error = null;
     notifyListeners();
 
     try {
-      final resp = await apiClient.put('/api/v1/rbac/roles/$roleId/permissions', body: {'permissionKeys': permissionKeys});
+      final resp = await apiClient.put(
+        '/api/v1/rbac/roles/$roleId/permissions',
+        body: {'permissionKeys': permissionKeys},
+      );
       if (resp.statusCode == 200) {
         final body = jsonDecode(resp.body) as Map<String, dynamic>;
         return body['replaced'] as int? ?? permissionKeys.length;
@@ -230,7 +257,10 @@ class RoleService extends ChangeNotifier {
 
       try {
         final body = jsonDecode(resp.body) as Map<String, dynamic>;
-        error = body['message']?.toString() ?? body['error']?.toString() ?? 'Failed to replace permissions: ${resp.statusCode}';
+        error =
+            body['message']?.toString() ??
+            body['error']?.toString() ??
+            'Failed to replace permissions: ${resp.statusCode}';
       } catch (_) {
         error = 'Failed to replace permissions: ${resp.statusCode}';
       }
@@ -245,13 +275,19 @@ class RoleService extends ChangeNotifier {
   }
 
   /// Assign permission(s) to a role. Returns number assigned on success or 0 on failure.
-  Future<int> assignPermissionsToRole(String roleId, List<String> permissionKeys) async {
+  Future<int> assignPermissionsToRole(
+    String roleId,
+    List<String> permissionKeys,
+  ) async {
     isLoading = true;
     error = null;
     notifyListeners();
 
     try {
-      final resp = await apiClient.post('/api/v1/rbac/roles/$roleId/permissions', body: {'permissionKeys': permissionKeys});
+      final resp = await apiClient.post(
+        '/api/v1/rbac/roles/$roleId/permissions',
+        body: {'permissionKeys': permissionKeys},
+      );
       if (resp.statusCode == 200) {
         final body = jsonDecode(resp.body) as Map<String, dynamic>;
         final assigned = body['assigned'] as int? ?? 0;
@@ -265,7 +301,10 @@ class RoleService extends ChangeNotifier {
 
       try {
         final body = jsonDecode(resp.body) as Map<String, dynamic>;
-        error = body['message']?.toString() ?? body['error']?.toString() ?? 'Failed to assign permission: ${resp.statusCode}';
+        error =
+            body['message']?.toString() ??
+            body['error']?.toString() ??
+            'Failed to assign permission: ${resp.statusCode}';
       } catch (_) {
         error = 'Failed to assign permission: ${resp.statusCode}';
       }
@@ -280,13 +319,19 @@ class RoleService extends ChangeNotifier {
   }
 
   /// Remove permission(s) from a role. Returns number removed on success or 0 on failure.
-  Future<int> removePermissionsFromRole(String roleId, List<String> permissionKeys) async {
+  Future<int> removePermissionsFromRole(
+    String roleId,
+    List<String> permissionKeys,
+  ) async {
     isLoading = true;
     error = null;
     notifyListeners();
 
     try {
-      final resp = await apiClient.delete('/api/v1/rbac/roles/$roleId/permissions', body: {'permissionKeys': permissionKeys});
+      final resp = await apiClient.delete(
+        '/api/v1/rbac/roles/$roleId/permissions',
+        body: {'permissionKeys': permissionKeys},
+      );
       if (resp.statusCode == 200) {
         final body = jsonDecode(resp.body) as Map<String, dynamic>;
         final removed = body['removed'] as int? ?? 0;
@@ -300,7 +345,10 @@ class RoleService extends ChangeNotifier {
 
       try {
         final body = jsonDecode(resp.body) as Map<String, dynamic>;
-        error = body['message']?.toString() ?? body['error']?.toString() ?? 'Failed to remove permission: ${resp.statusCode}';
+        error =
+            body['message']?.toString() ??
+            body['error']?.toString() ??
+            'Failed to remove permission: ${resp.statusCode}';
       } catch (_) {
         error = 'Failed to remove permission: ${resp.statusCode}';
       }

@@ -11,10 +11,7 @@ void main() {
     });
 
     test('maps child routes to their top-level navigation item', () {
-      expect(
-        AppRoutes.canonicalTopLevel('/branches/edit'),
-        '/settings',
-      );
+      expect(AppRoutes.canonicalTopLevel('/branches/edit'), '/settings');
       expect(AppRoutes.canonicalTopLevel('/settings/branches'), '/settings');
       expect(AppRoutes.canonicalTopLevel('/settings/roles/edit'), '/settings');
       expect(

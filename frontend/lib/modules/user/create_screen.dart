@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+
 import '../../core/auth/auth_service.dart';
 import '../../presentation/ui/components/back_button.dart';
 import 'user_service.dart';
@@ -60,7 +61,9 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
   Widget build(BuildContext context) {
     if (!auth.hasPermission('user.create')) {
       return const Scaffold(
-        body: Center(child: Text('You do not have permission to create users.')),
+        body: Center(
+          child: Text('You do not have permission to create users.'),
+        ),
       );
     }
 
@@ -100,9 +103,7 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
                           children: [
                             Text(
                               'Account information',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
+                              style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(height: 20),
@@ -113,7 +114,8 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
                                   decoration: const InputDecoration(
                                     labelText: 'Username',
                                   ),
-                                  validator: (v) => v == null || v.trim().isEmpty
+                                  validator: (v) =>
+                                      v == null || v.trim().isEmpty
                                       ? 'Username is required.'
                                       : null,
                                 );
@@ -123,7 +125,8 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
                                     labelText: 'Email',
                                   ),
                                   keyboardType: TextInputType.emailAddress,
-                                  validator: (v) => v == null || v.trim().isEmpty
+                                  validator: (v) =>
+                                      v == null || v.trim().isEmpty
                                       ? 'Email is required.'
                                       : null,
                                 );

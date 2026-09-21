@@ -17,12 +17,14 @@ class SettingsSidebar extends StatelessWidget {
   });
 
   List<AppRouteConfig> _visibleItems(AuthService auth) {
-    return AppRoutes.settingsNavigation.where((item) {
-      final permission = item.permissionKey;
-      final module = item.moduleCode;
-      return (permission == null || auth.hasPermission(permission)) &&
-          (module == null || auth.hasModule(module));
-    }).toList(growable: false);
+    return AppRoutes.settingsNavigation
+        .where((item) {
+          final permission = item.permissionKey;
+          final module = item.moduleCode;
+          return (permission == null || auth.hasPermission(permission)) &&
+              (module == null || auth.hasModule(module));
+        })
+        .toList(growable: false);
   }
 
   bool _selected(AppRouteConfig item) => item.matches(selectedRoute);
@@ -83,7 +85,9 @@ class SettingsSidebar extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
               child: Text(
                 'Settings',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
             Divider(height: 1, color: theme.dividerColor),
@@ -93,29 +97,43 @@ class SettingsSidebar extends StatelessWidget {
                 children: items.map((item) {
                   final selected = _selected(item);
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     child: Material(
-                      color: selected ? theme.colorScheme.primary.withValues(alpha: 0.10) : Colors.transparent,
+                      color: selected
+                          ? theme.colorScheme.primary.withValues(alpha: 0.10)
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(10),
                         onTap: () => onSelect?.call(item.path),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
                           child: Row(
                             children: [
                               Icon(
                                 item.icon,
                                 size: 18,
-                                color: selected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                                color: selected
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.onSurfaceVariant,
                               ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   item.title,
                                   style: theme.textTheme.bodyMedium?.copyWith(
-                                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                                    color: selected ? theme.colorScheme.primary : null,
+                                    fontWeight: selected
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                    color: selected
+                                        ? theme.colorScheme.primary
+                                        : null,
                                   ),
                                 ),
                               ),

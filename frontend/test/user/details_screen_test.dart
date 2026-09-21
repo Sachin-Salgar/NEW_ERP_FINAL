@@ -52,10 +52,7 @@ void main() {
             'success': true,
             'userId': 'user-1',
             'branches': [
-              {
-                'id': 'branch-1',
-                'name': 'Assigned Branch',
-              },
+              {'id': 'branch-1', 'name': 'Assigned Branch'},
             ],
           }),
           200,

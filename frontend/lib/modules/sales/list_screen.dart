@@ -7,7 +7,8 @@ import 'sales_service.dart';
 class SalesQuotationListScreen extends StatefulWidget {
   const SalesQuotationListScreen({super.key});
   @override
-  State<SalesQuotationListScreen> createState() => _SalesQuotationListScreenState();
+  State<SalesQuotationListScreen> createState() =>
+      _SalesQuotationListScreenState();
 }
 
 class _SalesQuotationListScreenState extends State<SalesQuotationListScreen> {
@@ -32,7 +33,11 @@ class _SalesQuotationListScreenState extends State<SalesQuotationListScreen> {
   @override
   Widget build(BuildContext context) {
     if (!auth.hasPermission('sales.quotation.read')) {
-      return const Scaffold(body: Center(child: Text('You do not have permission to view quotations.')));
+      return const Scaffold(
+        body: Center(
+          child: Text('You do not have permission to view quotations.'),
+        ),
+      );
     }
     return Scaffold(
       appBar: AppBar(
@@ -68,10 +73,14 @@ class _SalesQuotationListScreenState extends State<SalesQuotationListScreen> {
                     labelText: 'Search quotations',
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.search),
-                      onPressed: () => service.fetchQuotations(search: searchController.text, page: 1),
+                      onPressed: () => service.fetchQuotations(
+                        search: searchController.text,
+                        page: 1,
+                      ),
                     ),
                   ),
-                  onSubmitted: (value) => service.fetchQuotations(search: value, page: 1),
+                  onSubmitted: (value) =>
+                      service.fetchQuotations(search: value, page: 1),
                 ),
               ),
               Expanded(
@@ -82,8 +91,12 @@ class _SalesQuotationListScreenState extends State<SalesQuotationListScreen> {
                         itemBuilder: (context, index) {
                           final quotation = service.quotations[index];
                           return ListTile(
-                            title: Text('${quotation['quotationNumber'] ?? quotation['quotation_number']}'),
-                            subtitle: Text('${quotation['status'] ?? ''}  •  ${quotation['quotationDate'] ?? quotation['quotation_date'] ?? ''}'),
+                            title: Text(
+                              '${quotation['quotationNumber'] ?? quotation['quotation_number']}',
+                            ),
+                            subtitle: Text(
+                              '${quotation['status'] ?? ''}  •  ${quotation['quotationDate'] ?? quotation['quotation_date'] ?? ''}',
+                            ),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () => Navigator.pushNamed(
                               context,
@@ -98,12 +111,18 @@ class _SalesQuotationListScreenState extends State<SalesQuotationListScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
-                      onPressed: service.page > 1 ? () => service.fetchQuotations(page: service.page - 1) : null,
+                      onPressed: service.page > 1
+                          ? () =>
+                                service.fetchQuotations(page: service.page - 1)
+                          : null,
                       icon: const Icon(Icons.chevron_left),
                     ),
                     Text('${service.page} / ${service.totalPages}'),
                     IconButton(
-                      onPressed: service.page < service.totalPages ? () => service.fetchQuotations(page: service.page + 1) : null,
+                      onPressed: service.page < service.totalPages
+                          ? () =>
+                                service.fetchQuotations(page: service.page + 1)
+                          : null,
                       icon: const Icon(Icons.chevron_right),
                     ),
                   ],

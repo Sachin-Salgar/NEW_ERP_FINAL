@@ -5,7 +5,8 @@ import 'permission_metadata.dart';
 
 class PermissionDetailScreen extends StatelessWidget {
   final String permissionKey;
-  const PermissionDetailScreen({Key? key, required this.permissionKey}) : super(key: key);
+  const PermissionDetailScreen({Key? key, required this.permissionKey})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -24,11 +25,17 @@ class PermissionDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(descriptor.displayName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+            Text(
+              descriptor.displayName,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 12),
             Chip(label: Text(descriptor.moduleName)),
             const SizedBox(height: 16),
-            Text('Permission key', style: Theme.of(context).textTheme.titleSmall),
+            Text(
+              'Permission key',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
             const SizedBox(height: 4),
             SelectableText(descriptor.permissionKey),
             const SizedBox(height: 16),
@@ -38,7 +45,10 @@ class PermissionDetailScreen extends StatelessWidget {
             const SizedBox(height: 16),
             Text('Description', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 4),
-            Text(descriptor.description ?? 'No description provided for this permission.'),
+            Text(
+              descriptor.description ??
+                  'No description provided for this permission.',
+            ),
           ],
         ),
       ),

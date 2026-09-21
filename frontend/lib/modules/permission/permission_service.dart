@@ -17,13 +17,15 @@ class PermissionService extends ChangeNotifier {
   bool fetchedOnce = false;
   String? error;
 
-  PermissionService({required this.apiClient}) : auth = GetIt.instance.get<AuthService>();
+  PermissionService({required this.apiClient})
+    : auth = GetIt.instance.get<AuthService>();
 
-  String labelFor(String permissionKey) =>
-      permissionDetails.firstWhere(
+  String labelFor(String permissionKey) => permissionDetails
+      .firstWhere(
         (item) => item.permissionKey == permissionKey,
         orElse: () => PermissionDescriptor.fromJson(permissionKey),
-      ).displayName;
+      )
+      .displayName;
 
   Future<void> fetchPermissions() async {
     isLoading = true;
@@ -51,7 +53,9 @@ class PermissionService extends ChangeNotifier {
 
         final body = jsonDecode(resp.body) as Map<String, dynamic>;
         final list = (body['permissions'] as List<dynamic>?) ?? [];
-        for (final descriptor in PermissionDescriptor.normalizePermissions(list)) {
+        for (final descriptor in PermissionDescriptor.normalizePermissions(
+          list,
+        )) {
           if (seenKeys.add(descriptor.permissionKey)) {
             descriptors.add(descriptor);
           }
@@ -68,8 +72,12 @@ class PermissionService extends ChangeNotifier {
       } while (page <= totalPages);
 
       if (error == null) {
-        permissionDetails = List<PermissionDescriptor>.unmodifiable(descriptors);
-        permissions = permissionDetails.map((item) => item.permissionKey).toList(growable: false);
+        permissionDetails = List<PermissionDescriptor>.unmodifiable(
+          descriptors,
+        );
+        permissions = permissionDetails
+            .map((item) => item.permissionKey)
+            .toList(growable: false);
       }
     } catch (e) {
       error = 'Error: $e';

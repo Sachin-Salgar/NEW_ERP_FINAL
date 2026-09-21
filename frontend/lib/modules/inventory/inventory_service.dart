@@ -41,20 +41,23 @@ class InventoryService extends ChangeNotifier {
     }
   }
 
-  Future<String?> createWarehouse(String code, String name) async =>
-      _mutate('/api/v1/inventory/warehouses', {'code': code, 'name': name}, 201);
+  Future<String?> createWarehouse(String code, String name) async => _mutate(
+    '/api/v1/inventory/warehouses',
+    {'code': code, 'name': name},
+    201,
+  );
 
   Future<String?> updateWarehouse(
     String id,
     String name,
     String status,
     int expectedVersion,
-  ) async =>
-      _mutate('/api/v1/inventory/warehouses/$id', {
-        'name': name,
-        'status': status,
-        'expectedVersion': expectedVersion,
-      }, 200, method: 'patch');
+  ) async => _mutate(
+    '/api/v1/inventory/warehouses/$id',
+    {'name': name, 'status': status, 'expectedVersion': expectedVersion},
+    200,
+    method: 'patch',
+  );
 
   Future<String?> receiveStock(Map<String, dynamic> body) async =>
       _mutate('/api/v1/inventory/stock/receipts', body, 201);

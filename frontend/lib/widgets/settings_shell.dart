@@ -32,7 +32,11 @@ class SettingsShell extends StatelessWidget {
 
     return Column(
       children: [
-        SettingsSidebar(selectedRoute: selectedRoute, onSelect: onSelect, compact: true),
+        SettingsSidebar(
+          selectedRoute: selectedRoute,
+          onSelect: onSelect,
+          compact: true,
+        ),
         const SizedBox(height: 12),
         Expanded(child: child),
       ],

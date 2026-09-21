@@ -17,12 +17,7 @@ class StorageDetailsCard extends StatelessWidget {
       '15.3GB',
       Icons.smart_display_outlined,
     ),
-    _StorageItem(
-      'Other Files',
-      '1328 Files',
-      '1.3GB',
-      Icons.folder_outlined,
-    ),
+    _StorageItem('Other Files', '1328 Files', '1.3GB', Icons.folder_outlined),
     _StorageItem(
       'Unknown',
       '140 Files',
@@ -130,10 +125,7 @@ class _StorageChart extends StatelessWidget {
                     height: 0.5,
                   ),
                 ),
-                Text(
-                  'of 128GB',
-                  style: theme.textTheme.bodyMedium,
-                ),
+                Text('of 128GB', style: theme.textTheme.bodyMedium),
               ],
             ),
           ),

@@ -17,12 +17,14 @@ class Sidebar extends StatelessWidget {
   });
 
   List<AppRouteConfig> _visibleItems(AuthService auth) {
-    return AppRoutes.topLevel.where((item) {
-      final permission = item.permissionKey;
-      final module = item.moduleCode;
-      return (module == null || auth.hasModule(module)) &&
-          (permission == null || auth.hasPermission(permission));
-    }).toList(growable: false);
+    return AppRoutes.topLevel
+        .where((item) {
+          final permission = item.permissionKey;
+          final module = item.moduleCode;
+          return (module == null || auth.hasModule(module)) &&
+              (permission == null || auth.hasPermission(permission));
+        })
+        .toList(growable: false);
   }
 
   bool _selected(AppRouteConfig item) => item.matches(selectedRoute);
@@ -49,20 +51,41 @@ class Sidebar extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(collapsed ? 12 : 16, 22, collapsed ? 12 : 16, 20),
+              padding: EdgeInsets.fromLTRB(
+                collapsed ? 12 : 16,
+                22,
+                collapsed ? 12 : 16,
+                20,
+              ),
               child: Row(
-                mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+                mainAxisAlignment: collapsed
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.start,
                 children: [
                   Container(
                     width: 38,
                     height: 38,
-                    decoration: BoxDecoration(color: theme.colorScheme.primary, borderRadius: BorderRadius.circular(10)),
-                    child: Icon(Icons.grid_view_rounded, color: theme.colorScheme.onPrimary, size: 21),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.grid_view_rounded,
+                      color: theme.colorScheme.onPrimary,
+                      size: 21,
+                    ),
                   ),
                   if (!collapsed) ...[
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Text('NEW ERP', maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+                      child: Text(
+                        'NEW ERP',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ],
                 ],
@@ -79,28 +102,65 @@ class Sidebar extends StatelessWidget {
                       if (!collapsed)
                         Padding(
                           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                          child: Text(entry.key, style: theme.textTheme.labelSmall?.copyWith(letterSpacing: 1.1, fontWeight: FontWeight.w600)),
+                          child: Text(
+                            entry.key,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              letterSpacing: 1.1,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ...entry.value.map((item) {
                         final selected = _selected(item);
                         final tile = Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           child: Material(
-                            color: selected ? theme.colorScheme.primary.withValues(alpha: 0.10) : Colors.transparent,
+                            color: selected
+                                ? theme.colorScheme.primary.withValues(
+                                    alpha: 0.10,
+                                  )
+                                : Colors.transparent,
                             borderRadius: BorderRadius.circular(10),
                             child: InkWell(
                               borderRadius: BorderRadius.circular(10),
                               onTap: () => onSelect?.call(item.path),
                               child: Padding(
-                                padding: EdgeInsets.symmetric(horizontal: collapsed ? 0 : 10, vertical: 11),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: collapsed ? 0 : 10,
+                                  vertical: 11,
+                                ),
                                 child: Row(
-                                  mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+                                  mainAxisAlignment: collapsed
+                                      ? MainAxisAlignment.center
+                                      : MainAxisAlignment.start,
                                   children: [
-                                    Icon(item.icon, size: 19, color: selected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant),
+                                    Icon(
+                                      item.icon,
+                                      size: 19,
+                                      color: selected
+                                          ? theme.colorScheme.primary
+                                          : theme.colorScheme.onSurfaceVariant,
+                                    ),
                                     if (!collapsed) ...[
                                       const SizedBox(width: 10),
                                       Expanded(
-                                        child: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: selected ? FontWeight.w600 : FontWeight.w400, color: selected ? theme.colorScheme.primary : null)),
+                                        child: Text(
+                                          item.title,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(
+                                                fontWeight: selected
+                                                    ? FontWeight.w600
+                                                    : FontWeight.w400,
+                                                color: selected
+                                                    ? theme.colorScheme.primary
+                                                    : null,
+                                              ),
+                                        ),
                                       ),
                                     ],
                                   ],
@@ -109,7 +169,9 @@ class Sidebar extends StatelessWidget {
                             ),
                           ),
                         );
-                        return collapsed ? Tooltip(message: item.title, child: tile) : tile;
+                        return collapsed
+                            ? Tooltip(message: item.title, child: tile)
+                            : tile;
                       }),
                       const SizedBox(height: 10),
                     ],
@@ -121,7 +183,13 @@ class Sidebar extends StatelessWidget {
               Divider(height: 1, color: theme.dividerColor),
               Padding(
                 padding: const EdgeInsets.all(12),
-                child: Text('NEW ERP • CORE', textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall),
+                child: Text(
+                  'NEW ERP • CORE',
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall,
+                ),
               ),
             ],
           ],

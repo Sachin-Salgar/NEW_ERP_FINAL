@@ -485,11 +485,8 @@ class SalesService extends ChangeNotifier {
   Future<String?> deleteQuotation(String id) async =>
       _lifecycle(id, '', method: 'delete');
 
-  Future<String?> transition(
-    String id,
-    String action,
-    int expectedVersion,
-  ) => _lifecycle(id, action, expectedVersion: expectedVersion);
+  Future<String?> transition(String id, String action, int expectedVersion) =>
+      _lifecycle(id, action, expectedVersion: expectedVersion);
 
   Future<String?> _lifecycle(
     String id,

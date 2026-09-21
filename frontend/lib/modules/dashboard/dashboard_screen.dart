@@ -41,9 +41,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _error = null;
     });
     try {
-      await Future.wait([
-        _userService.fetchUsers(),
-      ]);
+      await Future.wait([_userService.fetchUsers()]);
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString());
@@ -93,9 +91,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     ];
 
-    final hasNoData =
-        !_isLoading &&
-        _userService.users.isEmpty;
+    final hasNoData = !_isLoading && _userService.users.isEmpty;
 
     Widget statusContent() {
       if (_error != null) {
@@ -183,8 +179,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             spacing: gap,
             runSpacing: gap,
             children: [
-              for (final card in cards)
-                SizedBox(width: cardWidth, child: card),
+              for (final card in cards) SizedBox(width: cardWidth, child: card),
             ],
           );
         },
@@ -217,10 +212,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const Expanded(
-                  flex: 2,
-                  child: StorageDetailsCard(),
-                ),
+                const Expanded(flex: 2, child: StorageDetailsCard()),
               ],
             )
           else ...[

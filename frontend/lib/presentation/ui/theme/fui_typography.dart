@@ -26,8 +26,14 @@ abstract class FUITypographyTheme {
   static const EdgeInsets fontPaddingH3 = EdgeInsets.only(top: 12, bottom: 8);
   static const EdgeInsets fontPaddingH4 = EdgeInsets.only(top: 11, bottom: 8);
   static const EdgeInsets fontPaddingH5 = EdgeInsets.only(top: 10, bottom: 8);
-  static const EdgeInsets fontPaddingRegular = EdgeInsets.only(top: 2, bottom: 2);
-  static const EdgeInsets fontPaddingSmallText = EdgeInsets.only(top: 2, bottom: 2);
+  static const EdgeInsets fontPaddingRegular = EdgeInsets.only(
+    top: 2,
+    bottom: 2,
+  );
+  static const EdgeInsets fontPaddingSmallText = EdgeInsets.only(
+    top: 2,
+    bottom: 2,
+  );
 
   TextStyle get defaultTextStyle;
   TextStyle get preH;
@@ -50,23 +56,64 @@ class FUITypographyThemeLight extends FUITypographyTheme {
   );
 
   @override
-  TextStyle get preH => defaultTextStyle.copyWith(fontSize: FUITypographyTheme.fontSizePreH, fontWeight: FontWeight.w700, color: Colors.black87);
+  TextStyle get preH => defaultTextStyle.copyWith(
+    fontSize: FUITypographyTheme.fontSizePreH,
+    fontWeight: FontWeight.w700,
+    color: Colors.black87,
+  );
   @override
-  TextStyle get h1 => defaultTextStyle.copyWith(fontSize: FUITypographyTheme.fontSizeH1, fontWeight: FontWeight.w900, color: Colors.black87);
+  TextStyle get h1 => defaultTextStyle.copyWith(
+    fontSize: FUITypographyTheme.fontSizeH1,
+    fontWeight: FontWeight.w900,
+    color: Colors.black87,
+  );
   @override
-  TextStyle get h2 => defaultTextStyle.copyWith(fontSize: FUITypographyTheme.fontSizeH2, fontWeight: FontWeight.w800, color: Colors.black87);
+  TextStyle get h2 => defaultTextStyle.copyWith(
+    fontSize: FUITypographyTheme.fontSizeH2,
+    fontWeight: FontWeight.w800,
+    color: Colors.black87,
+  );
   @override
-  TextStyle get h3 => defaultTextStyle.copyWith(fontSize: FUITypographyTheme.fontSizeH3, fontWeight: FontWeight.w700, color: Colors.black87);
+  TextStyle get h3 => defaultTextStyle.copyWith(
+    fontSize: FUITypographyTheme.fontSizeH3,
+    fontWeight: FontWeight.w700,
+    color: Colors.black87,
+  );
   @override
-  TextStyle get h4 => defaultTextStyle.copyWith(fontSize: FUITypographyTheme.fontSizeH4, fontWeight: FontWeight.w600, color: Colors.black87);
+  TextStyle get h4 => defaultTextStyle.copyWith(
+    fontSize: FUITypographyTheme.fontSizeH4,
+    fontWeight: FontWeight.w600,
+    color: Colors.black87,
+  );
   @override
-  TextStyle get h5 => defaultTextStyle.copyWith(fontSize: FUITypographyTheme.fontSizeH5, fontWeight: FontWeight.w500, color: Colors.black87);
+  TextStyle get h5 => defaultTextStyle.copyWith(
+    fontSize: FUITypographyTheme.fontSizeH5,
+    fontWeight: FontWeight.w500,
+    color: Colors.black87,
+  );
   @override
-  TextStyle get regular => defaultTextStyle.copyWith(fontSize: FUITypographyTheme.fontSizeRegular, fontWeight: FontWeight.w500, color: Colors.black54);
+  TextStyle get regular => defaultTextStyle.copyWith(
+    fontSize: FUITypographyTheme.fontSizeRegular,
+    fontWeight: FontWeight.w500,
+    color: Colors.black54,
+  );
   @override
-  TextStyle get smallText => defaultTextStyle.copyWith(fontSize: FUITypographyTheme.fontSizeSmallText, fontWeight: FontWeight.w500, color: Colors.black45);
+  TextStyle get smallText => defaultTextStyle.copyWith(
+    fontSize: FUITypographyTheme.fontSizeSmallText,
+    fontWeight: FontWeight.w500,
+    color: Colors.black45,
+  );
   @override
-  TextStyle get highlight => defaultTextStyle.copyWith(fontSize: FUITypographyTheme.fontSizeRegular, fontWeight: FontWeight.w400, color: Colors.white, backgroundColor: Colors.blue);
+  TextStyle get highlight => defaultTextStyle.copyWith(
+    fontSize: FUITypographyTheme.fontSizeRegular,
+    fontWeight: FontWeight.w400,
+    color: Colors.white,
+    backgroundColor: Colors.blue,
+  );
   @override
-  TextStyle get fieldLabel => defaultTextStyle.copyWith(fontSize: FUITypographyTheme.fontSizeFieldLabel, fontWeight: FontWeight.w600, color: Colors.black38);
+  TextStyle get fieldLabel => defaultTextStyle.copyWith(
+    fontSize: FUITypographyTheme.fontSizeFieldLabel,
+    fontWeight: FontWeight.w600,
+    color: Colors.black38,
+  );
 }

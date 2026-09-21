@@ -65,8 +65,8 @@ class _UserAccessSectionState extends State<UserAccessSection> {
   String get _summary => accessLoading
       ? 'Loading access...'
       : assignedBranches.isEmpty
-          ? 'No branch access'
-          : '${assignedBranches.length} branch${assignedBranches.length == 1 ? '' : 'es'}';
+      ? 'No branch access'
+      : '${assignedBranches.length} branch${assignedBranches.length == 1 ? '' : 'es'}';
 
   Future<void> _assignBranch() async {
     if (!auth.hasPermission('user.update') || selectedBranch == null) return;
@@ -74,7 +74,10 @@ class _UserAccessSectionState extends State<UserAccessSection> {
       loading = true;
       error = null;
     });
-    final ok = await userService.assignBranchAccess(widget.userId, selectedBranch!);
+    final ok = await userService.assignBranchAccess(
+      widget.userId,
+      selectedBranch!,
+    );
     if (!mounted) return;
     setState(() => loading = false);
     if (!ok) {
@@ -87,7 +90,9 @@ class _UserAccessSectionState extends State<UserAccessSection> {
   @override
   Widget build(BuildContext context) {
     if (!auth.hasPermission('user.read')) {
-      return const Center(child: Text('You do not have permission to view user access.'));
+      return const Center(
+        child: Text('You do not have permission to view user access.'),
+      );
     }
     final canUpdate = auth.hasPermission('user.update');
     return AnimatedBuilder(
@@ -98,7 +103,10 @@ class _UserAccessSectionState extends State<UserAccessSection> {
           if (!accessLoading) ...[
             Align(
               alignment: Alignment.centerLeft,
-              child: Text('Assigned branches', style: Theme.of(context).textTheme.titleSmall),
+              child: Text(
+                'Assigned branches',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
             ),
             const SizedBox(height: 8),
             Align(
@@ -106,7 +114,9 @@ class _UserAccessSectionState extends State<UserAccessSection> {
               child: Text(
                 assignedBranches.isEmpty
                     ? 'No branches assigned'
-                    : assignedBranches.map((branch) => branch['name'].toString()).join(' • '),
+                    : assignedBranches
+                          .map((branch) => branch['name'].toString())
+                          .join(' • '),
               ),
             ),
             const Divider(),
@@ -114,10 +124,12 @@ class _UserAccessSectionState extends State<UserAccessSection> {
           if (canUpdate) ...[
             DropdownButtonFormField<String>(
               items: branchService.branches
-                  .map((branch) => DropdownMenuItem<String>(
-                        value: branch['id'] as String?,
-                        child: Text(branch['name'] ?? branch['code'] ?? ''),
-                      ))
+                  .map(
+                    (branch) => DropdownMenuItem<String>(
+                      value: branch['id'] as String?,
+                      child: Text(branch['name'] ?? branch['code'] ?? ''),
+                    ),
+                  )
                   .toList(),
               onChanged: (value) => setState(() => selectedBranch = value),
               decoration: const InputDecoration(labelText: 'Branch'),

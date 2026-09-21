@@ -59,7 +59,8 @@ class ApiClient {
   Future<http.Response> post(String path, {Map<String, dynamic>? body}) async {
     final url = Uri.parse('$baseUrl$path');
     return _sendWithAuth(
-      (headers) => _client.post(url, headers: headers, body: jsonEncode(body ?? {})),
+      (headers) =>
+          _client.post(url, headers: headers, body: jsonEncode(body ?? {})),
     );
   }
 
@@ -71,21 +72,27 @@ class ApiClient {
   Future<http.Response> put(String path, {Map<String, dynamic>? body}) async {
     final url = Uri.parse('$baseUrl$path');
     return _sendWithAuth(
-      (headers) => _client.put(url, headers: headers, body: jsonEncode(body ?? {})),
+      (headers) =>
+          _client.put(url, headers: headers, body: jsonEncode(body ?? {})),
     );
   }
 
   Future<http.Response> patch(String path, {Map<String, dynamic>? body}) async {
     final url = Uri.parse('$baseUrl$path');
     return _sendWithAuth(
-      (headers) => _client.patch(url, headers: headers, body: jsonEncode(body ?? {})),
+      (headers) =>
+          _client.patch(url, headers: headers, body: jsonEncode(body ?? {})),
     );
   }
 
-  Future<http.Response> delete(String path, {Map<String, dynamic>? body}) async {
+  Future<http.Response> delete(
+    String path, {
+    Map<String, dynamic>? body,
+  }) async {
     final url = Uri.parse('$baseUrl$path');
     return _sendWithAuth(
-      (headers) => _client.delete(url, headers: headers, body: jsonEncode(body ?? {})),
+      (headers) =>
+          _client.delete(url, headers: headers, body: jsonEncode(body ?? {})),
     );
   }
 }

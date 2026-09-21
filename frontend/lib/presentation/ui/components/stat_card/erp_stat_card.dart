@@ -37,18 +37,18 @@ class ErpStatCard extends StatelessWidget {
           final padding = veryCompact
               ? 8.0
               : compact
-                  ? 10.0
-                  : 14.0;
+              ? 10.0
+              : 14.0;
           final iconSize = veryCompact
               ? 32.0
               : compact
-                  ? 34.0
-                  : 38.0;
+              ? 34.0
+              : 38.0;
           final valueStyle = veryCompact
               ? theme.textTheme.titleLarge
               : compact
-                  ? theme.textTheme.titleLarge
-                  : theme.textTheme.headlineSmall;
+              ? theme.textTheme.titleLarge
+              : theme.textTheme.headlineSmall;
 
           return Padding(
             padding: EdgeInsets.all(padding),
@@ -81,7 +81,13 @@ class ErpStatCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: veryCompact ? 7 : compact ? 8 : 12),
+                SizedBox(
+                  height: veryCompact
+                      ? 7
+                      : compact
+                      ? 8
+                      : 12,
+                ),
                 Text(
                   title,
                   maxLines: 1,

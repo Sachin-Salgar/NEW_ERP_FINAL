@@ -70,9 +70,15 @@ class _SalesInvoiceDetailsScreenState extends State<SalesInvoiceDetailsScreen> {
           Text('Finance: ${current['financeStatus'] ?? 'NOT_CONNECTED'}'),
           Text('Tax: ${current['taxStatus'] ?? 'NOT_CONNECTED'}'),
           if (status == 'DRAFT' && auth.hasPermission('sales.invoice.issue'))
-           FilledButton(onPressed: () => _transition('issue'), child: const Text('Issue')),
+            FilledButton(
+              onPressed: () => _transition('issue'),
+              child: const Text('Issue'),
+            ),
           if (status == 'DRAFT' && auth.hasPermission('sales.invoice.cancel'))
-           OutlinedButton(onPressed: () => _transition('cancel'), child: const Text('Cancel')),
+            OutlinedButton(
+              onPressed: () => _transition('cancel'),
+              child: const Text('Cancel'),
+            ),
           const SizedBox(height: 16),
           ...(current['items'] as List<dynamic>? ?? const []).map((item) {
             final line = Map<String, dynamic>.from(item as Map);

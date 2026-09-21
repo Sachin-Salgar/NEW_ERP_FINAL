@@ -78,13 +78,13 @@ class CustomerService extends ChangeNotifier {
     return null;
   }
 
-  Future<String?> createCustomer(String name, {Map<String, dynamic>? fields}) async {
+  Future<String?> createCustomer(
+    String name, {
+    Map<String, dynamic>? fields,
+  }) async {
     try {
       final payload = <String, dynamic>{'name': name.trim(), ...?fields};
-      final response = await apiClient.post(
-        '/api/v1/customers',
-        body: payload,
-      );
+      final response = await apiClient.post('/api/v1/customers', body: payload);
       if (response.statusCode == 201) {
         await fetchCustomers();
         return null;
@@ -132,7 +132,8 @@ class CustomerService extends ChangeNotifier {
       final body = jsonDecode(response.body);
       if (body is Map<String, dynamic>) {
         final nestedError = body['error'];
-        final message = body['message'] ??
+        final message =
+            body['message'] ??
             (nestedError is Map ? nestedError['message'] : nestedError);
         if (message is String && message.trim().isNotEmpty) return message;
       }

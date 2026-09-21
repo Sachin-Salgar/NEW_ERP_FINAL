@@ -41,10 +41,7 @@ class BranchService extends ChangeNotifier {
 
   Future<bool> createBranch(Map<String, dynamic> payload) async {
     try {
-      final resp = await apiClient.post(
-        '/api/v1/branches',
-        body: payload,
-      );
+      final resp = await apiClient.post('/api/v1/branches', body: payload);
       if (resp.statusCode == 201) {
         await fetchBranches();
         return true;
@@ -77,7 +74,10 @@ class BranchService extends ChangeNotifier {
     return null;
   }
 
-  Future<bool> updateBranch(String branchId, Map<String, dynamic> payload) async {
+  Future<bool> updateBranch(
+    String branchId,
+    Map<String, dynamic> payload,
+  ) async {
     try {
       final resp = await apiClient.put(
         '/api/v1/branches/$branchId',

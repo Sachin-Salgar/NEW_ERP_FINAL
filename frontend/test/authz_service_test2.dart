@@ -36,52 +36,75 @@ void main() {
   });
 
   group('AuthZService (new)', () {
-    test('loads permissions successfully and reports hasPermission/hasAny', () async {
-      final client = MockClient((request) async {
-        if (request.url.path.contains('effective-permissions')) {
-          return http.Response(jsonEncode({
-            'success': true,
-            'userId': 'user-1',
-            'permissions': ['perm.a', 'perm.b']
-          }), 200);
-        }
-        return http.Response('not found', 404);
-      });
+    test(
+      'loads permissions successfully and reports hasPermission/hasAny',
+      () async {
+        final client = MockClient((request) async {
+          if (request.url.path.contains('effective-permissions')) {
+            return http.Response(
+              jsonEncode({
+                'success': true,
+                'userId': 'user-1',
+                'permissions': ['perm.a', 'perm.b'],
+              }),
+              200,
+            );
+          }
+          return http.Response('not found', 404);
+        });
 
-      final authStub = AuthService(secureStorage: _MemorySecureStorage(), apiClientFactory: (baseUrl) => ApiClient(baseUrl: baseUrl, httpClient: client));
-      GetIt.instance.registerSingleton<AuthService>(authStub);
-      final api = ApiClient(baseUrl: 'http://example.com', httpClient: client);
-      final svc = AuthZService();
+        final authStub = AuthService(
+          secureStorage: _MemorySecureStorage(),
+          apiClientFactory: (baseUrl) =>
+              ApiClient(baseUrl: baseUrl, httpClient: client),
+        );
+        GetIt.instance.registerSingleton<AuthService>(authStub);
+        final api = ApiClient(
+          baseUrl: 'http://example.com',
+          httpClient: client,
+        );
+        final svc = AuthZService();
 
-      final perms = await svc.loadPermissions(api, 'user-1');
-      expect(perms, contains('perm.a'));
-      expect(svc.hasPermission('perm.a'), isTrue);
-      expect(svc.hasPermission('perm.x'), isFalse);
-      expect(svc.hasAnyPermission(['perm.x', 'perm.b']), isTrue);
-    });
+        final perms = await svc.loadPermissions(api, 'user-1');
+        expect(perms, contains('perm.a'));
+        expect(svc.hasPermission('perm.a'), isTrue);
+        expect(svc.hasPermission('perm.x'), isFalse);
+        expect(svc.hasAnyPermission(['perm.x', 'perm.b']), isTrue);
+      },
+    );
 
     test('refresh replaces old permission set', () async {
       var stage = 0;
       final client = MockClient((request) async {
         if (request.url.path.contains('effective-permissions')) {
           if (stage == 0) {
-            return http.Response(jsonEncode({
-              'success': true,
-              'userId': 'user-1',
-              'permissions': ['p1']
-            }), 200);
+            return http.Response(
+              jsonEncode({
+                'success': true,
+                'userId': 'user-1',
+                'permissions': ['p1'],
+              }),
+              200,
+            );
           } else {
-            return http.Response(jsonEncode({
-              'success': true,
-              'userId': 'user-1',
-              'permissions': ['p2']
-            }), 200);
+            return http.Response(
+              jsonEncode({
+                'success': true,
+                'userId': 'user-1',
+                'permissions': ['p2'],
+              }),
+              200,
+            );
           }
         }
         return http.Response('not found', 404);
       });
 
-      final authStub = AuthService(secureStorage: _MemorySecureStorage(), apiClientFactory: (baseUrl) => ApiClient(baseUrl: baseUrl, httpClient: client));
+      final authStub = AuthService(
+        secureStorage: _MemorySecureStorage(),
+        apiClientFactory: (baseUrl) =>
+            ApiClient(baseUrl: baseUrl, httpClient: client),
+      );
       GetIt.instance.registerSingleton<AuthService>(authStub);
       final api = ApiClient(baseUrl: 'http://example.com', httpClient: client);
       final svc = AuthZService();
@@ -101,16 +124,23 @@ void main() {
         if (request.url.path.contains('effective-permissions')) {
           calls += 1;
           await Future<void>.delayed(const Duration(milliseconds: 50));
-          return http.Response(jsonEncode({
-            'success': true,
-            'userId': 'user-1',
-            'permissions': ['perm.a']
-          }), 200);
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'userId': 'user-1',
+              'permissions': ['perm.a'],
+            }),
+            200,
+          );
         }
         return http.Response('not found', 404);
       });
 
-      final authStub = AuthService(secureStorage: _MemorySecureStorage(), apiClientFactory: (baseUrl) => ApiClient(baseUrl: baseUrl, httpClient: client));
+      final authStub = AuthService(
+        secureStorage: _MemorySecureStorage(),
+        apiClientFactory: (baseUrl) =>
+            ApiClient(baseUrl: baseUrl, httpClient: client),
+      );
       GetIt.instance.registerSingleton<AuthService>(authStub);
       final api = ApiClient(baseUrl: 'http://example.com', httpClient: client);
       final svc = AuthZService();
@@ -127,16 +157,23 @@ void main() {
     test('clear removes permissions and does not grant access', () async {
       final client = MockClient((request) async {
         if (request.url.path.contains('effective-permissions')) {
-          return http.Response(jsonEncode({
-            'success': true,
-            'userId': 'user-1',
-            'permissions': ['perm.a']
-          }), 200);
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'userId': 'user-1',
+              'permissions': ['perm.a'],
+            }),
+            200,
+          );
         }
         return http.Response('not found', 404);
       });
 
-      final authStub = AuthService(secureStorage: _MemorySecureStorage(), apiClientFactory: (baseUrl) => ApiClient(baseUrl: baseUrl, httpClient: client));
+      final authStub = AuthService(
+        secureStorage: _MemorySecureStorage(),
+        apiClientFactory: (baseUrl) =>
+            ApiClient(baseUrl: baseUrl, httpClient: client),
+      );
       GetIt.instance.registerSingleton<AuthService>(authStub);
       final api = ApiClient(baseUrl: 'http://example.com', httpClient: client);
       final svc = AuthZService();
@@ -153,7 +190,11 @@ void main() {
         return http.Response('server error', 500);
       });
 
-      final authStub = AuthService(secureStorage: _MemorySecureStorage(), apiClientFactory: (baseUrl) => ApiClient(baseUrl: baseUrl, httpClient: client));
+      final authStub = AuthService(
+        secureStorage: _MemorySecureStorage(),
+        apiClientFactory: (baseUrl) =>
+            ApiClient(baseUrl: baseUrl, httpClient: client),
+      );
       GetIt.instance.registerSingleton<AuthService>(authStub);
       final api = ApiClient(baseUrl: 'http://example.com', httpClient: client);
       final svc = AuthZService();
@@ -166,23 +207,33 @@ void main() {
     test('permission state is isolated between users', () async {
       final client = MockClient((request) async {
         if (request.url.path.contains('user-1')) {
-          return http.Response(jsonEncode({
-            'success': true,
-            'userId': 'user-1',
-            'permissions': ['p1']
-          }), 200);
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'userId': 'user-1',
+              'permissions': ['p1'],
+            }),
+            200,
+          );
         }
         if (request.url.path.contains('user-2')) {
-          return http.Response(jsonEncode({
-            'success': true,
-            'userId': 'user-2',
-            'permissions': ['p2']
-          }), 200);
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'userId': 'user-2',
+              'permissions': ['p2'],
+            }),
+            200,
+          );
         }
         return http.Response('not found', 404);
       });
 
-      final authStub = AuthService(secureStorage: _MemorySecureStorage(), apiClientFactory: (baseUrl) => ApiClient(baseUrl: baseUrl, httpClient: client));
+      final authStub = AuthService(
+        secureStorage: _MemorySecureStorage(),
+        apiClientFactory: (baseUrl) =>
+            ApiClient(baseUrl: baseUrl, httpClient: client),
+      );
       GetIt.instance.registerSingleton<AuthService>(authStub);
       final api = ApiClient(baseUrl: 'http://example.com', httpClient: client);
       final svc = AuthZService();

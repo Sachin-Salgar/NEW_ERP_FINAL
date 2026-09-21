@@ -45,8 +45,14 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
         title: const Text('Deactivate branch?'),
         content: const Text('This will deactivate the branch.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Deactivate')),
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Deactivate'),
+          ),
         ],
       ),
     );
@@ -58,8 +64,10 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    if (branch == null) return Scaffold(body: Center(child: Text(error ?? 'Branch not found')));
+    if (loading)
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (branch == null)
+      return Scaffold(body: Center(child: Text(error ?? 'Branch not found')));
     final canUpdate = auth.hasPermission('branch.update');
     final canDeactivate = auth.hasPermission('branch.deactivate');
     return Scaffold(
@@ -81,9 +89,7 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
                       ErpBreadcrumbItem(label: 'Details'),
                     ],
                     actions: [
-                      SettingsBackButton(
-                        parentRoute: '/settings/branches',
-                      ),
+                      SettingsBackButton(parentRoute: '/settings/branches'),
                       if (canUpdate)
                         FilledButton.icon(
                           onPressed: () => Navigator.pushNamed(
@@ -124,8 +130,14 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
                               _Info('Timezone', branch!['timezone']),
                               _Info('Address line 1', branch!['addressLine1']),
                               _Info('Address line 2', branch!['addressLine2']),
-                              _Info('Head office', branch!['isHeadOffice'] == true ? 'Yes' : 'No'),
-                              _Info('Default branch', branch!['isDefault'] == true ? 'Yes' : 'No'),
+                              _Info(
+                                'Head office',
+                                branch!['isHeadOffice'] == true ? 'Yes' : 'No',
+                              ),
+                              _Info(
+                                'Default branch',
+                                branch!['isDefault'] == true ? 'Yes' : 'No',
+                              ),
                               _Info('Remarks', branch!['remarks']),
                             ],
                           ),
@@ -164,7 +176,8 @@ class _Info extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           value?.toString() ?? '—',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+          style: Theme.of(context).textTheme.bodyLarge
+              ?.copyWith(fontWeight: FontWeight.w600),
         ),
       ],
     ),

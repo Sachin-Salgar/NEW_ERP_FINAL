@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+
 import '../../core/auth/auth_service.dart';
 import 'branch_service.dart';
 import '../../presentation/ui/components/page_header.dart';
@@ -54,7 +55,9 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
   Widget build(BuildContext context) {
     if (!auth.hasPermission('branch.create')) {
       return const Scaffold(
-        body: Center(child: Text('You do not have permission to manage branches.')),
+        body: Center(
+          child: Text('You do not have permission to manage branches.'),
+        ),
       );
     }
     return Scaffold(
@@ -87,37 +90,42 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
                           children: [
                             Text(
                               'Branch information',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(height: 20),
                             LayoutBuilder(
                               builder: (context, c) {
                                 final nameField = TextFormField(
                                   controller: _name,
-                                  decoration: const InputDecoration(labelText: 'Name'),
-                                  validator: (v) => v == null || v.trim().isEmpty
+                                  decoration: const InputDecoration(
+                                    labelText: 'Name',
+                                  ),
+                                  validator: (v) =>
+                                      v == null || v.trim().isEmpty
                                       ? 'Name is required.'
                                       : null,
                                 );
                                 return c.maxWidth < 600
                                     ? Column(children: [nameField])
                                     : Row(
-                                        children: [
-                                          Expanded(child: nameField),
-                                        ],
+                                        children: [Expanded(child: nameField)],
                                       );
                               },
                             ),
                             const SizedBox(height: 18),
                             TextFormField(
                               controller: _city,
-                              decoration: const InputDecoration(labelText: 'City'),
+                              decoration: const InputDecoration(
+                                labelText: 'City',
+                              ),
                             ),
                             if (_error != null) ...[
                               const SizedBox(height: 12),
-                              Text(_error!, style: const TextStyle(color: Colors.red)),
+                              Text(
+                                _error!,
+                                style: const TextStyle(color: Colors.red),
+                              ),
                             ],
                             const SizedBox(height: 24),
                             Align(
@@ -128,7 +136,9 @@ class _CreateBranchScreenState extends State<CreateBranchScreen> {
                                     ? const SizedBox(
                                         width: 18,
                                         height: 18,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
                                       )
                                     : const Icon(Icons.add),
                                 label: const Text('Create branch'),

@@ -30,7 +30,11 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
   Future<void> load() async {
     final result = await service.getCustomer(widget.id);
     if (!mounted) return;
-    setState(() { customer = result; loading = false; error = result == null ? (service.error ?? 'Customer not found.') : null; });
+    setState(() {
+      customer = result;
+      loading = false;
+      error = result == null ? (service.error ?? 'Customer not found.') : null;
+    });
   }
 
   Future<void> remove() async {
@@ -40,8 +44,14 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
         title: const Text('Delete customer?'),
         content: const Text('This customer will be removed from active lists.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
         ],
       ),
     );
@@ -52,14 +62,21 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
     if (result == null) {
       Navigator.pushNamedAndRemoveUntil(context, '/customers', (_) => false);
     } else {
-      setState(() { deleting = false; error = result; });
+      setState(() {
+        deleting = false;
+        error = result;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    if (customer == null) return Scaffold(body: Center(child: Text(error ?? 'Customer not found.')));
+    if (loading)
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (customer == null)
+      return Scaffold(
+        body: Center(child: Text(error ?? 'Customer not found.')),
+      );
     final canEdit = auth.hasPermission('customer.update');
     final canDelete = auth.hasPermission('customer.delete');
     return Scaffold(
@@ -97,11 +114,20 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(customer!['name'] as String, style: Theme.of(context).textTheme.headlineSmall),
+                  Text(
+                    customer!['name'] as String,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
                   const SizedBox(height: 16),
                   for (final entry in customer!.entries)
-                    if (!['contacts', 'officeDetails', 'taxPaymentTerms', 'otherDetails'].contains(entry.key))
-                      if (entry.value != null && entry.value.toString().isNotEmpty)
+                    if (![
+                      'contacts',
+                      'officeDetails',
+                      'taxPaymentTerms',
+                      'otherDetails',
+                    ].contains(entry.key))
+                      if (entry.value != null &&
+                          entry.value.toString().isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4),
                           child: Text('${_label(entry.key)}: ${entry.value}'),
@@ -119,17 +145,24 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
     );
   }
 
-  String _label(String value) => value.replaceAllMapped(RegExp(r'([A-Z])'), (match) => ' ${match.group(1)}');
+  String _label(String value) => value.replaceAllMapped(
+    RegExp(r'([A-Z])'),
+    (match) => ' ${match.group(1)}',
+  );
 
   Widget _detail(String title, dynamic value) {
     if (value is! Map || value.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: Theme.of(context).textTheme.titleMedium),
-        for (final entry in value.entries)
-          if (entry.value != null && entry.value.toString().isNotEmpty) Text('${_label(entry.key.toString())}: ${entry.value}'),
-      ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          for (final entry in value.entries)
+            if (entry.value != null && entry.value.toString().isNotEmpty)
+              Text('${_label(entry.key.toString())}: ${entry.value}'),
+        ],
+      ),
     );
   }
 
@@ -137,11 +170,25 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
     if (value is! List || value.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Contact Persons', style: Theme.of(context).textTheme.titleMedium),
-        for (final item in value)
-          if (item is Map) Text(item.entries.map((entry) => '${_label(entry.key.toString())}: ${entry.value}').join(' | ')),
-      ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Contact Persons',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          for (final item in value)
+            if (item is Map)
+              Text(
+                item.entries
+                    .map(
+                      (entry) =>
+                          '${_label(entry.key.toString())}: ${entry.value}',
+                    )
+                    .join(' | '),
+              ),
+        ],
+      ),
     );
   }
 }

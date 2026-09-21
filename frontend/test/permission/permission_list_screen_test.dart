@@ -17,14 +17,18 @@ void main() {
     GetIt.instance.reset();
   });
 
-  testWidgets('Permission list renders and navigates to detail', (WidgetTester tester) async {
+  testWidgets('Permission list renders and navigates to detail', (
+    WidgetTester tester,
+  ) async {
     final mockClient = MockClient((request) async {
       if (request.url.path.contains('/api/v1/auth/login')) {
         return http.Response(
           jsonEncode({
             'accessToken': 'token',
             'refreshToken': 'refresh',
-            'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
+            'expiresAt': DateTime.now()
+                .add(const Duration(hours: 1))
+                .toIso8601String(),
             'user': {'id': 'user-id', 'tenantId': 'tenant-1'},
             'session': {'tenantId': 'tenant-1'},
           }),
@@ -32,18 +36,40 @@ void main() {
         );
       }
       if (request.url.path.contains('/api/v1/auth/modules')) {
-        return http.Response(jsonEncode({'modules': [{'code': 'security'}]}), 200);
+        return http.Response(
+          jsonEncode({
+            'modules': [
+              {'code': 'security'},
+            ],
+          }),
+          200,
+        );
       }
       if (request.url.path.contains('/api/v1/rbac/permissions')) {
-        return http.Response(jsonEncode({'permissions': ['perm.read', 'perm.write']}), 200);
+        return http.Response(
+          jsonEncode({
+            'permissions': ['perm.read', 'perm.write'],
+          }),
+          200,
+        );
       }
-      if (request.url.path.contains('/api/v1/rbac/users/user-id/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['permission.read']}), 200);
+      if (request.url.path.contains(
+        '/api/v1/rbac/users/user-id/effective-permissions',
+      )) {
+        return http.Response(
+          jsonEncode({
+            'permissions': ['permission.read'],
+          }),
+          200,
+        );
       }
       return http.Response('{}', 200);
     });
 
-    final apiClient = ApiClient(baseUrl: 'http://example.com', httpClient: mockClient);
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.com',
+      httpClient: mockClient,
+    );
     registerTestServices(apiClient: apiClient);
 
     final auth = GetIt.instance.get<AuthService>();
@@ -64,14 +90,18 @@ void main() {
     expect(find.text('Read Perm'), findsWidgets);
   });
 
-  testWidgets('Permission list shows permission denied', (WidgetTester tester) async {
+  testWidgets('Permission list shows permission denied', (
+    WidgetTester tester,
+  ) async {
     final mockClient = MockClient((request) async {
       if (request.url.path.contains('/api/v1/auth/login')) {
         return http.Response(
           jsonEncode({
             'accessToken': 'token',
             'refreshToken': 'refresh',
-            'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
+            'expiresAt': DateTime.now()
+                .add(const Duration(hours: 1))
+                .toIso8601String(),
             'user': {'id': 'user-id', 'tenantId': 'tenant-1'},
             'session': {'tenantId': 'tenant-1'},
           }),
@@ -79,18 +109,35 @@ void main() {
         );
       }
       if (request.url.path.contains('/api/v1/auth/modules')) {
-        return http.Response(jsonEncode({'modules': [{'code': 'security'}]}), 200);
+        return http.Response(
+          jsonEncode({
+            'modules': [
+              {'code': 'security'},
+            ],
+          }),
+          200,
+        );
       }
       if (request.url.path.contains('/api/v1/rbac/permissions')) {
-        return http.Response(jsonEncode({'permissions': ['perm.read']}), 200);
+        return http.Response(
+          jsonEncode({
+            'permissions': ['perm.read'],
+          }),
+          200,
+        );
       }
-      if (request.url.path.contains('/api/v1/rbac/users/user-id/effective-permissions')) {
+      if (request.url.path.contains(
+        '/api/v1/rbac/users/user-id/effective-permissions',
+      )) {
         return http.Response(jsonEncode({'permissions': []}), 200);
       }
       return http.Response('{}', 200);
     });
 
-    final apiClient = ApiClient(baseUrl: 'http://example.com', httpClient: mockClient);
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.com',
+      httpClient: mockClient,
+    );
     registerTestServices(apiClient: apiClient);
 
     final auth = GetIt.instance.get<AuthService>();
@@ -102,17 +149,24 @@ void main() {
     await tester.pumpWidget(TestApp(child: PermissionListScreen()));
     await tester.pumpAndSettle();
 
-    expect(find.text('You do not have permission to view permissions.'), findsOneWidget);
+    expect(
+      find.text('You do not have permission to view permissions.'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('Permission list shows error on server failure', (WidgetTester tester) async {
+  testWidgets('Permission list shows error on server failure', (
+    WidgetTester tester,
+  ) async {
     final mockClient = MockClient((request) async {
       if (request.url.path.contains('/api/v1/auth/login')) {
         return http.Response(
           jsonEncode({
             'accessToken': 'token',
             'refreshToken': 'refresh',
-            'expiresAt': DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
+            'expiresAt': DateTime.now()
+                .add(const Duration(hours: 1))
+                .toIso8601String(),
             'user': {'id': 'user-id', 'tenantId': 'tenant-1'},
             'session': {'tenantId': 'tenant-1'},
           }),
@@ -120,18 +174,35 @@ void main() {
         );
       }
       if (request.url.path.contains('/api/v1/auth/modules')) {
-        return http.Response(jsonEncode({'modules': [{'code': 'security'}]}), 200);
+        return http.Response(
+          jsonEncode({
+            'modules': [
+              {'code': 'security'},
+            ],
+          }),
+          200,
+        );
       }
       if (request.url.path.contains('/api/v1/rbac/permissions')) {
         return http.Response('Internal Server Error', 500);
       }
-      if (request.url.path.contains('/api/v1/rbac/users/user-id/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['permission.read']}), 200);
+      if (request.url.path.contains(
+        '/api/v1/rbac/users/user-id/effective-permissions',
+      )) {
+        return http.Response(
+          jsonEncode({
+            'permissions': ['permission.read'],
+          }),
+          200,
+        );
       }
       return http.Response('{}', 200);
     });
 
-    final apiClient = ApiClient(baseUrl: 'http://example.com', httpClient: mockClient);
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.com',
+      httpClient: mockClient,
+    );
     registerTestServices(apiClient: apiClient);
 
     final auth = GetIt.instance.get<AuthService>();

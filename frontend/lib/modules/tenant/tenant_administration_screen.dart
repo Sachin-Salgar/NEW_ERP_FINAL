@@ -38,8 +38,7 @@ class _TenantAdministrationScreenState
           _members =
               (jsonDecode(members.body)['members'] as List<dynamic>?) ?? [];
           _branches =
-              (jsonDecode(branches.body)['branches'] as List<dynamic>?) ??
-              [];
+              (jsonDecode(branches.body)['branches'] as List<dynamic>?) ?? [];
         });
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());

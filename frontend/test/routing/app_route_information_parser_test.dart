@@ -6,9 +6,7 @@ void main() {
   test('parser normalizes root and trailing slashes', () async {
     final parser = AppRouteInformationParser();
     expect(
-      await parser.parseRouteInformation(
-        RouteInformation(uri: Uri.parse('/')),
-      ),
+      await parser.parseRouteInformation(RouteInformation(uri: Uri.parse('/'))),
       '/dashboard',
     );
     expect(

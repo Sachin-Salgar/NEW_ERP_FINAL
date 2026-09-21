@@ -12,14 +12,16 @@ class ErpResponsive extends StatelessWidget {
     required this.desktop,
   });
 
-  static bool isMobile(BuildContext context) => MediaQuery.sizeOf(context).width < 850;
+  static bool isMobile(BuildContext context) =>
+      MediaQuery.sizeOf(context).width < 850;
 
   static bool isTablet(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     return width >= 850 && width < 1100;
   }
 
-  static bool isDesktop(BuildContext context) => MediaQuery.sizeOf(context).width >= 1100;
+  static bool isDesktop(BuildContext context) =>
+      MediaQuery.sizeOf(context).width >= 1100;
 
   @override
   Widget build(BuildContext context) {

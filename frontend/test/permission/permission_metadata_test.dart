@@ -35,7 +35,10 @@ void main() {
       }),
     ]);
 
-    expect(matrix.map((module) => module.moduleCode), ['finance', 'production']);
+    expect(matrix.map((module) => module.moduleCode), [
+      'finance',
+      'production',
+    ]);
     final production = matrix.last;
     expect(production.resources.map((resource) => resource.resourceCode), [
       'machine',
@@ -54,14 +57,14 @@ void main() {
       'displayName': 'Release Work Orders',
     });
 
-    final matrix = PermissionDescriptor.buildMatrix([
-      descriptor,
-      descriptor,
-    ]);
+    final matrix = PermissionDescriptor.buildMatrix([descriptor, descriptor]);
 
     final resource = matrix.single.resources.single;
     expect(resource.actions, ['release']);
-    expect(resource.permissionFor('release')?.permissionKey, descriptor.permissionKey);
+    expect(
+      resource.permissionFor('release')?.permissionKey,
+      descriptor.permissionKey,
+    );
   });
 
   test('does not invent a module from an unstructured two-part key', () {

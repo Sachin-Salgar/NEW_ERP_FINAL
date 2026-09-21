@@ -47,8 +47,9 @@ class ItemMasterService extends ChangeNotifier {
       items = ((body['items'] as List<dynamic>?) ?? const [])
           .map((item) => Map<String, dynamic>.from(item as Map))
           .toList();
-      final metadata =
-          Map<String, dynamic>.from((body['metadata'] as Map?) ?? const {});
+      final metadata = Map<String, dynamic>.from(
+        (body['metadata'] as Map?) ?? const {},
+      );
       total = (metadata['total'] as num?)?.toInt() ?? items.length;
     } catch (e) {
       items = [];
@@ -122,7 +123,8 @@ class ItemMasterService extends ChangeNotifier {
       if (body is Map<String, dynamic>) {
         final nestedError = body['error'];
         final message =
-            body['message'] ?? (nestedError is Map ? nestedError['message'] : nestedError);
+            body['message'] ??
+            (nestedError is Map ? nestedError['message'] : nestedError);
         if (message is String && message.trim().isNotEmpty) return message;
       }
     } catch (_) {}

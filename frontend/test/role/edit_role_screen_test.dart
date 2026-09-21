@@ -17,18 +17,39 @@ void main() {
     GetIt.instance.reset();
   });
 
-  testWidgets('Edit screen renders and pre-fills data', (WidgetTester tester) async {
+  testWidgets('Edit screen renders and pre-fills data', (
+    WidgetTester tester,
+  ) async {
     final mockClient = MockClient((request) async {
       if (request.url.path.contains('/rbac/roles/r1')) {
-        return http.Response(jsonEncode({'role': {'id': 'r1', 'code': 'admin', 'name': 'Admin', 'description': 'Administrator', 'isSystem': true}}), 200);
+        return http.Response(
+          jsonEncode({
+            'role': {
+              'id': 'r1',
+              'code': 'admin',
+              'name': 'Admin',
+              'description': 'Administrator',
+              'isSystem': true,
+            },
+          }),
+          200,
+        );
       }
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.update']}), 200);
+        return http.Response(
+          jsonEncode({
+            'permissions': ['role.update'],
+          }),
+          200,
+        );
       }
       return http.Response('{}', 200);
     });
 
-    final apiClient = ApiClient(baseUrl: 'http://example.com', httpClient: mockClient);
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.com',
+      httpClient: mockClient,
+    );
     registerTestServices(apiClient: apiClient);
 
     final authz = GetIt.instance.get<AuthZService>();
@@ -48,7 +69,12 @@ void main() {
   testWidgets('Permission denied hides edit form', (WidgetTester tester) async {
     final mockClient = MockClient((request) async {
       if (request.url.path.contains('/rbac/roles/r1')) {
-        return http.Response(jsonEncode({'role': {'id': 'r1', 'code': 'admin', 'name': 'Admin'}}), 200);
+        return http.Response(
+          jsonEncode({
+            'role': {'id': 'r1', 'code': 'admin', 'name': 'Admin'},
+          }),
+          200,
+        );
       }
       if (request.url.path.contains('/effective-permissions')) {
         return http.Response(jsonEncode({'permissions': []}), 200);
@@ -56,7 +82,10 @@ void main() {
       return http.Response('{}', 200);
     });
 
-    final apiClient = ApiClient(baseUrl: 'http://example.com', httpClient: mockClient);
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.com',
+      httpClient: mockClient,
+    );
     registerTestServices(apiClient: apiClient);
 
     final authz = GetIt.instance.get<AuthZService>();
@@ -65,30 +94,61 @@ void main() {
     await tester.pumpWidget(TestApp(child: RoleEditScreen(roleId: 'r1')));
     await tester.pumpAndSettle();
 
-    expect(find.text('You do not have permission to edit roles.'), findsOneWidget);
+    expect(
+      find.text('You do not have permission to edit roles.'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('Successful update posts expected payload and shows success', (WidgetTester tester) async {
+  testWidgets('Successful update posts expected payload and shows success', (
+    WidgetTester tester,
+  ) async {
     late Map<String, dynamic> capturedBody;
 
     final mockClient = MockClient((request) async {
-      if (request.method == 'GET' && request.url.path.contains('/rbac/roles/r1')) {
-        return http.Response(jsonEncode({'role': {'id': 'r1', 'code': 'analyst', 'name': 'Analyst', 'description': 'Some description', 'isSystem': false}}), 200);
+      if (request.method == 'GET' &&
+          request.url.path.contains('/rbac/roles/r1')) {
+        return http.Response(
+          jsonEncode({
+            'role': {
+              'id': 'r1',
+              'code': 'analyst',
+              'name': 'Analyst',
+              'description': 'Some description',
+              'isSystem': false,
+            },
+          }),
+          200,
+        );
       }
 
-      if (request.method == 'PATCH' && request.url.path.contains('/rbac/roles/r1')) {
+      if (request.method == 'PATCH' &&
+          request.url.path.contains('/rbac/roles/r1')) {
         capturedBody = jsonDecode(request.body) as Map<String, dynamic>;
-        return http.Response(jsonEncode({'role': {...capturedBody, 'id': 'r1'}}), 200);
+        return http.Response(
+          jsonEncode({
+            'role': {...capturedBody, 'id': 'r1'},
+          }),
+          200,
+        );
       }
 
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.update']}), 200);
+        return http.Response(
+          jsonEncode({
+            'permissions': ['role.update'],
+          }),
+          200,
+        );
       }
 
       return http.Response('{}', 200);
     });
 
-    final apiClient = ApiClient(baseUrl: 'http://example.com', httpClient: mockClient);
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.com',
+      httpClient: mockClient,
+    );
     registerTestServices(apiClient: apiClient);
 
     final authz = GetIt.instance.get<AuthZService>();
@@ -100,7 +160,10 @@ void main() {
     // change a field
     await tester.enterText(find.byType(TextFormField).at(0), 'analyst');
     await tester.enterText(find.byType(TextFormField).at(1), 'Analyst');
-    await tester.enterText(find.byType(TextFormField).at(2), 'Some description');
+    await tester.enterText(
+      find.byType(TextFormField).at(2),
+      'Some description',
+    );
 
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
@@ -112,21 +175,41 @@ void main() {
     expect(find.text('Role updated'), findsOneWidget);
   });
 
-  testWidgets('Backend validation error displayed', (WidgetTester tester) async {
+  testWidgets('Backend validation error displayed', (
+    WidgetTester tester,
+  ) async {
     final mockClient = MockClient((request) async {
-      if (request.method == 'GET' && request.url.path.contains('/rbac/roles/r1')) {
-        return http.Response(jsonEncode({'role': {'id': 'r1', 'code': 'bad', 'name': 'Bad'}}), 200);
+      if (request.method == 'GET' &&
+          request.url.path.contains('/rbac/roles/r1')) {
+        return http.Response(
+          jsonEncode({
+            'role': {'id': 'r1', 'code': 'bad', 'name': 'Bad'},
+          }),
+          200,
+        );
       }
-      if (request.method == 'PATCH' && request.url.path.contains('/rbac/roles/r1')) {
-        return http.Response(jsonEncode({'message': 'Validation failed: code invalid'}), 400);
+      if (request.method == 'PATCH' &&
+          request.url.path.contains('/rbac/roles/r1')) {
+        return http.Response(
+          jsonEncode({'message': 'Validation failed: code invalid'}),
+          400,
+        );
       }
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.update']}), 200);
+        return http.Response(
+          jsonEncode({
+            'permissions': ['role.update'],
+          }),
+          200,
+        );
       }
       return http.Response('{}', 200);
     });
 
-    final apiClient = ApiClient(baseUrl: 'http://example.com', httpClient: mockClient);
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.com',
+      httpClient: mockClient,
+    );
     registerTestServices(apiClient: apiClient);
 
     final authz = GetIt.instance.get<AuthZService>();
@@ -146,19 +229,34 @@ void main() {
 
   testWidgets('403 Forbidden handled gracefully', (WidgetTester tester) async {
     final mockClient = MockClient((request) async {
-      if (request.method == 'GET' && request.url.path.contains('/rbac/roles/r1')) {
-        return http.Response(jsonEncode({'role': {'id': 'r1', 'code': 'analyst', 'name': 'Analyst'}}), 200);
+      if (request.method == 'GET' &&
+          request.url.path.contains('/rbac/roles/r1')) {
+        return http.Response(
+          jsonEncode({
+            'role': {'id': 'r1', 'code': 'analyst', 'name': 'Analyst'},
+          }),
+          200,
+        );
       }
-      if (request.method == 'PATCH' && request.url.path.contains('/rbac/roles/r1')) {
+      if (request.method == 'PATCH' &&
+          request.url.path.contains('/rbac/roles/r1')) {
         return http.Response('Forbidden', 403);
       }
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.update']}), 200);
+        return http.Response(
+          jsonEncode({
+            'permissions': ['role.update'],
+          }),
+          200,
+        );
       }
       return http.Response('{}', 200);
     });
 
-    final apiClient = ApiClient(baseUrl: 'http://example.com', httpClient: mockClient);
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.com',
+      httpClient: mockClient,
+    );
     registerTestServices(apiClient: apiClient);
 
     final authz = GetIt.instance.get<AuthZService>();
@@ -178,19 +276,34 @@ void main() {
 
   testWidgets('Server error handled gracefully', (WidgetTester tester) async {
     final mockClient = MockClient((request) async {
-      if (request.method == 'GET' && request.url.path.contains('/rbac/roles/r1')) {
-        return http.Response(jsonEncode({'role': {'id': 'r1', 'code': 'analyst', 'name': 'Analyst'}}), 200);
+      if (request.method == 'GET' &&
+          request.url.path.contains('/rbac/roles/r1')) {
+        return http.Response(
+          jsonEncode({
+            'role': {'id': 'r1', 'code': 'analyst', 'name': 'Analyst'},
+          }),
+          200,
+        );
       }
-      if (request.method == 'PATCH' && request.url.path.contains('/rbac/roles/r1')) {
+      if (request.method == 'PATCH' &&
+          request.url.path.contains('/rbac/roles/r1')) {
         return http.Response('Internal Server Error', 500);
       }
       if (request.url.path.contains('/effective-permissions')) {
-        return http.Response(jsonEncode({'permissions': ['role.update']}), 200);
+        return http.Response(
+          jsonEncode({
+            'permissions': ['role.update'],
+          }),
+          200,
+        );
       }
       return http.Response('{}', 200);
     });
 
-    final apiClient = ApiClient(baseUrl: 'http://example.com', httpClient: mockClient);
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.com',
+      httpClient: mockClient,
+    );
     registerTestServices(apiClient: apiClient);
 
     final authz = GetIt.instance.get<AuthZService>();

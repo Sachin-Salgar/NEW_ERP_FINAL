@@ -46,18 +46,43 @@ void main() {
       requestedPages.add(page);
       final permissions = page == 1
           ? [
-              {'permissionKey': 'core.read', 'moduleCode': 'core', 'resource': 'core', 'action': 'read'},
-              {'permissionKey': 'security.read', 'moduleCode': 'security', 'resource': 'role', 'action': 'read'},
+              {
+                'permissionKey': 'core.read',
+                'moduleCode': 'core',
+                'resource': 'core',
+                'action': 'read',
+              },
+              {
+                'permissionKey': 'security.read',
+                'moduleCode': 'security',
+                'resource': 'role',
+                'action': 'read',
+              },
             ]
           : [
-              {'permissionKey': 'purchase.receipt.complete', 'moduleCode': 'purchase', 'resource': 'receipt', 'action': 'complete'},
-              {'permissionKey': 'security.read', 'moduleCode': 'security', 'resource': 'role', 'action': 'read'},
+              {
+                'permissionKey': 'purchase.receipt.complete',
+                'moduleCode': 'purchase',
+                'resource': 'receipt',
+                'action': 'complete',
+              },
+              {
+                'permissionKey': 'security.read',
+                'moduleCode': 'security',
+                'resource': 'role',
+                'action': 'read',
+              },
             ];
       return http.Response(
         jsonEncode({
           'success': true,
           'permissions': permissions,
-          'metadata': {'page': page, 'page_size': 100, 'total': 3, 'total_pages': 2},
+          'metadata': {
+            'page': page,
+            'page_size': 100,
+            'total': 3,
+            'total_pages': 2,
+          },
         }),
         200,
       );
@@ -85,7 +110,12 @@ void main() {
         jsonEncode({
           'success': true,
           'permissions': [
-            {'permissionKey': 'core.read', 'moduleCode': 'core', 'resource': 'core', 'action': 'read'},
+            {
+              'permissionKey': 'core.read',
+              'moduleCode': 'core',
+              'resource': 'core',
+              'action': 'read',
+            },
           ],
         }),
         200,
@@ -101,30 +131,43 @@ void main() {
     expect(service.permissions, ['core.read']);
   });
 
-  test('surfaces a later page failure without exposing a partial catalog', () async {
-    final client = MockClient((request) async {
-      final page = int.parse(request.url.queryParameters['page']!);
-      if (page == 1) {
-        return http.Response(
-          jsonEncode({
-            'permissions': [
-              {'permissionKey': 'core.read', 'moduleCode': 'core', 'resource': 'core', 'action': 'read'},
-            ],
-            'metadata': {'page': 1, 'page_size': 100, 'total': 2, 'total_pages': 2},
-          }),
-          200,
-        );
-      }
-      return http.Response('server failure', 500);
-    });
+  test(
+    'surfaces a later page failure without exposing a partial catalog',
+    () async {
+      final client = MockClient((request) async {
+        final page = int.parse(request.url.queryParameters['page']!);
+        if (page == 1) {
+          return http.Response(
+            jsonEncode({
+              'permissions': [
+                {
+                  'permissionKey': 'core.read',
+                  'moduleCode': 'core',
+                  'resource': 'core',
+                  'action': 'read',
+                },
+              ],
+              'metadata': {
+                'page': 1,
+                'page_size': 100,
+                'total': 2,
+                'total_pages': 2,
+              },
+            }),
+            200,
+          );
+        }
+        return http.Response('server failure', 500);
+      });
 
-    final service = PermissionService(
-      apiClient: ApiClient(baseUrl: 'http://example.com', httpClient: client),
-    );
-    await service.fetchPermissions();
+      final service = PermissionService(
+        apiClient: ApiClient(baseUrl: 'http://example.com', httpClient: client),
+      );
+      await service.fetchPermissions();
 
-    expect(service.error, 'Error: Failed to load permissions: 500');
-    expect(service.permissions, isEmpty);
-    expect(service.permissionDetails, isEmpty);
-  });
+      expect(service.error, 'Error: Failed to load permissions: 500');
+      expect(service.permissions, isEmpty);
+      expect(service.permissionDetails, isEmpty);
+    },
+  );
 }
