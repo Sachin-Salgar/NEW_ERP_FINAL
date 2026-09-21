@@ -59,13 +59,17 @@ describe('custom tenant seed vertical slice', () => {
       userCount: number;
       roleAssignmentCount: number;
       branchCount: number;
+      enabledModuleCount: number;
+      manufacturingEnabled: number;
     }>(
       `SELECT
          (SELECT COUNT(*)::int FROM tenants WHERE id = $1) AS "tenantCount",
          (SELECT COUNT(*)::int FROM identities i JOIN users u ON u.identity_id = i.id WHERE u.tenant_id = $1 AND u.username IN ('administrator', 'admin', 'manager')) AS "identityCount",
          (SELECT COUNT(*)::int FROM users WHERE tenant_id = $1 AND username IN ('administrator', 'admin', 'manager')) AS "userCount",
          (SELECT COUNT(*)::int FROM user_roles ur JOIN users u ON u.id = ur.user_id WHERE ur.tenant_id = $1 AND u.username IN ('administrator', 'admin', 'manager')) AS "roleAssignmentCount",
-         (SELECT COUNT(*)::int FROM branches WHERE tenant_id = $1 AND is_deleted = false) AS "branchCount"`,
+         (SELECT COUNT(*)::int FROM branches WHERE tenant_id = $1 AND is_deleted = false) AS "branchCount",
+         (SELECT COUNT(*)::int FROM tenant_modules WHERE tenant_id = $1 AND enabled = true) AS "enabledModuleCount",
+         (SELECT COUNT(*)::int FROM tenant_modules tm JOIN modules m ON m.id = tm.module_id WHERE tm.tenant_id = $1 AND tm.enabled = true AND m.code = 'manufacturing') AS "manufacturingEnabled"`,
       [tenantId],
     );
     expect(counts.rows[0]).toEqual({
@@ -74,6 +78,8 @@ describe('custom tenant seed vertical slice', () => {
       userCount: 3,
       roleAssignmentCount: 3,
       branchCount: 4,
+      enabledModuleCount: 10,
+      manufacturingEnabled: 1,
     });
 
     applicationPool = createIntegrationApplicationPool();
