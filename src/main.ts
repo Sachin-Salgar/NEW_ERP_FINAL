@@ -11,7 +11,7 @@ import { verifyPlatformSecurity } from './infrastructure/database/platform-secur
 
 async function bootstrap(): Promise<void> {
   const config = loadConfig();
-  const platformDatabaseUrl = resolvePlatformDatabaseUrl(process.env, { required: config.isProduction }) ?? config.DATABASE_URL;
+  const platformDatabaseUrl = resolvePlatformDatabaseUrl(process.env, { required: config.isProduction });
   const pool = createDatabasePool(config);
   const platformPool = createDatabasePoolFromUrl(platformDatabaseUrl, {
     min: config.DATABASE_POOL_MIN,
