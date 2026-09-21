@@ -62,6 +62,27 @@ GRANT USAGE ON SCHEMA public TO erp_app, erp_platform_executor, erp_procedure_ow
 REVOKE CREATE ON SCHEMA public FROM PUBLIC, erp_app, erp_platform_executor, erp_procedure_owner;
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM erp_platform_executor, erp_procedure_owner;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM erp_platform_executor, erp_procedure_owner;
+-- Normalize platform-role memberships. The database owner may retain provider-managed
+-- administrative membership, but application roles and the dedicated platform roles
+-- must not inherit one another or the procedure-owner role.
+DO $
+DECLARE
+  membership RECORD;
+BEGIN
+  FOR membership IN
+    SELECT granted.rolname AS granted_role, member.rolname AS member_role
+    FROM pg_auth_members memberships
+    JOIN pg_roles granted ON granted.oid = memberships.roleid
+    JOIN pg_roles member ON member.oid = memberships.member
+    WHERE member.oid <> (SELECT datdba FROM pg_database WHERE datname = current_database())
+      AND (
+        granted.rolname IN ('erp_procedure_owner', 'erp_platform_executor')
+        OR member.rolname IN ('erp', 'erp_app', 'erp_procedure_owner', 'erp_platform_executor')
+      )
+  LOOP
+    EXECUTE format('REVOKE %I FROM %I', membership.granted_role, membership.member_role);
+  END LOOP;
+END $;
 -- Re-establish the procedure owner's deliberately minimal data access after the
 -- blanket revocation above. These are the only tables the SECURITY DEFINER
 -- lifecycle procedures are allowed to inspect/update directly.
