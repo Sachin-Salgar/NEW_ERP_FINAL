@@ -6,12 +6,23 @@ export type DatabasePool = Pool;
 
 export type DatabaseSslMode = 'disable' | 'require';
 
+/**
+ * Map the application's PostgreSQL SSL policy to node-postgres TLS options.
+ *
+ * PostgreSQL's sslmode=require means TLS is required but certificate
+ * verification is not required. Render's internal PostgreSQL endpoint uses
+ * self-signed certificates, so rejectUnauthorized=true is incompatible with
+ * the supported Render internal connection mode.
+ *
+ * DATABASE_SSL_CA is retained in configuration for compatibility/future
+ * verification modes, but is intentionally not applied to require.
+ */
 export function getDatabaseSslOptions(
   sslMode: DatabaseSslMode,
-  certificateAuthority?: string,
-): { rejectUnauthorized: true; ca?: string } | undefined {
+  _certificateAuthority?: string,
+): { rejectUnauthorized: false } | undefined {
   if (sslMode === 'disable') return undefined;
-  return certificateAuthority ? { rejectUnauthorized: true, ca: certificateAuthority } : { rejectUnauthorized: true };
+  return { rejectUnauthorized: false };
 }
 
 export function createDatabasePoolFromUrl(

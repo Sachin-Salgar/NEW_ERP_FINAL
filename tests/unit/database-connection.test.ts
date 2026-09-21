@@ -3,19 +3,16 @@
 import { createDatabaseClientOptions, getDatabaseSslOptions } from '../../src/infrastructure/database/connection.js';
 
 describe('database connection policy', () => {
-  it('validates certificates whenever TLS is required', () => {
-    expect(getDatabaseSslOptions('require')).toEqual({ rejectUnauthorized: true });
-    expect(getDatabaseSslOptions('require', '-----BEGIN CERTIFICATE-----')).toEqual({
-      rejectUnauthorized: true,
-      ca: '-----BEGIN CERTIFICATE-----',
-    });
+  it('requires TLS without requiring certificate verification for PostgreSQL require mode', () => {
+    expect(getDatabaseSslOptions('require')).toEqual({ rejectUnauthorized: false });
+    expect(getDatabaseSslOptions('require', '-----BEGIN CERTIFICATE-----')).toEqual({ rejectUnauthorized: false });
     expect(getDatabaseSslOptions('disable')).toBeUndefined();
   });
 
   it('applies the selected transport policy to client options', () => {
     expect(createDatabaseClientOptions('postgresql://db.example/app', 'require')).toEqual({
       connectionString: 'postgresql://db.example/app',
-      ssl: { rejectUnauthorized: true },
+      ssl: { rejectUnauthorized: false },
     });
     expect(createDatabaseClientOptions('postgresql://db.internal/app', 'disable')).toEqual({
       connectionString: 'postgresql://db.internal/app',
@@ -23,7 +20,7 @@ describe('database connection policy', () => {
     });
     expect(createDatabaseClientOptions('postgresql://db.render/app', 'require', 'render-ca')).toEqual({
       connectionString: 'postgresql://db.render/app',
-      ssl: { rejectUnauthorized: true, ca: 'render-ca' },
+      ssl: { rejectUnauthorized: false },
     });
   });
 });
