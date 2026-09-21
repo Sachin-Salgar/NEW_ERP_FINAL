@@ -78,6 +78,7 @@ Future<AuthService> _setupAuthenticatedAuth({
             {'code': 'crm'},
             {'code': 'inventory'},
             {'code': 'sales'},
+            {'code': 'manufacturing'},
           ],
         }),
         200,
@@ -167,7 +168,15 @@ void main() {
     'Sidebar keeps the main navigation canonical and hides protected settings items unless they are in the current settings shell',
     (tester) async {
       await _setupAuthenticatedAuth(
-        permissions: ['user.read', 'customer.read'],
+        permissions: [
+          'user.read',
+          'customer.read',
+          'manufacturing.machine.read',
+          'manufacturing.capability.read',
+          'manufacturing.process.read',
+          'manufacturing.work_order.read',
+          'manufacturing.task_sheet.read',
+        ],
       );
 
       await tester.pumpWidget(
@@ -180,6 +189,12 @@ void main() {
       expect(find.text('Dashboard'), findsOneWidget);
       expect(find.text('Settings'), findsOneWidget);
       expect(find.text('Customers'), findsOneWidget);
+      expect(find.text('Manufacturing'), findsOneWidget);
+      expect(find.text('Machines'), findsOneWidget);
+      expect(find.text('Machine Capabilities'), findsOneWidget);
+      expect(find.text('Product Routing'), findsOneWidget);
+      expect(find.text('Work Orders & Route Cards'), findsOneWidget);
+      expect(find.text('Production Execution'), findsOneWidget);
       expect(find.text('Users'), findsNothing);
       expect(find.text('Roles'), findsNothing);
       expect(find.text('Permissions'), findsNothing);
