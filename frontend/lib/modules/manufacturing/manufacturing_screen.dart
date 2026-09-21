@@ -44,7 +44,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen> {
   @override
   void initState() {
     super.initState();
-    tab = widget.initialTab.clamp(0, 4);
+    tab = widget.initialTab.clamp(0, 4).toInt();
     s.refresh();
   }
 
