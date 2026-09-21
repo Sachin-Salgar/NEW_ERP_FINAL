@@ -65,7 +65,7 @@ REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM erp_platform_executor, erp_pro
 -- Normalize platform-role memberships. The database owner may retain provider-managed
 -- administrative membership, but application roles and the dedicated platform roles
 -- must not inherit one another or the procedure-owner role.
-DO $
+DO $$
 DECLARE
   membership RECORD;
 BEGIN
@@ -82,7 +82,7 @@ BEGIN
   LOOP
     EXECUTE format('REVOKE %I FROM %I', membership.granted_role, membership.member_role);
   END LOOP;
-END $;
+END $$;
 -- Re-establish the procedure owner's deliberately minimal data access after the
 -- blanket revocation above. These are the only tables the SECURITY DEFINER
 -- lifecycle procedures are allowed to inspect/update directly.
