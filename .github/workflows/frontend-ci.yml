@@ -26,5 +26,6 @@ jobs:
       - run: flutter pub get
       - run: dart format lib test
       - run: git diff -- frontend/test/routing/route_config_test.dart
+      - run: cat test/routing/route_config_test.dart
       - run: flutter analyze
       - run: flutter test
