@@ -1,8 +1,16 @@
 {
   "version": 1,
   "migrations": {
-    "0014_remove_legacy_workflow_permissions": { "strategy": "forward-only-security", "destructiveDownAllowed": false, "note": "Removes legacy module-local approval permissions and role assignments after migration to the canonical Workflow/BPM engine." },
-    "0011_workflow_purchase_order": { "strategy": "restore-backup", "destructiveDownAllowed": false, "note": "Canonical Workflow/BPM purchase-order definitions, instances, tasks, decisions, delegation, and escalation state are restored from backup; no destructive down migration." },
+    "0014_remove_legacy_workflow_permissions": {
+      "strategy": "forward-only-security",
+      "destructiveDownAllowed": false,
+      "note": "Removes legacy module-local approval permissions and role assignments after migration to the canonical Workflow/BPM engine."
+    },
+    "0011_workflow_purchase_order": {
+      "strategy": "restore-backup",
+      "destructiveDownAllowed": false,
+      "note": "Canonical Workflow/BPM purchase-order definitions, instances, tasks, decisions, delegation, and escalation state are restored from backup; no destructive down migration."
+    },
     "0000_core_platform": {
       "strategy": "restore-backup",
       "destructiveDownAllowed": false,
@@ -67,6 +75,21 @@
       "strategy": "restore-backup",
       "destructiveDownAllowed": false,
       "note": "Adds machine capability, process/routing, work order, task sheet, material requisition, readiness, production, quality, material return and variance cost records."
+    },
+    "0015_hr_module": {
+      "strategy": "restore-backup",
+      "destructiveDownAllowed": false,
+      "note": "Adds canonical tenant-scoped HR employee, organization, attendance, leave, payroll, talent, compliance and ESS foundations."
+    },
+    "0016_hr_capability_completion": {
+      "strategy": "restore-backup",
+      "destructiveDownAllowed": false,
+      "note": "Completes HR RLS, authorization permissions and lifecycle support."
+    },
+    "0017_hr_complete_lifecycle": {
+      "strategy": "restore-backup",
+      "destructiveDownAllowed": false,
+      "note": "Adds remaining HR lifecycle domains for employment history, attendance rules, leave lifecycle, recruitment, performance, training, compliance, settlements and finance posting boundary."
     }
   }
 }
