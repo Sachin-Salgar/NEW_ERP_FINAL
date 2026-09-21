@@ -102,22 +102,56 @@ Future managed deployments select their PostgreSQL endpoint and TLS behavior
 through environment configuration. No final production provider is selected by
 this repository.
 
-For migration `0009` and later, the local and future release order is:
+For migration `0009` and later, local/self-hosted and managed-provider
+provisioning are deliberately separated.
+
+For local/self-hosted PostgreSQL:
 
 ```text
-PostgreSQL 17 available
+PostgreSQL available
   → run npm run db:migrate as erp
   → run PLATFORM_SECURITY_DATABASE_URL=<privileged operator URL> npm run db:security-bootstrap
   → start the application with DATABASE_URL using erp_app
 ```
 
-`PLATFORM_SECURITY_DATABASE_URL` must be supplied only to the explicit security
-bootstrap command as a separate privileged operator credential. It must not be
-supplied to the normal application process or used as `DATABASE_URL`. The
-bootstrap transaction normalizes dedicated roles, transfers lifecycle-function
-ownership, applies the minimal grants, and verifies the security matrix. A
-failure rolls back the bootstrap and the application startup verification
-refuses to serve traffic.
+For Render PostgreSQL, the privileged bootstrap is a one-time operator action
+and is NOT part of web-service startup:
+
+```text
+Render PostgreSQL
+  → create managed credentials named erp, erp_app, erp_platform_executor
+  → use the Render database owner/operator credential only for provisioning
+  → run npm run db:migrate with DATABASE_URL set to the erp credential
+  → run npm run db:security-bootstrap with PLATFORM_SECURITY_DATABASE_URL set to the
+    separate Render database owner/operator credential
+  → verify the platform security matrix
+  → configure the web service with DATABASE_URL=erp_app
+  → configure PLATFORM_DATABASE_URL=erp_platform_executor
+  → start the application
+```
+
+Render's web service must never receive `PLATFORM_SECURITY_DATABASE_URL`.
+The runtime process uses only `erp_app` for normal database access and
+`erp_platform_executor` for the narrowly scoped platform procedures. The
+privileged operator credential is used outside the application runtime.
+
+Render does not provide PostgreSQL superuser access. The provisioning procedure
+therefore must use only capabilities actually available to the Render database
+owner/operator. If a Render database rejects role creation or another
+operation required by the bootstrap, do not weaken the runtime roles; stop and
+use the Render-managed credential/operator workflow to perform that operation.
+
+The current Blueprint intentionally keeps migrations and privileged security
+bootstrap out of `startCommand`. Render's pre-deploy command is appropriate
+for repeatable migrations when a dedicated migration credential can be supplied
+without exposing privileged security-bootstrap credentials to the web runtime.
+The application startup remains responsible only for runtime connectivity and
+security verification.
+
+The bootstrap transaction normalizes dedicated roles, establishes
+lifecycle-function ownership, applies minimal grants, and verifies the security
+matrix. A failure rolls back the bootstrap and the application startup
+verification refuses to serve traffic.
 
 Dependency installation in deployment must use the repository lockfile consistently with its manifest and must preserve frozen/reproducible lockfile validation. A stale lockfile is a release defect; disabling frozen-lockfile validation is not an acceptable workaround.
 
