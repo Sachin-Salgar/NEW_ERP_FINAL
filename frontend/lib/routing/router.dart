@@ -31,6 +31,7 @@ import '../modules/sales/document_list_screen.dart';
 import '../modules/sales/document_details_screen.dart';
 import '../modules/purchase/purchase_screen.dart';
 import '../modules/manufacturing/manufacturing_screen.dart';
+import '../modules/hr/hr_screen.dart';
 import '../modules/dashboard/dashboard_screen.dart';
 import '../modules/permission/permission_detail_screen.dart';
 import '../modules/permission/permission_list_screen.dart';
@@ -491,6 +492,8 @@ class AppRouter {
             child: const DashboardScreen(),
           ),
         );
+      case '/hr':
+        return MaterialPageRoute(settings: settings,builder: (context)=>_protected(context,routeName:'/hr',child:const HrScreen()));
       case '/customers':
         return MaterialPageRoute(
           settings: settings,
