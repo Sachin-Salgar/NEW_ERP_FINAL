@@ -509,6 +509,51 @@ class AppRouter {
             child: const ManufacturingScreen(),
           ),
         );
+      case '/manufacturing/machines':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/manufacturing/machines',
+            child: const ManufacturingScreen(initialTab: 0),
+          ),
+        );
+      case '/manufacturing/capabilities':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/manufacturing/capabilities',
+            child: const ManufacturingScreen(initialTab: 1),
+          ),
+        );
+      case '/manufacturing/routing':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/manufacturing/routing',
+            child: const ManufacturingScreen(initialTab: 2),
+          ),
+        );
+      case '/manufacturing/work-orders':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/manufacturing/work-orders',
+            child: const ManufacturingScreen(initialTab: 3),
+          ),
+        );
+      case '/manufacturing/execution':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => _protected(
+            context,
+            routeName: '/manufacturing/execution',
+            child: const ManufacturingScreen(initialTab: 4),
+          ),
+        );
       case '/purchase':
         return MaterialPageRoute(
           settings: settings,

@@ -4,14 +4,17 @@ import 'package:get_it/get_it.dart';
 import 'manufacturing_service.dart';
 
 class ManufacturingScreen extends StatefulWidget {
-  const ManufacturingScreen({super.key});
+  final int initialTab;
+
+  const ManufacturingScreen({super.key, this.initialTab = 0});
+
   @override
   State<ManufacturingScreen> createState() => _ManufacturingScreenState();
 }
 
 class _ManufacturingScreenState extends State<ManufacturingScreen> {
   final s = GetIt.I<ManufacturingService>();
-  int tab = 0;
+  late int tab;
   final code = TextEditingController(),
       name = TextEditingController(),
       machineId = TextEditingController(),
@@ -41,6 +44,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen> {
   @override
   void initState() {
     super.initState();
+    tab = widget.initialTab.clamp(0, 4).toInt();
     s.refresh();
   }
 

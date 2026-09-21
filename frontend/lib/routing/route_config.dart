@@ -132,6 +132,46 @@ class AppRoutes {
     moduleCode: 'manufacturing',
     icon: Icons.precision_manufacturing_outlined,
   );
+  static const manufacturingMachines = AppRouteConfig(
+    path: '/manufacturing/machines',
+    title: 'Machines',
+    group: 'MANUFACTURING',
+    permissionKey: 'manufacturing.machine.read',
+    moduleCode: 'manufacturing',
+    icon: Icons.precision_manufacturing_outlined,
+  );
+  static const manufacturingCapabilities = AppRouteConfig(
+    path: '/manufacturing/capabilities',
+    title: 'Machine Capabilities',
+    group: 'MANUFACTURING',
+    permissionKey: 'manufacturing.capability.read',
+    moduleCode: 'manufacturing',
+    icon: Icons.account_tree_outlined,
+  );
+  static const manufacturingRouting = AppRouteConfig(
+    path: '/manufacturing/routing',
+    title: 'Product Routing',
+    group: 'MANUFACTURING',
+    permissionKey: 'manufacturing.process.read',
+    moduleCode: 'manufacturing',
+    icon: Icons.alt_route_outlined,
+  );
+  static const manufacturingWorkOrders = AppRouteConfig(
+    path: '/manufacturing/work-orders',
+    title: 'Work Orders & Route Cards',
+    group: 'MANUFACTURING',
+    permissionKey: 'manufacturing.work_order.read',
+    moduleCode: 'manufacturing',
+    icon: Icons.assignment_outlined,
+  );
+  static const manufacturingExecution = AppRouteConfig(
+    path: '/manufacturing/execution',
+    title: 'Production Execution',
+    group: 'MANUFACTURING',
+    permissionKey: 'manufacturing.task_sheet.read',
+    moduleCode: 'manufacturing',
+    icon: Icons.play_circle_outline,
+  );
   static const tax = AppRouteConfig(
     path: '/tax',
     title: 'Tax Configuration',
@@ -281,6 +321,11 @@ class AppRoutes {
     tax,
     purchase,
     manufacturing,
+    manufacturingMachines,
+    manufacturingCapabilities,
+    manufacturingRouting,
+    manufacturingWorkOrders,
+    manufacturingExecution,
   ];
 
   static const routePermissions = <String, String?>{
@@ -315,6 +360,11 @@ class AppRoutes {
     '/tax': 'tax.configuration.read',
     '/purchase': 'purchase.supplier.read',
     '/manufacturing': 'manufacturing.machine.read',
+    '/manufacturing/machines': 'manufacturing.machine.read',
+    '/manufacturing/capabilities': 'manufacturing.capability.read',
+    '/manufacturing/routing': 'manufacturing.process.read',
+    '/manufacturing/work-orders': 'manufacturing.work_order.read',
+    '/manufacturing/execution': 'manufacturing.task_sheet.read',
     '/settings/branches': 'branch.read',
     '/settings/branches/create': 'branch.create',
     '/settings/branches/details': 'branch.read',
@@ -393,6 +443,15 @@ class AppRoutes {
   static AppRouteConfig forRoute(String route) {
     final normalized = normalize(route);
     for (final config in settingsNavigation) {
+      if (config.matches(normalized)) return config;
+    }
+    for (final config in [
+      manufacturingMachines,
+      manufacturingCapabilities,
+      manufacturingRouting,
+      manufacturingWorkOrders,
+      manufacturingExecution,
+    ]) {
       if (config.matches(normalized)) return config;
     }
     for (final config in topLevel) {
