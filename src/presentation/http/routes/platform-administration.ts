@@ -45,7 +45,9 @@ const platformAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
     const result = await fastify.dbPool.query(
       `SELECT m.id, m.identity_id AS "identityId", m.status, m.created_at AS "createdAt",
               i.status AS "identityStatus",
-              COALESCE(string_agg(DISTINCT r.code, ',' ORDER BY r.code), '') AS roles
+              COALESCE(string_agg(DISTINCT r.code, ',' ORDER BY r.code), '') AS roles,
+              COALESCE(json_agg(DISTINCT jsonb_build_object('id', r.id, 'code', r.code))
+                FILTER (WHERE r.id IS NOT NULL), '[]'::json) AS "roleDetails"
        FROM platform_memberships m
        JOIN identities i ON i.id = m.identity_id
        LEFT JOIN platform_membership_roles mr ON mr.platform_membership_id = m.id
