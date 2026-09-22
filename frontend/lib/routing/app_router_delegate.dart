@@ -43,6 +43,11 @@ class AppRouterDelegate extends RouterDelegate<String>
   @override
   Future<void> setNewRoutePath(String configuration) async {
     var target = normalizePath(configuration);
+    if (auth.contextType == 'platform' &&
+        (target == '/dashboard' || target == '/settings' ||
+            target.startsWith('/settings/'))) {
+      target = '/platform';
+    }
     if (!auth.isAuthenticated) {
       if (auth.hasPendingSelection) {
         target = '/login/select-context';
@@ -87,7 +92,12 @@ class AppRouterDelegate extends RouterDelegate<String>
   }
 
   void navigate(String path) {
-    final target = normalizePath(path);
+    var target = normalizePath(path);
+    if (auth.contextType == 'platform' &&
+        (target == '/dashboard' || target == '/settings' ||
+            target.startsWith('/settings/'))) {
+      target = '/platform';
+    }
     if (!auth.isAuthenticated || target == _path) return;
     contentNavigatorKey.currentState?.pushNamed(target);
   }
