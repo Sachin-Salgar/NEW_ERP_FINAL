@@ -124,7 +124,7 @@ export async function provisionDatabase(): Promise<void> {
   await runPlatformSecurityBootstrapFromUrl(config.provisioningUrl, config.sslMode, config.sslCa);
 
   console.log('==> Database provisioning: platform administrator bootstrap');
-  await seedPlatformAdmin(config.runtimeUrl, config.sslMode, config.sslCa);
+  await seedPlatformAdmin(config.provisioningUrl, config.sslMode, config.sslCa);
 
   console.log('==> Database provisioning: final verification');
   await verifyProvisionedDatabase(config);
