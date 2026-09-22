@@ -58,6 +58,9 @@ async function verifyProvisionedDatabase(config: ProvisioningConfig): Promise<vo
     const migration = await client.query<{ count: string }>(
       'SELECT count(*)::text AS count FROM public."__drizzle_migrations"',
     );
+    if (Number(migration.rows[0]?.count ?? 0) < 1) {
+      throw new Error('Database provisioning completed without recorded migrations.');
+    }
     const roles = await client.query<{ rolname: string }>(
       `SELECT rolname
          FROM pg_roles
@@ -118,12 +121,7 @@ export async function provisionDatabase(): Promise<void> {
   await runMigrations(config.migrationUrl, config.sslMode);
 
   console.log('==> Database provisioning: security/RLS bootstrap');
-  await runPlatformSecurityBootstrap(
-    new Client(createDatabaseClientOptions(config.provisioningUrl, config.sslMode, config.sslCa)),
-    { requireErp: true },
-  ).catch((error) => {
-    throw error;
-  });
+  await runPlatformSecurityBootstrapFromUrl(config.provisioningUrl, config.sslMode, config.sslCa);
 
   console.log('==> Database provisioning: platform administrator bootstrap');
   await seedPlatformAdmin(config.runtimeUrl, config.sslMode, config.sslCa);
