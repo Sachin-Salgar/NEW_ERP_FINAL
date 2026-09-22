@@ -18,7 +18,7 @@ set -eu
 : "${PLATFORM_ADMIN_EMAIL:?PLATFORM_ADMIN_EMAIL is required for initial platform administrator bootstrap}"
 
 echo "==> Provisioning production database..."
-npm run db:provision:compiled
+node dist/infrastructure/database/provision.js
 
 echo "==> Database provisioning completed successfully."
 echo "==> Starting ERP server..."
