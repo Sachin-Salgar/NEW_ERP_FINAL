@@ -597,6 +597,7 @@ export class PostgresPlatformRepository
       ['platform', 'tenant', 'deactivate', 'platform.tenant.deactivate', 'Deactivate tenants'],
       ['platform', 'tenant', 'suspend', 'platform.tenant.suspend', 'Suspend tenants'],
       ['platform', 'tenant', 'reactivate', 'platform.tenant.reactivate', 'Reactivate tenants'],
+      ['platform', 'module', '*', 'platform.modules.manage', 'Manage tenant module entitlements'],
       ['platform', 'members', '*', 'platform.members.manage', 'Manage platform members'],
       ['platform', 'roles', '*', 'platform.roles.manage', 'Manage platform roles'],
       ['platform', 'permissions', '*', 'platform.permissions.manage', 'Manage platform permissions'],
