@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { compare } from 'bcryptjs';
 import { z } from 'zod';
 import { ValidationError, UnauthorizedError } from '../../../domain/errors.js';
-import { requireAuth, requirePermission } from '../middleware/auth.js';
+import { getBearerToken, requireAuth, requirePermission } from '../middleware/auth.js';
 import { authSchemas, errorResponseSchema, toJsonSchema } from '../swagger.js';
 import { recordSecurityEvent } from '../security-audit.js';
 interface ModuleCodeParams {
@@ -436,16 +436,66 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     {
       schema: {
         tags: ['Authentication'],
-        summary: 'Get current authenticated user',
-        description: 'Returns the current authenticated user information.',
+        summary: 'Get current authenticated user or platform identity',
+        description: 'Returns the current authenticated tenant user or platform administrator identity.',
         security: [{ bearerAuth: [] }],
         response: { 200: toJsonSchema(authSchemas.meResponse), 401: toJsonSchema(errorResponseSchema) },
       },
-      preHandler: requireAuth,
+      preHandler: async (request, reply) => {
+        const token = getBearerToken(request);
+        if (!token) throw new UnauthorizedError('Authentication token is required.');
+        const claims = request.server.jwtTokenService.verifyAccessToken(token);
+        if (claims.contextType === 'platform') {
+          const context = await request.server.platformAuthorizationService.validateContext(
+            claims.sessionId,
+            claims.sub,
+          );
+          if (!context) throw new UnauthorizedError('Platform session is invalid or expired.');
+          request.contextType = 'platform';
+          request.sessionId = context.sessionId;
+          request.identityId = context.identityId;
+          request.platformMembershipId = context.platformMembershipId;
+          return;
+        }
+        await requireAuth(request, reply);
+      },
     },
     async (request) => {
+      if (request.contextType === 'platform') {
+        const identity = await request.server.dbPool.query<{
+          id: string;
+          username: string | null;
+          email: string | null;
+          status: string;
+        }>(
+          `SELECT x.id,
+                  MAX(CASE WHEN i.identifier_type = 'username' THEN i.identifier::text END) AS username,
+                  MAX(CASE WHEN i.identifier_type = 'email' THEN i.identifier::text END) AS email,
+                  x.status
+             FROM identities x
+             JOIN platform_memberships m ON m.identity_id = x.id AND m.status = 'active'
+             LEFT JOIN auth_login_identifiers i ON i.identity_id = x.id AND i.is_active = true
+            WHERE x.id = $1
+            GROUP BY x.id, x.status`,
+          [request.identityId],
+        );
+        if (identity.rowCount !== 1) throw new UnauthorizedError('Platform identity is invalid.');
+        const row = identity.rows[0];
+        return {
+          success: true,
+          contextType: 'platform',
+          user: {
+            id: row.id,
+            tenantId: null,
+            defaultBranchId: null,
+            username: row.username ?? '',
+            email: row.email ?? '',
+            status: row.status,
+          },
+        };
+      }
       if (!request.user) throw new UnauthorizedError('Authentication required.');
-      return { success: true, user: sanitizeUser(request.user) };
+      return { success: true, contextType: 'tenant', user: sanitizeUser(request.user) };
     },
   );
   fastify.get(
