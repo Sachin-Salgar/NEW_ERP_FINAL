@@ -1011,7 +1011,8 @@ class _PlatformAdministrationScreenState
               ),
             ),
           ),
-        if (_roleData.isEmpty) const _Empty(message: 'No platform roles found.'),
+        if (_roleData.isEmpty)
+          const _Empty(message: 'No platform roles found.'),
       ],
     ),
   );
