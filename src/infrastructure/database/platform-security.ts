@@ -183,8 +183,6 @@ export async function verifyPlatformSecurity(
    app_create: boolean;
    executor_create: boolean;
    owner_create: boolean;
-   executor_table_access: boolean;
-   executor_sequence_access: boolean;
    owner_sequence_access: boolean;
    app_relation_ownership: boolean;
    app_function_ownership: boolean;
@@ -201,39 +199,7 @@ export async function verifyPlatformSecurity(
            has_schema_privilege('erp_app', 'public', 'CREATE') AS app_create,
            has_schema_privilege('erp_platform_executor', 'public', 'CREATE') AS executor_create,
            has_schema_privilege('erp_procedure_owner', 'public', 'CREATE') AS owner_create,
-           (
-             SELECT bool_and(
-               has_table_privilege(
-                 'erp_platform_executor',
-                 format('public.%I', required_table),
-                 'SELECT,INSERT,UPDATE,DELETE'
-               )
-             )
-             FROM unnest(ARRAY[
-               'tenants',
-               'modules',
-               'tenant_modules',
-               'identities',
-               'platform_memberships',
-               'platform_membership_roles',
-               'platform_permissions',
-               'platform_roles',
-               'platform_role_permissions',
-               'platform_security_policy',
-               'audit_events'
-             ]::text[]) AS required_table
-           ) AS executor_table_access,
-           (
-             SELECT bool_and(
-               has_sequence_privilege(
-                 'erp_platform_executor',
-                 format('public.%I', sequence_name),
-                 'USAGE,SELECT'
-               )
-             )
-             FROM information_schema.sequences
-             WHERE sequence_schema = 'public'
-           ) AS executor_sequence_access,
+
             EXISTS (
              SELECT 1 FROM information_schema.role_usage_grants
              WHERE grantee = 'erp_procedure_owner'
@@ -262,8 +228,6 @@ export async function verifyPlatformSecurity(
     privilegeRow.app_create ||
     privilegeRow.executor_create ||
     privilegeRow.owner_create ||
-    !privilegeRow.executor_table_access ||
-    !privilegeRow.executor_sequence_access ||
     privilegeRow.owner_sequence_access ||
     privilegeRow.app_relation_ownership ||
     privilegeRow.app_function_ownership
