@@ -41,8 +41,10 @@ async function audit(
 }
 
 const platformAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.get('/platform/members', { preHandler: requirePlatformContext('platform.members.manage') }, async () => {
-    const result = await fastify.dbPool.query(
+  fastify.get('/platform/members', { preHandler: requirePlatformContext('platform.members.manage') }, async (request) => {
+    const platformPool = platformExecutor(request);
+    if (!platformPool) throw new Error('Platform database executor is not configured.');
+    const result = await platformPool.query(
       `SELECT m.id, m.identity_id AS "identityId", m.status, m.created_at AS "createdAt",
               i.status AS "identityStatus",
               COALESCE(string_agg(DISTINCT r.code, ',' ORDER BY r.code), '') AS roles,
@@ -57,8 +59,10 @@ const platformAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
     return { success: true, members: result.rows };
   });
 
-  fastify.get('/platform/identities', { preHandler: requirePlatformContext('platform.members.manage') }, async () => {
-    const result = await fastify.dbPool.query(
+  fastify.get('/platform/identities', { preHandler: requirePlatformContext('platform.members.manage') }, async (request) => {
+    const platformPool = platformExecutor(request);
+    if (!platformPool) throw new Error('Platform database executor is not configured.');
+    const result = await platformPool.query(
       `SELECT i.id, i.status,
               MAX(CASE WHEN li.identifier_type = 'username' THEN li.identifier::text END) AS username,
               MAX(CASE WHEN li.identifier_type = 'email' THEN li.identifier::text END) AS email
@@ -82,7 +86,9 @@ const platformAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const identityId = uuid.parse(request.body.identityId);
       const roleIds = (request.body.roleIds ?? []).map((id) => uuid.parse(id));
-      const client = await fastify.dbPool.connect();
+      const platformPool = platformExecutor(request);
+      if (!platformPool) throw new Error('Platform database executor is not configured.');
+      const client = await platformPool.connect();
       try {
         await client.query('BEGIN');
         const identity = await client.query('SELECT id FROM identities WHERE id = $1 AND status = $2 FOR UPDATE', [
@@ -186,7 +192,9 @@ const platformAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
     { preHandler: requirePlatformContext('platform.roles.manage') },
     async (request, reply) => {
       const body = roleBody.parse(request.body);
-      const result = await fastify.dbPool.query(
+      const platformPool = platformExecutor(request);
+      if (!platformPool) throw new Error('Platform database executor is not configured.');
+      const result = await platformPool.query(
         'INSERT INTO platform_roles (code, name, description) VALUES ($1, $2, $3) RETURNING id, code, name, description',
         [body.code, body.name, body.description ?? null],
       );
@@ -201,7 +209,9 @@ const platformAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
     async (request) => {
       const roleId = uuid.parse(request.params.roleId);
       const body = request.body;
-      const result = await fastify.dbPool.query(
+      const platformPool = platformExecutor(request);
+      if (!platformPool) throw new Error('Platform database executor is not configured.');
+      const result = await platformPool.query(
         `UPDATE platform_roles SET code = COALESCE($2, code), name = COALESCE($3, name),
        description = COALESCE($4, description), is_deleted = COALESCE($5, is_deleted), updated_at = now()
        WHERE id = $1 AND is_system = false RETURNING id, code, name, description, is_deleted AS "isDeleted"`,
@@ -247,8 +257,10 @@ const platformAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get(
     '/platform/security-policy',
     { preHandler: requirePlatformContext('platform.security.manage') },
-    async () => {
-      const result = await fastify.dbPool.query(
+    async (request) => {
+      const platformPool = platformExecutor(request);
+      if (!platformPool) throw new Error('Platform database executor is not configured.');
+      const result = await platformPool.query(
         'SELECT mfa_required AS "mfaRequired", session_lifetime_minutes AS "sessionLifetimeMinutes", max_failed_login_attempts AS "maxFailedLoginAttempts", lockout_minutes AS "lockoutMinutes", updated_at AS "updatedAt" FROM platform_security_policy WHERE id = true',
       );
       return { success: true, policy: result.rows[0] };
@@ -288,8 +300,10 @@ const platformAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  fastify.get('/platform/audit', { preHandler: requirePlatformContext('platform.audit.read') }, async (_request) => {
-    const client = await fastify.dbPool.connect();
+  fastify.get('/platform/audit', { preHandler: requirePlatformContext('platform.audit.read') }, async (request) => {
+    const platformPool = platformExecutor(request);
+    if (!platformPool) throw new Error('Platform database executor is not configured.');
+    const client = await platformPool.connect();
     try {
       await client.query('BEGIN');
       await client.query(`SELECT set_config('app.platform_audit_enabled', 'true', true)`);
