@@ -43,48 +43,12 @@ Credential boundaries:
 
 The provisioner must verify that all three URLs target the same database. Never put the provisioning credential in the web runtime.
 
-## 4. Local deployment
-Use:
-```powershell
-npm run db:diagnose
-./scripts/start-local-dev.ps1
-```
-Do not invent database names, roles, passwords, or fallback databases.
-
-## 5. CI deployment validation
-For database/security changes, require:
-- clean PostgreSQL provisioning through `npm run db:provision`;
-- idempotent rerun against the same database;
-- migration journal verification;
-- role attribute and membership checks;
-- RLS/FORCE RLS checks;
-- application table/sequence privilege checks;
-- SECURITY DEFINER function owner/search_path/EXECUTE checks;
-- platform administrator bootstrap verification;
-- backend typecheck/lint/build;
-- unit tests;
-- PostgreSQL integration tests;
-- Flutter validation when frontend deployment boundaries are affected;
-- Docker build/security scan when the backend image is affected.
-
-Do not declare deployment readiness from source-code review alone.
-
-## 6. Vercel
-Repository deployment contract:
-- `vercel.json` owns the build command and SPA rewrite.
-- `scripts/vercel-build.sh` owns Flutter SDK/build setup.
-- `API_BASE_URL` is supplied by the Vercel environment and passed to Flutter with `--dart-define`.
-- Vercel never connects directly to PostgreSQL.
-- Vercel changes require frontend CI and a production/deployment build check.
-
-Never hardcode production API credentials or database credentials into Flutter source.
-
 ## 7. Render
 Repository deployment contract:
-- `render.yaml` defines the backend service shape and uses `autoDeployTrigger: checksPass`.
+- `render.yaml` defines the backend service shape.
 - `Dockerfile` defines the production image and includes compiled migration assets.
-- `scripts/render-start.sh` starts the application only.
-- `DB_PROVISIONING_DATABASE_URL` and `DB_MIGRATION_DATABASE_URL` are deployment-stage credentials and must never be runtime credentials.
+- `scripts/render-start.sh` runs the documented Free Render development provisioning stage, then starts the application.
+- `DB_PROVISIONING_DATABASE_URL` and `DB_MIGRATION_DATABASE_URL` are deployment-stage credentials and must never be runtime credentials in real production.
 - `DATABASE_URL` identifies `erp_app`.
 - `PLATFORM_DATABASE_URL` identifies `erp_platform_executor`.
 - health validation uses `/api/v1/health/live`.
@@ -99,7 +63,7 @@ Render builds image
   ↓
 scripts/render-start.sh
   ↓
-npm run db:provision:compiled
+node dist/infrastructure/database/provision.js
   ↓
 provisioning succeeds
   ↓
@@ -118,10 +82,9 @@ The following development-only Render environment variables are required:
 - `PLATFORM_ADMIN_USERNAME`
 - `PLATFORM_ADMIN_PASSWORD`
 - `PLATFORM_ADMIN_EMAIL`
+- `PLATFORM_ADMIN_RESET_PASSWORD=false` normally; use `true` only for an intentional one-shot password recovery/reset.
 
 This deliberately relaxes the deployment credential boundary for the current Free Render development stage. These privileged credentials must be removed from the web-service runtime environment before real production deployment.
-
-On paid Render web services, move `npm run db:provision:compiled` to the native pre-deploy command and return `scripts/render-start.sh` to application startup only. On self-hosted production, run the same provisioner in the deployment pipeline with privileged credentials isolated from the application runtime.
 
 ## 8. Database migration safety
 Before changing a migration or role policy:
@@ -193,9 +156,9 @@ The migration source of truth is the combination of:
 - `src/infrastructure/database/migrations/meta/_journal.json`
 - `src/infrastructure/database/migrate.ts`
 
-A new SQL migration is **not deployable merely because the .sql file exists**. Every new migration must be registered in `_journal.json`, and its tag must resolve to an existing SQL file. Run the repository migration runner against the target database and verify the resulting database state.
+A new SQL migration is not deployable merely because the .sql file exists. Every new migration must be registered in `_journal.json`, and its tag must resolve to an existing SQL file. Run the repository migration runner against the target database and verify the resulting database state.
 
-Render production must never rely on web-service startup to run migrations or privileged security bootstrap. On the current Free service, the production GitHub Actions gate is the deployment-stage mechanism. Render is configured to deploy only after CI checks pass, so the database provisioning check completes before the application commit is deployed. On paid Render, use the native pre-deploy command instead.
+For the current Free Render development service, the documented startup provisioning exception is the deployment-stage mechanism. Do not reintroduce the old GitHub provisioning gate or silently move privileged provisioning into the normal application startup path. On paid Render, use the native pre-deploy command instead.
 
 Local/self-hosted deployment uses the same migration runner: `npm run db:migrate`. Therefore a correctly journaled migration will be applied locally when the local database is migrated. Existing databases must also be checked for drift because deployment behavior depends on their actual migration history and schema state.
 
@@ -204,7 +167,7 @@ Local/self-hosted deployment uses the same migration runner: `npm run db:migrate
 2. Register the migration in `_journal.json`.
 3. Confirm `migrate.ts` discovers and applies it.
 4. Run clean PostgreSQL migration/integration tests.
-5. Ensure production provisioning credentials are available only as GitHub Actions secrets.
+5. Ensure production provisioning credentials are available only in the deployment stage.
 6. Provision the target production database before application deployment.
 7. Inspect the live target policy/schema state.
 8. Deploy the application.
