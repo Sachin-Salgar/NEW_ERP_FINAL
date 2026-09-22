@@ -181,8 +181,10 @@ class AuthService extends ChangeNotifier {
         lastLoginError = 'Login could not be completed. Please try again.';
         return false;
       }
-      await loadAccessibleModules(baseUrl);
-      await fetchEffectivePermissions(baseUrl);
+      if (contextType == 'tenant') {
+        await loadAccessibleModules(baseUrl);
+        await fetchEffectivePermissions(baseUrl);
+      }
       notifyListeners();
       return true;
     } on TimeoutException {
@@ -418,8 +420,10 @@ class AuthService extends ChangeNotifier {
         return false;
       }
     }
-    await loadAccessibleModules(baseUrl);
-    await fetchEffectivePermissions(baseUrl);
+    if (contextType == 'tenant') {
+      await loadAccessibleModules(baseUrl);
+      await fetchEffectivePermissions(baseUrl);
+    }
     return true;
   }
 
