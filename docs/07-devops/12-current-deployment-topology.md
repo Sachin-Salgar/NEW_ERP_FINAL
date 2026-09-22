@@ -116,46 +116,67 @@ The intended logical contract remains:
 
 No normal web runtime may use the privileged provider owner.
 
-## 6. Database migration lifecycle
+## 6. Database provisioning lifecycle
+
+The canonical database lifecycle is provider-independent:
+
+```text
+Database available
+      ↓
+npm run db:provision
+      ↓
+Preflight
+      ↓
+Migrations
+      ↓
+Security/RLS bootstrap
+      ↓
+Platform administrator bootstrap
+      ↓
+Verification
+      ↓
+Database READY
+      ↓
+Backend starts
+```
+
+The provisioner uses:
+- `DB_PROVISIONING_DATABASE_URL`: privileged provisioning/security operator.
+- `DB_MIGRATION_DATABASE_URL`: migration/object-creating role, normally `erp`.
+- `DATABASE_URL`: runtime application role, normally `erp_app`.
+
+The three connections must target the same database. Privileged provisioning
+credentials are deployment-stage credentials and are never placed in the web
+runtime.
 
 ### Local
-1. Start PostgreSQL 17.
-2. Configure `.env.local`.
-3. Diagnose with `npm run db:diagnose`.
-4. Run migrations using the documented migration role.
-5. Run `npm run db:security-bootstrap` using the privileged local operator connection.
-6. Start the application with `DATABASE_URL=erp_app`.
-7. Run the canonical local startup/validation workflow.
+
+Use the same `npm run db:provision` command against the local PostgreSQL
+database. No separate manual migration/security/bootstrap sequence is supported.
 
 ### CI
-GitHub PostgreSQL integration creates a disposable PostgreSQL 17 environment, separates migration/application/bootstrap credentials, runs migrations and platform-security bootstrap, seeds deterministic fixtures, starts the backend, and executes Flutter Web E2E tests.
 
-CI is the clean-database regression authority for role/RLS/deployment-boundary behavior.
+CI provisions a disposable PostgreSQL database through the same canonical
+pipeline, then runs the application/integration/E2E validation.
 
-### Render production
-Production provisioning is an operator action, not application startup:
-1. Provision/verify database roles using the Render-managed owner/operator.
-2. Run migrations with the intended migration credential.
-3. Run the platform-security bootstrap with the privileged operator credential.
-4. Verify role attributes, memberships, RLS, function ownership, function EXECUTE grants, and application grants.
-5. Configure the web service with only runtime credentials.
-6. Deploy the application.
-7. Validate health and authentication.
+### Render
 
-Never place `PLATFORM_SECURITY_DATABASE_URL` in the web service.
+Paid Render services should run `npm run db:provision:compiled` as the
+pre-deploy command. Render runs pre-deploy separately from the running web
+service and documents it for database migrations and other release tasks.
 
-## 7. Production database changes
-A production schema change must not rely on web-service startup.
+The current Render web service is Free, so native pre-deploy is unavailable.
+The repository therefore keeps provisioning out of `scripts/render-start.sh`.
+A deployment automation mechanism must provide the provisioning stage before
+production releases; the web runtime must never receive the privileged
+provisioning credential.
 
-Before release:
-1. Run CI migration and security tests against clean PostgreSQL.
-2. Verify the migration's expected object owner and privileges.
-3. Apply the migration using the documented operator/migration path.
-4. Run the platform-security verification.
-5. Deploy the application.
-6. Validate health, authentication, authorization, and relevant business operations.
+### Existing database
 
-The repository's current Render setup does not expose a privileged migration command in the web startup path. A dedicated operator/deployment path must be used for production schema changes.
+The same pipeline is safe to rerun. Applied migrations are skipped, security
+bootstrap converges on the declared role/RLS contract, platform-admin seeding
+does not overwrite an existing administrator password, and final verification
+must pass.
 
 ## 8. Seed data
 `scripts/seed-custom-tenant.ts` is a controlled deployment-test fixture, not general production initialization.
