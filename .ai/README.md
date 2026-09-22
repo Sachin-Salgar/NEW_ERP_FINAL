@@ -167,3 +167,7 @@ Render deployment mode is environment-specific. On the current Free Render devel
 A database is not green until the canonical provisioner has completed and verification has passed. A successful Docker build or backend health check alone is insufficient.
 
 Before database/deployment implementation, read `.ai/contracts/database-provisioning.md` and the authoritative DevOps/security documents.
+
+## Platform navigation contract
+
+Platform-context sessions are separate from tenant navigation. In platform context, the main application sidebar exposes Platform Administration and does not expose tenant Settings. The platform route is /platform. If a platform session reaches /dashboard or any /settings URL, including after browser refresh or deep-link navigation, the router redirects it to /platform. Tenant sessions continue to use normal Dashboard and Settings navigation; tenant Settings remains branch-aware.
