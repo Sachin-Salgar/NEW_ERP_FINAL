@@ -913,7 +913,7 @@ class _PlatformAdministrationScreenState
               ),
             ),
           ),
-        if (_tenants.isEmpty) const _Empty(message: 'No tenants found.'),
+        if (_tenantData.isEmpty) const _Empty(message: 'No tenants found.'),
       ],
     ),
   );
@@ -939,7 +939,7 @@ class _PlatformAdministrationScreenState
               ),
             ),
           ),
-        if (_tenants.isEmpty)
+        if (_tenantData.isEmpty)
           const _Empty(message: 'Create a tenant before configuring modules.'),
       ],
     ),
@@ -972,7 +972,7 @@ class _PlatformAdministrationScreenState
               ),
             ),
           ),
-        if (_members.isEmpty)
+        if (_memberData.isEmpty)
           const _Empty(message: 'No platform members found.'),
       ],
     ),
@@ -1011,7 +1011,7 @@ class _PlatformAdministrationScreenState
               ),
             ),
           ),
-        if (_roles.isEmpty) const _Empty(message: 'No platform roles found.'),
+        if (_roleData.isEmpty) const _Empty(message: 'No platform roles found.'),
       ],
     ),
   );
