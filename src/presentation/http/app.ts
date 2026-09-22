@@ -34,6 +34,7 @@ import { SecurityAdministrationService } from '../../application/services/securi
 import { AuditQueryService } from '../../application/services/audit-query-service.js';
 import { TenantAdministrationService } from '../../application/services/tenant-administration-service.js';
 import { TenantBootstrapService } from '../../application/services/tenant-bootstrap-service.js';
+import { IdentityProvisioningService } from '../../application/services/identity-provisioning-service.js';
 import { PlatformAuthorizationService } from '../../application/services/platform-authorization-service.js';
 import { PostgresTaxRepository } from '../../infrastructure/database/repositories/postgres-tax-repository.js';
 import { PostgresFinanceRepository } from '../../infrastructure/database/repositories/postgres-finance-repository.js';
@@ -448,7 +449,8 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
     authorizationService,
     moduleAccessService,
   );
-  const tenantAdministrationService = new TenantAdministrationService(pool, config.TENANT_CONTEXT_KEY);
+  const tenantAdministrationService = new TenantAdministrationService(pool, config.TENANT_CONTEXT_KEY, repository);
+  const identityProvisioningService = new IdentityProvisioningService(pool, config.TENANT_CONTEXT_KEY, passwordHasher);
   const tenantBootstrapService = new TenantBootstrapService(repository, passwordHasher, transactionRunner);
 
   const accountSecurityRepository = new PostgresAccountSecurityRepository(pool, config.TENANT_CONTEXT_KEY);
@@ -515,6 +517,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   app.decorate('securityAdministrationService', securityAdministrationService);
   app.decorate('auditQueryService', auditQueryService);
   app.decorate('tenantAdministrationService', tenantAdministrationService);
+  app.decorate('identityProvisioningService', identityProvisioningService);
   app.decorate('tenantBootstrapService', tenantBootstrapService);
   app.decorate('platformAuthorizationService', platformAuthorizationService);
   app.decorate('customerService', customerService);
