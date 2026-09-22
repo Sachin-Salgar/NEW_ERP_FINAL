@@ -146,7 +146,7 @@ The three credential boundaries are explicit:
 
 The privileged provisioning credential must never be exposed to the web runtime.
 
-`PLATFORM_SECURITY_DATABASE_URL` and any manual sequence of migration/security/seed commands are legacy architecture. AI must not reintroduce them.
+Manual sequences of migration/security/seed commands are not supported. AI must not reintroduce them.
 
 Render web startup is runtime-only. On paid Render services the provisioner belongs in the native pre-deploy stage; the current Free plan cannot run that stage, so production automation requires an external/deployment mechanism or a paid service. Never put privileged provisioning back into `scripts/render-start.sh`.
 
