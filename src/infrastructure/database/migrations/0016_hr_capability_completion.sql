@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS public.hr_employee_documents (
  issued_on date, expiry_date date, status varchar(20) NOT NULL DEFAULT 'ACTIVE', metadata jsonb NOT NULL DEFAULT '{}', created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS public.hr_employee_relations (
- id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES public.hr_tenants(id) ON DELETE CASCADE,
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
  employee_id uuid NOT NULL REFERENCES public.hr_employees(id) ON DELETE CASCADE, case_type varchar(60) NOT NULL, subject varchar(200) NOT NULL,
  details jsonb NOT NULL DEFAULT '{}', status varchar(30) NOT NULL DEFAULT 'OPEN', resolution text, created_at timestamptz NOT NULL DEFAULT now(), closed_at timestamptz
 );
