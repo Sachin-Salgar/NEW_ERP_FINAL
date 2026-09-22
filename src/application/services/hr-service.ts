@@ -326,4 +326,20 @@ export class HrService {
   });
  }
 
+
+ async cancelLeave(c:HrContext,id:string,reason:string){
+  await this.auth(c,'leave_cancellation','create'); if(!isUuid(id)||!reason?.trim())throw new ValidationError('Leave request and cancellation reason are required.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const req=(await client.query("SELECT * FROM public.hr_leave_requests WHERE id=$1 AND tenant_id=$2 FOR UPDATE",[id,c.tenantId])).rows[0]; if(!req)throw new NotFoundError('Leave request not found.');
+   if(!['APPROVED','PENDING'].includes(req.status))throw new ValidationError('Leave request is not cancellable.');
+   if(req.status==='APPROVED'){
+    const year=new Date(req.start_date).getUTCFullYear();
+    await client.query("UPDATE public.hr_leave_balances SET used=GREATEST(0,used-$1) WHERE tenant_id=$2 AND employee_id=$3 AND leave_type_id=$4 AND year=$5",[req.days,c.tenantId,req.employee_id,req.leave_type_id,year]);
+    await client.query("INSERT INTO public.hr_leave_transactions(id,tenant_id,employee_id,leave_type_id,year,transaction_type,amount,reference_id,reason,created_by) VALUES($1,$2,$3,$4,$5,'CANCELLATION',$6,$7,$8,$9)",[uuidV7(),c.tenantId,req.employee_id,req.leave_type_id,year,req.days,id,reason,c.userId]);
+   }
+   await client.query("UPDATE public.hr_leave_requests SET status='CANCELLED',cancelled_at=NOW() WHERE id=$1 AND tenant_id=$2",[id,c.tenantId]);
+   return (await client.query("INSERT INTO public.hr_leave_cancellations(id,tenant_id,leave_request_id,reason,status,approved_by,approved_at) VALUES($1,$2,$3,$4,'APPROVED',$5,NOW()) RETURNING *",[uuidV7(),c.tenantId,id,reason,c.userId])).rows[0];
+  });
+ }
+
 }
