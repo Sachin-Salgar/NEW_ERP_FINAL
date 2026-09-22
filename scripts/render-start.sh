@@ -8,15 +8,10 @@ if [ "${NODE_ENV:-production}" = "production" ] && [ -n "${PLATFORM_SECURITY_DAT
   exit 1
 fi
 
-# Render's current service is on the free plan, where the native pre-deploy
-# command is unavailable. Therefore database preparation is a deployment gate
-# immediately before the server starts. If either step fails, the new instance
-# never becomes healthy and Render keeps the last successful deployment live.
-echo "==> Running database migrations..."
-node dist/infrastructure/database/migrate.js
-
-echo "==> Seeding/verifying platform administrator..."
-node dist/infrastructure/database/platform-admin-seed.js
-
-echo "==> Database preparation completed. Starting ERP server..."
+# Database migrations are deliberately NOT executed by the web process.
+# Render's canonical deployment contract applies migrations before the
+# application deploy (paid pre-deploy command or operator migration step).
+# Running them here would execute DDL using the runtime application role and
+# can fail under the ERP database-role security model.
+echo "==> Starting ERP server..."
 exec node dist/main.js
