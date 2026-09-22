@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -263,6 +263,25 @@ export async function runMigrations(databaseUrl?: string, sslMode?: DatabaseSslM
 
       const migrationDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
       const journalEntries = await readMigrationJournal();
+      const journalTags = new Set(journalEntries.map((entry) => entry.tag));
+      if (journalTags.size !== journalEntries.length) {
+        throw new Error('Migration journal contains duplicate migration tags.');
+      }
+
+      const migrationDirEntries = readdirSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations'), {
+        withFileTypes: true,
+      });
+      const sqlMigrationTags = migrationDirEntries
+        .filter((entry) => entry.isFile() && entry.name.endsWith('.sql'))
+        .map((entry) => entry.name.slice(0, -4))
+        .sort();
+      const unjournaledMigrations = sqlMigrationTags.filter((tag) => !journalTags.has(tag));
+      if (unjournaledMigrations.length > 0) {
+        throw new Error(
+          `Migration SQL file(s) are not registered in _journal.json: ${unjournaledMigrations.join(', ')}`,
+        );
+      }
+
       const firstEntry = journalEntries[0];
       if (!firstEntry) {
         throw new Error('Migration journal must contain at least one migration.');
