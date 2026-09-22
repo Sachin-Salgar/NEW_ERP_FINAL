@@ -8,4 +8,8 @@ if [ "${NODE_ENV:-production}" = "production" ] && [ -n "${PLATFORM_SECURITY_DAT
   exit 1
 fi
 
+# Ensure the default platform administrator exists after the database schema/security bootstrap.
+# This operation is idempotent and never overwrites an existing administrator password.
+node dist/infrastructure/database/platform-admin-seed.js
+
 exec node dist/main.js
