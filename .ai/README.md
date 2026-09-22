@@ -144,11 +144,11 @@ The three credential boundaries are explicit:
 - `DB_MIGRATION_DATABASE_URL`: object-creating migration role, normally `erp`.
 - `DATABASE_URL`: runtime application connection, normally `erp_app`.
 
-The privileged provisioning credential must never be exposed to the web runtime.
+The privileged provisioning credential must not be exposed to the web runtime in real production. The current Free Render development deployment intentionally supplies it to the startup deployment stage because native pre-deploy is unavailable; this exception must be removed before real production.
 
 Manual sequences of migration/security/seed commands are not supported. AI must not reintroduce them.
 
-Render web startup is runtime-only. On paid Render services the provisioner belongs in the native pre-deploy stage; the current Free plan cannot run that stage, so production automation requires an external/deployment mechanism or a paid service. Never put privileged provisioning back into `scripts/render-start.sh`.
+Render deployment mode is environment-specific. On the current Free Render development service, `scripts/render-start.sh` runs the canonical provisioner first and starts the application only after provisioning succeeds. This intentionally exposes deployment credentials during startup for development only. On paid Render, move the provisioner to native pre-deploy; on self-hosted production, run it in the isolated deployment pipeline. Remove privileged provisioning credentials from the web runtime before real production.
 
 A database is not green until the canonical provisioner has completed and verification has passed. A successful Docker build or backend health check alone is insufficient.
 

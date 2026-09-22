@@ -5,13 +5,29 @@ services:
     repo: https://github.com/Sachin-Salgar/NEW_ERP_FINAL.git
     branch: main
     region: singapore
-    # Free Render has no native pre-deploy command. Render must wait for the
-    # GitHub production-provision check, which runs the canonical provisioner
-    # before Render is allowed to deploy this commit.
-    autoDeployTrigger: checksPass
+    # Development-stage Free Render deployment:
+    # scripts/render-start.sh runs the canonical database provisioner first,
+    # then starts the application only after provisioning succeeds.
+    # When moving to paid Render, move the provisioner to preDeployCommand.
+    autoDeployTrigger: commit
     dockerfilePath: ./Dockerfile
     dockerCommand: sh /app/scripts/render-start.sh
     healthCheckPath: /api/v1/health/live
-    # The web process is runtime-only. Never place DB_PROVISIONING_DATABASE_URL
-    # or DB_MIGRATION_DATABASE_URL in Render runtime environment variables.
-    envVars: []
+    envVars:
+      # Deployment-stage provisioning credentials. These are intentionally
+      # supplied to the Free Render service during development only.
+      - key: DB_PROVISIONING_DATABASE_URL
+        sync: false
+      - key: DB_MIGRATION_DATABASE_URL
+        sync: false
+      # Runtime application connection (erp_app).
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL_MODE
+        value: require
+      - key: PLATFORM_ADMIN_USERNAME
+        sync: false
+      - key: PLATFORM_ADMIN_PASSWORD
+        sync: false
+      - key: PLATFORM_ADMIN_EMAIL
+        sync: false
