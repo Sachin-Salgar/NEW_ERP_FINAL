@@ -280,7 +280,9 @@ const platformAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
     { preHandler: requirePlatformContext('platform.security.manage') },
     async (request) => {
       const body = policyBody.parse(request.body);
-      const client = await fastify.dbPool.connect();
+      const platformPool = platformExecutor(request);
+      if (!platformPool) throw new Error('Platform database executor is not configured.');
+      const client = await platformPool.connect();
       try {
         await client.query('BEGIN');
         const result = await client.query(
