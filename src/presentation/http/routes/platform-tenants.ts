@@ -35,17 +35,32 @@ const platformTenantRoutes: FastifyPluginAsync = async (fastify) => {
     { preHandler: requirePlatformContext('platform.modules.manage') },
     async (request) => {
       const tenantId = request.params.tenantId;
-      const result = await request.server.dbPool.query(
-        `SELECT m.id, m.code, m.name, m.module_group AS "moduleGroup", m.description,
-                m.icon, m.route, m.is_core AS "isCore", m.sort_order AS "sortOrder",
-                COALESCE(tm.enabled, false) AS enabled,
-                tm.enabled_at AS "enabledAt", tm.disabled_at AS "disabledAt"
-           FROM modules m
-           LEFT JOIN tenant_modules tm ON tm.module_id = m.id AND tm.tenant_id = $1
-          ORDER BY m.sort_order, m.name`,
-        [tenantId],
-      );
-      return { success: true, tenantId, modules: result.rows };
+      const platformPool = platformExecutor(request);
+      if (!platformPool) throw new Error('Platform database executor is not configured.');
+      const client = await platformPool.connect();
+      try {
+        await client.query('BEGIN');
+        // tenant_modules is FORCE RLS. Platform administration must deliberately
+        // scope the executor transaction to the target tenant instead of bypassing RLS.
+        await client.query("SELECT set_config('app.current_tenant_id', $1, true)", [tenantId]);
+        const result = await client.query(
+          `SELECT m.id, m.code, m.name, m.module_group AS "moduleGroup", m.description,
+                  m.icon, m.route, m.is_core AS "isCore", m.sort_order AS "sortOrder",
+                  COALESCE(tm.enabled, false) AS enabled,
+                  tm.enabled_at AS "enabledAt", tm.disabled_at AS "disabledAt"
+             FROM modules m
+             LEFT JOIN tenant_modules tm ON tm.module_id = m.id AND tm.tenant_id = $1
+            ORDER BY m.sort_order, m.name`,
+          [tenantId],
+        );
+        await client.query('COMMIT');
+        return { success: true, tenantId, modules: result.rows };
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
     },
   );
 
@@ -64,6 +79,9 @@ const platformTenantRoutes: FastifyPluginAsync = async (fastify) => {
       const client = await platformPool.connect();
       try {
         await client.query('BEGIN');
+        // Scope tenant_modules FORCE RLS and authorize platform audit writes explicitly.
+        await client.query("SELECT set_config('app.current_tenant_id', $1, true)", [tenantId]);
+        await client.query("SELECT set_config('app.platform_audit_enabled', 'true', true)");
         const moduleResult = await client.query(
           `SELECT id, code, name, module_group AS "moduleGroup", description, icon, route,
                   is_core AS "isCore", sort_order AS "sortOrder"
