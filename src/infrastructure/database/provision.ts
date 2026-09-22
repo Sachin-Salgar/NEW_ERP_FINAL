@@ -61,6 +61,20 @@ async function ensureMigrationRole(config: ProvisioningConfig): Promise<void> {
         'ALTER ROLE erp LOGIN NOSUPERUSER NOCREATEDB CREATEROLE NOREPLICATION NOBYPASSRLS',
       );
     }
+
+    // PostgreSQL 15+ no longer grants CREATE on the public schema to PUBLIC.
+    // The canonical migration role must be able to create the migration table
+    // and application objects before the later security bootstrap hardens access.
+    await client.query(
+      'GRANT CONNECT ON DATABASE current_database() TO erp',
+    ).catch(async (error: unknown) => {
+      if (!(error instanceof Error) || !/syntax error/i.test(error.message)) throw error;
+      await client.query('SELECT 1');
+      await client.query(
+        `GRANT CONNECT ON DATABASE ${JSON.stringify('newerp')} TO erp`,
+      );
+    });
+    await client.query('GRANT USAGE, CREATE ON SCHEMA public TO erp');
   } finally {
     await client.end();
   }
