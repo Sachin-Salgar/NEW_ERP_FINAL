@@ -214,6 +214,17 @@ const hrRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get('/hr/analytics/workforce',{preHandler:[requireAuth]},async request=>({success:true,...await fastify.hrService.workforceSummary(context(request))}));
 
+  fastify.post('/hr/attendance/:id/evaluate',{preHandler:[requireAuth]},async request=>({success:true,attendance:await fastify.hrService.evaluateAttendance(context(request),requestParam(request.params,'id')??'')}));
+  fastify.post('/hr/missing-punch/:id/resolve',{preHandler:[requireAuth]},async request=>{const b=request.body as Record<string,unknown>;return{success:true,case:await fastify.hrService.resolveMissingPunch(context(request),requestParam(request.params,'id')??'',String(b.resolutionType) as any,typeof b.reason==='string'?b.reason:undefined)};});
+  fastify.post('/hr/attendance/import',{preHandler:[requireAuth]},async request=>{const b=request.body as any;return{success:true,batch:await fastify.hrService.importAttendance(context(request),String(b.source??'IMPORT'),Array.isArray(b.rows)?b.rows:[])}}); 
+  fastify.post('/hr/leave/policy-run',{preHandler:[requireAuth]},async request=>{const b=request.body as any;return{success:true,run:await fastify.hrService.runLeavePolicy(context(request),Number(b.year))}});
+  fastify.post('/hr/payroll-runs/:id/validate',{preHandler:[requireAuth]},async request=>({success:true,validation:await fastify.hrService.validatePayroll(context(request),requestParam(request.params,'id')??'')}));
+  fastify.post('/hr/payroll-runs/:id/statutory-calculate',{preHandler:[requireAuth]},async request=>({success:true,calculations:await fastify.hrService.calculateStatutory(context(request),requestParam(request.params,'id')??'')}));
+  fastify.post('/hr/payroll-runs/:id/reverse',{preHandler:[requireAuth]},async request=>{const b=request.body as any;return{success:true,reversal:await fastify.hrService.reversePayroll(context(request),requestParam(request.params,'id')??'',String(b.reason??''))}});
+  fastify.get('/hr/leave/calendar',{preHandler:[requireAuth]},async request=>{const q=request.query as any;return{success:true,items:await fastify.hrService.leaveCalendar(context(request),String(q.startDate??''),String(q.endDate??''))}});
+  fastify.get('/hr/analytics/:report',{preHandler:[requireAuth]},async request=>{const q=request.query as any;return{success:true,items:await fastify.hrService.analyticsReport(context(request),String((request.params as any).report),typeof q.startDate==='string'?q.startDate:undefined,typeof q.endDate==='string'?q.endDate:undefined)}});
+  fastify.post('/hr/attendance/finalize-period',{preHandler:[requireAuth]},async request=>{const b=request.body as any;return{success:true,result:await fastify.hrService.finalizeAttendancePeriod(context(request),String(b.startDate),String(b.endDate))}});
+
 };
 
 export default hrRoutes;
