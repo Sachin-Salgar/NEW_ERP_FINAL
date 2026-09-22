@@ -229,6 +229,7 @@ const hrRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/hr/job-offers/:id/onboard',{preHandler:[requireAuth]},async request=>({success:true,result:await fastify.hrService.onboardingFromOffer(context(request),requestParam(request.params,'id')??'')}));
   fastify.get('/hr/ess/me',{preHandler:[requireAuth]},async request=>({success:true,...await fastify.hrService.ess(context(request))}));
   fastify.post('/hr/compliance/sweep',{preHandler:[requireAuth]},async request=>{const b=request.body as any;return{success:true,result:await fastify.hrService.complianceSweep(context(request),Number(b.days??30))}});
+  fastify.post('/hr/leave-requests/:id/cancel',{preHandler:[requireAuth]},async request=>{const b=request.body as any;return{success:true,cancellation:await fastify.hrService.cancelLeave(context(request),requestParam(request.params,'id')??'',String(b.reason??''))}});
 
 };
 
