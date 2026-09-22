@@ -63,6 +63,8 @@ AI workflow files in `.ai/` explain **how an AI coding assistant should navigate
 
 ### Platform administration and module entitlement contract
 - All platform-administration data reads and writes must execute through `platformExecutor(request)` (the platform database executor), not the tenant/runtime `dbPool`, because platform-context RLS is distinct from tenant context. This applies to platform members, roles, permissions, security policy, and audit APIs as well as tenant module entitlements.
+- Platform authorization itself (`validateContext`, `hasPermission`, and platform tenant listing) must also use the dedicated platform executor connection. Decorating `platformDbPool` after application construction is not sufficient; services created during application construction must receive the platform pool explicitly.
+- `tenant_modules` is FORCE RLS. Platform module reads/writes must run in an executor transaction with `app.current_tenant_id` set to the target tenant; never grant `BYPASSRLS` merely to make platform administration work. Platform audit reads/writes must set `app.platform_audit_enabled=true` in the same transaction because `audit_events` is FORCE RLS.
 - Platform bootstrap/migrations must be idempotent and synchronize the protected `platform_owner` role with the complete canonical platform permission set, including `platform.modules.manage`, so upgrades repair older installations.
 
 - Platform context is separate from tenant context and uses platform permissions.
