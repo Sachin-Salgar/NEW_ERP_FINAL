@@ -55,6 +55,25 @@ const platformAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
     return { success: true, members: result.rows };
   });
 
+  fastify.get('/platform/identities', { preHandler: requirePlatformContext('platform.members.manage') }, async () => {
+    const result = await fastify.dbPool.query(
+      `SELECT i.id, i.status,
+              MAX(CASE WHEN li.identifier_type = 'username' THEN li.identifier::text END) AS username,
+              MAX(CASE WHEN li.identifier_type = 'email' THEN li.identifier::text END) AS email
+         FROM identities i
+         LEFT JOIN auth_login_identifiers li
+           ON li.identity_id = i.id AND li.is_active = true
+        WHERE i.status = 'active'
+          AND NOT EXISTS (
+            SELECT 1 FROM platform_memberships pm
+             WHERE pm.identity_id = i.id AND pm.status <> 'revoked'
+          )
+        GROUP BY i.id, i.status
+        ORDER BY username, email`,
+    );
+    return { success: true, identities: result.rows };
+  });
+
   fastify.post<{ Body: { identityId: string; roleIds?: string[] } }>(
     '/platform/members',
     { preHandler: requirePlatformContext('platform.members.manage') },
