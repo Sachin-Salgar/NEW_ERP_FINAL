@@ -149,7 +149,7 @@ These variables are used by development, testing, or PostgreSQL tooling but are 
 | Variable | Purpose |
 |---|---|
 | \`PLATFORM_DATABASE_URL\` | Dedicated PostgreSQL connection URL for platform procedure execution. Required in production and must use the separately provisioned \`erp_platform_executor\` credential. |
-| \`PLATFORM_SECURITY_DATABASE_URL\` | Privileged PostgreSQL connection URL used only by the explicit platform-security bootstrap command. It is not an application runtime credential. |
+| \`DB_PROVISIONING_DATABASE_URL\` | Privileged PostgreSQL connection URL used only by the explicit platform-security bootstrap command. It is not an application runtime credential. |
 | \`TEST_DATABASE_URL\` | Explicit PostgreSQL connection URL used by integration tests. Tests fail rather than silently creating/selecting another database when it is absent. |
 | \`PGHOST\`, \`PGPORT\`, \`PGDATABASE\`, \`PGUSER\`, \`PGPASSWORD\` | Optional standard PostgreSQL client/tooling variables used by local scripts or administrative tooling. They are not authoritative application database configuration; the backend uses \`DATABASE_URL\`. |
 
