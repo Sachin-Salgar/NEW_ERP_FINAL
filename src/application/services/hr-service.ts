@@ -280,4 +280,50 @@ export class HrService {
   });
  }
 
+
+ async updateAccess(c:HrContext,employeeId:string,action:'SUSPEND'|'REVOKE'|'RESTORE',reason?:string){
+  await this.auth(c,'employee','grant_access'); if(!isUuid(employeeId))throw new ValidationError('Invalid employee id.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const e=(await client.query("SELECT id,user_id FROM public.hr_employees WHERE id=$1 AND tenant_id=$2",[employeeId,c.tenantId])).rows[0]; if(!e)throw new NotFoundError('Employee not found.'); if(!e.user_id)throw new ValidationError('Employee has no ERP access.');
+   const status=action==='SUSPEND'?'suspended':action==='REVOKE'?'inactive':'active';
+   await client.query("UPDATE public.users SET status=$1 WHERE id=$2 AND tenant_id=$3",[status,e.user_id,c.tenantId]);
+   await client.query("INSERT INTO public.hr_access_history(id,tenant_id,employee_id,user_id,action,reason,changed_by) VALUES($1,$2,$3,$4,$5,$6,$7)",[uuidV7(),c.tenantId,employeeId,e.user_id,action,reason??null,c.userId]);
+   return {employeeId,userId:e.user_id,action,status};
+  });
+ }
+ async onboardingFromOffer(c:HrContext,offerId:string){
+  await this.auth(c,'onboarding','create'); if(!isUuid(offerId))throw new ValidationError('Invalid offer id.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const offer=(await client.query("SELECT o.*,a.candidate_id,a.requisition_id,c.name,c.email,c.phone FROM public.hr_job_offers o JOIN public.hr_applications a ON a.id=o.application_id JOIN public.hr_candidates c ON c.id=a.candidate_id WHERE o.id=$1 AND o.tenant_id=$2 AND o.status='ACCEPTED'",[offerId,c.tenantId])).rows[0];
+   if(!offer)throw new NotFoundError('Accepted offer not found.');
+   const existing=(await client.query("SELECT * FROM public.hr_applications a WHERE a.id=$1 AND a.hired_employee_id IS NOT NULL",[offer.application_id])).rows[0]; if(existing)throw new ValidationError('Candidate is already converted to an employee.');
+   const employee=(await client.query("INSERT INTO public.hr_employees(id,tenant_id,employee_no,first_name,last_name,personal_email,phone,joining_date,employment_status,employment_type) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'ACTIVE','PERMANENT') RETURNING *",[uuidV7(),c.tenantId,'EMP-'+Date.now(),String(offer.name).split(' ')[0],String(offer.name).split(' ').slice(1).join(' ')||null,offer.email,offer.phone,offer.joining_date??new Date().toISOString().slice(0,10)])).rows[0];
+   await client.query("UPDATE public.hr_applications SET status='HIRED',hired_employee_id=$1 WHERE id=$2",[employee.id,offer.application_id]);
+   const onboarding=(await client.query("INSERT INTO public.hr_onboarding_records(id,tenant_id,employee_id,checklist,status,started_on) VALUES($1,$2,$3,'[]','OPEN',CURRENT_DATE) RETURNING *",[uuidV7(),c.tenantId,employee.id])).rows[0];
+   await client.query("INSERT INTO public.hr_employment_history(id,tenant_id,employee_id,effective_from,action,new_value,created_by) VALUES($1,$2,$3,$4,'JOIN',jsonb_build_object('source','RECRUITMENT','offerId',$5),$6)",[uuidV7(),c.tenantId,employee.id,offer.joining_date??new Date().toISOString().slice(0,10),offerId,c.userId]);
+   return {employee,onboarding};
+  });
+ }
+ async ess(c:HrContext){
+  await this.auth(c,'employee_request','read');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const e=(await client.query("SELECT * FROM public.hr_employees WHERE user_id=$1 AND tenant_id=$2 AND is_deleted=false",[c.userId,c.tenantId])).rows[0]; if(!e)throw new NotFoundError('No employee profile is linked to this ERP user.');
+   const balances=(await client.query("SELECT b.*,t.code,t.name FROM public.hr_leave_balances b JOIN public.hr_leave_types t ON t.id=b.leave_type_id WHERE b.employee_id=$1 AND b.tenant_id=$2 ORDER BY b.year DESC,t.name",[e.id,c.tenantId])).rows;
+   const attendance=(await client.query("SELECT * FROM public.hr_attendance WHERE employee_id=$1 AND tenant_id=$2 ORDER BY attendance_date DESC LIMIT 31",[e.id,c.tenantId])).rows;
+   const payslips=(await client.query("SELECT p.* FROM public.hr_payslips p WHERE p.employee_id=$1 AND p.tenant_id=$2 ORDER BY p.created_at DESC LIMIT 12",[e.id,c.tenantId])).rows;
+   const requests=(await client.query("SELECT * FROM public.hr_employee_requests WHERE employee_id=$1 AND tenant_id=$2 ORDER BY requested_at DESC LIMIT 20",[e.id,c.tenantId])).rows;
+   return {employee:e,leaveBalances:balances,attendance,payslips,requests};
+  });
+ }
+ async complianceSweep(c:HrContext,days=30){
+  await this.auth(c,'compliance','update'); const horizon=Math.max(0,Math.min(365,days));
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const expiry=(await client.query("SELECT id,employee_id,document_type,expiry_date FROM public.hr_employee_documents WHERE tenant_id=$1 AND expiry_date BETWEEN CURRENT_DATE AND CURRENT_DATE+$2::int ORDER BY expiry_date",[c.tenantId,horizon])).rows;
+   for(const d of expiry)await client.query("INSERT INTO public.hr_compliance_tasks(id,tenant_id,employee_id,task_type,due_date,status,details) VALUES($1,$2,$3,'DOCUMENT_EXPIRY',$4,'OPEN',$5)",[uuidV7(),c.tenantId,d.employee_id,d.expiry_date,JSON.stringify({documentId:d.id,documentType:d.document_type})]);
+   const cert=(await client.query("SELECT c.id,e.employee_id,c.expires_on FROM public.hr_training_certificates c JOIN public.hr_training_enrollments e ON e.id=c.enrollment_id WHERE c.tenant_id=$1 AND c.expires_on BETWEEN CURRENT_DATE AND CURRENT_DATE+$2::int",[c.tenantId,horizon])).rows;
+   for(const x of cert)await client.query("INSERT INTO public.hr_compliance_tasks(id,tenant_id,employee_id,task_type,due_date,status,details) VALUES($1,$2,$3,'TRAINING_EXPIRY',$4,'OPEN',$5)",[uuidV7(),c.tenantId,x.employee_id,x.expires_on,JSON.stringify({certificateId:x.id})]);
+   return {documents:expiry.length,certificates:cert.length,horizonDays:horizon};
+  });
+ }
+
 }
