@@ -72,15 +72,21 @@ Provider-managed roles may be supplied by the provider. The provisioning contrac
 
 ## Deployment boundary
 
-The web start command is runtime-only:
+The web start script is currently also the deployment-stage boundary because the project is on the Free Render plan and native Render pre-deploy is unavailable.
+
+For the current development deployment, `scripts/render-start.sh` runs:
 
 ```text
+npm run db:provision:compiled
+  ↓
 node dist/main.js
 ```
 
-It must not run migrations, create roles, alter grants, or execute privileged security bootstrap.
+Provisioning must complete successfully before the application starts. A provisioning failure stops the container and therefore prevents the application from serving traffic.
 
-On Render paid services, the canonical compiled provisioner is intended to run through Render's pre-deploy command. Render documents pre-deploy commands as the deployment stage for tasks such as database migrations, and they run separately from the running service. On the current Render Free service, native pre-deploy is unavailable. The Free deployment therefore uses the GitHub Actions production provisioning gate and Render's **After CI Checks Pass** auto-deploy mode: the gate waits for the other commit checks, runs `npm run db:provision:compiled` with GitHub Actions production secrets, and only then allows Render to deploy the commit. This is a deployment-stage mechanism, not web startup. Never reintroduce provisioning into `render-start.sh`.
+This is an intentional development-stage exception: `DB_PROVISIONING_DATABASE_URL` and `DB_MIGRATION_DATABASE_URL` are supplied to the Render service so the startup deployment stage can execute the canonical provisioner. These credentials must not be retained in a real production web runtime.
+
+When moving to paid Render, run the compiled provisioner through Render's native pre-deploy command and keep the web start command runtime-only. When moving to self-hosted production, run the same canonical provisioner in the deployment pipeline using an isolated privileged credential.
 
 ## Verification requirements
 
