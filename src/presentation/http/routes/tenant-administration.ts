@@ -292,6 +292,35 @@ const tenantAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
       return { success: true, access };
     },
   );
+  fastify.post<{ Params: { userId: string; branchId: string } }>(
+    '/tenants/current/members/:userId/branches/:branchId/access',
+    { preHandler: [requireAuth, requirePermission('tenant.member.update')] },
+    async (request) => {
+      if (!request.tenantId) throw new ValidationError('Tenant context is required.');
+      const assigned = await request.server.tenantAdministrationService.assignUserToBranch(
+        request.tenantId,
+        request.params.userId,
+        request.params.branchId,
+      );
+      if (!assigned) throw new NotFoundError('User or active branch not found.');
+      return { success: true, assigned: true };
+    },
+  );
+  fastify.delete<{ Params: { userId: string; branchId: string } }>(
+    '/tenants/current/members/:userId/branches/:branchId/access',
+    { preHandler: [requireAuth, requirePermission('tenant.member.update')] },
+    async (request) => {
+      if (!request.tenantId) throw new ValidationError('Tenant context is required.');
+      const revoked = await request.server.tenantAdministrationService.revokeUserBranchAccess(
+        request.tenantId,
+        request.params.userId,
+        request.params.branchId,
+      );
+      if (!revoked) throw new NotFoundError('User branch access not found.');
+      return { success: true, revoked: true };
+    },
+  );
+
   fastify.post<{ Params: { userId: string } }>(
     '/tenants/current/members/:userId/invite',
     { preHandler: [requireAuth, requirePermission('tenant.member.update')] },
