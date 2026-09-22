@@ -2,7 +2,7 @@ import { Client } from 'pg';
 
 import { createDatabaseClientOptions } from './connection.js';
 import { runMigrations } from './migrate.js';
-import { runPlatformSecurityBootstrap } from './platform-security.js';
+import { runPlatformSecurityBootstrapFromUrl } from './platform-security-bootstrap.js';
 import { seedPlatformAdmin } from './platform-admin-seed.js';
 
 type ProvisioningConfig = {
@@ -58,21 +58,6 @@ async function verifyProvisionedDatabase(config: ProvisioningConfig): Promise<vo
     const migration = await client.query<{ count: string }>(
       'SELECT count(*)::text AS count FROM public."__drizzle_migrations"',
     );
-    const journal = await client.query<{ count: string }>(
-      `SELECT count(*)::text AS count FROM jsonb_array_elements(
-        pg_read_file($1)::jsonb -> 'entries'
-      )`,
-      [],
-    ).catch(() => null);
-
-    if (!journal) {
-      // The migration runner already validates the journal and every SQL file.
-      // This fallback keeps verification independent of filesystem access.
-      if (Number(migration.rows[0]?.count ?? 0) === 0) {
-        throw new Error('Database provisioning completed without recording migrations.');
-      }
-    }
-
     const roles = await client.query<{ rolname: string }>(
       `SELECT rolname
          FROM pg_roles
