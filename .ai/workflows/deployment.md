@@ -43,7 +43,6 @@ Credential boundaries:
 
 The provisioner must verify that all three URLs target the same database. Never put the provisioning credential in the web runtime.
 
-
 ## 4. Local deployment
 Use:
 ```powershell
@@ -82,7 +81,7 @@ Never hardcode production API credentials or database credentials into Flutter s
 
 ## 7. Render
 Repository deployment contract:
-- `render.yaml` defines the backend service shape.
+- `render.yaml` defines the backend service shape and uses `autoDeployTrigger: checksPass`.
 - `Dockerfile` defines the production image and includes compiled migration assets.
 - `scripts/render-start.sh` starts the application only.
 - `DB_PROVISIONING_DATABASE_URL` and `DB_MIGRATION_DATABASE_URL` are deployment-stage credentials and must never be runtime credentials.
@@ -90,9 +89,36 @@ Repository deployment contract:
 - `PLATFORM_DATABASE_URL` identifies `erp_platform_executor`.
 - health validation uses `/api/v1/health/live`.
 
-On paid Render web services, run `npm run db:provision:compiled` as the native pre-deploy command. Render documents pre-deploy as the stage for database migrations and other release prerequisites, and it runs separately from the running service. The current Free web service does not support pre-deploy; this is a provider-plan limitation. Do not compensate by running privileged provisioning from web startup.
+### Current Free Render deployment gate
+The current Render web service is Free and therefore cannot use Render's native pre-deploy command. The repository uses an external deployment-stage gate instead:
 
-The repository's provider-independent database contract remains the same for Render, local PostgreSQL, CI, and other supported PostgreSQL environments.
+```text
+Git push to main
+  ↓
+GitHub CI checks
+  ↓
+production-provision check waits for the other commit checks
+  ↓
+npm run db:provision:compiled
+  ↓
+Render configured as "After CI Checks Pass"
+  ↓
+Render builds/deploys the exact commit
+  ↓
+/api/v1/health/live
+```
+
+The production provisioning workflow uses GitHub Actions secrets only:
+- `PROD_DB_PROVISIONING_DATABASE_URL`
+- `PROD_DB_MIGRATION_DATABASE_URL`
+- `PROD_DATABASE_URL`
+- `PROD_PLATFORM_ADMIN_USERNAME`
+- `PROD_PLATFORM_ADMIN_PASSWORD`
+- `PROD_PLATFORM_ADMIN_EMAIL`
+
+These secrets must never be copied into Render runtime environment variables.
+
+On paid Render web services, the same canonical compiled provisioner may instead run as the native pre-deploy command. The provider-independent provisioning contract does not change.
 
 ## 8. Database migration safety
 Before changing a migration or role policy:
@@ -115,9 +141,7 @@ Documentation/ADR impact review
   ↓
 CI validation
   ↓
-Database migration/operator preparation
-  ↓
-Production DB validation
+Production database provisioning
   ↓
 Render deployment
   ↓
@@ -129,7 +153,8 @@ Authentication smoke test
   ↓
 Targeted business smoke tests
 ```
-Database changes must be applied before an application version that depends on them, unless the migration is explicitly backward compatible.
+
+Database changes must be applied before an application version that depends on them.
 
 ## 10. Failure rules
 Stop rather than weakening security when:
@@ -167,19 +192,18 @@ The migration source of truth is the combination of:
 
 A new SQL migration is **not deployable merely because the .sql file exists**. Every new migration must be registered in `_journal.json`, and its tag must resolve to an existing SQL file. Run the repository migration runner against the target database and verify the resulting database state.
 
-Render production is deliberately different from local development: the Render web-service startup does **not** run migrations or privileged security bootstrap. A schema migration must therefore be applied to Render PostgreSQL before deploying application code that depends on it, using the documented operator/migration workflow or a properly configured Render pre-deploy command. Never assume a successful container build/start means the production schema has been migrated.
+Render production must never rely on web-service startup to run migrations or privileged security bootstrap. On the current Free service, the production GitHub Actions gate is the deployment-stage mechanism. Render is configured to deploy only after CI checks pass, so the database provisioning check completes before the application commit is deployed. On paid Render, use the native pre-deploy command instead.
 
-For RLS/security migrations, inspect the **live target database** after deployment. Verify `pg_policies`, RLS/FORCE RLS state, grants, ownership, and the transaction-local settings required by the application. A migration that changes an existing policy must explicitly drop/replace the actual existing policy name; do not assume the policy name in the source migration matches the policy currently present in the target database.
-
-Local/self-hosted deployment uses the same migration runner: `npm run db:migrate`. Therefore a correctly journaled migration will be applied locally when the local database is migrated. A fresh local database should be rebuilt/migrated in CI before declaring the migration complete. Existing databases must also be checked for drift because deployment behavior depends on their actual migration history and schema state.
+Local/self-hosted deployment uses the same migration runner: `npm run db:migrate`. Therefore a correctly journaled migration will be applied locally when the local database is migrated. Existing databases must also be checked for drift because deployment behavior depends on their actual migration history and schema state.
 
 ### Required pre-deployment checklist for database changes
 1. Add the SQL migration.
 2. Register the migration in `_journal.json`.
 3. Confirm `migrate.ts` discovers and applies it.
 4. Run clean PostgreSQL migration/integration tests.
-5. Run the migration against the target production database before application deployment, or use an explicitly configured pre-deploy migration step.
-6. Inspect the live target policy/schema state.
-7. Deploy the application.
-8. Perform authentication and targeted smoke tests.
-9. Record migration state and provider-specific evidence in the deployment audit.
+5. Ensure production provisioning credentials are available only as GitHub Actions secrets.
+6. Provision the target production database before application deployment.
+7. Inspect the live target policy/schema state.
+8. Deploy the application.
+9. Perform authentication and targeted smoke tests.
+10. Record migration state and provider-specific evidence.
