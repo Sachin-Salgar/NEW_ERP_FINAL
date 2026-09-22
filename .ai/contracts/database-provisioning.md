@@ -80,7 +80,7 @@ node dist/main.js
 
 It must not run migrations, create roles, alter grants, or execute privileged security bootstrap.
 
-On Render paid services, the canonical compiled provisioner is intended to run through Render's pre-deploy command. Render documents pre-deploy commands as the deployment stage for tasks such as database migrations, and they run separately from the running service. On the current Render Free service, native pre-deploy is unavailable; this is a provider-plan limitation, not a reason to reintroduce provisioning into web startup.
+On Render paid services, the canonical compiled provisioner is intended to run through Render's pre-deploy command. Render documents pre-deploy commands as the deployment stage for tasks such as database migrations, and they run separately from the running service. On the current Render Free service, native pre-deploy is unavailable. The Free deployment therefore uses the GitHub Actions production provisioning gate and Render's **After CI Checks Pass** auto-deploy mode: the gate waits for the other commit checks, runs `npm run db:provision:compiled` with GitHub Actions production secrets, and only then allows Render to deploy the commit. This is a deployment-stage mechanism, not web startup. Never reintroduce provisioning into `render-start.sh`.
 
 ## Verification requirements
 
