@@ -165,4 +165,119 @@ export class HrService {
   });
  }
 
+
+ async resolveMissingPunch(c:HrContext,id:string,resolution:'REGULARIZED'|'ABSENT'|'OFF'|'LEAVE',reason?:string){
+  await this.auth(c,'missing_punch_case','update'); if(!isUuid(id))throw new ValidationError('Invalid missing punch case id.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const q=await client.query("UPDATE public.hr_missing_punch_cases SET status='RESOLVED',resolution_type=$1,resolved_at=NOW(),resolved_by=$2,reason=COALESCE($3,reason) WHERE id=$4 AND tenant_id=$5 AND status='OPEN' RETURNING *",[resolution,c.userId,reason??null,id,c.tenantId]);
+   if(!q.rowCount)throw new NotFoundError('Open missing punch case not found.'); return q.rows[0];
+  });
+ }
+ async importAttendance(c:HrContext,source:string,rows:Array<{employeeId:string;punchAt:string;direction:'IN'|'OUT';externalReference?:string}>){
+  await this.auth(c,'attendance_import_batch','create'); if(!source||!Array.isArray(rows))throw new ValidationError('Attendance import source and rows are required.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const batch=(await client.query("INSERT INTO public.hr_attendance_import_batches(id,tenant_id,source,row_count,created_by) VALUES($1,$2,$3,$4,$5) RETURNING *",[uuidV7(),c.tenantId,source,rows.length,c.userId])).rows[0];
+   let ok=0,errors=0;
+   for(const row of rows){
+    try{
+     if(!isUuid(row.employeeId)||!row.punchAt||!['IN','OUT'].includes(row.direction))throw new Error('Invalid attendance row');
+     const at=new Date(row.punchAt); if(Number.isNaN(at.getTime()))throw new Error('Invalid punch timestamp');
+     await client.query("INSERT INTO public.hr_attendance_import_rows(id,tenant_id,batch_id,employee_id,punch_at,direction,external_reference,status) VALUES($1,$2,$3,$4,$5,$6,$7,'IMPORTED')",[uuidV7(),c.tenantId,batch.id,row.employeeId,at,row.direction,row.externalReference??null]);
+     await client.query("INSERT INTO public.hr_attendance_punches(id,tenant_id,employee_id,punched_at,direction,source,device_reference) VALUES($1,$2,$3,$4,$5,$6,$7)",[uuidV7(),c.tenantId,row.employeeId,at,row.direction,source,row.externalReference??null]);
+     const date=at.toISOString().slice(0,10),field=row.direction==='IN'?'check_in':'check_out';
+     await client.query("INSERT INTO public.hr_attendance(id,tenant_id,employee_id,attendance_date,"+field+",status,source) VALUES($1,$2,$3,$4,$5,'PRESENT',$6) ON CONFLICT(tenant_id,employee_id,attendance_date) DO UPDATE SET "+field+"=EXCLUDED."+field+",source=EXCLUDED.source,updated_at=NOW()",[uuidV7(),c.tenantId,row.employeeId,date,at,source]);
+     ok++;
+    }catch(e){errors++;await client.query("INSERT INTO public.hr_attendance_import_rows(id,tenant_id,batch_id,status,error_message) VALUES($1,$2,$3,'ERROR',$4)",[uuidV7(),c.tenantId,batch.id,e instanceof Error?e.message:'Invalid row']);}
+   }
+   return (await client.query("UPDATE public.hr_attendance_import_batches SET success_count=$2,error_count=$3,status=$4 WHERE id=$1 RETURNING *",[batch.id,ok,errors,errors?'PARTIAL':'COMPLETED'])).rows[0];
+  });
+ }
+ async evaluateAttendance(c:HrContext,attendanceId:string){
+  await this.auth(c,'attendance','update'); if(!isUuid(attendanceId))throw new ValidationError('Invalid attendance id.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const a=(await client.query("SELECT a.*,s.start_time,s.end_time,s.grace_minutes,s.overtime_after_minutes FROM public.hr_attendance a LEFT JOIN public.hr_shifts s ON s.id=a.shift_id WHERE a.id=$1 AND a.tenant_id=$2",[attendanceId,c.tenantId])).rows[0];
+   if(!a)throw new NotFoundError('Attendance record not found.');
+   const old=a.status; let status='PRESENT';
+   if(!a.check_in&&!a.check_out)status='ABSENT'; else if(!a.check_in||!a.check_out)status='MISSING_PUNCH';
+   else if(a.start_time){const actual=new Date(a.check_in).getUTCHours()*60+new Date(a.check_in).getUTCMinutes();const [h,m]=String(a.start_time).slice(0,5).split(':').map(Number);if(actual>h*60+m+Number(a.grace_minutes??0))status='LATE';}
+   if(a.check_in&&a.check_out){const mins=Math.max(0,Math.round((new Date(a.check_out).getTime()-new Date(a.check_in).getTime())/60000)-Number(a.break_minutes??0));await client.query("UPDATE public.hr_attendance SET worked_minutes=$1,overtime_minutes=GREATEST(0,$1-480),status=$2,updated_at=NOW() WHERE id=$3 AND tenant_id=$4",[mins,status,a.id,c.tenantId]);}
+   else await client.query("UPDATE public.hr_attendance SET status=$1,updated_at=NOW() WHERE id=$2 AND tenant_id=$3",[status,a.id,c.tenantId]);
+   if(old!==status)await client.query("INSERT INTO public.hr_attendance_state_history(id,tenant_id,attendance_id,from_status,to_status,reason,changed_by) VALUES($1,$2,$3,$4,$5,'RULE_EVALUATION',$6)",[uuidV7(),c.tenantId,a.id,old,status,c.userId]);
+   if(status==='MISSING_PUNCH')await client.query("INSERT INTO public.hr_missing_punch_cases(id,tenant_id,employee_id,attendance_id,attendance_date,missing_direction) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING",[uuidV7(),c.tenantId,a.employee_id,a.id,a.attendance_date,a.check_in?'OUT':'IN']);
+   return (await client.query("SELECT * FROM public.hr_attendance WHERE id=$1",[a.id])).rows[0];
+  });
+ }
+ async runLeavePolicy(c:HrContext,year:number){
+  await this.auth(c,'leave_policy_run','create'); if(!Number.isInteger(year))throw new ValidationError('Valid year is required.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const types=(await client.query("SELECT * FROM public.hr_leave_types WHERE tenant_id=$1 AND status='ACTIVE'",[c.tenantId])).rows;
+   const employees=(await client.query("SELECT id,joining_date FROM public.hr_employees WHERE tenant_id=$1 AND is_deleted=false AND employment_status='ACTIVE'",[c.tenantId])).rows;
+   for(const e of employees)for(const t of types){
+    const b=(await client.query("SELECT * FROM public.hr_leave_balances WHERE tenant_id=$1 AND employee_id=$2 AND leave_type_id=$3 AND year=$4 FOR UPDATE",[c.tenantId,e.id,t.id,year])).rows[0];
+    if(!b)continue;
+    const carry=Math.min(Number(b.opening)+Number(b.accrued)-Number(b.used)-Number(b.encashed),Number(t.carry_forward_limit??0));
+    await client.query("UPDATE public.hr_leave_balances SET opening=$1,accrued=0,used=0,encashed=0,adjusted=adjusted+$2 WHERE id=$3",[Math.max(0,carry),Math.max(0,carry),b.id]);
+    if(t.expiry_months)await client.query("DELETE FROM public.hr_leave_transactions WHERE tenant_id=$1 AND employee_id=$2 AND leave_type_id=$3 AND year<$4 AND transaction_type='ACCRUAL'",[c.tenantId,e.id,t.id,year]);
+   }
+   return (await client.query("INSERT INTO public.hr_leave_policy_runs(id,tenant_id,year,run_date,carry_forward_applied,expiry_applied,status,created_by) VALUES($1,$2,$3,CURRENT_DATE,true,true,'COMPLETED',$4) RETURNING *",[uuidV7(),c.tenantId,year,c.userId])).rows[0];
+  });
+ }
+ async validatePayroll(c:HrContext,runId:string){
+  await this.auth(c,'payroll','calculate'); if(!isUuid(runId))throw new ValidationError('Invalid payroll run id.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   await client.query("DELETE FROM public.hr_payroll_validation_results WHERE payroll_run_id=$1 AND tenant_id=$2",[runId,c.tenantId]);
+   const issues:any[]=[]; const run=(await client.query("SELECT * FROM public.hr_payroll_runs WHERE id=$1 AND tenant_id=$2",[runId,c.tenantId])).rows[0];
+   if(!run)throw new NotFoundError('Payroll run not found.');
+   if(Number(run.net_total)<0)issues.push(['ERROR','NEGATIVE_NET','Payroll net total cannot be negative',null]);
+   if(Number(run.employee_count)!==(await client.query("SELECT count(*)::int n FROM public.hr_payslips WHERE payroll_run_id=$1 AND tenant_id=$2",[runId,c.tenantId])).rows[0].n)issues.push(['ERROR','EMPLOYEE_COUNT_MISMATCH','Payroll employee count does not match payslips',null]);
+   const dup=(await client.query("SELECT employee_id,count(*) n FROM public.hr_payslips WHERE payroll_run_id=$1 AND tenant_id=$2 GROUP BY employee_id HAVING count(*)>1",[runId,c.tenantId])).rows;
+   for(const d of dup)issues.push(['ERROR','DUPLICATE_PAYSLIP','Duplicate payslip for employee',d.employee_id]);
+   for(const x of issues)await client.query("INSERT INTO public.hr_payroll_validation_results(id,tenant_id,payroll_run_id,severity,code,message,employee_id) VALUES($1,$2,$3,$4,$5,$6,$7)",[uuidV7(),c.tenantId,runId,...x]);
+   const status=issues.some(x=>x[0]==='ERROR')?'FAILED':'PASSED'; await client.query("UPDATE public.hr_payroll_runs SET validation_status=$1 WHERE id=$2 AND tenant_id=$3",[status,runId,c.tenantId]);
+   return {status,issues};
+  });
+ }
+ async calculateStatutory(c:HrContext,runId:string){
+  await this.auth(c,'statutory_calculation','create'); if(!isUuid(runId))throw new ValidationError('Invalid payroll run id.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const run=(await client.query("SELECT * FROM public.hr_payroll_runs WHERE id=$1 AND tenant_id=$2",[runId,c.tenantId])).rows[0]; if(!run)throw new NotFoundError('Payroll run not found.');
+   await client.query("DELETE FROM public.hr_statutory_calculations WHERE payroll_run_id=$1 AND tenant_id=$2",[runId,c.tenantId]);
+   const rules=(await client.query("SELECT * FROM public.hr_statutory_rules WHERE tenant_id=$1 AND status='ACTIVE' AND effective_from<=CURRENT_DATE AND (effective_to IS NULL OR effective_to>=CURRENT_DATE)",[c.tenantId])).rows;
+   const slips=(await client.query("SELECT * FROM public.hr_payslips WHERE payroll_run_id=$1 AND tenant_id=$2",[runId,c.tenantId])).rows; const out=[];
+   for(const s of slips)for(const r of rules){const cfg=r.configuration??{};const baseKey=String(cfg.base??'gross');const base=baseKey==='net'?Number(s.net):baseKey==='basic'?Number((s.earnings??{}).basic??0):Number(s.gross);const cap=cfg.cap==null?base:Math.min(base,Number(cfg.cap));const employeeRate=Number(cfg.employeeRate??0);const employerRate=Number(cfg.employerRate??0);const employeeAmount=Number((cap*employeeRate/100).toFixed(2));const employerAmount=Number((cap*employerRate/100).toFixed(2));out.push((await client.query("INSERT INTO public.hr_statutory_calculations(id,tenant_id,payroll_run_id,employee_id,rule_id,base_amount,employee_amount,employer_amount,calculation) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *",[uuidV7(),c.tenantId,runId,s.employee_id,r.id,cap,employeeAmount,employerAmount,JSON.stringify({base:baseKey,employeeRate,employerRate,cap})])).rows[0]);}
+   return out;
+  });
+ }
+ async reversePayroll(c:HrContext,runId:string,reason:string){
+  await this.auth(c,'payroll','close'); if(!isUuid(runId)||!reason?.trim())throw new ValidationError('Payroll run and reversal reason are required.');
+  return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const run=(await client.query("SELECT * FROM public.hr_payroll_runs WHERE id=$1 AND tenant_id=$2 AND status='CLOSED' FOR UPDATE",[runId,c.tenantId])).rows[0]; if(!run)throw new ValidationError('Only CLOSED payroll can be reversed.');
+   const ref='REV-'+runId.slice(0,8)+'-'+Date.now(); const reversal=(await client.query("INSERT INTO public.hr_payroll_reversals(id,tenant_id,payroll_run_id,reversal_reference,reason,status,reversed_by,reversed_at) VALUES($1,$2,$3,$4,$5,'REVERSED',$6,NOW()) RETURNING *",[uuidV7(),c.tenantId,runId,ref,reason,c.userId])).rows[0];
+   await client.query("UPDATE public.hr_payroll_runs SET status='REVERSED',reversed_at=NOW() WHERE id=$1 AND tenant_id=$2",[runId,c.tenantId]);
+   await client.query("UPDATE public.hr_finance_postings SET status='REVERSED',posted_at=COALESCE(posted_at,NOW()) WHERE payroll_run_id=$1 AND tenant_id=$2",[runId,c.tenantId]);
+   return reversal;
+  });
+ }
+ async leaveCalendar(c:HrContext,startDate:string,endDate:string){
+  await this.auth(c,'leave_request','read'); return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>(await client.query("SELECT r.id,r.employee_id,r.leave_type_id,r.start_date,r.end_date,r.days,r.status,e.employee_no,e.first_name,e.last_name,t.code leave_code,t.name leave_name FROM public.hr_leave_requests r JOIN public.hr_employees e ON e.id=r.employee_id JOIN public.hr_leave_types t ON t.id=r.leave_type_id WHERE r.tenant_id=$1 AND r.status='APPROVED' AND r.start_date<=COALESCE($3,r.start_date) AND r.end_date>=COALESCE($2,r.end_date) ORDER BY r.start_date,e.employee_no",[c.tenantId,startDate||null,endDate||null])).rows);}
+ async analyticsReport(c:HrContext,report:string,startDate?:string,endDate?:string){
+  await this.auth(c,'analytics','read'); return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const s=startDate||'1900-01-01',e=endDate||'2999-12-31';
+   if(report==='attrition')return (await client.query("SELECT date_trunc('month',exit_date)::date month,count(*)::int exits FROM public.hr_employees WHERE tenant_id=$1 AND exit_date BETWEEN $2 AND $3 GROUP BY 1 ORDER BY 1",[c.tenantId,s,e])).rows;
+   if(report==='absenteeism')return (await client.query("SELECT attendance_date,status,count(*)::int count FROM public.hr_attendance WHERE tenant_id=$1 AND attendance_date BETWEEN $2 AND $3 AND status IN ('ABSENT','MISSING_PUNCH') GROUP BY attendance_date,status ORDER BY attendance_date",[c.tenantId,s,e])).rows;
+   if(report==='leave_utilization')return (await client.query("SELECT t.code,t.name,b.year,b.accrued,b.used,b.encashed,(b.opening+b.accrued+b.adjusted-b.used-b.encashed) available FROM public.hr_leave_balances b JOIN public.hr_leave_types t ON t.id=b.leave_type_id WHERE b.tenant_id=$1 ORDER BY b.year DESC,t.name",[c.tenantId])).rows;
+   if(report==='overtime')return (await client.query("SELECT employee_id,work_date,SUM(minutes)::int minutes,SUM(amount)::numeric amount FROM public.hr_overtime_records WHERE tenant_id=$1 AND work_date BETWEEN $2 AND $3 GROUP BY employee_id,work_date ORDER BY work_date",[c.tenantId,s,e])).rows;
+   if(report==='payroll_cost')return (await client.query("SELECT p.code,r.status,r.gross_total,r.deduction_total,r.net_total FROM public.hr_payroll_runs r JOIN public.hr_payroll_periods p ON p.id=r.payroll_period_id WHERE r.tenant_id=$1 AND p.period_start<=$3 AND p.period_end>=$2 ORDER BY p.period_start",[c.tenantId,s,e])).rows;
+   if(report==='headcount')return (await client.query("SELECT employment_status,count(*)::int count FROM public.hr_employees WHERE tenant_id=$1 AND is_deleted=false GROUP BY employment_status",[c.tenantId])).rows;
+   throw new ValidationError('Unsupported HR analytics report.');
+  });
+ }
+ async finalizeAttendancePeriod(c:HrContext,startDate:string,endDate:string){
+  await this.auth(c,'attendance','update'); return withTenantContext(this.pool,this.tenantKey,c.tenantId,async client=>{
+   const rows=(await client.query("SELECT id FROM public.hr_attendance WHERE tenant_id=$1 AND attendance_date BETWEEN $2 AND $3 AND finalized=false",[c.tenantId,startDate,endDate])).rows;
+   for(const r of rows)await client.query("UPDATE public.hr_attendance SET finalized=true,updated_at=NOW() WHERE id=$1",[r.id]);
+   return {finalized:rows.length,startDate,endDate};
+  });
+ }
+
 }
