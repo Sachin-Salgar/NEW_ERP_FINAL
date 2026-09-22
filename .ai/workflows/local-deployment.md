@@ -35,7 +35,7 @@ Administrative/bootstrap connection:
 
 Platform/security bootstrap variables:
 - `INTEGRATION_ADMIN_DATABASE_URL=postgresql://postgres@localhost:5432/newerp`
-- `PLATFORM_SECURITY_DATABASE_URL=postgresql://postgres@localhost:5432/newerp`
+- `DB_PROVISIONING_DATABASE_URL=postgresql://postgres@localhost:5432/newerp`
 
 Important rules:
 - `erp_app` is the runtime application role; do not substitute the test role for app runtime.

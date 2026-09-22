@@ -100,59 +100,67 @@ The backend endpoint and CORS allowlist remain deployment configuration concerns
 
 Production is currently deployed using Vercel for Flutter Web, Render for the Fastify backend, and Render PostgreSQL. The architecture remains provider-portable; provider-specific operational facts are recorded in `docs/07-devops/12-current-deployment-topology.md`.
 
-For migration `0009` and later, local/self-hosted and managed-provider
-provisioning are deliberately separated.
+## 11. Canonical Database Provisioning
 
-For local/self-hosted PostgreSQL:
-
-```text
-PostgreSQL available
-  → run npm run db:migrate as erp
-  → run PLATFORM_SECURITY_DATABASE_URL=<privileged operator URL> npm run db:security-bootstrap
-  → start the application with DATABASE_URL using erp_app
-```
-
-For the current Render PostgreSQL deployment, the privileged bootstrap is an operator action and is NOT part of web-service startup:
+All supported PostgreSQL environments use one repository-controlled provisioning
+pipeline. There is no provider-specific manual migration/seed sequence.
 
 ```text
-Render PostgreSQL
-  → create managed credentials named erp, erp_app, erp_platform_executor
-  → use the Render database owner/operator credential only for provisioning
-  → run npm run db:migrate with DATABASE_URL set to the erp credential
-  → run npm run db:security-bootstrap with PLATFORM_SECURITY_DATABASE_URL set to the
-    separate Render database owner/operator credential
-  → verify the platform security matrix
-  → configure the web service with DATABASE_URL=erp_app
-  → configure PLATFORM_DATABASE_URL=erp_platform_executor
-  → start the application
+npm run db:provision
 ```
 
-Render's web service must never receive `PLATFORM_SECURITY_DATABASE_URL`.
-The runtime process uses only `erp_app` for normal database access and
-`erp_platform_executor` for the narrowly scoped platform procedures. The
-privileged operator credential is used outside the application runtime.
+Compiled deployment images use:
 
-Render does not provide PostgreSQL superuser access. The provisioning procedure
-therefore must use only capabilities actually available to the Render database
-owner/operator. If a Render database rejects role creation or another
-operation required by the bootstrap, do not weaken the runtime roles; stop and
-use the Render-managed credential/operator workflow to perform that operation.
+```text
+npm run db:provision:compiled
+```
 
-The current Blueprint intentionally keeps migrations and privileged security
-bootstrap out of `startCommand`. Render's pre-deploy command is appropriate
-for repeatable migrations when a dedicated migration credential can be supplied
-without exposing privileged security-bootstrap credentials to the web runtime.
-The application startup remains responsible only for runtime connectivity and
-security verification.
+The pipeline performs, in order:
 
-The bootstrap transaction normalizes dedicated roles, establishes
-lifecycle-function ownership, applies minimal grants, and verifies the security
-matrix. A failure rolls back the bootstrap and the application startup
-verification refuses to serve traffic.
+```text
+preflight
+  → all journaled migrations
+  → platform security/RLS bootstrap
+  → platform administrator bootstrap
+  → final verification
+  → database ready
+```
 
-Dependency installation in deployment must use the repository lockfile consistently with its manifest and must preserve frozen/reproducible lockfile validation. A stale lockfile is a release defect; disabling frozen-lockfile validation is not an acceptable workaround.
+The pipeline requires three separate connections:
+- `DB_PROVISIONING_DATABASE_URL`: privileged security/provisioning operator.
+- `DB_MIGRATION_DATABASE_URL`: object-creating migration role, normally `erp`.
+- `DATABASE_URL`: runtime application connection, normally `erp_app`.
 
-The repository does not claim production evidence for worker supervision, external providers, key rotation, backup restoration, database-role separation for pre-authentication lookup, registry attestations, or graceful shutdown until those checks are executed in the target environment. Current provider-specific evidence and known role/ownership drift are recorded in `docs/07-devops/13-deployment-audit-2026-09-21.md`.
+The three connections must point to the same target database. The privileged
+provisioning credential must never be exposed to the running application.
+
+A clean database and an existing database use the same pipeline. Migrations are
+journal-driven and idempotent; security/bootstrap converges on the declared
+contract; the platform administrator seed is idempotent and does not overwrite
+an existing administrator password; final verification must pass before the
+database is declared ready.
+
+The backend start command remains runtime-only:
+
+```text
+node dist/main.js
+```
+
+It does not run migrations, create roles, alter grants, or perform privileged
+security bootstrap.
+
+For Render paid services, `npm run db:provision:compiled` is the intended
+pre-deploy command. Render documents pre-deploy as the deployment stage for
+database migrations and other release prerequisites and runs it separately from
+the running web service. The current Free Render service cannot use native
+pre-deploy; this is a provider-plan limitation. The canonical architecture
+must not be weakened by moving privileged provisioning into web startup.
+
+The same repository pipeline is used for local PostgreSQL, CI PostgreSQL,
+Render PostgreSQL, and other supported PostgreSQL providers. Provider-specific
+credential acquisition is configuration; the provisioning sequence and
+verification contract are not provider-specific.
+
 
 ## Cross References
 

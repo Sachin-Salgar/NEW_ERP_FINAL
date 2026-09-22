@@ -116,21 +116,40 @@ python tools/ai/repository_scanner.py
 
 The first command validates the workflow contract. The second refreshes deterministic repository context.
 
-### Render deployment database gate
+### Canonical database provisioning
 
-For the current Render deployment, database preparation is part of the deployment gate and must never be treated as a one-time manual production step.
+`.ai/contracts/database-provisioning.md` is the mandatory AI contract for database initialization, migration, security bootstrap, platform-admin bootstrap, and deployment database readiness.
 
-Required order on every deployment:
+The only supported database orchestration entry point is:
 
-1. Build the Docker image.
-2. Run the compiled migration runner: `node dist/infrastructure/database/migrate.js`.
-3. Run the idempotent platform administrator seed/verification: `node dist/infrastructure/database/platform-admin-seed.js`.
-4. Start the application with `node dist/main.js`.
+```text
+npm run db:provision
+```
 
-The Render web service currently uses the free plan. Render's native pre-deploy command is therefore not available; the repository's `scripts/render-start.sh` is the deployment gate immediately before application start. A failure in migration or platform-admin seeding must stop startup rather than allowing a partially prepared release to serve traffic.
+Compiled deployment images use `npm run db:provision:compiled`.
 
-The Docker image MUST include `src/infrastructure/database/migrations` under `dist/infrastructure/database/migrations` because TypeScript compilation does not copy SQL migration assets. Do not assume that the migration runner has its SQL files merely because `migrate.ts` compiled successfully.
+The canonical pipeline is:
 
-Do not move migrations or platform-admin seeding into ordinary application startup after the server begins listening. Do not expose `PLATFORM_SECURITY_DATABASE_URL` to the web service. Do not manually patch production RLS/schema as a substitute for applying repository migrations.
+```text
+preflight
+  → migrations
+  → security/RLS bootstrap
+  → platform administrator bootstrap
+  → final verification
+  → database ready
+```
 
-Before changing this lifecycle, inspect the actual Render service plan and configuration and the repository Docker build. Validate that the migration runner can see the migration journal and SQL files inside the built image.
+The three credential boundaries are explicit:
+- `DB_PROVISIONING_DATABASE_URL`: privileged provisioning/security connection.
+- `DB_MIGRATION_DATABASE_URL`: object-creating migration role, normally `erp`.
+- `DATABASE_URL`: runtime application connection, normally `erp_app`.
+
+The privileged provisioning credential must never be exposed to the web runtime.
+
+Manual sequences of migration/security/seed commands are not supported. AI must not reintroduce them.
+
+Render web startup is runtime-only. On paid Render services the provisioner belongs in the native pre-deploy stage; the current Free plan cannot run that stage, so production automation requires an external/deployment mechanism or a paid service. Never put privileged provisioning back into `scripts/render-start.sh`.
+
+A database is not green until the canonical provisioner has completed and verification has passed. A successful Docker build or backend health check alone is insufficient.
+
+Before database/deployment implementation, read `.ai/contracts/database-provisioning.md` and the authoritative DevOps/security documents.

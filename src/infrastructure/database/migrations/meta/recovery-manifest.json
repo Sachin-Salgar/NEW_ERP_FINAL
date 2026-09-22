@@ -105,6 +105,11 @@
       "strategy": "forward-only-security",
       "destructiveDownAllowed": false,
       "note": "Enforces one active HR employee mapping per canonical identity/user and makes ERP access history append-only."
+    },
+    "0021_platform_session_rls": {
+      "strategy": "forward-only-security",
+      "destructiveDownAllowed": false,
+      "note": "Allows platform sessions with tenant_id NULL while preserving tenant-scoped session isolation. Recovery is forward-only or restore from backup."
     }
   }
 }

@@ -9,9 +9,12 @@ services:
     dockerfilePath: ./Dockerfile
     dockerCommand: sh /app/scripts/render-start.sh
     healthCheckPath: /api/v1/health/live
-    # Database migrations are NOT part of web startup.
-    # Paid Render web services should use preDeployCommand for migrations.
-    # This Free service requires the documented operator migration workflow
-    # before deploying application code that depends on a new schema.
-    # Never provide PLATFORM_SECURITY_DATABASE_URL to the web service.
+    # Database provisioning is a deployment-stage operation, never web startup.
+    # Paid Render services should configure the pre-deploy command:
+    #   npm run db:provision:compiled
+    # The command requires DB_PROVISIONING_DATABASE_URL, DB_MIGRATION_DATABASE_URL,
+    # DATABASE_URL, and the platform-admin bootstrap values in the deployment environment.
+    # The current Free service cannot use native pre-deploy; do not move provisioning
+    # into render-start.sh. Use an external deployment-stage mechanism until upgraded.
+    # Never expose DB_PROVISIONING_DATABASE_URL to the running web process.
     envVars: []

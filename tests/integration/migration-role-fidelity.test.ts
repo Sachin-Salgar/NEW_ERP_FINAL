@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import { randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { afterAll, describe, expect, it } from 'vitest';
 import { Client } from 'pg';
 
@@ -13,6 +14,11 @@ dotenv.config({ path: '.env.local' });
 const migrationRole = `erp_migration_fidelity_${process.pid}`;
 const migrationPassword = randomBytes(24).toString('base64url');
 const databaseName = `newerp_migration_fidelity_${process.pid}`;
+const expectedMigrationCount = (
+  JSON.parse(
+    readFileSync(new URL('../../src/infrastructure/database/migrations/meta/_journal.json', import.meta.url), 'utf8'),
+  ) as { entries?: unknown[] }
+).entries?.length ?? 0;
 const adminDatabaseUrl = (() => {
   const url = new URL(resolveIntegrationAdminDatabaseUrl());
   url.pathname = '/postgres';
@@ -75,7 +81,7 @@ describe('production-equivalent migration role', () => {
         const migration = await verification.query<{ count: string }>(
           'SELECT count(*)::text AS count FROM public."__drizzle_migrations"',
         );
-        expect(migration.rows[0]?.count).toBe('21');
+        expect(migration.rows[0]?.count).toBe(String(expectedMigrationCount));
         const role = await verification.query<{ rolcanlogin: boolean; rolsuper: boolean; rolcreatedb: boolean; rolcreaterole: boolean; rolbypassrls: boolean }>(
           `SELECT rolcanlogin, rolsuper, rolcreatedb, rolcreaterole, rolbypassrls
            FROM pg_roles WHERE rolname = current_user`,

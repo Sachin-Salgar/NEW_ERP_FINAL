@@ -17,7 +17,6 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "docs:config": "tsx scripts/generate-config-reference.ts",
     "db:verify-recovery": "tsx scripts/verify-migration-recovery.ts",
-    "db:security-bootstrap": "node dist/infrastructure/database/platform-security-bootstrap.js",
     "db:diagnose": "tsx scripts/diagnose-database.ts",
     "seed:custom-tenant": "tsx scripts/seed-custom-tenant.ts",
     "db:generate": "drizzle-kit generate",
@@ -25,7 +24,9 @@
     "db:push": "drizzle-kit push",
     "docker:up": "docker compose up -d postgres",
     "docker:down": "docker compose down -v",
-    "db:seed-platform": "node dist/infrastructure/database/platform-admin-seed.js"
+    "db:seed-platform": "node dist/infrastructure/database/platform-admin-seed.js",
+    "db:provision": "tsx src/infrastructure/database/provision.ts",
+    "db:provision:compiled": "node dist/infrastructure/database/provision.js"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.0",

@@ -2,7 +2,7 @@ import { Pool } from 'pg';
 import bcrypt from 'bcryptjs';
 import { resolveDatabaseUrl } from '../../config/schema.js';
 
-export async function seedPlatformAdmin(): Promise<void> {
+export async function seedPlatformAdmin(databaseUrl?: string, sslMode: 'disable' | 'require' = 'require', sslCa?: string): Promise<void> {
   const username = process.env.PLATFORM_ADMIN_USERNAME?.trim();
   const password = process.env.PLATFORM_ADMIN_PASSWORD;
   const email = process.env.PLATFORM_ADMIN_EMAIL?.trim();
@@ -12,8 +12,8 @@ export async function seedPlatformAdmin(): Promise<void> {
   if (!email || !email.includes('@')) throw new Error('PLATFORM_ADMIN_EMAIL must be a valid email address.');
 
   const pool = new Pool({
-    connectionString: resolveDatabaseUrl(process.env, { forTest: false }),
-    ssl: undefined,
+    connectionString: databaseUrl ?? resolveDatabaseUrl(process.env, { forTest: false }),
+    ssl: sslMode === 'disable' ? false : sslCa ? { ca: sslCa, rejectUnauthorized: true } : { rejectUnauthorized: false },
   });
   const client = await pool.connect();
 
@@ -24,6 +24,15 @@ export async function seedPlatformAdmin(): Promise<void> {
     // transaction and is not persisted in the session.
     await client.query("SELECT set_config('app.platform_audit_enabled', 'true', true)");
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', ['platform-admin-seed-v1']);
+
+    // A clean database must contain the protected system role before the
+    // first platform administrator can be attached to it. Keep this bootstrap
+    // idempotent and refuse to weaken an existing protected role.
+    await client.query(
+      `INSERT INTO platform_roles (code, name, description, is_system, is_deleted)
+       VALUES ('platform_owner', 'Platform Owner', 'Protected platform administrator role', true, false)
+       ON CONFLICT (code) DO NOTHING`,
+    );
 
     const existingPlatform = await client.query<{ identity_id: string }>(
       `SELECT identity_id
@@ -133,15 +142,14 @@ export async function seedPlatformAdmin(): Promise<void> {
       [membershipId],
     );
 
-    const role = await client.query<{ id: string }>(
-      `SELECT id
+    const role = await client.query<{ id: string; is_system: boolean; is_deleted: boolean }>(
+      `SELECT id, is_system, is_deleted
          FROM platform_roles
         WHERE code = 'platform_owner'
-          AND is_system = true
         LIMIT 1`,
     );
-    if (role.rowCount !== 1) {
-      throw new Error('Protected platform_owner role is missing. Run platform security bootstrap first.');
+    if (role.rowCount !== 1 || !role.rows[0].is_system || role.rows[0].is_deleted) {
+      throw new Error('Protected platform_owner role is missing or not marked as an active system role.');
     }
 
     await client.query(
