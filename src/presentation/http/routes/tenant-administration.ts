@@ -238,5 +238,109 @@ const tenantAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
       };
     },
   );
+  fastify.post<{
+    Params: { employeeId: string };
+    Body: { username?: string; email?: string; defaultBranchId?: string | null };
+  }>(
+    '/tenants/current/employees/:employeeId/access',
+    { preHandler: [requireAuth, requirePermission('tenant.member.create')] },
+    async (request, reply) => {
+      if (!request.tenantId || !request.user) throw new ValidationError('Tenant context is required.');
+      const access = await request.server.identityProvisioningService.provisionEmployeeAccess(
+        request.tenantId,
+        request.params.employeeId,
+        request.user.id,
+        request.body ?? {},
+      );
+      await recordSecurityEvent(request, {
+        tenantId: request.tenantId,
+        actorUserId: request.user.id,
+        action: 'tenant.employee.erp_access.grant',
+        resourceType: 'employee',
+        resourceId: request.params.employeeId,
+        outcome: 'success',
+        metadata: { userId: access.userId, identityId: access.identityId },
+      });
+      reply.code(201);
+      return { success: true, access };
+    },
+  );
+  fastify.post<{
+    Params: { employeeId: string; action: 'suspend' | 'revoke' | 'restore' };
+    Body: { reason?: string };
+  }>(
+    '/tenants/current/employees/:employeeId/access/:action',
+    { preHandler: [requireAuth, requirePermission('tenant.member.update')] },
+    async (request) => {
+      if (!request.tenantId || !request.user) throw new ValidationError('Tenant context is required.');
+      const access = await request.server.identityProvisioningService.changeEmployeeAccess(
+        request.tenantId,
+        request.params.employeeId,
+        request.user.id,
+        request.params.action.toUpperCase() as 'SUSPEND' | 'REVOKE' | 'RESTORE',
+        request.body?.reason,
+      );
+      await recordSecurityEvent(request, {
+        tenantId: request.tenantId,
+        actorUserId: request.user.id,
+        action: `tenant.employee.erp_access.${request.params.action}`,
+        resourceType: 'employee',
+        resourceId: request.params.employeeId,
+        outcome: 'success',
+        metadata: { userId: access.userId },
+      });
+      return { success: true, access };
+    },
+  );
+  fastify.post<{ Params: { userId: string; branchId: string } }>(
+    '/tenants/current/members/:userId/branches/:branchId/access',
+    { preHandler: [requireAuth, requirePermission('tenant.member.update')] },
+    async (request) => {
+      if (!request.tenantId) throw new ValidationError('Tenant context is required.');
+      const assigned = await request.server.tenantAdministrationService.assignUserToBranch(
+        request.tenantId,
+        request.params.userId,
+        request.params.branchId,
+      );
+      if (!assigned) throw new NotFoundError('User or active branch not found.');
+      return { success: true, assigned: true };
+    },
+  );
+  fastify.delete<{ Params: { userId: string; branchId: string } }>(
+    '/tenants/current/members/:userId/branches/:branchId/access',
+    { preHandler: [requireAuth, requirePermission('tenant.member.update')] },
+    async (request) => {
+      if (!request.tenantId) throw new ValidationError('Tenant context is required.');
+      const revoked = await request.server.tenantAdministrationService.revokeUserBranchAccess(
+        request.tenantId,
+        request.params.userId,
+        request.params.branchId,
+      );
+      if (!revoked) throw new NotFoundError('User branch access not found.');
+      return { success: true, revoked: true };
+    },
+  );
+
+  fastify.post<{ Params: { userId: string } }>(
+    '/tenants/current/members/:userId/invite',
+    { preHandler: [requireAuth, requirePermission('tenant.member.update')] },
+    async (request) => {
+      if (!request.tenantId) throw new ValidationError('Tenant context is required.');
+      const member = (await request.server.tenantAdministrationService.listUsers(request.tenantId)).find((entry) => entry.id === request.params.userId);
+      if (!member) throw new NotFoundError('Tenant member not found.');
+      await request.server.accountSecurityService.requestPasswordReset(member.email);
+      await recordSecurityEvent(request, {
+        tenantId: request.tenantId,
+        actorUserId: request.user?.id,
+        action: 'tenant.member.invite',
+        resourceType: 'user',
+        resourceId: request.params.userId,
+        outcome: 'success',
+        metadata: {},
+      });
+      return { success: true, invited: true };
+    },
+  );
+
 };
 export default tenantAdministrationRoutes;

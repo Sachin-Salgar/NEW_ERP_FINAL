@@ -33,6 +33,8 @@ import type { UnifiedAuthenticationService } from '../../../application/services
 import type { WorkflowService } from '../../../application/services/workflow-service.js';
 import type { ManufacturingMachineService } from '../../../application/services/manufacturing-machine-service.js';
 import type { ManufacturingExecutionService } from '../../../application/services/manufacturing-execution-service.js';
+import type { HrService } from '../../../application/services/hr-service.js';
+import type { IdentityProvisioningService } from '../../../application/services/identity-provisioning-service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -65,12 +67,14 @@ declare module 'fastify' {
     securityAdministrationService: SecurityAdministrationService;
     auditQueryService: AuditQueryService;
     tenantAdministrationService: TenantAdministrationService;
+    identityProvisioningService: IdentityProvisioningService;
     tenantBootstrapService: TenantBootstrapService;
     platformAuthorizationService: PlatformAuthorizationService;
     unifiedAuthenticationService: UnifiedAuthenticationService;
     workflowService: WorkflowService;
     manufacturingMachineService: ManufacturingMachineService;
     manufacturingExecutionService: ManufacturingExecutionService;
+    hrService: HrService;
   }
   interface FastifyRequest {
     user?: AuthenticatedUser;

@@ -11,7 +11,7 @@ export class TenantAdministrationService {
   constructor(
     private readonly pool: Pool,
     private readonly tenantContextKey = 'app.current_tenant_id',
-    private readonly repository?: CoreEnterpriseRepository,
+    private readonly repository?: Pick<CoreEnterpriseRepository, 'listUsers' | 'listUserBranchAccess' | 'updateUser' | 'assignUserToBranch' | 'revokeUserBranchAccess' | 'activateUser' | 'deactivateUser'>,
   ) {}
 
   async get(tenantId: string) {
@@ -26,7 +26,7 @@ export class TenantAdministrationService {
     return result?.rows?.[0] ?? null;
   }
 
-  private requireRepository(): CoreEnterpriseRepository {
+  private requireRepository(): Pick<CoreEnterpriseRepository, 'listUsers' | 'listUserBranchAccess' | 'updateUser' | 'assignUserToBranch' | 'revokeUserBranchAccess' | 'activateUser' | 'deactivateUser'> {
     if (!this.repository) throw new ValidationError('Tenant administration repository is not configured.');
     return this.repository;
   }
