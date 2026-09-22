@@ -22,7 +22,7 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO erp_platform_executor;
 
 -- Keep future objects safe for platform administration where the provisioning
 -- role creates them under the public schema.
-ALTER DEFAULT PRIVILEGES FOR ROLE erp IN SCHEMA public
+ALTER DEFAULT PRIVILEGES FOR ROLE erp_user IN SCHEMA public
   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO erp_platform_executor;
 ALTER DEFAULT PRIVILEGES FOR ROLE erp IN SCHEMA public
   GRANT USAGE, SELECT ON SEQUENCES TO erp_platform_executor;
