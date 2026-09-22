@@ -31,3 +31,5 @@ jobs:
           git add frontend
           git commit -m "style: format frontend Dart sources"
           git push
+
+# Temporary formatter retained until the frontend formatting gate is clean.
