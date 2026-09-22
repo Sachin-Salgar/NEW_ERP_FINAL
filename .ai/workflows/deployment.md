@@ -43,7 +43,6 @@ Credential boundaries:
 
 The provisioner must verify that all three URLs target the same database. Never put the provisioning credential in the web runtime.
 
-`PLATFORM_SECURITY_DATABASE_URL` is legacy and must not be used by new code.
 
 ## 4. Local deployment
 Use:
