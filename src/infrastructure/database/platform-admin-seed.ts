@@ -2,7 +2,7 @@ import { Pool } from 'pg';
 import bcrypt from 'bcryptjs';
 import { resolveDatabaseUrl } from '../../config/schema.js';
 
-export async function seedPlatformAdmin(): Promise<void> {
+export async function seedPlatformAdmin(databaseUrl?: string, sslMode: 'disable' | 'require' = 'require', sslCa?: string): Promise<void> {
   const username = process.env.PLATFORM_ADMIN_USERNAME?.trim();
   const password = process.env.PLATFORM_ADMIN_PASSWORD;
   const email = process.env.PLATFORM_ADMIN_EMAIL?.trim();
@@ -12,8 +12,8 @@ export async function seedPlatformAdmin(): Promise<void> {
   if (!email || !email.includes('@')) throw new Error('PLATFORM_ADMIN_EMAIL must be a valid email address.');
 
   const pool = new Pool({
-    connectionString: resolveDatabaseUrl(process.env, { forTest: false }),
-    ssl: undefined,
+    connectionString: databaseUrl ?? resolveDatabaseUrl(process.env, { forTest: false }),
+    ssl: sslMode === 'disable' ? false : sslCa ? { ca: sslCa, rejectUnauthorized: true } : { rejectUnauthorized: false },
   });
   const client = await pool.connect();
 
