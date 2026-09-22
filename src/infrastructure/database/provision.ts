@@ -65,15 +65,12 @@ async function ensureMigrationRole(config: ProvisioningConfig): Promise<void> {
     // PostgreSQL 15+ no longer grants CREATE on the public schema to PUBLIC.
     // The canonical migration role must be able to create the migration table
     // and application objects before the later security bootstrap hardens access.
-    await client.query(
-      'GRANT CONNECT ON DATABASE current_database() TO erp',
-    ).catch(async (error: unknown) => {
-      if (!(error instanceof Error) || !/syntax error/i.test(error.message)) throw error;
-      await client.query('SELECT 1');
-      await client.query(
-        `GRANT CONNECT ON DATABASE ${JSON.stringify('newerp')} TO erp`,
-      );
-    });
+    const databaseName = (
+      await client.query<{ database: string }>('SELECT current_database() AS database')
+    ).rows[0]?.database;
+    if (!databaseName) throw new Error('Unable to determine the provisioning database name.');
+    const quotedDatabaseName = `"${databaseName.replaceAll('"', '""')}"`;
+    await client.query(`GRANT CONNECT ON DATABASE ${quotedDatabaseName} TO erp`);
     await client.query('GRANT USAGE, CREATE ON SCHEMA public TO erp');
   } finally {
     await client.end();
