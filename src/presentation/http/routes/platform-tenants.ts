@@ -30,6 +30,93 @@ const platformTenantRoutes: FastifyPluginAsync = async (fastify) => {
     tenants: await request.server.platformAuthorizationService.listTenants(),
   }));
 
+  fastify.get<{ Params: { tenantId: string } }>(
+    '/platform/tenants/:tenantId/modules',
+    { preHandler: requirePlatformContext('platform.modules.manage') },
+    async (request) => {
+      const tenantId = request.params.tenantId;
+      const result = await request.server.dbPool.query(
+        `SELECT m.id, m.code, m.name, m.module_group AS "moduleGroup", m.description,
+                m.icon, m.route, m.is_core AS "isCore", m.sort_order AS "sortOrder",
+                COALESCE(tm.enabled, false) AS enabled,
+                tm.enabled_at AS "enabledAt", tm.disabled_at AS "disabledAt"
+           FROM modules m
+           LEFT JOIN tenant_modules tm ON tm.module_id = m.id AND tm.tenant_id = $1
+          ORDER BY m.sort_order, m.name`,
+        [tenantId],
+      );
+      return { success: true, tenantId, modules: result.rows };
+    },
+  );
+
+  fastify.patch<{
+    Params: { tenantId: string; code: string };
+    Body: { enabled: boolean };
+  }>(
+    '/platform/tenants/:tenantId/modules/:code',
+    { preHandler: requirePlatformContext('platform.modules.manage') },
+    async (request) => {
+      const tenantId = request.params.tenantId;
+      const code = request.params.code.trim();
+      const enabled = request.body.enabled;
+      const client = await fastify.dbPool.connect();
+      try {
+        await client.query('BEGIN');
+        const moduleResult = await client.query(
+          `SELECT id, code, name, module_group AS "moduleGroup", description, icon, route,
+                  is_core AS "isCore", sort_order AS "sortOrder"
+             FROM modules WHERE code = $1 LIMIT 1`,
+          [code],
+        );
+        if (moduleResult.rowCount !== 1) throw new NotFoundError('Module not found.');
+        const module = moduleResult.rows[0];
+        if (!enabled && module.isCore) {
+          throw new ValidationError('Core modules cannot be disabled.');
+        }
+        const tenantResult = await client.query(
+          'SELECT id FROM tenants WHERE id = $1 AND is_deleted = false LIMIT 1',
+          [tenantId],
+        );
+        if (tenantResult.rowCount !== 1) throw new NotFoundError('Tenant not found.');
+        const result = await client.query(
+          `INSERT INTO tenant_modules
+             (tenant_id, module_id, enabled, enabled_at, disabled_at)
+           VALUES ($1, $2, $3, CASE WHEN $3 THEN NOW() ELSE NULL END,
+                   CASE WHEN $3 THEN NULL ELSE NOW() END)
+           ON CONFLICT (tenant_id, module_id) DO UPDATE
+             SET enabled = EXCLUDED.enabled,
+                 enabled_at = CASE WHEN EXCLUDED.enabled THEN NOW() ELSE tenant_modules.enabled_at END,
+                 disabled_at = CASE WHEN EXCLUDED.enabled THEN NULL ELSE NOW() END
+           RETURNING enabled, enabled_at AS "enabledAt", disabled_at AS "disabledAt"`,
+          [tenantId, module.id, enabled],
+        );
+        await client.query(
+          `INSERT INTO audit_events
+            (tenant_id, actor_identity_id, actor_platform_membership_id, context_type,
+             target_tenant_id, action, resource_type, resource_id, outcome, metadata)
+           VALUES (NULL, $1, $2, 'platform', $3, $4, 'tenant_module', $5, 'success',
+                   jsonb_build_object('moduleCode', $6::text, 'enabled', $7::boolean))`,
+          [
+            request.identityId ?? null,
+            request.platformMembershipId ?? null,
+            tenantId,
+            enabled ? 'platform.module.enable' : 'platform.module.disable',
+            module.id,
+            code,
+            enabled,
+          ],
+        );
+        await client.query('COMMIT');
+        return { success: true, tenantId, module: { ...module, ...result.rows[0] } };
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
+    },
+  );
+
   fastify.post<{
     Body: {
       name: string;
