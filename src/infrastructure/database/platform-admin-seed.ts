@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import bcrypt from 'bcryptjs';
-import { resolveDatabaseUrl } from '../../../config/schema.js';
+import { resolveDatabaseUrl } from '../../config/schema.js';
 
 export async function seedPlatformAdmin(): Promise<void> {
   const username = process.env.PLATFORM_ADMIN_USERNAME?.trim();
