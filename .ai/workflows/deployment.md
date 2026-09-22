@@ -146,3 +146,28 @@ For every deployment/infrastructure change, record:
 - unresolved provider-specific drift.
 
 Do not claim green deployment evidence without actual provider/CI evidence.
+
+## 12. Migration journal and provider application rule
+The migration source of truth is the combination of:
+- `src/infrastructure/database/migrations/*.sql`
+- `src/infrastructure/database/migrations/meta/_journal.json`
+- `src/infrastructure/database/migrate.ts`
+
+A new SQL migration is **not deployable merely because the .sql file exists**. Every new migration must be registered in `_journal.json`, and its tag must resolve to an existing SQL file. Run the repository migration runner against the target database and verify the resulting database state.
+
+Render production is deliberately different from local development: the Render web-service startup does **not** run migrations or privileged security bootstrap. A schema migration must therefore be applied to Render PostgreSQL before deploying application code that depends on it, using the documented operator/migration workflow or a properly configured Render pre-deploy command. Never assume a successful container build/start means the production schema has been migrated.
+
+For RLS/security migrations, inspect the **live target database** after deployment. Verify `pg_policies`, RLS/FORCE RLS state, grants, ownership, and the transaction-local settings required by the application. A migration that changes an existing policy must explicitly drop/replace the actual existing policy name; do not assume the policy name in the source migration matches the policy currently present in the target database.
+
+Local/self-hosted deployment uses the same migration runner: `npm run db:migrate`. Therefore a correctly journaled migration will be applied locally when the local database is migrated. A fresh local database should be rebuilt/migrated in CI before declaring the migration complete. Existing databases must also be checked for drift because deployment behavior depends on their actual migration history and schema state.
+
+### Required pre-deployment checklist for database changes
+1. Add the SQL migration.
+2. Register the migration in `_journal.json`.
+3. Confirm `migrate.ts` discovers and applies it.
+4. Run clean PostgreSQL migration/integration tests.
+5. Run the migration against the target production database before application deployment, or use an explicitly configured pre-deploy migration step.
+6. Inspect the live target policy/schema state.
+7. Deploy the application.
+8. Perform authentication and targeted smoke tests.
+9. Record migration state and provider-specific evidence in the deployment audit.
