@@ -25,7 +25,7 @@
     "db:push": "drizzle-kit push",
     "docker:up": "docker compose up -d postgres",
     "docker:down": "docker compose down -v",
-    "db:seed-platform": "tsx scripts/seed-platform.ts"
+    "db:seed-platform": "node dist/infrastructure/database/platform-admin-seed.js"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.0",
