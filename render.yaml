@@ -9,10 +9,9 @@ services:
     dockerfilePath: ./Dockerfile
     dockerCommand: sh /app/scripts/render-start.sh
     healthCheckPath: /api/v1/health/live
-    # Deployment gate:
-    # migrations -> platform-admin seed/verification -> application start.
-    # The current Render service uses the free plan, so Render's native
-    # preDeployCommand is unavailable. Keep the gate in render-start.sh.
-    # The web service must only receive the normal application DATABASE_URL;
-    # privileged platform-security credentials are rejected at startup.
+    # Database migrations are NOT part of web startup.
+    # Paid Render web services should use preDeployCommand for migrations.
+    # This Free service requires the documented operator migration workflow
+    # before deploying application code that depends on a new schema.
+    # Never provide PLATFORM_SECURITY_DATABASE_URL to the web service.
     envVars: []
