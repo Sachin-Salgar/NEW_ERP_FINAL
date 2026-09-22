@@ -25,6 +25,15 @@ export async function seedPlatformAdmin(databaseUrl?: string, sslMode: 'disable'
     await client.query("SELECT set_config('app.platform_audit_enabled', 'true', true)");
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', ['platform-admin-seed-v1']);
 
+    // A clean database must contain the protected system role before the
+    // first platform administrator can be attached to it. Keep this bootstrap
+    // idempotent and refuse to weaken an existing protected role.
+    await client.query(
+      `INSERT INTO platform_roles (code, name, description, is_system, is_deleted)
+       VALUES ('platform_owner', 'Platform Owner', 'Protected platform administrator role', true, false)
+       ON CONFLICT (code) DO NOTHING`,
+    );
+
     const existingPlatform = await client.query<{ identity_id: string }>(
       `SELECT identity_id
          FROM platform_memberships
@@ -133,15 +142,14 @@ export async function seedPlatformAdmin(databaseUrl?: string, sslMode: 'disable'
       [membershipId],
     );
 
-    const role = await client.query<{ id: string }>(
-      `SELECT id
+    const role = await client.query<{ id: string; is_system: boolean; is_deleted: boolean }>(
+      `SELECT id, is_system, is_deleted
          FROM platform_roles
         WHERE code = 'platform_owner'
-          AND is_system = true
         LIMIT 1`,
     );
-    if (role.rowCount !== 1) {
-      throw new Error('Protected platform_owner role is missing. Run platform security bootstrap first.');
+    if (role.rowCount !== 1 || !role.rows[0].is_system || role.rows[0].is_deleted) {
+      throw new Error('Protected platform_owner role is missing or not marked as an active system role.');
     }
 
     await client.query(
