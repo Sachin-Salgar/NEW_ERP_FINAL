@@ -44,7 +44,8 @@ class AppRouterDelegate extends RouterDelegate<String>
   Future<void> setNewRoutePath(String configuration) async {
     var target = normalizePath(configuration);
     if (auth.contextType == 'platform' &&
-        (target == '/dashboard' || target == '/settings' ||
+        (target == '/dashboard' ||
+            target == '/settings' ||
             target.startsWith('/settings/'))) {
       target = '/platform';
     }
@@ -94,7 +95,8 @@ class AppRouterDelegate extends RouterDelegate<String>
   void navigate(String path) {
     var target = normalizePath(path);
     if (auth.contextType == 'platform' &&
-        (target == '/dashboard' || target == '/settings' ||
+        (target == '/dashboard' ||
+            target == '/settings' ||
             target.startsWith('/settings/'))) {
       target = '/platform';
     }
