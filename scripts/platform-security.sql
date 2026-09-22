@@ -79,6 +79,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   public.platform_security_policy
 TO erp_platform_executor;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.audit_events TO erp_platform_executor;
+GRANT SELECT ON TABLE public.auth_login_identifiers, public.user_sessions TO erp_platform_executor;
 -- Normalize platform-role memberships. The database owner may retain provider-managed
 -- administrative membership, but application roles and the dedicated platform roles
 -- must not inherit one another or the procedure-owner role.
