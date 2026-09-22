@@ -21,6 +21,13 @@ class Sidebar extends StatelessWidget {
         .where((item) {
           final permission = item.permissionKey;
           final module = item.moduleCode;
+          // Platform administration is a platform-context capability. Tenant
+          // permissions must not hide it from a valid platform session.
+          if (auth.contextType == 'platform' &&
+              item.path == AppRoutes.platformAdministration.path) {
+            return true;
+          }
+          if (auth.contextType == 'platform') return false;
           return (module == null || auth.hasModule(module)) &&
               (permission == null || auth.hasPermission(permission));
         })
