@@ -144,7 +144,11 @@ function resolveApiVersion(apiPrefix: string): string {
   return match?.[1]?.toLowerCase() ?? 'v1';
 }
 
-export async function createApplication(config: AppConfig, providedPool?: Pool): Promise<FastifyInstance> {
+export async function createApplication(
+  config: AppConfig,
+  providedPool?: Pool,
+  providedPlatformPool?: Pool,
+): Promise<FastifyInstance> {
   const app = Fastify({
     logger: createLogger(config),
     requestIdHeader: 'x-request-id',
@@ -186,6 +190,9 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
 
   applyCorrelationIdHooks(app);
   const pool = providedPool ?? createDatabasePool(config);
+  // Platform authorization must use the dedicated platform executor connection.
+  // The runtime application role is intentionally not the platform authorization boundary.
+  const platformAuthorizationPool = providedPlatformPool ?? pool;
   const queryPerformanceMonitor = new PostgresQueryPerformanceMonitor(pool);
   const auditLogger = new PostgresAuditLogger(pool, {
     tenantContextKey: config.TENANT_CONTEXT_KEY,
@@ -202,7 +209,7 @@ export async function createApplication(config: AppConfig, providedPool?: Pool):
   });
   const repository = new IdentityAwarePostgresPlatformRepository(pool);
   const platformAuthorizationService = new PlatformAuthorizationService(
-    new PostgresPlatformAuthorizationRepository(pool),
+    new PostgresPlatformAuthorizationRepository(platformAuthorizationPool),
   );
   const passwordHasher = new BcryptPasswordHasher();
   const jwtTokenService = new JwtTokenService(config);
