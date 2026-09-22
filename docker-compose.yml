@@ -1,25 +1,44 @@
-version: '3.9'
-
 services:
   postgres:
-    image: postgres:17-alpine
-    container_name: new-erp-postgres
+    image: postgres:18
+    container_name: newerp-postgres
     restart: unless-stopped
-    environment:
-      # Infrastructure-only container. The application does not read these values.
-      # Use .env.local as the single source of truth for application database credentials.
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+    env_file:
+      - .env.local
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U \"$${{POSTGRES_USER:-postgres}\" -d \"$${{POSTGRES_DB:-newerp}\""]
+      interval: 10s
       timeout: 5s
       retries: 10
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - newerp_postgres_data:/var/lib/postgresql
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: newerp-backend
+    restart: unless-stopped
+    env_file:
+      - .env.local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:'+(process.env.PORT||3000)+(process.env.API_PREFIX||'/api/v1')+'/health/live').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))\""
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
 
 volumes:
-  postgres-data:
+  newerp_postgres_data:
+    name: newerp_postgres_data
