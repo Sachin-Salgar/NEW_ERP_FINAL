@@ -62,6 +62,24 @@ GRANT USAGE ON SCHEMA public TO erp_app, erp_platform_executor, erp_procedure_ow
 REVOKE CREATE ON SCHEMA public FROM PUBLIC, erp_app, erp_platform_executor, erp_procedure_owner;
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM erp_platform_executor, erp_procedure_owner;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM erp_platform_executor, erp_procedure_owner;
+
+-- Restore only the platform administration data access required by the
+-- dedicated executor. This role remains NOSUPERUSER/NOBYPASSRLS and does not
+-- receive ownership or access to tenant business tables.
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
+  public.tenants,
+  public.modules,
+  public.tenant_modules,
+  public.identities,
+  public.platform_memberships,
+  public.platform_membership_roles,
+  public.platform_permissions,
+  public.platform_roles,
+  public.platform_role_permissions,
+  public.platform_security_policy
+TO erp_platform_executor;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.audit_events TO erp_platform_executor;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO erp_platform_executor;
 -- Normalize platform-role memberships. The database owner may retain provider-managed
 -- administrative membership, but application roles and the dedicated platform roles
 -- must not inherit one another or the procedure-owner role.
