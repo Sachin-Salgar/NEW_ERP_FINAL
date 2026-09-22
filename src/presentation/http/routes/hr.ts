@@ -225,6 +225,11 @@ const hrRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/hr/analytics/:report',{preHandler:[requireAuth]},async request=>{const q=request.query as any;return{success:true,items:await fastify.hrService.analyticsReport(context(request),String((request.params as any).report),typeof q.startDate==='string'?q.startDate:undefined,typeof q.endDate==='string'?q.endDate:undefined)}});
   fastify.post('/hr/attendance/finalize-period',{preHandler:[requireAuth]},async request=>{const b=request.body as any;return{success:true,result:await fastify.hrService.finalizeAttendancePeriod(context(request),String(b.startDate),String(b.endDate))}});
 
+  fastify.post('/hr/employees/:id/access',{preHandler:[requireAuth]},async request=>{const b=request.body as any;return{success:true,result:await fastify.hrService.updateAccess(context(request),requestParam(request.params,'id')??'',String(b.action) as any,typeof b.reason==='string'?b.reason:undefined)}});
+  fastify.post('/hr/job-offers/:id/onboard',{preHandler:[requireAuth]},async request=>({success:true,result:await fastify.hrService.onboardingFromOffer(context(request),requestParam(request.params,'id')??'')}));
+  fastify.get('/hr/ess/me',{preHandler:[requireAuth]},async request=>({success:true,...await fastify.hrService.ess(context(request))}));
+  fastify.post('/hr/compliance/sweep',{preHandler:[requireAuth]},async request=>{const b=request.body as any;return{success:true,result:await fastify.hrService.complianceSweep(context(request),Number(b.days??30))}});
+
 };
 
 export default hrRoutes;
