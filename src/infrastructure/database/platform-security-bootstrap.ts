@@ -3,18 +3,8 @@ import { Client } from 'pg';
 import { createDatabaseClientOptions } from './connection.js';
 import { runPlatformSecurityBootstrap } from './platform-security.js';
 
-export async function runPlatformSecurityBootstrapFromEnv(): Promise<void> {
-  const databaseUrl = process.env.PLATFORM_SECURITY_DATABASE_URL;
-  if (!databaseUrl) {
-    throw new Error(
-      'PLATFORM_SECURITY_DATABASE_URL is required. Run the platform security bootstrap with a separately provisioned privileged operator credential.',
-    );
-  }
-
-  const sslMode = process.env.DATABASE_SSL_MODE === 'disable' ? 'disable' : 'require';
-  const client = new Client(
-    createDatabaseClientOptions(databaseUrl, sslMode, process.env.DATABASE_SSL_CA),
-  );
+export async function runPlatformSecurityBootstrapFromUrl(databaseUrl: string, sslMode: 'disable' | 'require' = 'require', sslCa?: string): Promise<void> {
+  const client = new Client(createDatabaseClientOptions(databaseUrl, sslMode, sslCa));
   try {
     await client.connect();
     await runPlatformSecurityBootstrap(client, { requireErp: true });
@@ -25,7 +15,7 @@ export async function runPlatformSecurityBootstrapFromEnv(): Promise<void> {
 }
 
 if (process.argv[1] && new URL(import.meta.url).pathname === process.argv[1].replaceAll('\\', '/')) {
-  runPlatformSecurityBootstrapFromEnv().catch((error: unknown) => {
+  runPlatformSecurityBootstrapFromUrl(process.env.DB_PROVISIONING_DATABASE_URL ?? '', process.env.DATABASE_SSL_MODE === 'disable' ? 'disable' : 'require', process.env.DATABASE_SSL_CA).catch((error: unknown) => {
     console.error('Platform security bootstrap failed', error);
     process.exitCode = 1;
   });
