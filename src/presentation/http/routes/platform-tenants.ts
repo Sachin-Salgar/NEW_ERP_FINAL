@@ -59,7 +59,9 @@ const platformTenantRoutes: FastifyPluginAsync = async (fastify) => {
       const tenantId = request.params.tenantId;
       const code = request.params.code.trim();
       const enabled = request.body.enabled;
-      const client = await fastify.dbPool.connect();
+      const platformPool = platformExecutor(request);
+      if (!platformPool) throw new Error('Platform database executor is not configured.');
+      const client = await platformPool.connect();
       try {
         await client.query('BEGIN');
         const moduleResult = await client.query(
