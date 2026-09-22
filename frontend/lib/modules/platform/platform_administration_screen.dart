@@ -17,6 +17,7 @@ class _PlatformAdministrationScreenState extends State<PlatformAdministrationScr
   String? _error;
   List<Map<String, dynamic>> _tenants = [];
   List<Map<String, dynamic>> _members = [];
+  List<Map<String, dynamic>> _identities = [];
   List<Map<String, dynamic>> _roles = [];
   List<Map<String, dynamic>> _permissions = [];
   List<Map<String, dynamic>> _audit = [];
@@ -50,6 +51,7 @@ class _PlatformAdministrationScreenState extends State<PlatformAdministrationScr
       final r = await Future.wait([
         _get('/api/v1/platform/tenants'),
         _get('/api/v1/platform/members'),
+        _get('/api/v1/platform/identities'),
         _get('/api/v1/platform/roles'),
         _get('/api/v1/platform/permissions'),
         _get('/api/v1/platform/security-policy'),
@@ -59,10 +61,11 @@ class _PlatformAdministrationScreenState extends State<PlatformAdministrationScr
       setState(() {
         _tenants = _list(r[0], 'tenants');
         _members = _list(r[1], 'members');
-        _roles = _list(r[2], 'roles');
-        _permissions = _list(r[3], 'permissions');
-        _policy = Map<String, dynamic>.from((r[4]['policy'] as Map?) ?? const {});
-        _audit = _list(r[5], 'events');
+        _identities = _list(r[2], 'identities');
+        _roles = _list(r[3], 'roles');
+        _permissions = _list(r[4], 'permissions');
+        _policy = Map<String, dynamic>.from((r[5]['policy'] as Map?) ?? const {});
+        _audit = _list(r[6], 'events');
         _loading = false;
       });
     } catch (e) {
@@ -250,36 +253,136 @@ class _PlatformAdministrationScreenState extends State<PlatformAdministrationScr
     } catch (e) { _errorSnack(e); }
   }
 
-  Future<void> _editMember(Map<String, dynamic> member) async {
-    var status = member['status']?.toString() ?? 'active';
-    final result = await showDialog<bool>(
+  Future<void> _createMember() async {
+    if (_identities.isEmpty) {
+      _errorSnack('No eligible active identities are available.');
+      return;
+    }
+    final selectedIdentity = await showDialog<String>(
       context: context,
       builder: (dialog) => AlertDialog(
-        title: const Text('Platform membership'),
-        content: StatefulBuilder(builder: (context, setState) => DropdownButtonFormField<String>(
-          initialValue: status, decoration: _input('Status'),
-          items: const [
-            DropdownMenuItem(value: 'active', child: Text('Active')),
-            DropdownMenuItem(value: 'suspended', child: Text('Suspended')),
-            DropdownMenuItem(value: 'revoked', child: Text('Revoked')),
-          ],
-          onChanged: (value) => setState(() => status = value ?? status),
-        )),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialog, false), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () async {
-              try {
-                final response = await _client.patch('/api/v1/platform/members/' + member['id'], body: {'status': status});
-                if (response.statusCode < 200 || response.statusCode >= 300) throw Exception(response.body);
-                if (dialog.mounted) Navigator.pop(dialog, true);
-              } catch (e) {
-                if (dialog.mounted) ScaffoldMessenger.of(dialog).showSnackBar(SnackBar(content: Text(e.toString())));
-              }
-            },
-            child: const Text('Save'),
+        title: const Text('Add platform member'),
+        content: SizedBox(
+          width: 560,
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              for (final identity in _identities)
+                ListTile(
+                  leading: const Icon(Icons.person_outline),
+                  title: Text(identity['username']?.toString() ??
+                      identity['email']?.toString() ??
+                      identity['id'].toString()),
+                  subtitle: Text(identity['email']?.toString() ?? identity['id'].toString()),
+                  onTap: () => Navigator.pop(dialog, identity['id'].toString()),
+                ),
+            ],
           ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialog), child: const Text('Cancel')),
         ],
+      ),
+    );
+    if (selectedIdentity == null) return;
+    try {
+      final response = await _client.post(
+        '/api/v1/platform/members',
+        body: {
+          'identityId': selectedIdentity,
+          'roleIds': _roles.where((r) => r['isSystem'] == true).map((r) => r['id']).toList(),
+        },
+      );
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception(response.body);
+      }
+      await _load();
+    } catch (e) {
+      _errorSnack(e);
+    }
+  }
+
+  Future<void> _editMember(Map<String, dynamic> member) async {
+    var status = member['status']?.toString() ?? 'active';
+    final selectedRoles = <String>{
+      for (final role in (member['roleDetails'] as List<dynamic>? ?? const []))
+        if (role is Map && role['id'] != null) role['id'].toString(),
+    };
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Platform membership'),
+          content: SizedBox(
+            width: 620,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: status,
+                  decoration: _input('Status'),
+                  items: const [
+                    DropdownMenuItem(value: 'active', child: Text('Active')),
+                    DropdownMenuItem(value: 'suspended', child: Text('Suspended')),
+                    DropdownMenuItem(value: 'revoked', child: Text('Revoked')),
+                  ],
+                  onChanged: (value) => setDialogState(() => status = value ?? status),
+                ),
+                const SizedBox(height: 12),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Platform roles', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+                SizedBox(
+                  height: 280,
+                  child: ListView(
+                    children: [
+                      for (final role in _roles)
+                        CheckboxListTile(
+                          value: selectedRoles.contains(role['id']?.toString()),
+                          title: Text(role['name']?.toString() ?? ''),
+                          subtitle: Text(role['code']?.toString() ?? ''),
+                          onChanged: (value) {
+                            final id = role['id']?.toString();
+                            if (id == null) return;
+                            setDialogState(() {
+                              if (value == true) {
+                                selectedRoles.add(id);
+                              } else {
+                                selectedRoles.remove(id);
+                              }
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialog, false), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () async {
+                try {
+                  final response = await _client.patch(
+                    '/api/v1/platform/members/' + member['id'],
+                    body: {'status': status, 'roleIds': selectedRoles.toList()},
+                  );
+                  if (response.statusCode < 200 || response.statusCode >= 300) {
+                    throw Exception(response.body);
+                  }
+                  if (dialog.mounted) Navigator.pop(dialog, true);
+                } catch (e) {
+                  if (dialog.mounted) {
+                    ScaffoldMessenger.of(dialog).showSnackBar(SnackBar(content: Text(e.toString())));
+                  }
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
       ),
     );
     if (result == true) await _load();
@@ -468,6 +571,7 @@ class _PlatformAdministrationScreenState extends State<PlatformAdministrationScr
   Widget _members() => _section(
     title: 'Platform members',
     subtitle: 'Manage identities that are allowed to enter platform context.',
+    action: FilledButton.icon(onPressed: _createMember, icon: const Icon(Icons.person_add_outlined), label: const Text('Add member')),
     child: Column(children: [
       for (final member in _members)
         Card(child: ListTile(
