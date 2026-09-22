@@ -481,4 +481,36 @@ void main() {
       expect(storage.values, isEmpty);
     },
   );
+
+  test('refresh endpoint does not recursively retry on unauthorized', () async {
+    final storage = _MemorySecureStorage();
+    storage.values['refresh_token'] = 'stale-refresh-token';
+    final paths = <String>[];
+    final client = MockClient((request) async {
+      paths.add(request.url.path);
+      return http.Response(jsonEncode({'message': 'Session is invalid or expired.'}), 401);
+    });
+
+    late final AuthService auth;
+    auth = AuthService(
+      secureStorage: storage,
+      apiClientFactory: (baseUrl) =>
+          ApiClient(baseUrl: baseUrl, httpClient: client, authOverride: auth),
+    );
+    await auth.init();
+    final api = ApiClient(
+      baseUrl: 'http://example.com',
+      httpClient: client,
+      authOverride: auth,
+    );
+
+    final response = await api.post(
+      '/api/v1/auth/refresh',
+      body: {'refreshToken': 'stale-refresh-token'},
+    );
+
+    expect(response.statusCode, 401);
+    expect(paths, ['/api/v1/auth/refresh']);
+  });
+
 }
