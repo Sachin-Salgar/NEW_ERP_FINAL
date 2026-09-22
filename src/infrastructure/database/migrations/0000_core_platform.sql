@@ -34,8 +34,8 @@ CREATE SCHEMA app;
 -- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
 --
 
-COMMENT ON SCHEMA public IS '';
-
+-- The public schema is initialized by PostgreSQL and remains owned by pg_database_owner.
+-- No schema-level comment is required here.
 
 --
 
