@@ -19,6 +19,10 @@ export async function seedPlatformAdmin(): Promise<void> {
 
   try {
     await client.query('BEGIN');
+    // The platform audit RLS policy requires this transaction-local capability
+    // for global/platform audit records. It is intentionally scoped to this seed
+    // transaction and is not persisted in the session.
+    await client.query("SELECT set_config('app.platform_audit_enabled', 'true', true)");
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', ['platform-admin-seed-v1']);
 
     const existingPlatform = await client.query<{ identity_id: string }>(
