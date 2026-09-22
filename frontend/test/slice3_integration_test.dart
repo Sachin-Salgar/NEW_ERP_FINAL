@@ -488,7 +488,10 @@ void main() {
     final paths = <String>[];
     final client = MockClient((request) async {
       paths.add(request.url.path);
-      return http.Response(jsonEncode({'message': 'Session is invalid or expired.'}), 401);
+      return http.Response(
+        jsonEncode({'message': 'Session is invalid or expired.'}),
+        401,
+      );
     });
 
     late final AuthService auth;
@@ -512,5 +515,4 @@ void main() {
     expect(response.statusCode, 401);
     expect(paths, ['/api/v1/auth/refresh']);
   });
-
 }
