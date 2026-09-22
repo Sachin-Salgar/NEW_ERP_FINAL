@@ -297,7 +297,9 @@ const tenantAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
     { preHandler: [requireAuth, requirePermission('tenant.member.update')] },
     async (request) => {
       if (!request.tenantId) throw new ValidationError('Tenant context is required.');
-      await request.server.accountSecurityService.requestPasswordReset(request.params.userId);
+      const member = (await request.server.tenantAdministrationService.listUsers(request.tenantId)).find((entry) => entry.id === request.params.userId);
+      if (!member) throw new NotFoundError('Tenant member not found.');
+      await request.server.accountSecurityService.requestPasswordReset(member.email);
       await recordSecurityEvent(request, {
         tenantId: request.tenantId,
         actorUserId: request.user?.id,
