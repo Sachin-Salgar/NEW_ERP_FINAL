@@ -5,16 +5,13 @@ services:
     repo: https://github.com/Sachin-Salgar/NEW_ERP_FINAL.git
     branch: main
     region: singapore
-    autoDeployTrigger: commit
+    # Free Render has no native pre-deploy command. Render must wait for the
+    # GitHub production-provision check, which runs the canonical provisioner
+    # before Render is allowed to deploy this commit.
+    autoDeployTrigger: checksPass
     dockerfilePath: ./Dockerfile
     dockerCommand: sh /app/scripts/render-start.sh
     healthCheckPath: /api/v1/health/live
-    # Database provisioning is a deployment-stage operation, never web startup.
-    # Paid Render services should configure the pre-deploy command:
-    #   npm run db:provision:compiled
-    # The command requires DB_PROVISIONING_DATABASE_URL, DB_MIGRATION_DATABASE_URL,
-    # DATABASE_URL, and the platform-admin bootstrap values in the deployment environment.
-    # The current Free service cannot use native pre-deploy; do not move provisioning
-    # into render-start.sh. Use an external deployment-stage mechanism until upgraded.
-    # Never expose DB_PROVISIONING_DATABASE_URL to the running web process.
+    # The web process is runtime-only. Never place DB_PROVISIONING_DATABASE_URL
+    # or DB_MIGRATION_DATABASE_URL in Render runtime environment variables.
     envVars: []
