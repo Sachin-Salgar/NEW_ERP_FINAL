@@ -28,7 +28,7 @@ There is intentionally no legacy architecture archive or migration-traceability 
 - **[Frontend](./05-frontend/README.md)** — Frontend implementation standards, application structure, UI architecture, and client technology
 - **[Security](./06-security/README.md)** — Security architecture, authentication, authorization, and security controls
 - **[DevOps](./07-devops/README.md)** — Deployment, infrastructure, environments, CI/CD, and operational standards
-- **[Business Modules](./08-business-modules/README.md)** — Business module specifications and functional architecture
+- **[Business Modules](./08-business-modules/README.md)** — Business module specifications and functional architecture, including the implementation catalog
 - **[Platform Services](./09-platform-services/README.md)** — Shared platform capabilities and enterprise services
 - **[Architecture Decision Records](./10-adr/README.md)** — Major architectural decisions, alternatives, rationale, and status
 - **[Diagram Assets](./assets/diagrams/README.md)** — Architecture diagram placeholders and future editable/exported diagram assets
