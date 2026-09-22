@@ -417,8 +417,14 @@ class _PlatformAdministrationScreenState
     );
     if (action == null) return;
     try {
-      if (action == 'modules') return _manageModules(tenant);
-      if (action == 'edit') return _editTenant(tenant);
+      if (action == 'modules') {
+        await _manageModules(tenant);
+        return;
+      }
+      if (action == 'edit') {
+        await _editTenant(tenant);
+        return;
+      }
       if (action == 'delete') {
         final ok = await showDialog<bool>(
           context: context,
