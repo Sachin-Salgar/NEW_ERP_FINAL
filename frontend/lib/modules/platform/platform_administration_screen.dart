@@ -496,34 +496,83 @@ class _PlatformAdministrationScreenState extends State<PlatformAdministrationScr
     ]),
   );
 
-  Widget _securityAudit() => ListView(padding: const EdgeInsets.all(24), children: [
-    _section(
-      title: 'Platform security',
-      subtitle: 'Global platform authentication policy.',
-      action: FilledButton.tonalIcon(onPressed: _editPolicy, icon: const Icon(Icons.edit_outlined), label: const Text('Edit policy')),
-      child: Wrap(spacing: 12, runSpacing: 12, children: [
-        _stat('MFA required', _policy['mfaRequired'] == true ? 'Yes' : 'No', Icons.verified_user_outlined),
-        _stat('Session lifetime', (_policy['sessionLifetimeMinutes']?.toString() ?? '-') + ' min', Icons.timer_outlined),
-        _stat('Failed login limit', _policy['maxFailedLoginAttempts']?.toString() ?? '-', Icons.lock_clock_outlined),
-        _stat('Lockout duration', (_policy['lockoutMinutes']?.toString() ?? '-') + ' min', Icons.lock_outline),
-      ]),
-    ),
-    const SizedBox(height: 16),
-    _section(
-      title: 'Platform audit',
-      subtitle: 'Recent platform administrative activity.',
-      child: Column(children: [
-        for (final event in _audit.take(100))
-          Card(child: ListTile(
-            leading: const Icon(Icons.history_outlined),
-            title: Text(event['action']?.toString() ?? ''),
-            subtitle: Text((event['resourceType']?.toString() ?? '') + ' • ' + (event['resourceId']?.toString() ?? '') + '\n' + (event['createdAt']?.toString() ?? '')),
-            isThreeLine: true,
-          )),
-        if (_audit.isEmpty) const _Empty(message: 'No platform audit events found.'),
-      ]),
-    ),
-  ]);
+  Widget _securityAudit() => ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Platform security'),
+                    SizedBox(height: 4),
+                    Text('Global platform authentication policy.'),
+                  ],
+                ),
+              ),
+              FilledButton.tonalIcon(
+                onPressed: _editPolicy,
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Edit policy'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _stat(
+                'MFA required',
+                _policy['mfaRequired'] == true ? 'Yes' : 'No',
+                Icons.verified_user_outlined,
+              ),
+              _stat(
+                'Session lifetime',
+                (_policy['sessionLifetimeMinutes']?.toString() ?? '-') + ' min',
+                Icons.timer_outlined,
+              ),
+              _stat(
+                'Failed login limit',
+                _policy['maxFailedLoginAttempts']?.toString() ?? '-',
+                Icons.lock_clock_outlined,
+              ),
+              _stat(
+                'Lockout duration',
+                (_policy['lockoutMinutes']?.toString() ?? '-') + ' min',
+                Icons.lock_outline,
+              ),
+            ],
+          ),
+          const SizedBox(height: 28),
+          const Text(
+            'Platform audit',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          const Text('Recent platform administrative activity.'),
+          const SizedBox(height: 16),
+          for (final event in _audit.take(100))
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.history_outlined),
+                title: Text(event['action']?.toString() ?? ''),
+                subtitle: Text(
+                  (event['resourceType']?.toString() ?? '') +
+                      ' • ' +
+                      (event['resourceId']?.toString() ?? '') +
+                      '\n' +
+                      (event['createdAt']?.toString() ?? ''),
+                ),
+                isThreeLine: true,
+              ),
+            ),
+          if (_audit.isEmpty)
+            const _Empty(message: 'No platform audit events found.'),
+        ],
+      );
 
   @override
   Widget build(BuildContext context) => Scaffold(
