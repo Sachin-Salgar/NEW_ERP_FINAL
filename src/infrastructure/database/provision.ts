@@ -33,6 +33,39 @@ function configFromEnv(): ProvisioningConfig {
   };
 }
 
+async function ensureMigrationRole(config: ProvisioningConfig): Promise<void> {
+  const migration = new URL(config.migrationUrl);
+  const migrationRole = decodeURIComponent(migration.username);
+  const migrationPassword = decodeURIComponent(migration.password);
+
+  if (migrationRole !== 'erp') {
+    throw new Error(`DB_MIGRATION_DATABASE_URL must use the canonical migration role "erp", received "${migrationRole}".`);
+  }
+
+  const client = new Client(createDatabaseClientOptions(config.provisioningUrl, config.sslMode, config.sslCa));
+  try {
+    await client.connect();
+    const existing = await client.query<{ rolname: string; rolcanlogin: boolean; rolcreaterole: boolean }>(
+      'SELECT rolname, rolcanlogin, rolcreaterole FROM pg_roles WHERE rolname = $1',
+      ['erp'],
+    );
+
+    if (existing.rows.length === 0) {
+      const passwordLiteral = await client.query<{ value: string }>('SELECT quote_literal($1) AS value', [migrationPassword]);
+      await client.query(
+        `CREATE ROLE erp LOGIN NOSUPERUSER NOCREATEDB CREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD ${passwordLiteral.rows[0].value}`,
+      );
+      console.log('Created canonical migration role: erp');
+    } else if (!existing.rows[0].rolcanlogin || !existing.rows[0].rolcreaterole) {
+      await client.query(
+        'ALTER ROLE erp LOGIN NOSUPERUSER NOCREATEDB CREATEROLE NOREPLICATION NOBYPASSRLS',
+      );
+    }
+  } finally {
+    await client.end();
+  }
+}
+
 async function inspectEndpoint(url: string, label: string, config: ProvisioningConfig) {
   const client = new Client(createDatabaseClientOptions(url, config.sslMode, config.sslCa));
   try {
@@ -98,6 +131,9 @@ async function verifyProvisionedDatabase(config: ProvisioningConfig): Promise<vo
 
 export async function provisionDatabase(): Promise<void> {
   const config = configFromEnv();
+
+  console.log('==> Database provisioning: bootstrap migration role');
+  await ensureMigrationRole(config);
 
   console.log('==> Database provisioning: preflight');
   const [provisioning, migration, runtime] = await Promise.all([
