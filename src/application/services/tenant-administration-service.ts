@@ -11,7 +11,7 @@ export class TenantAdministrationService {
   constructor(
     private readonly pool: Pool,
     private readonly tenantContextKey = 'app.current_tenant_id',
-    private readonly repository?: CoreEnterpriseRepository,
+    private readonly repository?: Pick<CoreEnterpriseRepository, 'listUsers' | 'listUserBranchAccess' | 'updateUser' | 'assignUserToBranch' | 'revokeUserBranchAccess' | 'activateUser' | 'deactivateUser'>,
   ) {}
 
   async get(tenantId: string) {
