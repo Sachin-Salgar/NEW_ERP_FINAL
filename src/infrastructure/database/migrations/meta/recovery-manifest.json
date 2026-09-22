@@ -110,6 +110,16 @@
       "strategy": "forward-only-security",
       "destructiveDownAllowed": false,
       "note": "Allows platform sessions with tenant_id NULL while preserving tenant-scoped session isolation. Recovery is forward-only or restore from backup."
+    },
+    "0022_platform_administration_authorization_sync": {
+      "strategy": "forward-only-security",
+      "destructiveDownAllowed": false,
+      "note": "Synchronizes canonical platform administration permissions and protected platform_owner authorization. Recovery is forward-only or restore from backup."
+    },
+    "0023_platform_executor_database_grants": {
+      "strategy": "forward-only-security",
+      "destructiveDownAllowed": false,
+      "note": "Grants the dedicated platform executor the required existing platform administration table, audit, schema and sequence privileges without granting BYPASSRLS or superuser access. Recovery is forward-only or restore from backup."
     }
   }
 }
