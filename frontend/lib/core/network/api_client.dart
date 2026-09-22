@@ -33,6 +33,7 @@ class ApiClient {
   }
 
   Future<http.Response> _sendWithAuth(
+    String path,
     Future<http.Response> Function(Map<String, String> headers) fn,
   ) async {
     final auth = _auth;
@@ -47,8 +48,7 @@ class ApiClient {
     // The refresh endpoint must never recursively trigger another refresh.
     // A failed/stale refresh token otherwise causes an endless POST /auth/refresh
     // loop in the browser when restoring an old session.
-    final canRefresh = response.statusCode == 401 &&
-        !_isRefreshEndpoint(Uri.parse('${baseUrl.isEmpty ? '' : baseUrl}${path}').path);
+    final canRefresh = response.statusCode == 401 && !_isRefreshEndpoint(path);
 
     if (canRefresh) {
       final refreshed = await auth.tryRefresh();
@@ -69,6 +69,7 @@ class ApiClient {
   Future<http.Response> post(String path, {Map<String, dynamic>? body}) async {
     final url = Uri.parse('$baseUrl$path');
     return _sendWithAuth(
+      path,
       (headers) =>
           _client.post(url, headers: headers, body: jsonEncode(body ?? {})),
     );
@@ -76,12 +77,13 @@ class ApiClient {
 
   Future<http.Response> get(String path) async {
     final url = Uri.parse('$baseUrl$path');
-    return _sendWithAuth((headers) => _client.get(url, headers: headers));
+    return _sendWithAuth(path, (headers) => _client.get(url, headers: headers));
   }
 
   Future<http.Response> put(String path, {Map<String, dynamic>? body}) async {
     final url = Uri.parse('$baseUrl$path');
     return _sendWithAuth(
+      path,
       (headers) =>
           _client.put(url, headers: headers, body: jsonEncode(body ?? {})),
     );
@@ -90,6 +92,7 @@ class ApiClient {
   Future<http.Response> patch(String path, {Map<String, dynamic>? body}) async {
     final url = Uri.parse('$baseUrl$path');
     return _sendWithAuth(
+      path,
       (headers) =>
           _client.patch(url, headers: headers, body: jsonEncode(body ?? {})),
     );
@@ -101,6 +104,7 @@ class ApiClient {
   }) async {
     final url = Uri.parse('$baseUrl$path');
     return _sendWithAuth(
+      path,
       (headers) =>
           _client.delete(url, headers: headers, body: jsonEncode(body ?? {})),
     );
