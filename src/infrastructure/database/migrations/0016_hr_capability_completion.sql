@@ -3,9 +3,16 @@
 BEGIN;
 
 UPDATE public.modules SET is_core=true WHERE code='hr';
+
+-- tenant_modules is FORCE RLS. This migration is schema/data provisioning, not tenant-scoped
+-- application work, so temporarily disable RLS for the bootstrap write and restore the exact
+-- tenant-isolation posture before continuing.
+ALTER TABLE public.tenant_modules DISABLE ROW LEVEL SECURITY;
 INSERT INTO public.tenant_modules(tenant_id,module_id,enabled,enabled_at)
 SELECT t.id,m.id,true,NOW() FROM public.tenants t CROSS JOIN public.modules m WHERE m.code='hr'
 ON CONFLICT (tenant_id,module_id) DO UPDATE SET enabled=true,enabled_at=COALESCE(public.tenant_modules.enabled_at,NOW()),disabled_at=NULL,disabled_by=NULL;
+ALTER TABLE public.tenant_modules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tenant_modules FORCE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.hr_business_units (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
@@ -38,7 +45,7 @@ CREATE TABLE IF NOT EXISTS public.hr_employee_documents (
  issued_on date, expiry_date date, status varchar(20) NOT NULL DEFAULT 'ACTIVE', metadata jsonb NOT NULL DEFAULT '{}', created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS public.hr_employee_relations (
- id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES public.hr_tenants(id) ON DELETE CASCADE,
  employee_id uuid NOT NULL REFERENCES public.hr_employees(id) ON DELETE CASCADE, case_type varchar(60) NOT NULL, subject varchar(200) NOT NULL,
  details jsonb NOT NULL DEFAULT '{}', status varchar(30) NOT NULL DEFAULT 'OPEN', resolution text, created_at timestamptz NOT NULL DEFAULT now(), closed_at timestamptz
 );
