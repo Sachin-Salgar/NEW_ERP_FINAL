@@ -148,6 +148,13 @@
       "when": 1789000000020,
       "tag": "0020_hr_identity_access_invariants",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1789000000021,
+      "tag": "0021_platform_session_rls",
+      "breakpoints": true
     }
   ]
 }
