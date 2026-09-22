@@ -31,9 +31,19 @@ Never copy production secrets into local files, CI fixtures, `.ai`, tests, or so
 `PLATFORM_DATABASE_URL` must identify `erp_platform_executor`.
 `erp_platform_executor` may execute only explicitly approved platform procedures and must not receive broad table/sequence privileges.
 
-### Security bootstrap
-`PLATFORM_SECURITY_DATABASE_URL` is operator-only.
-It must never be configured on the Render web service or included in application runtime configuration.
+### Database provisioning
+Read `.ai/contracts/database-provisioning.md` before any database/deployment change.
+
+The canonical deployment operation is `npm run db:provision`. It must execute preflight, all journaled migrations, platform security/RLS bootstrap, platform administrator bootstrap, and final verification in that order.
+
+Credential boundaries:
+- `DB_PROVISIONING_DATABASE_URL`: privileged provisioning/security operator only.
+- `DB_MIGRATION_DATABASE_URL`: migration/object-creating role.
+- `DATABASE_URL`: runtime application connection.
+
+The provisioner must verify that all three URLs target the same database. Never put the provisioning credential in the web runtime.
+
+`PLATFORM_SECURITY_DATABASE_URL` is legacy and must not be used by new code.
 
 ## 4. Local deployment
 Use:
@@ -45,13 +55,14 @@ Do not invent database names, roles, passwords, or fallback databases.
 
 ## 5. CI deployment validation
 For database/security changes, require:
-- migration from a clean PostgreSQL database;
-- platform-security bootstrap;
-- role attribute checks;
-- membership checks;
+- clean PostgreSQL provisioning through `npm run db:provision`;
+- idempotent rerun against the same database;
+- migration journal verification;
+- role attribute and membership checks;
 - RLS/FORCE RLS checks;
 - application table/sequence privilege checks;
 - SECURITY DEFINER function owner/search_path/EXECUTE checks;
+- platform administrator bootstrap verification;
 - backend typecheck/lint/build;
 - unit tests;
 - PostgreSQL integration tests;
@@ -73,14 +84,16 @@ Never hardcode production API credentials or database credentials into Flutter s
 ## 7. Render
 Repository deployment contract:
 - `render.yaml` defines the backend service shape.
-- `Dockerfile` defines the production image.
-- `scripts/render-start.sh` starts the application only; it does not run migrations or privileged security bootstrap.
-- `DATABASE_URL` is the runtime application credential and must identify `erp_app`.
-- `PLATFORM_DATABASE_URL` is used only by explicitly authorized platform operations and must identify `erp_platform_executor`.
-- `PLATFORM_SECURITY_DATABASE_URL` is operator-only and prohibited on the Render web service.
-- health validation must use `/api/v1/health/live`.
+- `Dockerfile` defines the production image and includes compiled migration assets.
+- `scripts/render-start.sh` starts the application only.
+- `DB_PROVISIONING_DATABASE_URL` and `DB_MIGRATION_DATABASE_URL` are deployment-stage credentials and must never be runtime credentials.
+- `DATABASE_URL` identifies `erp_app`.
+- `PLATFORM_DATABASE_URL` identifies `erp_platform_executor`.
+- health validation uses `/api/v1/health/live`.
 
-Render database migrations are a deployment operation, not application startup work. Render's native pre-deploy command is the preferred mechanism on paid web services. The current Free web service does not support pre-deploy commands, so production migrations must be applied through the documented operator migration workflow before deploying application code that depends on them. Never make the web runtime execute DDL with `DATABASE_URL`.
+On paid Render web services, run `npm run db:provision:compiled` as the native pre-deploy command. Render documents pre-deploy as the stage for database migrations and other release prerequisites, and it runs separately from the running service. The current Free web service does not support pre-deploy; this is a provider-plan limitation. Do not compensate by running privileged provisioning from web startup.
+
+The repository's provider-independent database contract remains the same for Render, local PostgreSQL, CI, and other supported PostgreSQL environments.
 
 ## 8. Database migration safety
 Before changing a migration or role policy:
