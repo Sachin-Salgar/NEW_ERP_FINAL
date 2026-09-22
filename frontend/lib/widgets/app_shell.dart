@@ -31,6 +31,9 @@ class _AppShellState extends State<AppShell> {
   List<AppRouteConfig> _navigationItems(AuthService auth) {
     return AppRoutes.topLevel
         .where((item) {
+          if (auth.contextType == 'platform') {
+            return item.path == AppRoutes.platformAdministration.path;
+          }
           if (item.path == '/settings') {
             return AppRoutes.settingsNavigation.any((settingsItem) {
               final permission = settingsItem.permissionKey;
