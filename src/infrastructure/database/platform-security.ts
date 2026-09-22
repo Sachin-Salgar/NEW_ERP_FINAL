@@ -201,15 +201,39 @@ export async function verifyPlatformSecurity(
            has_schema_privilege('erp_app', 'public', 'CREATE') AS app_create,
            has_schema_privilege('erp_platform_executor', 'public', 'CREATE') AS executor_create,
            has_schema_privilege('erp_procedure_owner', 'public', 'CREATE') AS owner_create,
-           EXISTS (
-             SELECT 1 FROM information_schema.role_table_grants
-             WHERE grantee = 'erp_platform_executor'
-            ) AS executor_table_access,
-            EXISTS (
-             SELECT 1 FROM information_schema.role_usage_grants
-             WHERE grantee = 'erp_platform_executor'
-               AND object_type = 'SEQUENCE'
-            ) AS executor_sequence_access,
+           (
+             SELECT bool_and(
+               has_table_privilege(
+                 'erp_platform_executor',
+                 format('public.%I', required_table),
+                 'SELECT,INSERT,UPDATE,DELETE'
+               )
+             )
+             FROM unnest(ARRAY[
+               'tenants',
+               'modules',
+               'tenant_modules',
+               'identities',
+               'platform_memberships',
+               'platform_membership_roles',
+               'platform_permissions',
+               'platform_roles',
+               'platform_role_permissions',
+               'platform_security_policy',
+               'audit_events'
+             ]::text[]) AS required_table
+           ) AS executor_table_access,
+           (
+             SELECT bool_and(
+               has_sequence_privilege(
+                 'erp_platform_executor',
+                 format('public.%I', sequence_name),
+                 'USAGE,SELECT'
+               )
+             )
+             FROM information_schema.sequences
+             WHERE sequence_schema = 'public'
+           ) AS executor_sequence_access,
             EXISTS (
              SELECT 1 FROM information_schema.role_usage_grants
              WHERE grantee = 'erp_procedure_owner'
