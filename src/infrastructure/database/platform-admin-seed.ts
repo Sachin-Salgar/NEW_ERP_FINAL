@@ -161,7 +161,7 @@ export async function seedPlatformAdmin(): Promise<void> {
         (tenant_id, actor_identity_id, actor_platform_membership_id, context_type, action,
          resource_type, resource_id, outcome, metadata)
        VALUES (NULL, $1, $2, 'platform', 'platform.seed', 'platform_membership',
-               $2::text, 'success',
+               $2::uuid::text, 'success',
                jsonb_build_object('username', $3::text, 'email', $4::text, 'created', $5::boolean))`,
       [identityId, membershipId, username, email, created],
     );
