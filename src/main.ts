@@ -44,7 +44,7 @@ async function bootstrap(): Promise<void> {
     );
   }
 
-  const app = await createApplication(config);
+  const app = await createApplication(config, undefined, platformPool);
   app.decorate('platformDbPool', platformPool);
 
   const shutdown = async () => {
