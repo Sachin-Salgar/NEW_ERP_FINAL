@@ -54,21 +54,33 @@ DATABASE READY
 
 A failed step stops provisioning. The backend must not be promoted as ready after a failed provisioning step.
 
+## Platform administrator password contract
+
+`PLATFORM_ADMIN_PASSWORD` is authoritative only when the platform administrator is being created, or when the operator explicitly sets:
+
+```text
+PLATFORM_ADMIN_RESET_PASSWORD=true
+```
+
+Normal idempotent provisioning must **not** silently replace an existing administrator password merely because `PLATFORM_ADMIN_PASSWORD` is present in the environment.
+
+The reset flag is a deliberate recovery/development control. It must be returned to `false`/unset after the one-shot reset and must not be enabled as a permanent production behavior.
+
+A password reset is performed transactionally and is recorded in the platform audit event metadata without recording the password itself.
+
 ## Idempotency
 
 Provisioning must be safe to run repeatedly:
 
 - Applied migrations are skipped by the migration journal.
 - Platform security bootstrap converges on the declared role/grant/RLS contract.
-- Platform administrator seed is idempotent and must not overwrite an existing administrator password.
+- Platform administrator seed is idempotent and must not overwrite an existing administrator password unless the explicit reset control is enabled.
 - Verification is repeatable.
 - Provisioning must never delete ERP business data as part of normal execution.
 
 ## Fresh database guarantee
 
 A clean PostgreSQL database must be able to reach the same final schema/security state by running the canonical pipeline. Required database roles, permissions, RLS, lifecycle functions, platform configuration, and initial platform administrator must all be represented by repository-controlled provisioning code.
-
-Provider-managed roles may be supplied by the provider. The provisioning contract must fail clearly if the required migration role or required provider capability is absent; it must not silently substitute a less-secure runtime role.
 
 ## Deployment boundary
 
@@ -77,29 +89,16 @@ The web start script is currently also the deployment-stage boundary because the
 For the current development deployment, `scripts/render-start.sh` runs:
 
 ```text
-npm run db:provision:compiled
+node dist/infrastructure/database/provision.js
   ↓
 node dist/main.js
 ```
 
+The minimal runtime image intentionally contains Node.js but not npm. Render startup therefore invokes the compiled provisioner directly with `node`; `npm run db:provision:compiled` remains the local/standard command, not the runtime-image command.
+
 Provisioning must complete successfully before the application starts. A provisioning failure stops the container and therefore prevents the application from serving traffic.
 
 This is an intentional development-stage exception: `DB_PROVISIONING_DATABASE_URL` and `DB_MIGRATION_DATABASE_URL` are supplied to the Render service so the startup deployment stage can execute the canonical provisioner. These credentials must not be retained in a real production web runtime.
-
-When moving to paid Render, run the compiled provisioner through Render's native pre-deploy command and keep the web start command runtime-only. When moving to self-hosted production, run the same canonical provisioner in the deployment pipeline using an isolated privileged credential.
-
-## Verification requirements
-
-The provisioner must verify at minimum:
-
-- all expected migrations are recorded;
-- required dedicated roles exist;
-- role attributes match the security contract;
-- platform administrator exists;
-- `user_sessions` RLS and FORCE RLS are enabled;
-- platform-session RLS policies exist;
-- platform lifecycle functions exist with the expected SECURITY DEFINER ownership/security;
-- application and platform role grants remain within the declared boundaries.
 
 ## AI implementation rules
 
@@ -111,10 +110,13 @@ AI agents must:
 4. Never use `drizzle-kit push` as a production deployment mechanism.
 5. Never grant DDL privileges to `erp_app` to make provisioning pass.
 6. Never place the privileged provisioning URL in application runtime configuration.
-7. Never move provisioning back into `render-start.sh`.
-8. Test the clean-database path in CI before declaring database architecture green.
-9. Test the existing-database/idempotent path.
-10. Update this contract and the authoritative DevOps/security documents when the provisioning architecture changes.
+7. Never move provisioning back into an ad-hoc application startup path outside the documented Free Render development exception.
+8. Remember that the Render minimal runtime image has no npm; invoke the compiled provisioner with `node dist/infrastructure/database/provision.js`.
+9. Treat `PLATFORM_ADMIN_PASSWORD` as initial-bootstrap input, not an implicit password-reset command.
+10. Use `PLATFORM_ADMIN_RESET_PASSWORD=true` only for an intentional one-shot recovery/reset, then return it to false/unset.
+11. Test the clean-database path in CI before declaring database architecture green.
+12. Test the existing-database/idempotent path.
+13. Update this contract and the authoritative DevOps/security documents when the provisioning architecture changes.
 
 ## Source of truth
 
@@ -132,4 +134,3 @@ Authoritative architecture:
 - `docs/07-devops/01-deployment-architecture.md`
 - `docs/07-devops/12-current-deployment-topology.md`
 - `docs/03-database/16-security-architecture.md`
-
