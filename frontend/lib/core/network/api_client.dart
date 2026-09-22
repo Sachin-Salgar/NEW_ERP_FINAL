@@ -43,7 +43,14 @@ class ApiClient {
       headers['Authorization'] = ['Bearer', accessToken].join(' ');
     }
     http.Response response = await fn(headers).timeout(timeout);
-    if (response.statusCode == 401) {
+
+    // The refresh endpoint must never recursively trigger another refresh.
+    // A failed/stale refresh token otherwise causes an endless POST /auth/refresh
+    // loop in the browser when restoring an old session.
+    final canRefresh = response.statusCode == 401 &&
+        !_isRefreshEndpoint(Uri.parse('${baseUrl.isEmpty ? '' : baseUrl}${path}').path);
+
+    if (canRefresh) {
       final refreshed = await auth.tryRefresh();
       if (refreshed) {
         final newToken = auth.accessToken;
@@ -55,6 +62,9 @@ class ApiClient {
     }
     return response;
   }
+
+  bool _isRefreshEndpoint(String path) =>
+      path == '/api/v1/auth/refresh' || path.endsWith('/api/v1/auth/refresh');
 
   Future<http.Response> post(String path, {Map<String, dynamic>? body}) async {
     final url = Uri.parse('$baseUrl$path');
