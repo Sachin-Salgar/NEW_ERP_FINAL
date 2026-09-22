@@ -90,6 +90,16 @@
       "strategy": "restore-backup",
       "destructiveDownAllowed": false,
       "note": "Adds remaining HR lifecycle domains for employment history, attendance rules, leave lifecycle, recruitment, performance, training, compliance, settlements and finance posting boundary."
+    },
+    "0018_hr_business_engines": {
+      "strategy": "restore-backup",
+      "destructiveDownAllowed": false,
+      "note": "Adds tenant-scoped HR attendance state/import/missing-punch, leave policy, statutory calculation, payroll validation/reversal and organization planning engines."
+    },
+    "0019_hr_ess_access_lifecycle": {
+      "strategy": "restore-backup",
+      "destructiveDownAllowed": false,
+      "note": "Adds explicit ERP access history for HR employee lifecycle governance."
     }
   }
 }
