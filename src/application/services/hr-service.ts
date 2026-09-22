@@ -216,7 +216,7 @@ export class HrService {
     const b=(await client.query("SELECT * FROM public.hr_leave_balances WHERE tenant_id=$1 AND employee_id=$2 AND leave_type_id=$3 AND year=$4 FOR UPDATE",[c.tenantId,e.id,t.id,year])).rows[0];
     if(!b)continue;
     const carry=Math.min(Number(b.opening)+Number(b.accrued)-Number(b.used)-Number(b.encashed),Number(t.carry_forward_limit??0));
-    await client.query("UPDATE public.hr_leave_balances SET opening=$1,accrued=0,used=0,encashed=0,adjusted=adjusted+$2 WHERE id=$3",[Math.max(0,carry),Math.max(0,carry),b.id]);
+    await client.query("UPDATE public.hr_leave_balances SET opening=$1,accrued=0,used=0,encashed=0 WHERE id=$2",[Math.max(0,carry),b.id]);
     if(t.expiry_months)await client.query("DELETE FROM public.hr_leave_transactions WHERE tenant_id=$1 AND employee_id=$2 AND leave_type_id=$3 AND year<$4 AND transaction_type='ACCRUAL'",[c.tenantId,e.id,t.id,year]);
    }
    return (await client.query("INSERT INTO public.hr_leave_policy_runs(id,tenant_id,year,run_date,carry_forward_applied,expiry_applied,status,created_by) VALUES($1,$2,$3,CURRENT_DATE,true,true,'COMPLETED',$4) RETURNING *",[uuidV7(),c.tenantId,year,c.userId])).rows[0];
