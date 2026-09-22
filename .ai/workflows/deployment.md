@@ -74,13 +74,13 @@ Never hardcode production API credentials or database credentials into Flutter s
 Repository deployment contract:
 - `render.yaml` defines the backend service shape.
 - `Dockerfile` defines the production image.
-- `scripts/render-start.sh` defines runtime startup guardrails.
-- Render web startup does not run migrations or privileged security bootstrap.
-- `DATABASE_URL` and `PLATFORM_DATABASE_URL` are runtime credentials.
-- `PLATFORM_SECURITY_DATABASE_URL` is prohibited at runtime.
+- `scripts/render-start.sh` starts the application only; it does not run migrations or privileged security bootstrap.
+- `DATABASE_URL` is the runtime application credential and must identify `erp_app`.
+- `PLATFORM_DATABASE_URL` is used only by explicitly authorized platform operations and must identify `erp_platform_executor`.
+- `PLATFORM_SECURITY_DATABASE_URL` is operator-only and prohibited on the Render web service.
 - health validation must use `/api/v1/health/live`.
 
-When Render provider state is inspected, distinguish provider-managed owner state from ERP application-role state.
+Render database migrations are a deployment operation, not application startup work. Render's native pre-deploy command is the preferred mechanism on paid web services. The current Free web service does not support pre-deploy commands, so production migrations must be applied through the documented operator migration workflow before deploying application code that depends on them. Never make the web runtime execute DDL with `DATABASE_URL`.
 
 ## 8. Database migration safety
 Before changing a migration or role policy:
