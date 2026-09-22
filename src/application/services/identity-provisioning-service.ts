@@ -31,7 +31,6 @@ export class IdentityProvisioningService {
     input: { username?: string; email?: string; defaultBranchId?: string | null },
   ): Promise<ProvisionedEmployeeAccess> {
     return withTenantContext(this.pool, this.tenantContextKey, tenantId, async client => {
-      await client.query('BEGIN');
       try {
         const employee = (await client.query(
           `SELECT id, employee_no, first_name, last_name, work_email, email, user_id, identity_id, employment_status
@@ -102,10 +101,8 @@ export class IdentityProvisioningService {
           `INSERT INTO hr_access_history(id,tenant_id,employee_id,user_id,action,reason,changed_by) VALUES($1,$2,$3,$4,'GRANT','ERP access provisioned',$5)`,
           [uuidV7(),tenantId,employeeId,userId,actorUserId],
         );
-        await client.query('COMMIT');
         return { employeeId,userId,identityId,membershipId,username,email,status:'active' };
       } catch (error) {
-        await client.query('ROLLBACK');
         throw error;
       }
     });
@@ -119,7 +116,6 @@ export class IdentityProvisioningService {
     reason?: string,
   ): Promise<ProvisionedEmployeeAccess> {
     return withTenantContext(this.pool, this.tenantContextKey, tenantId, async client => {
-      await client.query('BEGIN');
       try {
         const row = (await client.query(
           `SELECT e.id employee_id,e.user_id,e.identity_id,u.username,u.email,u.status,i.status identity_status,tm.id membership_id
@@ -149,10 +145,8 @@ export class IdentityProvisioningService {
           `INSERT INTO hr_access_history(id,tenant_id,employee_id,user_id,action,reason,changed_by) VALUES($1,$2,$3,$4,$5,$6,$7)`,
           [uuidV7(),tenantId,employeeId,row.user_id,action,reason ?? null,actorUserId],
         );
-        await client.query('COMMIT');
         return { employeeId,userId:row.user_id,identityId:row.identity_id,membershipId:row.membership_id,username:row.username,email:row.email,status:active?'active':'inactive' };
       } catch (error) {
-        await client.query('ROLLBACK');
         throw error;
       }
     });
