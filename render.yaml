@@ -9,10 +9,10 @@ services:
     dockerfilePath: ./Dockerfile
     dockerCommand: sh /app/scripts/render-start.sh
     healthCheckPath: /api/v1/health/live
-    # Database provisioning and migrations are intentionally NOT part of
-    # application startup. Privileged database credentials must never be
-    # exposed to the running web service.
-    # Provision the database once with the documented operator workflow,
-    # then provide only DATABASE_URL (erp_app) and PLATFORM_DATABASE_URL
-    # (erp_platform_executor) to this service.
+    # Deployment gate:
+    # migrations -> platform-admin seed/verification -> application start.
+    # The current Render service uses the free plan, so Render's native
+    # preDeployCommand is unavailable. Keep the gate in render-start.sh.
+    # The web service must only receive the normal application DATABASE_URL;
+    # privileged platform-security credentials are rejected at startup.
     envVars: []
