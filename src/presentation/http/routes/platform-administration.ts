@@ -1,7 +1,13 @@
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { NotFoundError } from '../../../domain/errors.js';
 import { requirePlatformContext } from '../middleware/auth.js';
+
+function platformExecutor(request: FastifyRequest) {
+  if (request.server.platformDbPool) return request.server.platformDbPool;
+  if (request.server.appConfig.isTest) return request.server.dbPool;
+  return undefined;
+}
 
 const uuid = z.string().uuid();
 const roleBody = z.object({
