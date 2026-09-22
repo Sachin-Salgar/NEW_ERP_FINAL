@@ -62,6 +62,8 @@ AI workflow files in `.ai/` explain **how an AI coding assistant should navigate
 15. PostgreSQL RLS remains mandatory for tenant-owned data.
 
 ### Platform administration and module entitlement contract
+- All platform-administration data reads and writes must execute through `platformExecutor(request)` (the platform database executor), not the tenant/runtime `dbPool`, because platform-context RLS is distinct from tenant context. This applies to platform members, roles, permissions, security policy, and audit APIs as well as tenant module entitlements.
+- Platform bootstrap/migrations must be idempotent and synchronize the protected `platform_owner` role with the complete canonical platform permission set, including `platform.modules.manage`, so upgrades repair older installations.
 
 - Platform context is separate from tenant context and uses platform permissions.
 - Platform Administration is the authoritative UI and API surface for tenant lifecycle, tenant module entitlement, platform members, platform roles, security policy, and platform audit.
