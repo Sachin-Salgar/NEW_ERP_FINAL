@@ -61,6 +61,20 @@ AI workflow files in `.ai/` explain **how an AI coding assistant should navigate
 14. Platform administration remains a distinct platform context with separate authorization.
 15. PostgreSQL RLS remains mandatory for tenant-owned data.
 
+### Platform administration and module entitlement contract
+
+- Platform context is separate from tenant context and uses platform permissions.
+- Platform Administration is the authoritative UI and API surface for tenant lifecycle, tenant module entitlement, platform members, platform roles, security policy, and platform audit.
+- Tenant module entitlement is authoritative in `tenant_modules`, keyed to the canonical `modules` catalog. The frontend must never maintain a second hard-coded entitlement catalog.
+- Platform module management uses the platform-context API `/api/v1/platform/tenants/:tenantId/modules` and `/api/v1/platform/tenants/:tenantId/modules/:code`.
+- Core modules (`modules.is_core = true`) cannot be disabled.
+- Business-module access is two-layered: tenant entitlement first, then tenant-user permission. A UI toggle never replaces backend authorization.
+- Platform module changes must be auditable as platform-context events and must preserve tenant isolation.
+- Platform roles and permissions are separate from tenant RBAC. The protected system platform owner role is seeded from the canonical platform permission catalog.
+- Do not call tenant-only `/auth/modules` endpoints while the frontend is in platform context.
+- `/auth/me` is context-aware: platform sessions must be validated through platform authorization; tenant sessions use tenant authentication.
+- API token refresh logic must explicitly exclude the refresh endpoint to avoid recursive refresh behavior.
+
 ### Local database workflow
 
 Local PostgreSQL credentials live in the uncommitted `.env.local` and must never be committed or copied into `.ai`. Agents must inspect the loader in `src/config/schema.ts` and integration setup before diagnosing access. `DATABASE_URL` is the application database; `TEST_DATABASE_URL` is the explicit integration-test database. Integration setup uses local `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD` administrative variables when present, while CI provides separate workflow credentials. Use `npm run db:diagnose` for sanitized source, endpoint, role, password-presence, and connectivity diagnostics. Never print passwords or full URLs, invent credentials, weaken PostgreSQL authentication, or make production depend on local credentials.
