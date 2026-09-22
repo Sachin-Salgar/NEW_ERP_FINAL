@@ -68,7 +68,6 @@ Runtime credential boundaries:
 |---|---|
 | `DATABASE_URL` | `erp_app`; normal application database access |
 | `PLATFORM_DATABASE_URL` | `erp_platform_executor`; approved platform lifecycle procedures |
-| `PLATFORM_SECURITY_DATABASE_URL` | privileged operator/bootstrap only; never a web-service runtime credential |
 
 The Render Blueprint intentionally does not inject privileged credentials into the web service.
 
