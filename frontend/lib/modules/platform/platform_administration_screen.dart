@@ -15,10 +15,10 @@ class _PlatformAdministrationScreenState extends State<PlatformAdministrationScr
   late final TabController _tabs;
   bool _loading = true;
   String? _error;
-  List<Map<String, dynamic>> _tenants = [];
-  List<Map<String, dynamic>> _members = [];
+  List<Map<String, dynamic>> _tenantData = [];
+  List<Map<String, dynamic>> _memberData = [];
   List<Map<String, dynamic>> _identities = [];
-  List<Map<String, dynamic>> _roles = [];
+  List<Map<String, dynamic>> _roleData = [];
   List<Map<String, dynamic>> _permissions = [];
   List<Map<String, dynamic>> _audit = [];
   Map<String, dynamic> _policy = {};
@@ -59,10 +59,10 @@ class _PlatformAdministrationScreenState extends State<PlatformAdministrationScr
       ]);
       if (!mounted) return;
       setState(() {
-        _tenants = _list(r[0], 'tenants');
-        _members = _list(r[1], 'members');
+        _tenantData = _list(r[0], 'tenants');
+        _memberData = _list(r[1], 'members');
         _identities = _list(r[2], 'identities');
-        _roles = _list(r[3], 'roles');
+        _roleData = _list(r[3], 'roles');
         _permissions = _list(r[4], 'permissions');
         _policy = Map<String, dynamic>.from((r[5]['policy'] as Map?) ?? const {});
         _audit = _list(r[6], 'events');
@@ -290,7 +290,7 @@ class _PlatformAdministrationScreenState extends State<PlatformAdministrationScr
         '/api/v1/platform/members',
         body: {
           'identityId': selectedIdentity,
-          'roleIds': _roles.where((r) => r['isSystem'] == true).map((r) => r['id']).toList(),
+          'roleIds': _roleData.where((r) => r['isSystem'] == true).map((r) => r['id']).toList(),
         },
       );
       if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -337,7 +337,7 @@ class _PlatformAdministrationScreenState extends State<PlatformAdministrationScr
                   height: 280,
                   child: ListView(
                     children: [
-                      for (final role in _roles)
+                      for (final role in _roleData)
                         CheckboxListTile(
                           value: selectedRoles.contains(role['id']?.toString()),
                           title: Text(role['name']?.toString() ?? ''),
@@ -467,9 +467,9 @@ class _PlatformAdministrationScreenState extends State<PlatformAdministrationScr
   }
 
   Future<void> _editPolicy() async {
-    final session = TextEditingController(text: '\${_policy['sessionLifetimeMinutes'] ?? 60}');
-    final failed = TextEditingController(text: '\${_policy['maxFailedLoginAttempts'] ?? 5}');
-    final lockout = TextEditingController(text: '\${_policy['lockoutMinutes'] ?? 15}');
+    final session = TextEditingController(text: (_policy['sessionLifetimeMinutes'] ?? 60).toString());
+    final failed = TextEditingController(text: (_policy['maxFailedLoginAttempts'] ?? 5).toString());
+    final lockout = TextEditingController(text: (_policy['lockoutMinutes'] ?? 15).toString());
     var mfa = _policy['mfaRequired'] == true;
     final result = await showDialog<bool>(
       context: context,
@@ -541,7 +541,7 @@ class _PlatformAdministrationScreenState extends State<PlatformAdministrationScr
     subtitle: 'Create, configure, activate, suspend and manage tenant entitlements.',
     action: FilledButton.icon(onPressed: _createTenant, icon: const Icon(Icons.add_business_outlined), label: const Text('Create tenant')),
     child: Column(children: [
-      for (final tenant in _tenants)
+      for (final tenant in _tenantData)
         Card(child: ListTile(
           leading: const Icon(Icons.business_outlined),
           title: Text(tenant['displayName']?.toString() ?? tenant['name']?.toString() ?? 'Tenant'),
@@ -557,7 +557,7 @@ class _PlatformAdministrationScreenState extends State<PlatformAdministrationScr
     title: 'Module entitlements',
     subtitle: 'Control the business modules each tenant is entitled to use.',
     child: Column(children: [
-      for (final tenant in _tenants)
+      for (final tenant in _tenantData)
         Card(child: ListTile(
           leading: const Icon(Icons.extension_outlined),
           title: Text(tenant['displayName']?.toString() ?? tenant['name']?.toString() ?? 'Tenant'),
@@ -573,7 +573,7 @@ class _PlatformAdministrationScreenState extends State<PlatformAdministrationScr
     subtitle: 'Manage identities that are allowed to enter platform context.',
     action: FilledButton.icon(onPressed: _createMember, icon: const Icon(Icons.person_add_outlined), label: const Text('Add member')),
     child: Column(children: [
-      for (final member in _members)
+      for (final member in _memberData)
         Card(child: ListTile(
           leading: const Icon(Icons.admin_panel_settings_outlined),
           title: Text(member['identityId']?.toString() ?? ''),
@@ -589,7 +589,7 @@ class _PlatformAdministrationScreenState extends State<PlatformAdministrationScr
     subtitle: 'Control which platform administration capabilities are available to each role.',
     action: FilledButton.icon(onPressed: _createRole, icon: const Icon(Icons.add), label: const Text('New role')),
     child: Column(children: [
-      for (final role in _roles)
+      for (final role in _roleData)
         Card(child: ListTile(
           leading: Icon(role['isSystem'] == true ? Icons.lock_outline : Icons.admin_panel_settings_outlined),
           title: Text(role['name']?.toString() ?? ''),
@@ -704,9 +704,9 @@ class _PlatformAdministrationScreenState extends State<PlatformAdministrationScr
                   title: 'Platform overview',
                   subtitle: 'Central administration for tenants, module entitlements, platform identities, roles, security and audit.',
                   child: Wrap(spacing: 12, runSpacing: 12, children: [
-                    _stat('Tenants', _tenants.length.toString(), Icons.business_outlined),
-                    _stat('Platform members', _members.length.toString(), Icons.people_outline),
-                    _stat('Platform roles', _roles.length.toString(), Icons.admin_panel_settings_outlined),
+                    _stat('Tenants', _tenantData.length.toString(), Icons.business_outlined),
+                    _stat('Platform members', _memberData.length.toString(), Icons.people_outline),
+                    _stat('Platform roles', _roleData.length.toString(), Icons.admin_panel_settings_outlined),
                     _stat('Permissions', _permissions.length.toString(), Icons.lock_outline),
                     _stat('Audit events', _audit.length.toString(), Icons.history_outlined),
                   ]),
