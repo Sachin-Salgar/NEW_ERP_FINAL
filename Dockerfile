@@ -9,6 +9,9 @@ RUN npm ci
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 RUN npm run build
+# TypeScript does not copy SQL migration assets into dist. The runtime migration
+# runner resolves these files relative to dist/infrastructure/database/.
+RUN cp -R src/infrastructure/database/migrations dist/infrastructure/database/
 RUN npm prune --omit=dev
 
 FROM alpine:3.24 AS runtime
