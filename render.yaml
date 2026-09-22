@@ -14,13 +14,10 @@ services:
     dockerCommand: sh /app/scripts/render-start.sh
     healthCheckPath: /api/v1/health/live
     envVars:
-      # Deployment-stage provisioning credentials. These are intentionally
-      # supplied to the Free Render service during development only.
       - key: DB_PROVISIONING_DATABASE_URL
         sync: false
       - key: DB_MIGRATION_DATABASE_URL
         sync: false
-      # Runtime application connection (erp_app).
       - key: DATABASE_URL
         sync: false
       - key: DATABASE_SSL_MODE
@@ -29,5 +26,10 @@ services:
         sync: false
       - key: PLATFORM_ADMIN_PASSWORD
         sync: false
+      # One-shot development recovery switch. Keep false/unset normally.
+      # Set true only when the operator intentionally wants the configured
+      # PLATFORM_ADMIN_PASSWORD to replace the existing local password hash.
+      - key: PLATFORM_ADMIN_RESET_PASSWORD
+        value: "false"
       - key: PLATFORM_ADMIN_EMAIL
         sync: false
