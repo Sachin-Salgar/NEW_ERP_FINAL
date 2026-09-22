@@ -70,7 +70,7 @@ async function ensureMigrationRole(config: ProvisioningConfig): Promise<void> {
     ).rows[0]?.database;
     if (!databaseName) throw new Error('Unable to determine the provisioning database name.');
     const quotedDatabaseName = `"${databaseName.replaceAll('"', '""')}"`;
-    await client.query(`GRANT CONNECT ON DATABASE ${quotedDatabaseName} TO erp`);
+    await client.query(`GRANT CONNECT, CREATE ON DATABASE ${quotedDatabaseName} TO erp`);
     await client.query('GRANT USAGE, CREATE ON SCHEMA public TO erp');
   } finally {
     await client.end();
