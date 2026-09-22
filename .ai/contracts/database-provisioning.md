@@ -22,6 +22,11 @@ npm run db:provision:compiled
 
 The provisioner is provider-independent. Render, local PostgreSQL, CI, and other PostgreSQL providers may supply different connection URLs and credentials, but they must execute the same repository provisioning flow.
 
+
+## Migration journal contract
+
+Every SQL file directly under `src/infrastructure/database/migrations/` is a canonical migration and **must** have a matching entry in `migrations/meta/_journal.json`. The provisioner now validates this invariant before applying migrations and fails closed if an SQL migration is orphaned from the journal. Adding a new migration therefore requires updating both the SQL file and the journal in the same change.
+
 ## Credential boundaries
 
 The provisioner receives three explicitly separated connections:
