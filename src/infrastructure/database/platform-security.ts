@@ -238,8 +238,8 @@ export async function verifyPlatformSecurity(
     privilegeRow.app_create ||
     privilegeRow.executor_create ||
     privilegeRow.owner_create ||
-    privilegeRow.executor_table_access ||
-    privilegeRow.executor_sequence_access ||
+    !privilegeRow.executor_table_access ||
+    !privilegeRow.executor_sequence_access ||
     privilegeRow.owner_sequence_access ||
     privilegeRow.app_relation_ownership ||
     privilegeRow.app_function_ownership
