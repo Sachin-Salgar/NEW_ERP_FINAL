@@ -103,7 +103,7 @@ jobs:
 
       - name: Provision database through canonical pipeline
         env:
-          DB_PROVISIONING_DATABASE_URL: ${{ env.PLATFORM_SECURITY_DATABASE_URL }}
+          DB_PROVISIONING_DATABASE_URL: ${{ env.INTEGRATION_ADMIN_DATABASE_URL }}
           DB_MIGRATION_DATABASE_URL: ${{ env.DATABASE_URL }}
           DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
           DATABASE_SSL_MODE: disable
