@@ -30,7 +30,6 @@ export async function seedPlatformAdmin(): Promise<void> {
     );
 
     let identityId: string;
-    let membershipId: string;
     let created = false;
 
     const usernameIdentifier = await client.query<{ identity_id: string }>(
@@ -107,7 +106,7 @@ export async function seedPlatformAdmin(): Promise<void> {
       [identityId],
     );
 
-    membershipId =
+    const membershipId =
       membership.rows[0]?.id ??
       (
         await client.query<{ id: string }>(
