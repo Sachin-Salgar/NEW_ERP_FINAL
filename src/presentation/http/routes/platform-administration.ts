@@ -30,6 +30,7 @@ async function audit(
   resourceId: string | null,
   targetTenantId: string | null,
 ) {
+  await client.query("SELECT set_config('app.platform_audit_enabled', 'true', true)");
   await client.query(
     `INSERT INTO audit_events
       (tenant_id, actor_identity_id, actor_platform_membership_id, context_type, target_tenant_id,
@@ -342,13 +343,24 @@ const platformAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/platform/audit/export', { preHandler: requirePlatformContext('platform.audit.export') }, async (request) => {
     const platformPool = platformExecutor(request);
     if (!platformPool) throw new Error('Platform database executor is not configured.');
-    const result = await platformPool.query(
-      `SELECT id, action, resource_type AS "resourceType", resource_id AS "resourceId",
-              actor_identity_id AS "actorIdentityId", actor_platform_membership_id AS "platformMembershipId",
-              target_tenant_id AS "targetTenantId", outcome, metadata, created_at AS "createdAt"
-       FROM audit_events WHERE context_type = 'platform' ORDER BY created_at DESC`,
-    );
-    return { success: true, events: result.rows };
+    const client = await platformPool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query("SELECT set_config('app.platform_audit_enabled', 'true', true)");
+      const result = await client.query(
+        `SELECT id, action, resource_type AS "resourceType", resource_id AS "resourceId",
+                actor_identity_id AS "actorIdentityId", actor_platform_membership_id AS "platformMembershipId",
+                target_tenant_id AS "targetTenantId", outcome, metadata, created_at AS "createdAt"
+         FROM audit_events WHERE context_type = 'platform' ORDER BY created_at DESC`,
+      );
+      await client.query('COMMIT');
+      return { success: true, events: result.rows };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   });
 };
 
