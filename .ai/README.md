@@ -115,3 +115,22 @@ python tools/ai/repository_scanner.py
 ```
 
 The first command validates the workflow contract. The second refreshes deterministic repository context.
+
+### Render deployment database gate
+
+For the current Render deployment, database preparation is part of the deployment gate and must never be treated as a one-time manual production step.
+
+Required order on every deployment:
+
+1. Build the Docker image.
+2. Run the compiled migration runner: `node dist/infrastructure/database/migrate.js`.
+3. Run the idempotent platform administrator seed/verification: `node dist/infrastructure/database/platform-admin-seed.js`.
+4. Start the application with `node dist/main.js`.
+
+The Render web service currently uses the free plan. Render's native pre-deploy command is therefore not available; the repository's `scripts/render-start.sh` is the deployment gate immediately before application start. A failure in migration or platform-admin seeding must stop startup rather than allowing a partially prepared release to serve traffic.
+
+The Docker image MUST include `src/infrastructure/database/migrations` under `dist/infrastructure/database/migrations` because TypeScript compilation does not copy SQL migration assets. Do not assume that the migration runner has its SQL files merely because `migrate.ts` compiled successfully.
+
+Do not move migrations or platform-admin seeding into ordinary application startup after the server begins listening. Do not expose `PLATFORM_SECURITY_DATABASE_URL` to the web service. Do not manually patch production RLS/schema as a substitute for applying repository migrations.
+
+Before changing this lifecycle, inspect the actual Render service plan and configuration and the repository Docker build. Validate that the migration runner can see the migration journal and SQL files inside the built image.
