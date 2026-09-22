@@ -36,6 +36,7 @@ Business modules are **logical boundaries inside the current modular-monolith ba
 | `12-asset-maintenance-module-architecture.md` | Asset Maintenance | Asset lifecycle, maintenance, service, condition, and maintenance analytics capabilities |
 | `13-bi-analytics-module-architecture.md` | BI & Analytics | Governed analytical, reporting, KPI, and business-intelligence capabilities |
 | `14-workflow-bpm-module-architecture.md` | Workflow / BPM | Business workflow and process-automation usage within the platform architecture |
+| `15-module-implementation-catalog.md` | Module Implementation Catalog | Cross-module implementation status, feature evidence, and documentation alignment |
 
 `01-business-modules-architecture.md` defines the overall module architecture and boundary rules. `02-core-enterprise-modules.md` defines the core enterprise capabilities that provide Tenant, Branch, and authorization foundations.
 
