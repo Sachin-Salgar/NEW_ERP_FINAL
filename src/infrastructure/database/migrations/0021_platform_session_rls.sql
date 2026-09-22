@@ -3,6 +3,7 @@
 -- The application sets app.platform_session_enabled transaction-locally only
 -- around platform session operations.
 
+DROP POLICY IF EXISTS tenant_isolation_policy ON public.user_sessions;
 DROP POLICY IF EXISTS user_sessions_context_visibility_policy ON public.user_sessions;
 
 CREATE POLICY user_sessions_context_visibility_policy ON public.user_sessions
