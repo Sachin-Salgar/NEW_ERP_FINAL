@@ -137,6 +137,17 @@ const platformAdministrationRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  fastify.get('/platform/permissions', { preHandler: requirePlatformContext('platform.permissions.manage') }, async () => {
+    const result = await fastify.dbPool.query(
+      `SELECT id, module_code AS "moduleCode", resource, action, scope,
+              permission_key AS "permissionKey", display_name AS "displayName",
+              description, is_system AS "isSystem"
+         FROM platform_permissions
+        ORDER BY module_code, resource, action, permission_key`,
+    );
+    return { success: true, permissions: result.rows };
+  });
+
   fastify.get('/platform/roles', { preHandler: requirePlatformContext('platform.roles.manage') }, async () => {
     const result = await fastify.dbPool.query(
       `SELECT r.id, r.code, r.name, r.description, r.is_system AS "isSystem", r.is_deleted AS "isDeleted",
