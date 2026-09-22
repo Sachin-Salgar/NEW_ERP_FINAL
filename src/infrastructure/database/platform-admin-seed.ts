@@ -6,6 +6,7 @@ export async function seedPlatformAdmin(databaseUrl?: string, sslMode: 'disable'
   const username = process.env.PLATFORM_ADMIN_USERNAME?.trim();
   const password = process.env.PLATFORM_ADMIN_PASSWORD;
   const email = process.env.PLATFORM_ADMIN_EMAIL?.trim();
+  const resetPassword = process.env.PLATFORM_ADMIN_RESET_PASSWORD === 'true';
 
   if (!username) throw new Error('PLATFORM_ADMIN_USERNAME is required.');
   if (!password) throw new Error('PLATFORM_ADMIN_PASSWORD is required.');
@@ -19,15 +20,9 @@ export async function seedPlatformAdmin(databaseUrl?: string, sslMode: 'disable'
 
   try {
     await client.query('BEGIN');
-    // The platform audit RLS policy requires this transaction-local capability
-    // for global/platform audit records. It is intentionally scoped to this seed
-    // transaction and is not persisted in the session.
     await client.query("SELECT set_config('app.platform_audit_enabled', 'true', true)");
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', ['platform-admin-seed-v1']);
 
-    // A clean database must contain the protected system role before the
-    // first platform administrator can be attached to it. Keep this bootstrap
-    // idempotent and refuse to weaken an existing protected role.
     await client.query(
       `INSERT INTO platform_roles (code, name, description, is_system, is_deleted)
        VALUES ('platform_owner', 'Platform Owner', 'Protected platform administrator role', true, false)
@@ -159,13 +154,36 @@ export async function seedPlatformAdmin(databaseUrl?: string, sslMode: 'disable'
       [membershipId, role.rows[0].id],
     );
 
-    if (created) {
+    if (created || resetPassword) {
       await client.query(
-        `INSERT INTO identity_credentials
-          (identity_id, provider, credential_type, secret_hash, password_changed_at)
-         VALUES ($1, 'local', 'password', $2, now())`,
+        `UPDATE identity_credentials
+            SET secret_hash = $2,
+                status = 'active',
+                password_changed_at = now(),
+                updated_at = now()
+          WHERE identity_id = $1
+            AND provider = 'local'
+            AND credential_type = 'password'`,
         [identityId, await bcrypt.hash(password, 12)],
       );
+
+      const credential = await client.query<{ identity_id: string }>(
+        `SELECT identity_id
+           FROM identity_credentials
+          WHERE identity_id = $1
+            AND provider = 'local'
+            AND credential_type = 'password'`,
+        [identityId],
+      );
+
+      if (credential.rowCount === 0) {
+        await client.query(
+          `INSERT INTO identity_credentials
+            (identity_id, provider, credential_type, secret_hash, password_changed_at)
+           VALUES ($1, 'local', 'password', $2, now())`,
+          [identityId, await bcrypt.hash(password, 12)],
+        );
+      }
     }
 
     await client.query(
@@ -174,15 +192,18 @@ export async function seedPlatformAdmin(databaseUrl?: string, sslMode: 'disable'
          resource_type, resource_id, outcome, metadata)
        VALUES (NULL, $1, $2, 'platform', 'platform.seed', 'platform_membership',
                $2::uuid::text, 'success',
-               jsonb_build_object('username', $3::text, 'email', $4::text, 'created', $5::boolean))`,
-      [identityId, membershipId, username, email, created],
+               jsonb_build_object('username', $3::text, 'email', $4::text, 'created', $5::boolean,
+                                  'password_reset', $6::boolean))`,
+      [identityId, membershipId, username, email, created, resetPassword],
     );
 
     await client.query('COMMIT');
     process.stdout.write(
       created
         ? 'Platform administrator seeded successfully.\n'
-        : 'Platform administrator already exists; access configuration verified without changing the password.\n',
+        : resetPassword
+          ? 'Platform administrator already exists; password was explicitly reset from PLATFORM_ADMIN_PASSWORD.\n'
+          : 'Platform administrator already exists; access configuration verified without changing the password.\n',
     );
   } catch (error) {
     await client.query('ROLLBACK').catch(() => undefined);
@@ -193,7 +214,7 @@ export async function seedPlatformAdmin(databaseUrl?: string, sslMode: 'disable'
   }
 }
 
-if (process.argv[1] && new URL(import.meta.url).pathname === process.argv[1].replaceAll('\\', '/')) {
+if (process.argv[1] && new URL(import.meta.url).pathname === process.argv[1].replaceAll('\\\\', '/')) {
   seedPlatformAdmin().catch((error: unknown) => {
     console.error('Platform administrator seed failed', error);
     process.exitCode = 1;
