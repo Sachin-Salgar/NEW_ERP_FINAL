@@ -89,36 +89,39 @@ Repository deployment contract:
 - `PLATFORM_DATABASE_URL` identifies `erp_platform_executor`.
 - health validation uses `/api/v1/health/live`.
 
-### Current Free Render deployment gate
-The current Render web service is Free and therefore cannot use Render's native pre-deploy command. The repository uses an external deployment-stage gate instead:
+### Current Free Render deployment mode
+The current Render web service is Free and therefore cannot use Render's native pre-deploy command. During development, the Render start command runs the canonical compiled provisioner before starting the web process:
 
 ```text
 Git push to main
   ↓
-GitHub CI checks
+Render builds image
   ↓
-production-provision check waits for the other commit checks
+scripts/render-start.sh
   ↓
 npm run db:provision:compiled
   ↓
-Render configured as "After CI Checks Pass"
+provisioning succeeds
   ↓
-Render builds/deploys the exact commit
+node dist/main.js
   ↓
 /api/v1/health/live
 ```
 
-The production provisioning workflow uses GitHub Actions secrets only:
-- `PROD_DB_PROVISIONING_DATABASE_URL`
-- `PROD_DB_MIGRATION_DATABASE_URL`
-- `PROD_DATABASE_URL`
-- `PROD_PLATFORM_ADMIN_USERNAME`
-- `PROD_PLATFORM_ADMIN_PASSWORD`
-- `PROD_PLATFORM_ADMIN_EMAIL`
+If provisioning fails, the web process is not started and the Render deployment fails.
 
-These secrets must never be copied into Render runtime environment variables.
+The following development-only Render environment variables are required:
+- `DB_PROVISIONING_DATABASE_URL`
+- `DB_MIGRATION_DATABASE_URL`
+- `DATABASE_URL`
+- `DATABASE_SSL_MODE=require`
+- `PLATFORM_ADMIN_USERNAME`
+- `PLATFORM_ADMIN_PASSWORD`
+- `PLATFORM_ADMIN_EMAIL`
 
-On paid Render web services, the same canonical compiled provisioner may instead run as the native pre-deploy command. The provider-independent provisioning contract does not change.
+This deliberately relaxes the deployment credential boundary for the current Free Render development stage. These privileged credentials must be removed from the web-service runtime environment before real production deployment.
+
+On paid Render web services, move `npm run db:provision:compiled` to the native pre-deploy command and return `scripts/render-start.sh` to application startup only. On self-hosted production, run the same provisioner in the deployment pipeline with privileged credentials isolated from the application runtime.
 
 ## 8. Database migration safety
 Before changing a migration or role policy:
